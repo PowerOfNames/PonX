@@ -16,9 +16,6 @@ namespace Povox {
 
 	void Application::Run()
 	{
-		while (true)
-		{
-			std::cout << "Running" << std::endl;
-		}
+		while (true);
 	}
 }
