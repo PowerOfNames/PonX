@@ -21,6 +21,9 @@ project "Povox"
 	targetdir("bin/" .. outputdir .. "/%{prj.name}")
 	objdir("bin-int/" .. outputdir .. "/%{prj.name}")
 
+	pchheader "pxpch.h"
+	pchsource "Povox/src/pxpch.cpp"
+
 	files
 	{
 		"%{prj.name}/src/**.h",

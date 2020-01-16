@@ -34,6 +34,7 @@
     <ClInclude Include="src\Povox\Log.h">
       <Filter>Povox</Filter>
     </ClInclude>
+    <ClInclude Include="src\pxpch.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Povox\Application.cpp">
@@ -42,5 +43,6 @@
     <ClCompile Include="src\Povox\Log.cpp">
       <Filter>Povox</Filter>
     </ClCompile>
+    <ClCompile Include="src\pxpch.cpp" />
   </ItemGroup>
 </Project>
