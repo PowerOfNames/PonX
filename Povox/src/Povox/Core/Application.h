@@ -1,6 +1,8 @@
 #pragma once
 
-#include "Core.h"
+#include "Povox/Core/Core.h"
+#include "Povox/Core/Window.h"
+#include "Povox/Events/Event.h"
 
 namespace Povox {
 
@@ -11,6 +13,10 @@ namespace Povox {
 		virtual ~Application();
 
 		void Run();
+
+	private:
+		std::unique_ptr<Window> m_Window;
+		bool m_Running = true;
 	};
 
 	// To be defined in CLIENT	

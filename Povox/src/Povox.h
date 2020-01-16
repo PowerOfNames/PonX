@@ -2,10 +2,11 @@
 
 //For use by Povox applications only
 
-#include "Povox/Application.h"
-#include "Povox/Log.h"
+#include "Povox/Core/Log.h"
+
+#include "Povox/Core/Application.h"
 
 
 // --- EntryPoint ----------------------------------
-#include "Povox/EntryPoint.h"
+#include "Povox/Core/EntryPoint.h"
 // -------------------------------------------------

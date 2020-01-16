@@ -1,9 +1,6 @@
 #pragma once
 
-#include "Povox/Core.h"
-
-#include <string>
-#include <functional>
+#include "Povox/Core/Core.h"
 
 namespace Povox {
 

@@ -11,6 +11,12 @@ workspace "Povox"
 
 outputdir = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"
 
+-- Include directories relative to root folder
+IncludeDir = {}
+IncludeDir["GLFW"] = ("Povox/vendor/GLFW/include")
+
+include "Povox/vendor/GLFW"
+
 project "Povox"
 	location "Povox"
 	kind "SharedLib"
@@ -33,8 +39,17 @@ project "Povox"
 	includedirs
 	{
 		"%{prj.name}/src",
-		"%{prj.name}/vendor/spdlog/include"
+		"%{prj.name}/vendor/spdlog/include",
+		"%{IncludeDir.GLFW}"
 	}
+
+	links
+	{
+		"GLFW",
+		"opengl32.lib"
+	}
+
+
 
 	filter "system:windows"
 		staticruntime "On"
@@ -52,7 +67,11 @@ project "Povox"
 		}
 
 	filter "configurations:Debug"
-		defines "PX_DEBUG"
+		defines 
+		{
+			"PX_DEBUG",
+			"PX_ENABLE_ASSERT"
+		}
 		symbols "On"
 		
 	filter "configurations:Release"
