@@ -29,6 +29,7 @@ namespace Povox {
 
 	class POVOX_API WindowCloseEvent : public Event
 	{
+	public:
 		WindowCloseEvent() {}
 
 		EVENT_CLASS_TYPE(WindowClose)
@@ -39,6 +40,7 @@ namespace Povox {
 	// the following three events may not be used
 	class POVOX_API AppTickEvent : public Event
 	{
+	public:
 		AppTickEvent() {}
 
 		EVENT_CLASS_TYPE(AppTick)
@@ -47,6 +49,7 @@ namespace Povox {
 
 	class POVOX_API AppUpdateEvent : public Event
 	{
+	public:
 		AppUpdateEvent() {}
 
 		EVENT_CLASS_TYPE(AppUpdate)
@@ -55,6 +58,7 @@ namespace Povox {
 
 	class POVOX_API AppRenderEvent : public Event
 	{
+	public:
 		AppRenderEvent() {}
 
 		EVENT_CLASS_TYPE(AppRender)

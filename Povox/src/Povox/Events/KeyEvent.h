@@ -20,6 +20,7 @@ namespace Povox {
 
 	class POVOX_API KeyPressedEvent : public KeyEvent
 	{
+	public:
 		KeyPressedEvent(int keycode, int repeatCount)
 			: KeyEvent(keycode), m_RepeatCount(repeatCount) {}
 		
@@ -40,6 +41,7 @@ namespace Povox {
 
 	class POVOX_API KeyReleasedEvent : public KeyEvent
 	{
+	public:
 		KeyReleasedEvent(int keycode)
 			: KeyEvent(keycode) {}
 
