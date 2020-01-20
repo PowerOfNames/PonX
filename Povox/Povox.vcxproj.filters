@@ -10,6 +10,9 @@
     <Filter Include="Povox">
       <UniqueIdentifier>{418BE50D-AD9F-0DBF-7621-B11EE2F409F0}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Povox\Core">
+      <UniqueIdentifier>{39E02C5D-2598-6EAA-8E9F-47067A76099B}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Povox\Events">
       <UniqueIdentifier>{05E40761-F146-9705-9ACC-CFBB860E6388}</UniqueIdentifier>
     </Filter>
@@ -19,6 +22,27 @@
       <Filter>Platform\Windows</Filter>
     </ClInclude>
     <ClInclude Include="src\Povox.h" />
+    <ClInclude Include="src\Povox\Core\Application.h">
+      <Filter>Povox\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Povox\Core\Core.h">
+      <Filter>Povox\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Povox\Core\EntryPoint.h">
+      <Filter>Povox\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Povox\Core\Layer.h">
+      <Filter>Povox\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Povox\Core\LayerStack.h">
+      <Filter>Povox\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Povox\Core\Log.h">
+      <Filter>Povox\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Povox\Core\Window.h">
+      <Filter>Povox\Core</Filter>
+    </ClInclude>
     <ClInclude Include="src\Povox\Events\ApplicationEvent.h">
       <Filter>Povox\Events</Filter>
     </ClInclude>
@@ -32,32 +56,23 @@
       <Filter>Povox\Events</Filter>
     </ClInclude>
     <ClInclude Include="src\pxpch.h" />
-    <ClInclude Include="src\Povox\Core\Log.h">
-      <Filter>Povox</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Povox\Core\Core.h">
-      <Filter>Povox</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Povox\Core\Application.h">
-      <Filter>Povox</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Povox\Core\EntryPoint.h">
-      <Filter>Povox</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Povox\Core\Window.h">
-      <Filter>Povox</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Platform\Windows\WindowsWindow.cpp">
       <Filter>Platform\Windows</Filter>
     </ClCompile>
-    <ClCompile Include="src\pxpch.cpp" />
-    <ClCompile Include="src\Povox\Core\Log.cpp">
-      <Filter>Povox</Filter>
-    </ClCompile>
     <ClCompile Include="src\Povox\Core\Application.cpp">
-      <Filter>Povox</Filter>
+      <Filter>Povox\Core</Filter>
     </ClCompile>
+    <ClCompile Include="src\Povox\Core\Layer.cpp">
+      <Filter>Povox\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Povox\Core\LayerStack.cpp">
+      <Filter>Povox\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Povox\Core\Log.cpp">
+      <Filter>Povox\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pxpch.cpp" />
   </ItemGroup>
 </Project>

@@ -48,8 +48,8 @@ namespace Povox {
 			return GetCategoryFlags() & category;
 		}
 
-	protected:
-		bool m_Handled = false;
+	public: 
+		bool Handled;
 	};
 
 	class EventDispatcher
@@ -68,7 +68,7 @@ namespace Povox {
 			// Checks which type the current event we are trying to dispatch is, wether or not is matches T
 			if (m_Event.GetEventType() == T::GetStaticType())
 			{
-				m_Event.m_Handled = func(static_cast<T&>(m_Event));
+				m_Event.Handled = func(static_cast<T&>(m_Event));
 				return true;
 			}
 			return false;

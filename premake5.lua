@@ -14,8 +14,10 @@ outputdir = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"
 -- Include directories relative to root folder
 IncludeDir = {}
 IncludeDir["GLFW"] = ("Povox/vendor/GLFW/include")
+IncludeDir["Glad"] = ("Povox/vendor/Glad/include")
 
 include "Povox/vendor/GLFW"
+include "Povox/vendor/Glad"
 
 project "Povox"
 	location "Povox"
@@ -40,12 +42,14 @@ project "Povox"
 	{
 		"%{prj.name}/src",
 		"%{prj.name}/vendor/spdlog/include",
-		"%{IncludeDir.GLFW}"
+		"%{IncludeDir.GLFW}",
+		"%{IncludeDir.Glad}"
 	}
 
 	links
 	{
 		"GLFW",
+		"Glad",
 		"opengl32.lib"
 	}
 
@@ -67,19 +71,18 @@ project "Povox"
 		}
 
 	filter "configurations:Debug"
-		defines 
-		{
-			"PX_DEBUG",
-			"PX_ENABLE_ASSERT"
-		}
+		defines "PX_DEBUG"
+		buildoptions "/MDd"
 		symbols "On"
 		
 	filter "configurations:Release"
 		defines "PX_RELEASE"
+		buildoptions "/MD"
 		optimize "On"
 
 	filter "configurations:Dist"
 		defines "PX_DIST"
+		buildoptions "/MD"
 		optimize "On"
 
 project "Sandbox"
@@ -120,12 +123,15 @@ project "Sandbox"
 
 	filter "configurations:Debug"
 		defines "PX_DEBUG"
+		buildoptions "/MDd"
 		symbols "On"
 		
 	filter "configurations:Release"
 		defines "PX_RELEASE"
+		buildoptions "/MD"
 		optimize "On"
 
 	filter "configurations:Dist"
 		defines "PX_DIST"
+		buildoptions "/MD"
 		optimize "On"
