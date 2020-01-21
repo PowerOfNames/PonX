@@ -17,15 +17,19 @@ IncludeDir["GLFW"] = ("Povox/vendor/GLFW/include")
 IncludeDir["Glad"] = ("Povox/vendor/Glad/include")
 IncludeDir["ImGui"] = ("Povox/vendor/ImGui")
 
-include "Povox/vendor/GLFW"
-include "Povox/vendor/Glad"
-include "Povox/vendor/ImGui"
+group "Dependencies"
+	include "Povox/vendor/GLFW"
+	include "Povox/vendor/Glad"
+	include "Povox/vendor/ImGui"
+
+group ""
 
 project "Povox"
 	location "Povox"
 	kind "SharedLib"
 	language "C++"
 	cppdialect "C++17"
+	staticruntime "off"
 
 
 	targetdir("bin/" .. outputdir .. "/%{prj.name}")
@@ -60,7 +64,6 @@ project "Povox"
 
 
 	filter "system:windows"
-		staticruntime "On"
 		systemversion "latest"
 
 		defines
@@ -72,22 +75,22 @@ project "Povox"
 
 		postbuildcommands
 		{
-			("{COPY} %{cfg.buildtarget.relpath} ../bin/" .. outputdir .. "/Sandbox")
+			("{COPY} %{cfg.buildtarget.relpath} \"../bin/" .. outputdir .. "/Sandbox/\"")
 		}
 
 	filter "configurations:Debug"
 		defines "PX_DEBUG"
-		buildoptions "/MDd"
+		runtime "Debug"
 		symbols "On"
 		
 	filter "configurations:Release"
 		defines "PX_RELEASE"
-		buildoptions "/MD"
+		runtime "Release"
 		optimize "On"
 
 	filter "configurations:Dist"
 		defines "PX_DIST"
-		buildoptions "/MD"
+		runtime "Release"
 		optimize "On"
 
 project "Sandbox"
@@ -95,6 +98,8 @@ project "Sandbox"
 	kind "ConsoleApp"
 	language "C++"
 	cppdialect "C++17"
+	staticruntime "off"
+
 
 
 	targetdir("bin/" .. outputdir .. "/%{prj.name}")
@@ -118,7 +123,6 @@ project "Sandbox"
 	}
 
 	filter "system:windows"
-		staticruntime "On"
 		systemversion "latest"
 
 		defines
@@ -128,15 +132,15 @@ project "Sandbox"
 
 	filter "configurations:Debug"
 		defines "PX_DEBUG"
-		buildoptions "/MDd"
+		runtime "Debug"
 		symbols "On"
 		
 	filter "configurations:Release"
 		defines "PX_RELEASE"
-		buildoptions "/MD"
+		runtime "Release"
 		optimize "On"
 
 	filter "configurations:Dist"
 		defines "PX_DIST"
-		buildoptions "/MD"
+		runtime "Release"
 		optimize "On"

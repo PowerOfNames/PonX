@@ -11,7 +11,6 @@ int main(int argc, char** argv)
 
 	auto app = Povox::CreateApplication();
 	app->Run();
-
 	delete app;
 }
 

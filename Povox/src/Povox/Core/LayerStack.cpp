@@ -5,7 +5,6 @@ namespace Povox {
 
 	LayerStack::LayerStack()
 	{
-		m_LayerInsertIndex = m_Layers.begin();
 	}
 
 	LayerStack::~LayerStack()
@@ -17,10 +16,11 @@ namespace Povox {
 		}
 	}
 
-	// Adds 'layer' to the current position of the 'layerinsert' pointer within the vector
+	// Adds 'layer' to the current position of the 'layerinsertindex' pointer within the vector
 	void LayerStack::PushLayer(Layer* layer)
 	{
-		m_LayerInsertIndex = m_Layers.emplace(m_LayerInsertIndex, layer);
+		m_Layers.emplace(m_Layers.begin() + m_LayerInsertIndex, layer);
+		m_LayerInsertIndex++;
 	}
 
 	// Adds 'overlay' to the end of the vector

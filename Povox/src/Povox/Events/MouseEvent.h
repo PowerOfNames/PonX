@@ -52,6 +52,7 @@ namespace Povox {
 
 	class POVOX_API MouseButtonEvent : public Event
 	{
+	public:
 		inline int GetMouseButton() const { return m_Button;  }
 
 		EVENT_CLASS_CATEGORY(EventCategoryMouseButton | EventCategoryMouse | EventCategoryInput)

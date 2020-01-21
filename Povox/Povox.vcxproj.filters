@@ -16,6 +16,9 @@
     <Filter Include="Povox\Events">
       <UniqueIdentifier>{05E40761-F146-9705-9ACC-CFBB860E6388}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Povox\ImGui">
+      <UniqueIdentifier>{2BAD3303-9762-ACF8-2057-A6CF8C0BA3FC}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Platform\Windows\WindowsWindow.h">
@@ -55,9 +58,10 @@
     <ClInclude Include="src\Povox\Events\MouseEvent.h">
       <Filter>Povox\Events</Filter>
     </ClInclude>
+    <ClInclude Include="src\Povox\ImGui\ImGuiLayer.h">
+      <Filter>Povox\ImGui</Filter>
+    </ClInclude>
     <ClInclude Include="src\pxpch.h" />
-    <ClInclude Include="src\Povox\ImGui\ImGuiLayer.h" />
-    <ClInclude Include="src\Platform\OpenGL\ImGuiOpenGLRenderer.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Platform\Windows\WindowsWindow.cpp">
@@ -75,8 +79,15 @@
     <ClCompile Include="src\Povox\Core\Log.cpp">
       <Filter>Povox\Core</Filter>
     </ClCompile>
+    <ClCompile Include="src\Povox\Core\Window.cpp">
+      <Filter>Povox\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Povox\ImGui\ImGuiBuild.cpp">
+      <Filter>Povox\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Povox\ImGui\ImGuiLayer.cpp">
+      <Filter>Povox\ImGui</Filter>
+    </ClCompile>
     <ClCompile Include="src\pxpch.cpp" />
-    <ClCompile Include="src\Povox\ImGui\ImGuiLayer.cpp" />
-    <ClCompile Include="src\Platform\OpenGL\ImGuiOpenGLRenderer.cpp" />
   </ItemGroup>
 </Project>

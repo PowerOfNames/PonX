@@ -5,6 +5,8 @@
 #include "Povox/Events/Event.h"
 #include "Povox/Events/ApplicationEvent.h"
 #include "Povox/Core/LayerStack.h"
+#include "Povox/ImGui/ImGuiLayer.h"
+
 
 
 namespace Povox {
@@ -30,6 +32,7 @@ namespace Povox {
 		bool OnWindowClose(WindowCloseEvent& e);
 
 		std::unique_ptr<Window> m_Window;
+		ImGuiLayer* m_ImGuiLayer;
 		bool m_Running = true;
 		LayerStack m_Layerstack;
 

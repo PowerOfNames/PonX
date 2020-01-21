@@ -8,6 +8,7 @@ namespace Povox {
 
 	class POVOX_API KeyEvent : public Event
 	{
+	public:
 		inline int GetKeyCode() const { return m_KeyCode; }
 
 		EVENT_CLASS_CATEGORY(EventCategoryKeyboard | EventCategoryInput)
@@ -53,5 +54,21 @@ namespace Povox {
 		}
 
 		EVENT_CLASS_TYPE(KeyReleased)
+	};
+
+	class POVOX_API KeyTypedEvent : public KeyEvent
+	{
+	public:
+		KeyTypedEvent(int character)
+			: KeyEvent(character) {}
+
+		std::string ToString() const override
+		{
+			std::stringstream ss;
+			ss << "KeyTypedEvent: " << m_KeyCode;
+			return ss.str();
+		}
+
+		EVENT_CLASS_TYPE(KeyTyped)
 	};
 }

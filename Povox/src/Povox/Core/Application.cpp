@@ -2,12 +2,12 @@
 #include "Povox/Core/Application.h"
 
 #include "Povox/Core/Log.h"
+#include "Povox/Core/Core.h"
 
-#include "glad/glad.h"
+#include <glad/glad.h>
+
 
 namespace Povox {
-
-#define BIND_EVENT_FN(x) std::bind(&Application::x, this,  std::placeholders::_1)
 
 	Application* Application::s_Instance = nullptr;
 
@@ -16,8 +16,11 @@ namespace Povox {
 		PX_CORE_ASSERT(!s_Instance, "Application already exists!");
 		s_Instance = this;
 
-		m_Window = std::unique_ptr<Window>(Window::Create());
-		m_Window->SetEventCallback(BIND_EVENT_FN(OnEvent));
+		m_Window = Window::Create();
+		m_Window->SetEventCallback(PX_BIND_EVENT_FN(Application::OnEvent));
+		
+		m_ImGuiLayer = new ImGuiLayer();
+		PushOverlay(m_ImGuiLayer);
 	}
 
 	Application::~Application() 
@@ -40,7 +43,7 @@ namespace Povox {
 	void Application::OnEvent(Event& e)
 	{
 		EventDispatcher dispatcher(e);
-		dispatcher.Dispatch<WindowCloseEvent>(BIND_EVENT_FN(OnWindowClose));
+		dispatcher.Dispatch<WindowCloseEvent>(PX_BIND_EVENT_FN(Application::OnWindowClose));
 
 		for (auto it = m_Layerstack.end(); it != m_Layerstack.begin();)
 		{
@@ -61,6 +64,14 @@ namespace Povox {
 			{
 				layer->OnUpdate();
 			}
+
+			// To be executed on the Render thread
+			m_ImGuiLayer->Begin();
+			for (Layer* layer : m_Layerstack)
+			{
+				layer->OnImGuiRender();
+			}
+			m_ImGuiLayer->End();
 
 			m_Window->OnUpdate();
 
