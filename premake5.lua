@@ -119,6 +119,7 @@ project "Sandbox"
 	{
 		"Povox/src",
 		"Povox/vendor/spdlog/include",
+		"Povox/vendor",
 		"%{IncludeDir.glm}"
 	}
 

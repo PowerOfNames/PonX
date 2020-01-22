@@ -1,5 +1,7 @@
 #include <Povox.h>
 
+#include <ImGui/imgui.h>
+
 
 class ExampleLayer : public Povox::Layer
 {
@@ -12,19 +14,15 @@ public:
 
 	void OnUpdate() override
 	{
-		PX_TRACE("{0}", Povox::Input::IsKeyPressed(PX_KEY_A));
 	}
 
 	void OnEvent(Povox::Event& event) override
 	{
 
-		PX_TRACE("{0}", event);
-		if (event.GetEventType() == Povox::EventType::KeyPressed)
-		{
-			PX_INFO("Button pressed");
-			Povox::KeyPressedEvent& e = (Povox::KeyPressedEvent&)event;
-			PX_TRACE("{0}", (char)e.GetKeyCode());
-		}
+	}
+
+	virtual void OnImGuiRender() override
+	{
 	}
 };
 
@@ -35,7 +33,6 @@ public:
 	Sandbox()
 	{
 		PushLayer(new ExampleLayer());
-		//PushOverlay(new Povox::ImGuiLayer());
 	}
 
 	~Sandbox()
