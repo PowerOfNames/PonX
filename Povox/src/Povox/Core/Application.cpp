@@ -67,8 +67,6 @@ namespace Povox {
 				layer->OnUpdate();
 			}
 
-			PX_TRACE("{0}", Input::IsMouseButtonPressed(1));
-
 			// To be executed on the Render thread
 			m_ImGuiLayer->Begin();
 			for (Layer* layer : m_Layerstack)

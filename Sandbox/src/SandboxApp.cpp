@@ -11,12 +11,19 @@ public:
 
 	void OnUpdate() override
 	{
-		PX_INFO("ExampleLayer::OnUpdate");
+		PX_TRACE("{0}", Povox::Input::IsKeyPressed(PX_KEY_A));
 	}
 
 	void OnEvent(Povox::Event& event) override
 	{
+
 		PX_TRACE("{0}", event);
+		if (event.GetEventType() == Povox::EventType::KeyPressed)
+		{
+			PX_INFO("Button pressed");
+			Povox::KeyPressedEvent& e = (Povox::KeyPressedEvent&)event;
+			PX_TRACE("{0}", (char)e.GetKeyCode());
+		}
 	}
 };
 
@@ -27,6 +34,7 @@ public:
 	Sandbox()
 	{
 		PushLayer(new ExampleLayer());
+		//PushOverlay(new Povox::ImGuiLayer());
 	}
 
 	~Sandbox()

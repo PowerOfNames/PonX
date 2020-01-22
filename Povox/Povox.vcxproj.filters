@@ -64,6 +64,8 @@
     <ClInclude Include="src\pxpch.h" />
     <ClInclude Include="src\Povox\Core\Input.h" />
     <ClInclude Include="src\Platform\Windows\WindowsInput.h" />
+    <ClInclude Include="src\Povox\Core\KeyCodes.h" />
+    <ClInclude Include="src\Povox\Core\MouseButtonCodes.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Platform\Windows\WindowsWindow.cpp">
