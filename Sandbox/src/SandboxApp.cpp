@@ -23,6 +23,9 @@ public:
 
 	virtual void OnImGuiRender() override
 	{
+		ImGui::Begin("Test");
+		ImGui::Text("Hello Povox User!");
+		ImGui::End();
 	}
 };
 

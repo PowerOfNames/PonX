@@ -4,13 +4,17 @@
 
 
 #ifdef PX_PLATFORM_WINDOWS
+#if PX_DYNAMIC_LINK
 	#ifdef PX_BUILD_DLL
 		#define POVOX_API __declspec(dllexport)
 	#else 
 		#define POVOX_API __declspec(dllimport)
 	#endif
 #else
-	#error Povox only supports widows!
+	#define POVOX_API
+#endif
+#else
+	#error  Povox only supports windows!
 #endif
 
 #ifdef PX_DEBUG

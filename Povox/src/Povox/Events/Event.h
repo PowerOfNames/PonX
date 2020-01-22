@@ -49,7 +49,7 @@ namespace Povox {
 		}
 
 	public: 
-		bool Handled;
+		bool Handled = false;
 	};
 
 	class EventDispatcher

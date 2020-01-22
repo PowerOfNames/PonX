@@ -27,10 +27,10 @@ group ""
 
 project "Povox"
 	location "Povox"
-	kind "SharedLib"
+	kind "StaticLib"
 	language "C++"
 	cppdialect "C++17"
-	staticruntime "off"
+	staticruntime "on"
 
 
 	targetdir("bin/" .. outputdir .. "/%{prj.name}")
@@ -45,6 +45,11 @@ project "Povox"
 		"%{prj.name}/src/**.cpp",
 		"%{prj.name}/vendor/glm/glm/**.hpp",
 		"%{prj.name}/vendor/glm/glm/**.inl"
+	}
+
+	defines
+	{
+		"_CRT_SECURE_NO_WARNINGS"
 	}
 
 	includedirs
@@ -77,32 +82,27 @@ project "Povox"
 			"GLFW_INCLUDE_NONE"
 		}
 
-		postbuildcommands
-		{
-			("{COPY} %{cfg.buildtarget.relpath} \"../bin/" .. outputdir .. "/Sandbox/\"")
-		}
-
 	filter "configurations:Debug"
 		defines "PX_DEBUG"
 		runtime "Debug"
-		symbols "On"
+		symbols "on"
 		
 	filter "configurations:Release"
 		defines "PX_RELEASE"
 		runtime "Release"
-		optimize "On"
+		optimize "on"
 
 	filter "configurations:Dist"
 		defines "PX_DIST"
 		runtime "Release"
-		optimize "On"
+		optimize "on"
 
 project "Sandbox"
 	location "Sandbox"
 	kind "ConsoleApp"
 	language "C++"
 	cppdialect "C++17"
-	staticruntime "off"
+	staticruntime "on"
 
 
 
@@ -139,14 +139,14 @@ project "Sandbox"
 	filter "configurations:Debug"
 		defines "PX_DEBUG"
 		runtime "Debug"
-		symbols "On"
+		symbols "on"
 		
 	filter "configurations:Release"
 		defines "PX_RELEASE"
 		runtime "Release"
-		optimize "On"
+		optimize "on"
 
 	filter "configurations:Dist"
 		defines "PX_DIST"
 		runtime "Release"
-		optimize "On"
+		optimize "on"
