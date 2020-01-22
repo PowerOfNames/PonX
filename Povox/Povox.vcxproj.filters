@@ -62,6 +62,8 @@
       <Filter>Povox\ImGui</Filter>
     </ClInclude>
     <ClInclude Include="src\pxpch.h" />
+    <ClInclude Include="src\Povox\Core\Input.h" />
+    <ClInclude Include="src\Platform\Windows\WindowsInput.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Platform\Windows\WindowsWindow.cpp">
@@ -89,5 +91,6 @@
       <Filter>Povox\ImGui</Filter>
     </ClCompile>
     <ClCompile Include="src\pxpch.cpp" />
+    <ClCompile Include="src\Platform\Windows\WindowsInput.cpp" />
   </ItemGroup>
 </Project>

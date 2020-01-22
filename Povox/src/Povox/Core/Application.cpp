@@ -4,6 +4,8 @@
 #include "Povox/Core/Log.h"
 #include "Povox/Core/Core.h"
 
+#include "Povox/Core/Input.h"
+
 #include <glad/glad.h>
 
 
@@ -64,6 +66,8 @@ namespace Povox {
 			{
 				layer->OnUpdate();
 			}
+
+			PX_TRACE("{0}", Input::IsMouseButtonPressed(1));
 
 			// To be executed on the Render thread
 			m_ImGuiLayer->Begin();
