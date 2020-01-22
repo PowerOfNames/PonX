@@ -7,3 +7,6 @@
 [submodule "Povox/vendor/ImGui"]
 	path = Povox/vendor/ImGui
 	url = https://github.com/PowerOfNames/imgui
+[submodule "Povox/vendor/glm"]
+	path = Povox/vendor/glm
+	url = https://github.com/g-truc/glm

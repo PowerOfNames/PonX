@@ -16,6 +16,7 @@ IncludeDir = {}
 IncludeDir["GLFW"] = ("Povox/vendor/GLFW/include")
 IncludeDir["Glad"] = ("Povox/vendor/Glad/include")
 IncludeDir["ImGui"] = ("Povox/vendor/ImGui")
+IncludeDir["glm"] = ("Povox/vendor/glm")
 
 group "Dependencies"
 	include "Povox/vendor/GLFW"
@@ -41,7 +42,9 @@ project "Povox"
 	files
 	{
 		"%{prj.name}/src/**.h",
-		"%{prj.name}/src/**.cpp"
+		"%{prj.name}/src/**.cpp",
+		"%{prj.name}/vendor/glm/glm/**.hpp",
+		"%{prj.name}/vendor/glm/glm/**.inl"
 	}
 
 	includedirs
@@ -51,6 +54,7 @@ project "Povox"
 		"%{IncludeDir.GLFW}",
 		"%{IncludeDir.Glad}",
 		"%{IncludeDir.ImGui}",
+		"%{IncludeDir.glm}"
 	}
 
 	links
@@ -114,7 +118,8 @@ project "Sandbox"
 	includedirs
 	{
 		"Povox/src",
-		"Povox/vendor/spdlog/include"
+		"Povox/vendor/spdlog/include",
+		"%{IncludeDir.glm}"
 	}
 
 	links
