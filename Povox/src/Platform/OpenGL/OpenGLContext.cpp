@@ -19,9 +19,10 @@ namespace Povox {
 		int status = gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
 		PX_CORE_ASSERT(status, "Failed to initialize Glad!");
 
-		PX_CORE_INFO("	Vendor: {0}", glGetString(GL_VENDOR));
-		PX_CORE_INFO("	Rendeder: {0}", glGetString(GL_RENDERER));
-		PX_CORE_INFO("	Version: {0}", glGetString(GL_VERSION));
+		PX_CORE_INFO("--- Povox Info: ---");
+		PX_CORE_INFO(" Vendor   : {0}", glGetString(GL_VENDOR));
+		PX_CORE_INFO(" Rendeder : {0}", glGetString(GL_RENDERER));
+		PX_CORE_INFO(" Version  : {0}", glGetString(GL_VERSION));
 	}
 
 	void OpenGLContext::SwapBuffers()
