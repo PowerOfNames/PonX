@@ -14,11 +14,14 @@ public:
 
 	void OnUpdate() override
 	{
+		if(Povox::Input::IsKeyPressed(PX_KEY_A))
+			PX_TRACE("wquhhu!");
+
 	}
 
 	void OnEvent(Povox::Event& event) override
 	{
-
+		PX_TRACE("{0}", event);
 	}
 
 	virtual void OnImGuiRender() override

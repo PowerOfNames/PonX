@@ -16,7 +16,7 @@ namespace Povox {
 		// Color depends on severity of the message
 		spdlog::set_pattern("%^[%T] %n: %v%$");
 
-		s_CoreLogger = spdlog::stdout_color_mt("PONOX");
+		s_CoreLogger = spdlog::stdout_color_mt("POVOX");
 		s_CoreLogger->set_level(spdlog::level::level_enum::trace);
 
 		s_ClientLogger = spdlog::stdout_color_mt("APP");
