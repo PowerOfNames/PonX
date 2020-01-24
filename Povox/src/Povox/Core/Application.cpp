@@ -13,27 +13,6 @@ namespace Povox {
 
 	Application* Application::s_Instance = nullptr;
 
-	static GLenum ShaderDataTypeToGLBaseType(ShaderDataType type)
-	{
-		switch (type)
-		{
-			case Povox::ShaderDataType::Float:	return GL_FLOAT;
-			case Povox::ShaderDataType::Float2:	return GL_FLOAT;
-			case Povox::ShaderDataType::Float3:	return GL_FLOAT;
-			case Povox::ShaderDataType::Float4:	return GL_FLOAT;
-			case Povox::ShaderDataType::Mat3:	return GL_FLOAT;
-			case Povox::ShaderDataType::Mat4:	return GL_FLOAT;
-			case Povox::ShaderDataType::Int:	return GL_INT;
-			case Povox::ShaderDataType::Int2:	return GL_INT;
-			case Povox::ShaderDataType::Int3:	return GL_INT;
-			case Povox::ShaderDataType::Int4:	return GL_INT;
-			case Povox::ShaderDataType::Bool:	return GL_BOOL;
-		}
-
-		PX_CORE_ASSERT(false, "No such ShaderDataType defined!");
-		return 0;
-	}
-
 	Application::Application() 
 	{
 		PX_CORE_ASSERT(!s_Instance, "Application already exists!");
@@ -45,8 +24,7 @@ namespace Povox {
 		m_ImGuiLayer = new ImGuiLayer();
 		PushOverlay(m_ImGuiLayer);
 
-		glGenVertexArrays(1, &m_VertexArray);
-		glBindVertexArray(m_VertexArray);
+		m_VertexArray.reset(VertexArray::Create());
 
 		float vertices[3 * 7] = {
 			-0.5f, -0.5f, 0.0f, 0.8f, 0.2f, 0.6f, 1.0f,
@@ -54,36 +32,22 @@ namespace Povox {
 			 0.0f,  0.5f, 0.0f, 0.8f, 0.2f, 0.6f, 1.0f
 		};
 
-		m_VertexBuffer.reset(VertexBuffer::Create(vertices, sizeof(vertices)));
-
-		{
-			BufferLayout layout = {
-				{ ShaderDataType::Float3, "a_Position" },
-				{ ShaderDataType::Float4, "a_Color" }
-			};
-			m_VertexBuffer->SetLayout(layout);
-		}
-		const auto& layout = m_VertexBuffer->GetLayout();
-		uint32_t index = 0;
-		for (const auto& element : layout)
-		{
-			glEnableVertexAttribArray(index);
-			glVertexAttribPointer(index, 
-				element.GetComponentCount(), 
-				ShaderDataTypeToGLBaseType(element.Type), 
-				element.Normalized ? GL_TRUE : GL_FALSE, 
-				layout.GetStride(), 
-				(const void*)element.Offset);
-
-			index++;
-		}
-
+		std::shared_ptr<VertexBuffer> vertexBuffer;
+		vertexBuffer.reset(VertexBuffer::Create(vertices, sizeof(vertices)));
+		BufferLayout layout = {
+			{ ShaderDataType::Float3, "a_Position" },
+			{ ShaderDataType::Float4, "a_Color" }
+		};
+		vertexBuffer->SetLayout(layout);
+		m_VertexArray->AddVertexBuffer(vertexBuffer);
 
 		uint32_t indices[3] = {
 			0, 1, 2
 		};
 
-		m_IndexBuffer.reset(IndexBuffer::Create(indices, sizeof(indices) / sizeof(uint32_t)));
+		std::shared_ptr<IndexBuffer> indexBuffer;
+		indexBuffer.reset(IndexBuffer::Create(indices, sizeof(indices) / sizeof(uint32_t)));
+		m_VertexArray->SetIndexBuffer(indexBuffer);
 
 		std::string vertexSrc = R"(
 		#version 330 core
@@ -154,9 +118,8 @@ namespace Povox {
 			glClear(GL_COLOR_BUFFER_BIT);
 
 			m_Shader->Bind();
-
-			glBindVertexArray(m_VertexArray);
-			glDrawElements(GL_TRIANGLES, m_IndexBuffer->GetCount(), GL_UNSIGNED_INT, nullptr);
+			m_VertexArray->Bind();
+			glDrawElements(GL_TRIANGLES, m_VertexArray->GetIndexBuffer()->GetCount(), GL_UNSIGNED_INT, nullptr);
 
 			
 			for (Layer* layer : m_Layerstack)

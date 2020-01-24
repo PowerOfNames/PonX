@@ -49,7 +49,7 @@ namespace Povox {
 			CalculateOffsetAndStride();
 		}
 
-		inline const std::vector<BufferElement>& GetBufferElements() const { return m_BufferElements; }
+		inline const std::vector<BufferElement>& GetElements() const { return m_BufferElements; }
 		inline const uint32_t GetStride() const { return m_Stride; }
 
 		std::vector<BufferElement>::iterator begin() { return m_BufferElements.begin(); }
