@@ -1,18 +1,20 @@
 #include "pxpch.h"
 #include "Povox/Core/Application.h"
-#include "Povox/Core/Input.h"
-#include "Povox/Core/Log.h"
-#include "Povox/Core/Core.h"
 
+#include "Povox/Core/Log.h"
+
+#include "Povox/Core/Input.h"
 
 #include "Povox/Renderer/Renderer.h"
+#include "Povox/Core/Timestep.h"
 
 
 namespace Povox {
 
 	Application* Application::s_Instance = nullptr;
 
-	Application::Application() 
+	Application::Application()
+		: m_CameraController(1280 / 960)
 	{
 		PX_CORE_ASSERT(!s_Instance, "Application already exists!");
 		s_Instance = this;
@@ -54,11 +56,13 @@ namespace Povox {
 		layout(location = 0) in vec3 a_Position;		
 		layout(location = 1) in vec4 a_Color;		
 
+		uniform mat4 u_ViewProjection;
+
 		out vec4 v_Color;		
 
 		void main()
 		{
-			gl_Position = vec4(a_Position, 1.0f);
+			gl_Position = u_ViewProjection * vec4(a_Position, 1.0f);
 			v_Color = a_Color;
 		}
 		)";
@@ -105,10 +109,12 @@ namespace Povox {
 		#version 330 core
 		
 		layout(location = 0) in vec3 a_Position;		
+	
+		uniform mat4 u_ViewProjection;
 
 		void main()
 		{
-			gl_Position = vec4(a_Position, 1.0f);
+			gl_Position = u_ViewProjection * vec4(a_Position, 1.0f);
 		}
 		)";
 
@@ -147,6 +153,8 @@ namespace Povox {
 		EventDispatcher dispatcher(e);
 		dispatcher.Dispatch<WindowCloseEvent>(PX_BIND_EVENT_FN(Application::OnWindowClose));
 
+		m_CameraController.OnEvent(e);
+
 		for (auto it = m_Layerstack.end(); it != m_Layerstack.begin();)
 		{
 			(*--it)->OnEvent(e);
@@ -161,12 +169,12 @@ namespace Povox {
 		{
 			RenderCommand::SetClearColor({ 0.8f, 0.2f, 0.6f, 1.0f });
 			RenderCommand::Clear();
+			m_CameraController.OnUpdate(m_ts);
+			Renderer::BeginScene(m_CameraController.GetCamera());
 
-			Renderer::BeginScene();
-			m_WhiteShader->Bind();
-			Renderer::Submit(m_SquareVertexArray);
-			m_Shader->Bind();
-			Renderer::Submit(m_VertexArray);
+			Renderer::Submit(m_WhiteShader, m_SquareVertexArray);
+			Renderer::Submit(m_Shader, m_VertexArray);
+
 			Renderer::EndScene();
 
 			for (Layer* layer : m_Layerstack)

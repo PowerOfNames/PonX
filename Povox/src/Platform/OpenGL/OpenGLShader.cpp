@@ -1,13 +1,17 @@
 #include "pxpch.h"
 #include "Platform/OpenGL/OpenGLShader.h"
 
+#include "Povox/Core/Log.h"
+
 #include <glad/glad.h>
+#include <glm/gtc/type_ptr.hpp>
 
 namespace Povox {
 
 
 	OpenGLShader::OpenGLShader(const std::string& vertexSrc, const std::string& fragmentSrc)
 	{
+		m_RendererID = glCreateProgram();
 		// Create an empty vertex shader handle
 		GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
 
@@ -73,7 +77,6 @@ namespace Povox {
 		// Vertex and fragment shaders are successfully compiled.
 		// Now time to link them together into a program.
 		// Get a program object.
-		m_RendererID = glCreateProgram();
 
 		// Attach our shaders to our program
 		glAttachShader(m_RendererID, vertexShader);
@@ -124,6 +127,14 @@ namespace Povox {
 	void OpenGLShader::Unbind() const
 	{
 		glUseProgram(0);
+	}
+
+	void OpenGLShader::SetUniformMat4(const std::string& name, const glm::mat4& matrix) const
+	{
+		GLint location = glGetUniformLocation(m_RendererID, name.c_str());
+		if (location == -1)
+			PX_CORE_ASSERT(false, "Uniform '" + name + "' not in shader!");
+		glUniformMatrix4fv(location, 1, GL_FALSE, glm::value_ptr(matrix));
 	}
 
 }

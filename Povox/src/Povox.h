@@ -7,6 +7,7 @@
 #include "Povox/Core/Layer.h"
 
 #include "Povox/ImGui/ImGuiLayer.h"
+#include "Povox/Renderer/OrthographicCamera.h"
 
 // --- Inputs
 

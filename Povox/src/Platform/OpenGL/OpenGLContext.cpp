@@ -21,7 +21,7 @@ namespace Povox {
 
 		PX_CORE_INFO("--- Povox Info: ---");
 		PX_CORE_INFO(" Vendor   : {0}", glGetString(GL_VENDOR));
-		PX_CORE_INFO(" Rendeder : {0}", glGetString(GL_RENDERER));
+		PX_CORE_INFO(" Renderer : {0}", glGetString(GL_RENDERER));
 		PX_CORE_INFO(" Version  : {0}", glGetString(GL_VERSION));
 	}
 

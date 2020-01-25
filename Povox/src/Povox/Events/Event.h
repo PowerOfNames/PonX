@@ -62,10 +62,11 @@ namespace Povox {
 		{
 		}
 
-		template<typename T>
-		bool Dispatch(EventFN<T> func)
+		// Typename F will be deduced by the compiler
+		template<typename T, typename F>
+		bool Dispatch(const F& func)
 		{
-			// Checks which type the current event we are trying to dispatch is, wether or not is matches T
+			// Checks which type the current event we are trying to dispatch is, whether or not is matches T
 			if (m_Event.GetEventType() == T::GetStaticType())
 			{
 				m_Event.Handled = func(static_cast<T&>(m_Event));

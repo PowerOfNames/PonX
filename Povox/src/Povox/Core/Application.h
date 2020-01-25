@@ -10,6 +10,10 @@
 #include "Povox/Renderer/Shader.h"
 #include "Povox/Renderer/Buffer.h"
 #include "Povox/Renderer/VertexArray.h"
+#include "Povox/Renderer/OrthographicCameraController.h"
+
+
+#include "Povox/Renderer/OrthographicCamera.h"
 
 
 namespace Povox {
@@ -47,6 +51,9 @@ namespace Povox {
 		std::shared_ptr<Shader> m_WhiteShader;
 		std::shared_ptr<VertexArray> m_VertexArray;
 		std::shared_ptr<VertexArray> m_SquareVertexArray;
+
+		OrthographicCameraController m_CameraController;
+		float m_ts = 0.16f;
 	};
 
 	// To be defined in CLIENT	
