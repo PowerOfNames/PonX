@@ -5,8 +5,7 @@
 #include "Povox/Core/Core.h"
 
 
-#include <glad/glad.h>
-#include <glm/glm.hpp>
+#include "Povox/Renderer/Renderer.h"
 
 
 namespace Povox {
@@ -73,11 +72,57 @@ namespace Povox {
 
 		void main()
 		{
-			color = vec4(32.0f / 255, 93.0f / 255, 85.0f / 255, 1.0f);
 			color = v_Color;
+			color = vec4(32.0f / 255, 93.0f / 255, 85.0f / 255, 1.0f);
 		}
 		)";
 		m_Shader.reset(Shader::Create(vertexSrc, fragmentSrc));
+
+		m_SquareVertexArray.reset(VertexArray::Create());
+
+		float squareVertices[3 * 4] = {
+			-0.75f, -0.75f, 0.0f,
+			 0.75f, -0.75f, 0.0f,
+			 0.75f,  0.75f, 0.0f,
+			-0.75f,  0.75f, 0.0f,
+		};
+
+		std::shared_ptr<VertexBuffer> squareVB;
+		squareVB.reset(VertexBuffer::Create(squareVertices, sizeof(squareVertices)));
+
+		squareVB->SetLayout({ { ShaderDataType::Float3, "a_Position" } });
+		m_SquareVertexArray->AddVertexBuffer(squareVB);
+
+		uint32_t squareIndices[6] = {
+			0, 1, 2, 2, 3, 0
+		};
+
+		std::shared_ptr<IndexBuffer> squareIB;
+		squareIB.reset(IndexBuffer::Create(squareIndices, sizeof(squareIndices) / sizeof(uint32_t)));
+		m_SquareVertexArray->SetIndexBuffer(squareIB);
+
+		std::string blueVertexSrc = R"(
+		#version 330 core
+		
+		layout(location = 0) in vec3 a_Position;		
+
+		void main()
+		{
+			gl_Position = vec4(a_Position, 1.0f);
+		}
+		)";
+
+		std::string blueFragmentSrc = R"(
+		#version 330 core
+		
+		layout(location = 0) out vec4 color;
+
+		void main()
+		{
+			color = vec4(0.3, 0.1, 0.7, 1.0);
+		}
+		)";
+		m_WhiteShader.reset(Shader::Create(blueVertexSrc, blueFragmentSrc));
 	}
 
 	Application::~Application() 
@@ -114,14 +159,16 @@ namespace Povox {
 	{
 		while (m_Running)
 		{
-			glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
-			glClear(GL_COLOR_BUFFER_BIT);
+			RenderCommand::SetClearColor({ 0.8f, 0.2f, 0.6f, 1.0f });
+			RenderCommand::Clear();
 
+			Renderer::BeginScene();
+			m_WhiteShader->Bind();
+			Renderer::Submit(m_SquareVertexArray);
 			m_Shader->Bind();
-			m_VertexArray->Bind();
-			glDrawElements(GL_TRIANGLES, m_VertexArray->GetIndexBuffer()->GetCount(), GL_UNSIGNED_INT, nullptr);
+			Renderer::Submit(m_VertexArray);
+			Renderer::EndScene();
 
-			
 			for (Layer* layer : m_Layerstack)
 			{
 				layer->OnUpdate();
@@ -136,7 +183,6 @@ namespace Povox {
 			m_ImGuiLayer->End();
 
 			m_Window->OnUpdate();
-
 		}
 	}
 

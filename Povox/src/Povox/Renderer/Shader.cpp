@@ -11,12 +11,12 @@ namespace Povox {
 	{
 		switch (Renderer::GetAPI())
 		{
-			case RendererAPI::NONE:
+		case RendererAPI::API::NONE:
 			{
 				PX_CORE_ASSERT(false, "RendererAPI::NONE is not supported!");
 				return nullptr;
 			}
-			case RendererAPI::OpenGL:
+		case RendererAPI::API::OpenGL:
 			{
 				return new OpenGLShader(vertexSrc, fragmentSrc);
 			}

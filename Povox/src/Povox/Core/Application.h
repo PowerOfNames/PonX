@@ -44,7 +44,9 @@ namespace Povox {
 
 	private:
 		std::shared_ptr<Shader> m_Shader;
+		std::shared_ptr<Shader> m_WhiteShader;
 		std::shared_ptr<VertexArray> m_VertexArray;
+		std::shared_ptr<VertexArray> m_SquareVertexArray;
 	};
 
 	// To be defined in CLIENT	
