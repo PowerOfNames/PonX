@@ -12,35 +12,35 @@ namespace Povox {
 	{
 	}
 
-	void OrthographicCameraController::OnUpdate(float ts)
+	void OrthographicCameraController::OnUpdate(float deltatime)
 	{
 	// 'W' 'A' 'S' 'D' for UP, Left, Down, Right movement with speed 'm_CamerControllSpeed'.
 	// ---
 	// 'Q' and 'E' tilt the camera to the left or the right
-
-	// Up
-		if (Input::IsKeyPressed(PX_KEY_W))
-		{
-			m_CameraPosition.x += -sin(glm::radians(m_CameraRotation)) * m_CameraControllSpeed * ts;
-			m_CameraPosition.y +=  cos(glm::radians(m_CameraRotation)) * m_CameraControllSpeed * ts;
-		}
-	// Down
-		else if (Input::IsKeyPressed(PX_KEY_S))
-		{
-			m_CameraPosition.x -= -sin(glm::radians(m_CameraRotation)) * m_CameraControllSpeed * ts;
-			m_CameraPosition.y -=  cos(glm::radians(m_CameraRotation)) * m_CameraControllSpeed * ts;
-		}
+		
 	// Left
 		if (Input::IsKeyPressed(PX_KEY_A))
 		{
-			m_CameraPosition.x -= cos(glm::radians(m_CameraRotation)) * m_CameraControllSpeed * ts;
-			m_CameraPosition.y -= sin(glm::radians(m_CameraRotation)) * m_CameraControllSpeed * ts;
+			m_CameraPosition.x -= cos(glm::radians(m_CameraRotation)) * m_CameraControllSpeed * deltatime;
+			m_CameraPosition.y -= sin(glm::radians(m_CameraRotation)) * m_CameraControllSpeed * deltatime;
 		}
 	// Right
 		else if (Input::IsKeyPressed(PX_KEY_D))
 		{
-			m_CameraPosition.x += cos(glm::radians(m_CameraRotation)) * m_CameraControllSpeed * ts;
-			m_CameraPosition.y += sin(glm::radians(m_CameraRotation)) * m_CameraControllSpeed * ts;
+			m_CameraPosition.x += cos(glm::radians(m_CameraRotation)) * m_CameraControllSpeed * deltatime;
+			m_CameraPosition.y += sin(glm::radians(m_CameraRotation)) * m_CameraControllSpeed * deltatime;
+		}
+	// Up
+		if (Input::IsKeyPressed(PX_KEY_W))
+		{
+			m_CameraPosition.x += -sin(glm::radians(m_CameraRotation)) * m_CameraControllSpeed * deltatime;
+			m_CameraPosition.y +=  cos(glm::radians(m_CameraRotation)) * m_CameraControllSpeed * deltatime;
+		}
+	// Down
+		else if (Input::IsKeyPressed(PX_KEY_S))
+		{
+			m_CameraPosition.x -= -sin(glm::radians(m_CameraRotation)) * m_CameraControllSpeed * deltatime;
+			m_CameraPosition.y -= cos(glm::radians(m_CameraRotation)) * m_CameraControllSpeed * deltatime;
 		}
 
 		if (m_Rotation)
@@ -48,12 +48,12 @@ namespace Povox {
 		// Tilting left
 			if (Input::IsKeyPressed(PX_KEY_Q))
 			{
-				m_CameraRotation += m_CameraRotation_Speed * ts;
+				m_CameraRotation += m_CameraRotation_Speed * deltatime;
 			}
 		// Tilting right
 			else if (Input::IsKeyPressed(PX_KEY_E))
 			{
-				m_CameraRotation -= m_CameraRotation_Speed * ts;
+				m_CameraRotation -= m_CameraRotation_Speed * deltatime;
 			}
 
 			if (m_CameraRotation < 0)

@@ -14,7 +14,7 @@ namespace Povox {
 		virtual ~WindowsWindow();
 
 		// Gets called every frame
-		void OnUpdate() override;
+		void OnUpdate(float deltatime) override;
 
 		inline unsigned int GetWidth() const override { return m_Data.Width; }
 		inline unsigned int GetHeight() const override { return m_Data.Width; }

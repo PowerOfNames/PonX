@@ -14,7 +14,7 @@ namespace Povox {
 		OrthographicCameraController(float aspectRatio, bool rotation = 0);
 		~OrthographicCameraController() = default;
 
-		void OnUpdate(float ts);
+		void OnUpdate(float deltatime);
 		void OnEvent(Event& e);
 
 		inline OrthographicCamera& GetCamera() { return m_Camera; }
@@ -33,7 +33,7 @@ namespace Povox {
 		glm::vec3 m_CameraPosition = { 0.0f, 0.0f, 0.0f };
 		float m_CameraRotation = 0.0f; // in degrees anti clockwise direction
 		
-		float m_CameraControllSpeed = 0.1f;
+		float m_CameraControllSpeed = 1.0f;
 		float m_CameraRotation_Speed = 180.0f;
 	};
 

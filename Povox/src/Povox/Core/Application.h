@@ -13,9 +13,6 @@
 #include "Povox/Renderer/OrthographicCameraController.h"
 
 
-#include "Povox/Renderer/OrthographicCamera.h"
-
-
 namespace Povox {
 
 	class POVOX_API Application
@@ -42,18 +39,10 @@ namespace Povox {
 		ImGuiLayer* m_ImGuiLayer;
 		bool m_Running = true;
 		LayerStack m_Layerstack;
+		float m_DeltaTime = 0.0f;;
 
 	private:
 		static Application* s_Instance;
-
-	private:
-		std::shared_ptr<Shader> m_Shader;
-		std::shared_ptr<Shader> m_WhiteShader;
-		std::shared_ptr<VertexArray> m_VertexArray;
-		std::shared_ptr<VertexArray> m_SquareVertexArray;
-
-		OrthographicCameraController m_CameraController;
-		float m_ts = 0.16f;
 	};
 
 	// To be defined in CLIENT	

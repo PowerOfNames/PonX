@@ -150,7 +150,7 @@ namespace Povox {
 		glfwDestroyWindow(m_Window);
 	}
 
-	void WindowsWindow::OnUpdate()
+	void WindowsWindow::OnUpdate(float deltatime)
 	{
 		glfwPollEvents();
 		m_Context->SwapBuffers();
