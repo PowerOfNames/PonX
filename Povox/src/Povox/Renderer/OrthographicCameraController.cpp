@@ -56,14 +56,10 @@ namespace Povox {
 				m_CameraRotation -= m_CameraRotation_Speed * deltatime;
 			}
 
-			if (m_CameraRotation < 0)
-			{
-				m_CameraRotation = 360;
-			}
-			else if (m_CameraRotation > 360)
-			{
-				m_CameraRotation = 0;
-			}
+			if (m_CameraRotation > 180.0f)
+				m_CameraRotation -= 360.0f;
+			else if (m_CameraRotation <= -180.0f)
+				m_CameraRotation += 360.0f;
 			m_Camera.SetRotation(m_CameraRotation);
 		}
 		m_Camera.SetPosition(m_CameraPosition);
@@ -87,7 +83,7 @@ namespace Povox {
 
 	bool OrthographicCameraController::OnWindowResized(WindowResizeEvent& e)
 	{
-		m_AspectRatio = (float)e.GetHeight() / (float)e.GetWidth();
+		m_AspectRatio = (float)e.GetWidth() / (float)e.GetHeight();
 		m_Camera.SetProjectionMatrix(-m_AspectRatio * m_ZoomLevel, m_AspectRatio * m_ZoomLevel, -m_ZoomLevel, m_ZoomLevel);
 
 		return false;

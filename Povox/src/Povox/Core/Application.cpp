@@ -44,7 +44,8 @@ namespace Povox {
 	void Application::OnEvent(Event& e)
 	{
 		EventDispatcher dispatcher(e);
-		dispatcher.Dispatch<WindowCloseEvent>(PX_BIND_EVENT_FN(Application::OnWindowClose));
+		dispatcher.Dispatch<WindowCloseEvent>(PX_BIND_EVENT_FN(Application::OnWindowClose)); 
+		dispatcher.Dispatch<WindowResizeEvent>(PX_BIND_EVENT_FN(Application::OnWindowResize));
 
 		for (auto it = m_Layerstack.rbegin(); it != m_Layerstack.rend(); ++it)
 		{
@@ -58,7 +59,7 @@ namespace Povox {
 	{
 		while (m_Running)
 		{
-			Timestep time(&m_DeltaTime);
+			Timer time(&m_DeltaTime);
 
 			for (Layer* layer : m_Layerstack)
 			{
@@ -81,5 +82,19 @@ namespace Povox {
 	{
 		m_Running = false;
 		return true;
+	}
+
+	bool Application::OnWindowResize(WindowResizeEvent& e)
+	{
+		if (e.GetWidth() == 0 || e.GetHeight() == 0)
+		{
+			m_Minimized = true;
+			return false;
+		}
+
+		m_Minimized = false;
+		Renderer::OnWindowResize(e.GetWidth(), e.GetHeight());
+
+		return false;
 	}
 }

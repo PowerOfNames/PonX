@@ -3,15 +3,15 @@
 
 namespace Povox {
 
-	class Timestep
+	class Timer
 	{
 	public:
-		Timestep(float* value) 
+		Timer(float* value) 
 			: m_DeltaTime(value), m_FrameDuration((std::chrono::duration<float>)0.0f)
 		{
 			m_Start = std::chrono::high_resolution_clock::now();
 		}
-		~Timestep()
+		~Timer()
 		{
 			m_End = std::chrono::high_resolution_clock::now();
 			m_FrameDuration = m_End - m_Start;

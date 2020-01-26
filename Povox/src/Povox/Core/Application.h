@@ -34,10 +34,12 @@ namespace Povox {
 
 	private:
 		bool OnWindowClose(WindowCloseEvent& e);
+		bool OnWindowResize(WindowResizeEvent& e);
 
 		std::unique_ptr<Window> m_Window;
 		ImGuiLayer* m_ImGuiLayer;
 		bool m_Running = true;
+		bool m_Minimized;
 		LayerStack m_Layerstack;
 		float m_DeltaTime = 0.0f;;
 

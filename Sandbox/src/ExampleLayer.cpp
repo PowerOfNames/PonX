@@ -1,9 +1,11 @@
 #include "ExampleLayer.h"
 
 #include <ImGui/imgui.h>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 
 ExampleLayer::ExampleLayer()
-	: Layer("Example"), m_CameraController(1260 / 980)
+	: Layer("Example"), m_CameraController(1280.0f / 720.0f, true)
 {
 	m_TriangleVertexArray.reset(Povox::VertexArray::Create());
 
@@ -37,12 +39,13 @@ ExampleLayer::ExampleLayer()
 		layout(location = 1) in vec4 a_Color;		
 
 		uniform mat4 u_ViewProjection;
+		uniform mat4 u_Transform;
 
 		out vec4 v_Color;		
 
 		void main()
 		{
-			gl_Position = u_ViewProjection * vec4(a_Position, 1.0f);
+			gl_Position = u_ViewProjection * u_Transform * vec4(a_Position, 1.0f);
 			v_Color = a_Color;
 		}
 		)";
@@ -65,10 +68,10 @@ ExampleLayer::ExampleLayer()
 	m_SquareVertexArray.reset(Povox::VertexArray::Create());
 
 	float squareVertices[3 * 4] = {
-		-0.75f, -0.75f, 0.0f,
-		 0.75f, -0.75f, 0.0f,
-		 0.75f,  0.75f, 0.0f,
-		-0.75f,  0.75f, 0.0f,
+		-0.5f, -0.5f, 0.0f,
+		 0.5f, -0.5f, 0.0f,
+		 0.5f,  0.5f, 0.0f,
+		-0.5f,  0.5f, 0.0f,
 	};
 
 	std::shared_ptr<Povox::VertexBuffer> squareVB;
@@ -91,10 +94,11 @@ ExampleLayer::ExampleLayer()
 		layout(location = 0) in vec3 a_Position;		
 	
 		uniform mat4 u_ViewProjection;
+		uniform mat4 u_Transform;
 
 		void main()
 		{
-			gl_Position = u_ViewProjection * vec4(a_Position, 1.0f);
+			gl_Position = u_ViewProjection * u_Transform * vec4(a_Position, 1.0f);
 		}
 		)";
 
@@ -128,8 +132,17 @@ void ExampleLayer::OnUpdate(float deltatime)
 	
 	Povox::Renderer::BeginScene(m_CameraController.GetCamera());
 
-	Povox::Renderer::Submit(m_WhiteShader, m_SquareVertexArray);
-	Povox::Renderer::Submit(m_BlankShader, m_TriangleVertexArray);
+	static glm::mat4 scale = glm::scale(glm::mat4(1.0f), glm::vec3(0.1f));
+
+	for (int y = 0; y < 20; y++)
+	{
+		for (int x = 0; x < 20; x++)
+		{
+			glm::vec3 pos(x * 0.11f, y * 0.11f, 0.0f);
+			glm::mat4 transform = glm::translate(glm::mat4(1.0f), pos) * scale;
+			Povox::Renderer::Submit(m_BlankShader, m_SquareVertexArray, transform);
+		}
+	}
 
 	Povox::Renderer::EndScene();
 }
