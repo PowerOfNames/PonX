@@ -15,7 +15,7 @@ namespace Povox {
 			s_RendererAPI->SetViewport(x, y, width, height);
 		}
 
-		inline static void DrawIndexed(const std::shared_ptr<VertexArray>& vertexArray) { s_RendererAPI->DrawIndexed(vertexArray); }
+		inline static void DrawIndexed(const Ref<VertexArray>& vertexArray) { s_RendererAPI->DrawIndexed(vertexArray); }
 
 	private:
 		static RendererAPI* s_RendererAPI;

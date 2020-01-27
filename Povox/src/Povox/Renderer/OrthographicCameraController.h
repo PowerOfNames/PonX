@@ -33,7 +33,7 @@ namespace Povox {
 		glm::vec3 m_CameraPosition = { 0.0f, 0.0f, 0.0f };
 		float m_CameraRotation = 0.0f; // in degrees anti clockwise direction
 		
-		float m_CameraControllSpeed = 1.0f;
+		float m_CameraControllSpeed = 3.0f;
 		float m_CameraRotation_Speed = 180.0f;
 	};
 

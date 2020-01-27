@@ -1,6 +1,8 @@
 #include "pxpch.h"
 #include "Povox/Renderer/Renderer.h"
 
+#include "Platform/OpenGL/OpenGLShader.h"
+
 namespace Povox {
 
 	Renderer::SceneData* Renderer::m_SceneData = new Renderer::SceneData();
@@ -20,11 +22,11 @@ namespace Povox {
 	}
 
 	// TODO: later should submit every call into a render command queue
-	void Renderer::Submit(const std::shared_ptr<Shader>& shader, const std::shared_ptr<VertexArray>& vertexArray, const glm::mat4& transform)
+	void Renderer::Submit(const Ref<Shader>& shader, const Ref<VertexArray>& vertexArray, const glm::mat4& transform)
 	{
 		shader->Bind();
-		shader->SetUniformMat4("u_ViewProjection", m_SceneData->ViewProjectionMatrix);
-		shader->SetUniformMat4("u_Transform", transform);
+		std::dynamic_pointer_cast<OpenGLShader>(shader)->UploadUniformMat4("u_ViewProjection", m_SceneData->ViewProjectionMatrix);
+		std::dynamic_pointer_cast<OpenGLShader>(shader)->UploadUniformMat4("u_Transform", transform);
 
 		vertexArray->Bind();
 		RenderCommand::DrawIndexed(vertexArray);

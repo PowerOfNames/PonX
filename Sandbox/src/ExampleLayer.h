@@ -19,9 +19,12 @@ private:
 	float m_ts = 0.16f;
 
 private:
-	std::shared_ptr<Povox::VertexArray> m_TriangleVertexArray;
-	std::shared_ptr<Povox::VertexArray> m_SquareVertexArray;
-	std::shared_ptr< Povox::Shader> m_WhiteShader;
-	std::shared_ptr< Povox::Shader> m_BlankShader;
+	Povox::Ref<Povox::VertexArray> m_TriangleVertexArray;
+	Povox::Ref<Povox::VertexArray> m_SquareVertexArray;
+	Povox::Ref<Povox::Shader> m_WhiteShader;
+	Povox::Ref<Povox::Shader> m_FlatColorShader;
+
+	glm::vec3 m_SquareColor1 = { 32.0f / 255, 93.0f / 255, 83.0f / 255 };
+	glm::vec3 m_SquareColor2 = { 0.2f, 0.2f, 0.2f };
 };
 

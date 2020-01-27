@@ -1,8 +1,12 @@
 #include "ExampleLayer.h"
 
+#include "Platform/OpenGL/OpenGLShader.h"
 #include <ImGui/imgui.h>
+
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+
+
 
 ExampleLayer::ExampleLayer()
 	: Layer("Example"), m_CameraController(1280.0f / 720.0f, true)
@@ -15,7 +19,7 @@ ExampleLayer::ExampleLayer()
 		 0.0f,  0.5f, 0.0f, 0.8f, 0.2f, 0.6f, 1.0f
 	};
 
-	std::shared_ptr<Povox::VertexBuffer> vertexBuffer;
+	Povox::Ref<Povox::VertexBuffer> vertexBuffer;
 	vertexBuffer.reset(Povox::VertexBuffer::Create(vertices, sizeof(vertices)));
 	Povox::BufferLayout layout = {
 		{ Povox::ShaderDataType::Float3, "a_Position" },
@@ -28,7 +32,7 @@ ExampleLayer::ExampleLayer()
 		0, 1, 2
 	};
 
-	std::shared_ptr<Povox::IndexBuffer> indexBuffer;
+	Povox::Ref<Povox::IndexBuffer> indexBuffer;
 	indexBuffer.reset(Povox::IndexBuffer::Create(indices, sizeof(indices) / sizeof(uint32_t)));
 	m_TriangleVertexArray->SetIndexBuffer(indexBuffer);
 
@@ -59,11 +63,10 @@ ExampleLayer::ExampleLayer()
 
 		void main()
 		{
-			color = v_Color;
-			color = vec4(32.0f / 255, 93.0f / 255, 85.0f / 255, 1.0f);
+			color = vec4(1.0f, 1.0f, 1.0f, 1.0f);
 		}
 		)";
-	m_BlankShader.reset(Povox::Shader::Create(vertexSrc, fragmentSrc));
+	m_WhiteShader.reset(Povox::Shader::Create(vertexSrc, fragmentSrc));
 
 	m_SquareVertexArray.reset(Povox::VertexArray::Create());
 
@@ -74,7 +77,7 @@ ExampleLayer::ExampleLayer()
 		-0.5f,  0.5f, 0.0f,
 	};
 
-	std::shared_ptr<Povox::VertexBuffer> squareVB;
+	Povox::Ref<Povox::VertexBuffer> squareVB;
 	squareVB.reset(Povox::VertexBuffer::Create(squareVertices, sizeof(squareVertices)));
 
 	squareVB->SetLayout({ { Povox::ShaderDataType::Float3, "a_Position" } });
@@ -84,35 +87,38 @@ ExampleLayer::ExampleLayer()
 		0, 1, 2, 2, 3, 0
 	};
 
-	std::shared_ptr<Povox::IndexBuffer> squareIB;
+	Povox::Ref<Povox::IndexBuffer> squareIB;
 	squareIB.reset(Povox::IndexBuffer::Create(squareIndices, sizeof(squareIndices) / sizeof(uint32_t)));
 	m_SquareVertexArray->SetIndexBuffer(squareIB);
 
-	std::string blueVertexSrc = R"(
+	std::string flatVertexSrc = R"(
 		#version 330 core
 		
 		layout(location = 0) in vec3 a_Position;		
-	
+
 		uniform mat4 u_ViewProjection;
 		uniform mat4 u_Transform;
 
 		void main()
 		{
 			gl_Position = u_ViewProjection * u_Transform * vec4(a_Position, 1.0f);
+
 		}
 		)";
 
-	std::string blueFragmentSrc = R"(
+	std::string flatFragmentSrc = R"(
 		#version 330 core
 		
 		layout(location = 0) out vec4 color;
 
+		uniform vec3 u_Color;
+
 		void main()
 		{
-			color = vec4(0.3, 0.1, 0.7, 1.0);
+			color = vec4(u_Color, 1.0f);
 		}
 		)";
-	m_WhiteShader.reset(Povox::Shader::Create(blueVertexSrc, blueFragmentSrc));
+	m_FlatColorShader.reset(Povox::Shader::Create(flatVertexSrc, flatFragmentSrc));
 }
 
 void ExampleLayer::OnAttach()
@@ -134,16 +140,23 @@ void ExampleLayer::OnUpdate(float deltatime)
 
 	static glm::mat4 scale = glm::scale(glm::mat4(1.0f), glm::vec3(0.1f));
 
+	m_FlatColorShader->Bind();
+
 	for (int y = 0; y < 20; y++)
 	{
 		for (int x = 0; x < 20; x++)
 		{
-			glm::vec3 pos(x * 0.11f, y * 0.11f, 0.0f);
+			glm::vec3 pos(x * 0.1f, y * 0.1f, 0.0f);
 			glm::mat4 transform = glm::translate(glm::mat4(1.0f), pos) * scale;
-			Povox::Renderer::Submit(m_BlankShader, m_SquareVertexArray, transform);
+			
+			if( (x % 2 == 0) && !( y % 2 == 0 ) || !(x % 2 == 0) && (y % 2 == 0))
+				std::dynamic_pointer_cast<Povox::OpenGLShader>(m_FlatColorShader)->UploadUniformFloat3("u_Color", m_SquareColor1);
+			else 
+				std::dynamic_pointer_cast<Povox::OpenGLShader>(m_FlatColorShader)->UploadUniformFloat3("u_Color", m_SquareColor2);
+			
+			Povox::Renderer::Submit(m_FlatColorShader, m_SquareVertexArray, transform);
 		}
 	}
-
 	Povox::Renderer::EndScene();
 }
 
@@ -151,8 +164,12 @@ void ExampleLayer::OnUpdate(float deltatime)
 void ExampleLayer::OnImGuiRender()
 {
 	{
-		ImGui::Begin("Test");
-		ImGui::Text("Hello Povox User!");
+		ImGui::Begin("Square1");
+		ImGui::ColorPicker3("Square1ColorPicker", &m_SquareColor1.r);
+		ImGui::End();
+
+		ImGui::Begin("Square2");
+		ImGui::ColorPicker3("Square2ColorPicker", &m_SquareColor2.r);
 		ImGui::End();
 	}
 }
