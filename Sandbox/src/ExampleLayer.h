@@ -1,6 +1,7 @@
 #pragma once
 #include <Povox.h>
 
+
 class ExampleLayer : public Povox::Layer
 {
 public:
@@ -26,5 +27,6 @@ private:
 
 	glm::vec3 m_SquareColor1 = { 32.0f / 255, 93.0f / 255, 83.0f / 255 };
 	glm::vec3 m_SquareColor2 = { 0.2f, 0.2f, 0.2f };
+	glm::vec3 m_White = { 1.0f, 1.0f, 1.0f };
 };
 

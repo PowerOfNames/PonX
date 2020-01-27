@@ -36,38 +36,6 @@ ExampleLayer::ExampleLayer()
 	indexBuffer.reset(Povox::IndexBuffer::Create(indices, sizeof(indices) / sizeof(uint32_t)));
 	m_TriangleVertexArray->SetIndexBuffer(indexBuffer);
 
-	std::string vertexSrc = R"(
-		#version 330 core
-		
-		layout(location = 0) in vec3 a_Position;		
-		layout(location = 1) in vec4 a_Color;		
-
-		uniform mat4 u_ViewProjection;
-		uniform mat4 u_Transform;
-
-		out vec4 v_Color;		
-
-		void main()
-		{
-			gl_Position = u_ViewProjection * u_Transform * vec4(a_Position, 1.0f);
-			v_Color = a_Color;
-		}
-		)";
-
-	std::string fragmentSrc = R"(
-		#version 330 core
-		
-		layout(location = 0) out vec4 color;
-
-		in vec4 v_Color;	
-
-		void main()
-		{
-			color = vec4(1.0f, 1.0f, 1.0f, 1.0f);
-		}
-		)";
-	m_WhiteShader.reset(Povox::Shader::Create(vertexSrc, fragmentSrc));
-
 	m_SquareVertexArray.reset(Povox::VertexArray::Create());
 
 	float squareVertices[3 * 4] = {
@@ -91,34 +59,8 @@ ExampleLayer::ExampleLayer()
 	squareIB.reset(Povox::IndexBuffer::Create(squareIndices, sizeof(squareIndices) / sizeof(uint32_t)));
 	m_SquareVertexArray->SetIndexBuffer(squareIB);
 
-	std::string flatVertexSrc = R"(
-		#version 330 core
-		
-		layout(location = 0) in vec3 a_Position;		
-
-		uniform mat4 u_ViewProjection;
-		uniform mat4 u_Transform;
-
-		void main()
-		{
-			gl_Position = u_ViewProjection * u_Transform * vec4(a_Position, 1.0f);
-
-		}
-		)";
-
-	std::string flatFragmentSrc = R"(
-		#version 330 core
-		
-		layout(location = 0) out vec4 color;
-
-		uniform vec3 u_Color;
-
-		void main()
-		{
-			color = vec4(u_Color, 1.0f);
-		}
-		)";
-	m_FlatColorShader.reset(Povox::Shader::Create(flatVertexSrc, flatFragmentSrc));
+	m_FlatColorShader.reset(Povox::Shader::Create("assets/shaders/FlatColor.glsl"));
+	m_WhiteShader.reset(Povox::Shader::Create("assets/shaders/FlatColor.glsl"));
 }
 
 void ExampleLayer::OnAttach()
@@ -157,6 +99,13 @@ void ExampleLayer::OnUpdate(float deltatime)
 			Povox::Renderer::Submit(m_FlatColorShader, m_SquareVertexArray, transform);
 		}
 	}
+	glm::vec3 triPos(-0.5f, -0.5f, 0.0f);
+	glm::mat4 triTransform = glm::translate(glm::mat4(1.0f), triPos);
+	
+	m_WhiteShader->Bind();
+	std::dynamic_pointer_cast<Povox::OpenGLShader>(m_WhiteShader)->UploadUniformFloat3("u_Color", m_White);
+
+	Povox::Renderer::Submit(m_WhiteShader, m_TriangleVertexArray, triTransform);
 	Povox::Renderer::EndScene();
 }
 
