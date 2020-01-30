@@ -1,12 +1,12 @@
 #include "pxpch.h"
-#include "Povox/Renderer/VertexArray.h"
+#include "Povox/Renderer/Texture.h"
 
-#include "Platform/OpenGL/OpenGLVertexArray.h"
 #include "Povox/Renderer/Renderer.h"
+#include "Platform/OpenGL/OpenGLTexture.h"
 
 namespace Povox {
 
-	Ref<VertexArray> VertexArray::Create()
+	Ref<Texture2D> Texture2D::Create(const std::string& path)
 	{
 		switch (Renderer::GetAPI())
 		{
@@ -17,7 +17,7 @@ namespace Povox {
 		}
 		case RendererAPI::API::OpenGL:
 		{
-			return CreateRef<OpenGLVertexArray>();
+			return CreateRef<OpenGLTexture2D>(path);
 		}
 		}
 		PX_CORE_ASSERT(false, "Unknown RendererAPI");

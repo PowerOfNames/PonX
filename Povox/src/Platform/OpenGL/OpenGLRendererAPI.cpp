@@ -4,9 +4,6 @@
 #include <glad/glad.h>
 
 namespace Povox {
-
-
-
 	OpenGLRendererAPI::OpenGLRendererAPI()
 	{
 	}

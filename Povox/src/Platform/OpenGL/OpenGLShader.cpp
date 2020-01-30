@@ -78,7 +78,7 @@ namespace Povox {
 	{
 		GLint location = glGetUniformLocation(m_RendererID, name.c_str());
 		if (location == -1)
-			PX_CORE_ASSERT(false, "Uniform '" + name + "' not in shader!");
+			PX_CORE_WARN("Uniform '{0}' not in shader!", name);
 		glUniform3f(location, vector.x, vector.y, vector.z);
 	}
 

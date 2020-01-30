@@ -8,7 +8,7 @@
 
 namespace Povox {
 
-	Povox::Shader* Shader::Create(const std::string& filepath)
+	Ref<Shader> Shader::Create(const std::string& filepath)
 	{
 		switch (Renderer::GetAPI())
 		{
@@ -19,14 +19,14 @@ namespace Povox {
 			}
 			case RendererAPI::API::OpenGL:
 			{
-				return new OpenGLShader(filepath);
+				return CreateRef<OpenGLShader>(filepath);
 			}
 		}
 		PX_CORE_ASSERT(false, "Unknown RendererAPI");
 		return nullptr;
 	}
 
-	Shader* Shader::Create(const std::string& vertexSrc, const std::string& fragmentSrc)
+	Ref<Shader> Shader::Create(const std::string& vertexSrc, const std::string& fragmentSrc)
 	{
 		switch (Renderer::GetAPI())
 		{
@@ -37,7 +37,7 @@ namespace Povox {
 			}
 			case RendererAPI::API::OpenGL:
 			{
-				return new OpenGLShader(vertexSrc, fragmentSrc);
+				return CreateRef<OpenGLShader>(vertexSrc, fragmentSrc);
 			}
 		}
 		PX_CORE_ASSERT(false, "Unknown RendererAPI");
