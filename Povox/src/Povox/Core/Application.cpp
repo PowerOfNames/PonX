@@ -20,6 +20,8 @@ namespace Povox {
 
 		m_Window = Window::Create();
 		m_Window->SetEventCallback(PX_BIND_EVENT_FN(Application::OnEvent));
+
+		Renderer::Init();
 		
 		m_ImGuiLayer = new ImGuiLayer();
 		PushOverlay(m_ImGuiLayer);

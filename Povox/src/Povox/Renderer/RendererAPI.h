@@ -15,6 +15,8 @@ namespace Povox {
 		};
 
 	public:
+		virtual void Init() = 0;
+
 		virtual void SetClearColor(glm::vec4 clearColor) = 0;
 		virtual void Clear() = 0;
 

@@ -61,7 +61,7 @@ ExampleLayer::ExampleLayer()
 	m_WhiteShader	= Povox::Shader::Create("assets/shaders/FlatColor.glsl");
 	m_TextureShader	= Povox::Shader::Create("assets/shaders/Texture.glsl");
 
-	m_Logo = Povox::Texture2D::Create("assets/textures/green.png");
+	m_Logo = Povox::Texture2D::Create("assets/textures/logo.png");
 
 	m_TextureShader->Bind();
 	std::dynamic_pointer_cast<Povox::OpenGLShader>(m_TextureShader)->UploadUniformInt("u_Texture", 0);

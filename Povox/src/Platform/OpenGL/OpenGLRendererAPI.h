@@ -9,6 +9,8 @@ namespace Povox {
 		OpenGLRendererAPI();
 		~OpenGLRendererAPI();
 
+		virtual void Init() override;
+
 		virtual void SetClearColor(glm::vec4 clearColor) override;
 		virtual void Clear() override;
 
