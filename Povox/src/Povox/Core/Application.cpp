@@ -63,11 +63,13 @@ namespace Povox {
 		{
 			Timer time(&m_DeltaTime);
 
-			for (Layer* layer : m_Layerstack)
+			if (!m_Minimized)
 			{
-				layer->OnUpdate(m_DeltaTime);
+				for (Layer* layer : m_Layerstack)
+				{
+					layer->OnUpdate(m_DeltaTime);
+				}
 			}
-
 			// To be executed on the Render thread
 			m_ImGuiLayer->Begin();
 			for (Layer* layer : m_Layerstack)

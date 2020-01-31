@@ -39,7 +39,7 @@ namespace Povox {
 		Scope<Window> m_Window;
 		ImGuiLayer* m_ImGuiLayer;
 		bool m_Running = true;
-		bool m_Minimized;
+		bool m_Minimized = false;
 		LayerStack m_Layerstack;
 		float m_DeltaTime = 0.0f;;
 
