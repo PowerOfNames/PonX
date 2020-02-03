@@ -17,7 +17,6 @@ public:
 
 private:
 	Povox::OrthographicCameraController m_CameraController;
-	float m_ts = 0.16f;
 
 private:
 	Povox::Ref<Povox::VertexArray> m_TriangleVertexArray;

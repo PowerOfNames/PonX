@@ -6,7 +6,7 @@
 
 namespace Povox {
 
-	Input* Input::s_Instance = new WindowsInput();
+	Scope<Povox::Input> Input::s_Instance = CreateScope<WindowsInput>();
 
 	bool WindowsInput::IsKeyPressedImpl(int keycode)
 	{
