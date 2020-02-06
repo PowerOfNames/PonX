@@ -31,9 +31,9 @@ void Sandbox2D::OnUpdate(float deltatime)
 
 	Povox::Renderer2D::BeginScene(m_CameraController.GetCamera());
 
-	Povox::Renderer2D::DrawQuad({ 1.0f, 1.0f }, { 0.5f, 0.5f }, { 32.0f / 255, 200.0f / 255, 83.0f / 255 , 1.0f });
-	Povox::Renderer2D::DrawQuad({ 0.5f, -0.7f }, { 0.25f, 0.3f }, { 0.2f, 0.3f, 0.8f , 1.0f });
-	Povox::Renderer2D::DrawQuad({ 0.0f, 0.0f -0.1f}, { 10.0f, 10.0f }, m_TextureLogo);
+	Povox::Renderer2D::DrawQuad({ 1.0f, 1.0f }, { 0.5f, 0.5f }, m_SquareColor1);
+	Povox::Renderer2D::DrawQuad({ 0.5f, -0.7f }, { 0.25f, 0.3f }, { 0.2f, 0.3f, 0.8f , 0.3f });
+	Povox::Renderer2D::DrawQuad({ 0.0f, 0.0f -0.1f}, { 2.0f, 2.0f }, m_TextureLogo);
 	Povox::Renderer2D::EndScene();
 }
 
