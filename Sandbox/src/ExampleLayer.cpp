@@ -1,6 +1,5 @@
 #include "ExampleLayer.h"
 
-#include "Platform/OpenGL/OpenGLShader.h"
 #include <ImGui/imgui.h>
 
 #include <glm/glm.hpp>
@@ -64,7 +63,7 @@ ExampleLayer::ExampleLayer()
 	m_Logo = Povox::Texture2D::Create("assets/textures/logo.png");
 
 	m_TextureShader->Bind();
-	std::dynamic_pointer_cast<Povox::OpenGLShader>(m_TextureShader)->UploadUniformInt("u_Texture", 0);
+	m_TextureShader->SetInt("u_Texture", 0);
 }
 
 void ExampleLayer::OnAttach()
@@ -96,9 +95,9 @@ void ExampleLayer::OnUpdate(float deltatime)
 			glm::mat4 transform = glm::translate(glm::mat4(1.0f), pos) * scale;
 			
 			if( (x % 2 == 0) && !( y % 2 == 0 ) || !(x % 2 == 0) && (y % 2 == 0))
-				std::dynamic_pointer_cast<Povox::OpenGLShader>(m_FlatColorShader)->UploadUniformFloat3("u_Color", m_SquareColor1);
+				m_FlatColorShader->SetFloat4("u_Color", m_SquareColor1);
 			else 
-				std::dynamic_pointer_cast<Povox::OpenGLShader>(m_FlatColorShader)->UploadUniformFloat3("u_Color", m_SquareColor2);
+				m_FlatColorShader->SetFloat4("u_Color", m_SquareColor2);
 			
 			Povox::Renderer::Submit(m_FlatColorShader, m_SquareVertexArray, transform);
 		}
@@ -127,11 +126,11 @@ void ExampleLayer::OnImGuiRender()
 {
 	{
 		ImGui::Begin("Square1");
-		ImGui::ColorPicker3("Square1ColorPicker", &m_SquareColor1.r);
+		ImGui::ColorPicker4("Square1ColorPicker", &m_SquareColor1.r);
 		ImGui::End();
 
 		ImGui::Begin("Square2");
-		ImGui::ColorPicker3("Square2ColorPicker", &m_SquareColor2.r);
+		ImGui::ColorPicker4("Square2ColorPicker", &m_SquareColor2.r);
 		ImGui::End();
 
 		ImGui::Begin("Logo");

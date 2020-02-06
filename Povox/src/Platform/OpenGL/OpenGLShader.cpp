@@ -59,6 +59,29 @@ namespace Povox {
 		glUseProgram(0);
 	}
 
+	void OpenGLShader::SetInt(const std::string& name, int value)
+	{ 
+		UploadUniformInt(name, value); 
+	}
+
+	void OpenGLShader::SetFloat3(const std::string& name, const glm::vec3& vector)
+	{
+		UploadUniformFloat3(name, vector);
+	}
+	void OpenGLShader::SetFloat4(const std::string& name, const glm::vec4& vector)
+	{ 
+		UploadUniformFloat4(name, vector); 
+	}
+
+	void OpenGLShader::SetMat3(const std::string& name, const glm::mat3& matrix)
+	{ 
+		UploadUniformMat4(name, matrix); 
+	}
+	void OpenGLShader::SetMat4(const std::string& name, const glm::mat4& matrix)
+	{ 
+		UploadUniformMat4(name, matrix); 
+	}
+
 	void OpenGLShader::UploadUniformInt(const std::string& name, int value)
 	{
 		GLint location = glGetUniformLocation(m_RendererID, name.c_str());

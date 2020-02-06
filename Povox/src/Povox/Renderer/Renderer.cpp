@@ -1,5 +1,6 @@
 #include "pxpch.h"
 #include "Povox/Renderer/Renderer.h"
+#include "Povox/Renderer/Renderer2D.h"
 
 #include "Platform/OpenGL/OpenGLShader.h"
 
@@ -10,6 +11,7 @@ namespace Povox {
 	void Renderer::Init()
 	{
 		RenderCommand::Init();
+		Renderer2D::Init();
 	}
 
 	void Renderer::BeginScene(OrthographicCamera& camera)

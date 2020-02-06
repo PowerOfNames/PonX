@@ -19,7 +19,8 @@ private:
 
 private:
 	Povox::Ref<Povox::VertexArray> m_SquareVertexArray;
+	Povox::Ref<Povox::Texture2D> m_TextureLogo;
 
 	Povox::Ref<Povox::Shader> m_FlatColorShader;
-	glm::vec3 m_SquareColor1 = { 32.0f / 255, 95.0f / 255, 83.0f / 255 };
+	glm::vec4 m_SquareColor1 = { 32.0f / 255, 95.0f / 255, 83.0f / 255 , 1.0f};
 };

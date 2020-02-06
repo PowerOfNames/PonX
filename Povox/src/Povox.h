@@ -22,6 +22,7 @@
 
 // --- Renderer
 #include "Povox/Renderer/Renderer.h"
+#include "Povox/Renderer/Renderer2D.h"
 
 #include "Povox/Renderer/VertexArray.h"
 #include "Povox/Renderer/Buffer.h"
