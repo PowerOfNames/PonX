@@ -7,7 +7,7 @@
 
 #include "Povox/Renderer/Renderer.h"
 
-#include "Povox/Core/Timestep.h"
+#include "Povox/Core/Time.h"
 
 
 namespace Povox {
@@ -62,7 +62,7 @@ namespace Povox {
 	{
 		while (m_Running)
 		{
-			Timer time(&m_DeltaTime);
+			MyTimestep time(&m_DeltaTime);
 
 			if (!m_Minimized)
 			{

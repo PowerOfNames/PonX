@@ -158,8 +158,9 @@
     <ClInclude Include="src\Povox\Core\LayerStack.h" />
     <ClInclude Include="src\Povox\Core\Log.h" />
     <ClInclude Include="src\Povox\Core\MouseButtonCodes.h" />
-    <ClInclude Include="src\Povox\Core\Timestep.h" />
+    <ClInclude Include="src\Povox\Core\Time.h" />
     <ClInclude Include="src\Povox\Core\Window.h" />
+    <ClInclude Include="src\Povox\Debugging\Instrumentor.h" />
     <ClInclude Include="src\Povox\Events\ApplicationEvent.h" />
     <ClInclude Include="src\Povox\Events\Event.h" />
     <ClInclude Include="src\Povox\Events\KeyEvent.h" />

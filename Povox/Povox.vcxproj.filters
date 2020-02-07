@@ -108,9 +108,6 @@
     <ClInclude Include="src\Povox\Core\MouseButtonCodes.h">
       <Filter>src\Povox\Core</Filter>
     </ClInclude>
-    <ClInclude Include="src\Povox\Core\Timestep.h">
-      <Filter>src\Povox\Core</Filter>
-    </ClInclude>
     <ClInclude Include="src\Povox\Core\Window.h">
       <Filter>src\Povox\Core</Filter>
     </ClInclude>
@@ -1270,6 +1267,10 @@
       <Filter>vendor\stb_image</Filter>
     </ClInclude>
     <ClInclude Include="src\Povox\Renderer\Renderer2D.h" />
+    <ClInclude Include="src\Povox\Debugging\Instrumentor.h" />
+    <ClInclude Include="src\Povox\Core\Time.h">
+      <Filter>src\Povox\Core</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Platform\OpenGL\OpenGLBuffer.cpp">

@@ -10,7 +10,7 @@
 #include "Povox/Core/Layer.h"
 #include "Povox/Core/Log.h"
 
-#include "Povox/Core/Timestep.h"
+#include "Povox/Core/Time.h"
 
 // --- Inputs
 #include "Povox/Core/Input.h"
