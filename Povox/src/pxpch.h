@@ -16,6 +16,7 @@
 #include <variant>
 
 #include "Povox/Core/Log.h"
+#include "Povox/Debugging/Instrumentor.h"
 
 #ifdef PX_PLATFORM_WINDOWS
 	#include <Windows.h>

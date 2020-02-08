@@ -33,18 +33,18 @@ namespace Povox {
 	};
 
 
-
+	/*
 	template<typename Fn>
-	class Timer
+	class InstrumentationTimer
 	{
 	public:
-		Timer(const char* name, Fn&& func)
+		InstrumentationTimer(const char* name, Fn&& func)
 			: m_Name(name), m_Func(func), m_Stopped(false)
 		{
 			m_StartTimepoint = std::chrono::high_resolution_clock::now();
 		}
 
-		~Timer()
+		~InstrumentationTimer()
 		{
 			if (!m_Stopped)
 				Stop();
@@ -68,4 +68,5 @@ namespace Povox {
 		std::chrono::time_point<std::chrono::steady_clock> m_StartTimepoint;
 		bool m_Stopped;
 	};
+	*/
 }
