@@ -7,11 +7,18 @@ extern Povox::Application* Povox::CreateApplication();
 int main(int argc, char** argv)
 {
 	Povox::Log::Init();
-	PX_CORE_INFO("Welcome to Povox - A first attempt of a Voxel based Engine by PowerOfNames!");
 
+	PX_PROFILE_BEGIN_SESSION("Startup", "PovoxProfile-Startup.json");
 	auto app = Povox::CreateApplication();
+	PX_PROFILE_END_SESSION();
+
+	PX_PROFILE_BEGIN_SESSION("Running", "PovoxProfile-Running.json");
 	app->Run();
+	PX_PROFILE_END_SESSION();
+
+	PX_PROFILE_BEGIN_SESSION("Shutdown", "PovoxProfile-Shutdown.json");
 	delete app;
+	PX_PROFILE_END_SESSION();
 }
 
 #endif

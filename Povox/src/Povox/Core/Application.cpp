@@ -16,6 +16,9 @@ namespace Povox {
 
 	Application::Application()
 	{
+		PX_PROFILE_FUNCTION();
+
+
 		PX_CORE_ASSERT(!s_Instance, "Application already exists!");
 		s_Instance = this;
 
@@ -34,18 +37,27 @@ namespace Povox {
 
 	void Application::PushLayer(Layer* layer)
 	{
+		PX_PROFILE_FUNCTION();
+
+
 		m_Layerstack.PushLayer(layer);
 		layer->OnAttach();
 	}
 
 	void Application::PushOverlay(Layer* overlay)
 	{
+		PX_PROFILE_FUNCTION();
+
+
 		m_Layerstack.PushOverlay(overlay);
 		overlay->OnAttach();
 	}
 
 	void Application::OnEvent(Event& e)
 	{
+		PX_PROFILE_FUNCTION();
+
+
 		EventDispatcher dispatcher(e);
 		dispatcher.Dispatch<WindowCloseEvent>(PX_BIND_EVENT_FN(Application::OnWindowClose)); 
 		dispatcher.Dispatch<WindowResizeEvent>(PX_BIND_EVENT_FN(Application::OnWindowResize));
@@ -60,6 +72,9 @@ namespace Povox {
 
 	void Application::Run()
 	{
+		PX_PROFILE_FUNCTION();
+
+
 		while (m_Running)
 		{
 			MyTimestep time(&m_DeltaTime);
@@ -85,12 +100,18 @@ namespace Povox {
 
 	bool Application::OnWindowClose(WindowCloseEvent& e)
 	{
+		PX_PROFILE_FUNCTION();
+
+
 		m_Running = false;
 		return true;
 	}
 
 	bool Application::OnWindowResize(WindowResizeEvent& e)
 	{
+		PX_PROFILE_FUNCTION();
+
+
 		if (e.GetWidth() == 0 || e.GetHeight() == 0)
 		{
 			m_Minimized = true;

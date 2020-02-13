@@ -23,7 +23,6 @@ namespace Povox {
 
 		inline static RendererAPI::API GetAPI() { return RendererAPI::GetAPI(); }
 
-
 	private:
 		struct SceneData
 		{

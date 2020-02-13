@@ -77,7 +77,6 @@ void ExampleLayer::OnDetach()
 void ExampleLayer::OnUpdate(float deltatime)
 {
 	m_CameraController.OnUpdate(deltatime);
-	
 	Povox::RenderCommand::SetClearColor({ 0.8f, 0.2f, 0.6f, 1.0f });
 	Povox::RenderCommand::Clear();
 	

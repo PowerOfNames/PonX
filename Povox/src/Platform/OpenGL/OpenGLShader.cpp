@@ -23,6 +23,9 @@ namespace Povox {
 
 	OpenGLShader::OpenGLShader(const std::string& filepath)
 	{
+		PX_PROFILE_FUNCTION();
+
+
 		std::string shaderSources = ReadFile(filepath);
 		Compile(PreProcess(shaderSources));
 
@@ -38,6 +41,9 @@ namespace Povox {
 	OpenGLShader::OpenGLShader(const std::string& name, const std::string& vertexSrc, const std::string& fragmentSrc)
 		: m_Name(name)
 	{
+		PX_PROFILE_FUNCTION();
+
+
 		std::unordered_map<GLenum, std::string> shaderSources;
 		shaderSources[GL_VERTEX_SHADER] = vertexSrc;
 		shaderSources[GL_FRAGMENT_SHADER] = fragmentSrc;
@@ -46,16 +52,26 @@ namespace Povox {
 
 	OpenGLShader::~OpenGLShader()
 	{
+		PX_PROFILE_FUNCTION();
+
+
+
 		glDeleteShader(m_RendererID);
 	}
 
 	void OpenGLShader::Bind() const
 	{
+		PX_PROFILE_FUNCTION();
+
+
 		glUseProgram(m_RendererID);
 	}
 
 	void OpenGLShader::Unbind() const
 	{
+		PX_PROFILE_FUNCTION();
+
+
 		glUseProgram(0);
 	}
 
@@ -84,6 +100,9 @@ namespace Povox {
 
 	void OpenGLShader::UploadUniformInt(const std::string& name, int value)
 	{
+		PX_PROFILE_FUNCTION();
+
+
 		GLint location = glGetUniformLocation(m_RendererID, name.c_str());
 		if (location == -1)
 			PX_CORE_ASSERT(false, "Uniform '" + name + "' not in shader!");
@@ -92,6 +111,9 @@ namespace Povox {
 
 	void OpenGLShader::UploadUniformFloat(const std::string& name, float value)
 	{
+		PX_PROFILE_FUNCTION();
+
+
 		GLint location = glGetUniformLocation(m_RendererID, name.c_str());
 		if (location == -1)
 			PX_CORE_ASSERT(false, "Uniform '" + name + "' not in shader!");
@@ -100,6 +122,9 @@ namespace Povox {
 
 	void OpenGLShader::UploadUniformFloat2(const std::string& name, const glm::vec2& vector)
 	{
+		PX_PROFILE_FUNCTION();
+
+
 		GLint location = glGetUniformLocation(m_RendererID, name.c_str());
 		if (location == -1)
 			PX_CORE_ASSERT(false, "Uniform '" + name + "' not in shader!");
@@ -108,6 +133,9 @@ namespace Povox {
 
 	void OpenGLShader::UploadUniformFloat3(const std::string& name, const glm::vec3& vector)
 	{
+		PX_PROFILE_FUNCTION();
+
+
 		GLint location = glGetUniformLocation(m_RendererID, name.c_str());
 		if (location == -1)
 			PX_CORE_WARN("Uniform '{0}' not in shader!", name);
@@ -116,6 +144,9 @@ namespace Povox {
 
 	void OpenGLShader::UploadUniformFloat4(const std::string& name, const glm::vec4& vector)
 	{
+		PX_PROFILE_FUNCTION();
+
+
 		GLint location = glGetUniformLocation(m_RendererID, name.c_str());
 		if (location == -1)
 			PX_CORE_ASSERT(false, "Uniform '" + name + "' not in shader!");
@@ -124,6 +155,9 @@ namespace Povox {
 
 	void OpenGLShader::UploadUniformMat3(const std::string& name, const glm::mat3& matrix)
 	{
+		PX_PROFILE_FUNCTION();
+
+
 		GLint location = glGetUniformLocation(m_RendererID, name.c_str());
 		if (location == -1)
 			PX_CORE_ASSERT(false, "Uniform '" + name + "' not in shader!");
@@ -132,6 +166,9 @@ namespace Povox {
 
 	void OpenGLShader::UploadUniformMat4(const std::string& name, const glm::mat4& matrix)
 	{
+		PX_PROFILE_FUNCTION();
+
+
 		GLint location = glGetUniformLocation(m_RendererID, name.c_str());
 		if (location == -1)
 			PX_CORE_ASSERT(false, "Uniform '" + name + "' not in shader!");
@@ -140,6 +177,9 @@ namespace Povox {
 
 	std::string OpenGLShader::ReadFile(const std::string& filepath)
 	{
+		PX_PROFILE_FUNCTION();
+
+
 		std::string result;
 		// input file stream, binary, cause we don't want to change something here. just load it
 		std::ifstream in(filepath, std::ios::in | std::ios::binary);
@@ -163,6 +203,9 @@ namespace Povox {
 	// in addition to the current code, I should make sure, that additional 'spaces' in front of the type name or so get cut out
 	std::unordered_map<GLenum, std::string> OpenGLShader::PreProcess(const std::string& source)
 	{
+		PX_PROFILE_FUNCTION();
+
+
 		std::unordered_map<GLenum, std::string> shaderSources;
 
 		const char* typeToken = "#type";
@@ -193,6 +236,9 @@ namespace Povox {
 
 	void OpenGLShader::Compile(const std::unordered_map<GLenum, std::string>& shaderSources)
 	{
+		PX_PROFILE_FUNCTION();
+
+
 		GLuint program = glCreateProgram();
 		PX_CORE_ASSERT(shaderSources.size() <= 2, "We only support 2 shaders for now!");
 		std::array<GLenum, 2> glShaderIDs;

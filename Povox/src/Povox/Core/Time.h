@@ -19,7 +19,6 @@ namespace Povox {
 			m_FrameDuration = m_End - m_Start;
 
 			*m_DeltaTime = m_FrameDuration.count();
-			PX_CORE_TRACE("Deltatime = {0}", *m_DeltaTime);
 		}
 
 		inline float GetDeltaTInMS() const { return m_FrameDuration.count() * 1000.0f; }

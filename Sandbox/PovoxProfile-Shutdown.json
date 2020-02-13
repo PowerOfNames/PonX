@@ -1,0 +1,1 @@
+{"otherData": {},"traceEvents":[{},{"cat":"function","dur":0,"name":"void __cdecl VoxelExample::OnDetach(void)","ph":"X","pid":0,"tid":12700,"ts":20523482996.987},{"cat":"function","dur":19661,"name":"void __cdecl Povox::WindowsWindow::Shutdown(void)","ph":"X","pid":0,"tid":12700,"ts":20523483859.305}]}

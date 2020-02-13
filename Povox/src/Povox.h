@@ -17,12 +17,14 @@
 #include "Povox/Core/KeyCodes.h"
 #include "Povox/Core/MouseButtonCodes.h"
 #include "Povox/Renderer/OrthographicCameraController.h"
+#include "Povox/Renderer/PerspectiveCameraController.h"
 
 #include "Povox/ImGui/ImGuiLayer.h"
 
 // --- Renderer
 #include "Povox/Renderer/Renderer.h"
 #include "Povox/Renderer/Renderer2D.h"
+#include "Povox/Renderer/VoxelRenderer.h"
 
 #include "Povox/Renderer/VertexArray.h"
 #include "Povox/Renderer/Buffer.h"
@@ -31,6 +33,7 @@
 
 
 #include "Povox/Renderer/OrthographicCamera.h"
+#include "Povox/Renderer/PerspectiveCamera.h"
 
 
 

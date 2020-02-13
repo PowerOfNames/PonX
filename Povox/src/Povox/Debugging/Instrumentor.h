@@ -42,12 +42,12 @@ namespace Povox {
 
 		void BeginSession(const std::string& name, const std::string& filepath = "results.json")
 		{
-			std::lock_guard(m_Mutex);		// lock_guard is a scoped mutex logging function
+			std::lock_guard lock(m_Mutex);		// lock_guard is a scoped mutex logging function
 			if (m_CurrentSession)			// checks, if there is already a Instrumentor session running, if so, end it
 			{
 				if (Log::GetCoreLogger())	// In the case, the Instrumentor is initialized before Log
 				{
-					PX_CORE_ERROR("Instrumentor::Beginsession: '{0}', while '{1}' session already opend", name, m_CurrentSession);
+					PX_CORE_ERROR("Instrumentor::Beginsession: '{0}', while '{1}' session already opend", name, m_CurrentSession->Name);
 				}
 
 				InternalEndSession();
@@ -72,6 +72,7 @@ namespace Povox {
 		void EndSession()
 		{
 			std::lock_guard lock(m_Mutex);
+			InternalEndSession();
 		}
 
 		void WriteProfile(const ProfileResult& result)
@@ -92,7 +93,7 @@ namespace Povox {
 			json << "\"ts\":" << result.Start.count();
 			json << "}";
 
-			std::lock_guard(m_Mutex);
+			std::lock_guard lock(m_Mutex);
 			if (m_CurrentSession)
 			{
 				m_OutputStream << json.str();
@@ -110,7 +111,7 @@ namespace Povox {
 
 		void WriteHeader()
 		{
-			m_OutputStream << "{\"otherData\": {},\"traceEvents\":{}"; 
+			m_OutputStream << "{\"otherData\": {},\"traceEvents\":[{}"; 
 			m_OutputStream.flush();
 		}
 
@@ -154,7 +155,7 @@ namespace Povox {
 		{
 			auto endTimePoint = std::chrono::steady_clock::now();
 
-			auto highResStart = FloatingPointMicroseconds{ m_StartTimepoint.time_since_epoch().count() };
+			auto highResStart = FloatingPointMicroseconds{ m_StartTimepoint.time_since_epoch()};
 			auto elapsedTime = std::chrono::time_point_cast<std::chrono::microseconds>(endTimePoint).time_since_epoch() - std::chrono::time_point_cast<std::chrono::microseconds>(m_StartTimepoint).time_since_epoch();
 
 			Instrumentor::Get().WriteProfile({ m_Name, highResStart, elapsedTime, std::this_thread::get_id() });

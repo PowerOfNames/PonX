@@ -30,6 +30,9 @@ namespace Povox {
 
 	void WindowsWindow::Init(const WindowProps& props)
 	{
+		PX_PROFILE_FUNCTION();
+
+
 		m_Data.Title = props.Title;
 		m_Data.Width = props.Width;
 		m_Data.Height = props.Height;
@@ -58,6 +61,9 @@ namespace Povox {
 		// Window resizing
 		glfwSetWindowSizeCallback(m_Window, [](GLFWwindow* window, int width, int height)
 			{
+				PX_PROFILE_FUNCTION();
+
+
 				WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
 				data.Width = width;
 				data.Height = height;
@@ -69,6 +75,9 @@ namespace Povox {
 		// Window closing
 		glfwSetWindowCloseCallback(m_Window, [](GLFWwindow* window)
 			{
+				PX_PROFILE_FUNCTION();
+
+
 				WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
 
 				WindowCloseEvent event;
@@ -78,6 +87,9 @@ namespace Povox {
 	// --- Keys
 		glfwSetKeyCallback(m_Window, [](GLFWwindow* window, int key, int scancode, int action, int mods)
 			{
+				PX_PROFILE_FUNCTION();
+
+
 				WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
 
 				switch (action)
@@ -107,6 +119,9 @@ namespace Povox {
 		// Mouse Button
 		glfwSetMouseButtonCallback(m_Window, [](GLFWwindow* window, int button, int action, int mods)
 			{
+				PX_PROFILE_FUNCTION();
+
+
 				WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
 
 				switch (action)
@@ -129,6 +144,9 @@ namespace Povox {
 		// Mouse Scrolling
 		glfwSetScrollCallback(m_Window, [](GLFWwindow* window, double xOffset, double yOffset)
 			{
+				PX_PROFILE_FUNCTION();
+
+
 				WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
 
 				MouseScrolledEvent event((float)xOffset, (float)yOffset);
@@ -138,6 +156,9 @@ namespace Povox {
 		// Mouse Position
 		glfwSetCursorPosCallback(m_Window, [](GLFWwindow* window, double xPos, double yPos)
 			{
+				PX_PROFILE_FUNCTION();
+
+
 				WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
 
 				MouseMovedEvent event((float)xPos, (float)yPos);
@@ -147,17 +168,26 @@ namespace Povox {
 
 	void WindowsWindow::Shutdown()
 	{
+		PX_PROFILE_FUNCTION();
+
+
 		glfwDestroyWindow(m_Window);
 	}
 
 	void WindowsWindow::OnUpdate(float deltatime)
 	{
+		PX_PROFILE_FUNCTION();
+
+
 		glfwPollEvents();
 		m_Context->SwapBuffers();
 	}
 
 	void WindowsWindow::SetVSync(bool enabled)
 	{
+		PX_PROFILE_FUNCTION();
+
+
 		if (enabled)
 			glfwSwapInterval(1);
 		else

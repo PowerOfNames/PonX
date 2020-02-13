@@ -1271,6 +1271,9 @@
     <ClInclude Include="src\Povox\Core\Time.h">
       <Filter>src\Povox\Core</Filter>
     </ClInclude>
+    <ClInclude Include="src\Povox\Renderer\VoxelRenderer.h" />
+    <ClInclude Include="src\Povox\Renderer\PerspectiveCamera.h" />
+    <ClInclude Include="src\Povox\Renderer\PerspectiveCameraController.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Platform\OpenGL\OpenGLBuffer.cpp">
@@ -1352,5 +1355,8 @@
       <Filter>vendor\stb_image</Filter>
     </ClCompile>
     <ClCompile Include="src\Povox\Renderer\Renderer2D.cpp" />
+    <ClCompile Include="src\Povox\Renderer\VoxelRenderer.cpp" />
+    <ClCompile Include="src\Povox\Renderer\PerspectiveCamera.cpp" />
+    <ClCompile Include="src\Povox\Renderer\PerspectiveCameraController.cpp" />
   </ItemGroup>
 </Project>

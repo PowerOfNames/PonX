@@ -20,6 +20,9 @@ namespace Povox {
 
 	void Renderer2D::Init()
 	{
+		PX_PROFILE_FUNCTION();
+
+
 		s_QuadData = new Render2DStorage();
 		s_QuadData->QuadVertexArray = VertexArray::Create();
 
@@ -31,8 +34,8 @@ namespace Povox {
 		};
 		Ref<VertexBuffer> squareVB = VertexBuffer::Create(squareVertices, sizeof(squareVertices));
 		squareVB->SetLayout({
-			{ Povox::ShaderDataType::Float3, "a_Position" },
-			{ Povox::ShaderDataType::Float2, "a_TexCoord" }
+			{ ShaderDataType::Float3, "a_Position" },
+			{ ShaderDataType::Float2, "a_TexCoord" }
 			});
 		s_QuadData->QuadVertexArray->AddVertexBuffer(squareVB);
 
@@ -52,17 +55,26 @@ namespace Povox {
 
 	void Renderer2D::Shutdown()
 	{
+		PX_PROFILE_FUNCTION();
+
+
 		delete s_QuadData;
 	}
 
 	void Renderer2D::BeginScene(OrthographicCamera& camera)
 	{
+		PX_PROFILE_FUNCTION();
+
+
 		s_QuadData->TextureShader->Bind();
 		s_QuadData->TextureShader->SetMat4("u_ViewProjection", camera.GetViewProjectionMatrix());
 	}
 
 	void Renderer2D::EndScene()
 	{
+		PX_PROFILE_FUNCTION();
+
+
 	}
 
 	/*Renders a quad in 2D without depth*/
@@ -74,6 +86,9 @@ namespace Povox {
 	/*Renders a quad with possible depth*/
 	void Renderer2D::DrawQuad(const glm::vec3& position, const glm::vec2 size, const glm::vec4& color)
 	{
+		PX_PROFILE_FUNCTION();
+
+
 		s_QuadData->TextureShader->SetFloat4("u_Color", color);
 		s_QuadData->WhiteTexture->Bind();
 
@@ -91,6 +106,9 @@ namespace Povox {
 
 	void Renderer2D::DrawQuad(const glm::vec3& position, const glm::vec2 size, const Ref<Texture2D>& texture)
 	{
+		PX_PROFILE_FUNCTION();
+
+
 		s_QuadData->TextureShader->SetFloat4("u_Color", glm::vec4(1.0f));
 		texture->Bind();
 

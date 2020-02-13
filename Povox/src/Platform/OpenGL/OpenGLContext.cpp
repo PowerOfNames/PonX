@@ -7,14 +7,16 @@
 namespace Povox {
 
 	OpenGLContext::OpenGLContext(GLFWwindow* windowHandle)
-		:m_WindowHandle(windowHandle)
+		: m_WindowHandle(windowHandle)
 	{
 		PX_CORE_ASSERT(windowHandle, "Window handle is null");
-
 	}
 
 	void OpenGLContext::Init()
 	{
+		PX_PROFILE_FUNCTION();
+
+
 		glfwMakeContextCurrent(m_WindowHandle);
 		int status = gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
 		PX_CORE_ASSERT(status, "Failed to initialize Glad!");
@@ -36,6 +38,9 @@ namespace Povox {
 
 	void OpenGLContext::SwapBuffers()
 	{
+		PX_PROFILE_FUNCTION();
+
+
 		glfwSwapBuffers(m_WindowHandle);
 	}
 }

@@ -10,6 +10,9 @@ namespace Povox {
 	OrthographicCameraController::OrthographicCameraController(float aspectRatio, bool rotation)
 		: m_AspectRatio(aspectRatio), m_ZoomLevel(1.0f), m_Rotation(rotation), m_Camera(-aspectRatio * m_ZoomLevel, aspectRatio * m_ZoomLevel, -m_ZoomLevel, m_ZoomLevel)
 	{
+		PX_PROFILE_FUNCTION();
+
+
 		Input::Remap("camera_move_up", KeyAlternative(Keys::W));
 		Input::Remap("camera_move_left", KeyAlternative(Keys::A));
 		Input::Remap("camera_move_down", KeyAlternative(Keys::S));
@@ -21,6 +24,9 @@ namespace Povox {
 
 	void OrthographicCameraController::OnUpdate(float deltatime)
 	{
+		PX_PROFILE_FUNCTION();
+
+
 	// 'W' 'A' 'S' 'D' for UP, Left, Down, Right movement with speed 'm_CameraControllSpeed'.
 	// ---
 	// 'Q' and 'E' tilt the camera to the left or the right
@@ -74,6 +80,9 @@ namespace Povox {
 
 	void OrthographicCameraController::OnEvent(Event& e)
 	{
+		PX_PROFILE_FUNCTION();
+
+
 		EventDispatcher dispatcher(e);
 		dispatcher.Dispatch<MouseScrolledEvent>(PX_BIND_EVENT_FN(OrthographicCameraController::OnMouseScrolled));
 		dispatcher.Dispatch<WindowResizeEvent>(PX_BIND_EVENT_FN(OrthographicCameraController::OnWindowResized));
@@ -81,6 +90,9 @@ namespace Povox {
 
 	bool OrthographicCameraController::OnMouseScrolled(MouseScrolledEvent& e)
 	{
+		PX_PROFILE_FUNCTION();
+
+
 		m_ZoomLevel -= e.GetYOffset() * 0.25f;
 		m_ZoomLevel = std::max(m_ZoomLevel, 0.25f);
 		m_Camera.SetProjectionMatrix(-m_AspectRatio * m_ZoomLevel, m_AspectRatio * m_ZoomLevel, -m_ZoomLevel, m_ZoomLevel);
@@ -90,6 +102,9 @@ namespace Povox {
 
 	bool OrthographicCameraController::OnWindowResized(WindowResizeEvent& e)
 	{
+		PX_PROFILE_FUNCTION();
+
+
 		m_AspectRatio = (float)e.GetWidth() / (float)e.GetHeight();
 		m_Camera.SetProjectionMatrix(-m_AspectRatio * m_ZoomLevel, m_AspectRatio * m_ZoomLevel, -m_ZoomLevel, m_ZoomLevel);
 
