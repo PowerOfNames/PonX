@@ -1,5 +1,6 @@
 #include "pxpch.h"
 #include "Platform/OpenGL/OpenGLVertexArray.h"
+#include "Povox/Renderer/VoxelRenderer.h"
 
 #include <glad/glad.h>
 
@@ -65,13 +66,14 @@ namespace Povox {
 
 		PX_CORE_ASSERT(vertexBuffer->GetLayout().GetElements().size(), "Bound vertex buffer has no set layout!");
 		glBindVertexArray(m_RendererID);
+
 		vertexBuffer->Bind();
 
 		uint32_t index = 0;
 		const auto& layout = vertexBuffer->GetLayout();
 		for (const auto& element : layout)
 		{
-			glEnableVertexAttribArray(index);
+			glEnableVertexArrayAttrib(vertexBuffer->GetID(), index);
 			glVertexAttribPointer(index,
 				element.GetComponentCount(),
 				ShaderDataTypeToGLBaseType(element.Type),
@@ -82,6 +84,30 @@ namespace Povox {
 			index++;
 		}
 		m_VertexBuffers.push_back(vertexBuffer);
+	}
+
+	void OpenGLVertexArray::SubmitVertexData(Vertex* vertices) const
+	{
+		PX_PROFILE_FUNCTION();
+
+		glBindVertexArray(m_RendererID);
+		for (Ref<VertexBuffer> buffer : m_VertexBuffers)
+		{
+			buffer->Submit(vertices);
+		}
+		glBindVertexArray(0);
+
+	}
+
+	void OpenGLVertexArray::SubmitVertexData(const std::vector<Vertex*>& vertices) const
+	{
+		PX_PROFILE_FUNCTION();
+
+
+		for (Ref<VertexBuffer> buffer : m_VertexBuffers)
+		{
+			buffer->Submit(vertices);
+		}
 	}
 
 	void OpenGLVertexArray::SetIndexBuffer(const Ref<IndexBuffer>& indexBuffer)

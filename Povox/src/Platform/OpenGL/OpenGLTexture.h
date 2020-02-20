@@ -21,6 +21,8 @@ namespace Povox {
 
 		virtual void Bind(uint32_t slot = 0) const override;
 
+		inline const uint32_t GetId() { return m_RendererID; };
+
 	private:
 		std::string m_Path;
 		uint32_t m_Width, m_Height;

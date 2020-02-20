@@ -35,7 +35,6 @@ namespace Povox {
 		auto lastDot = filepath.rfind(".");
 		auto count = lastDot == std::string::npos ? filepath.size() - lastSlash : lastDot - lastSlash;
 		m_Name = filepath.substr(lastSlash, count);
-		PX_CORE_INFO("Name: {0}", m_Name);
 	}
 
 	OpenGLShader::OpenGLShader(const std::string& name, const std::string& vertexSrc, const std::string& fragmentSrc)
@@ -80,6 +79,11 @@ namespace Povox {
 		UploadUniformInt(name, value); 
 	}
 
+	void OpenGLShader::SetIntArray(const std::string& name, int value1, int value2)
+	{
+		UploadUniformIntArray(name, value1, value2);
+	}
+
 	void OpenGLShader::SetFloat3(const std::string& name, const glm::vec3& vector)
 	{
 		UploadUniformFloat3(name, vector);
@@ -107,6 +111,18 @@ namespace Povox {
 		if (location == -1)
 			PX_CORE_ASSERT(false, "Uniform '" + name + "' not in shader!");
 		glUniform1i(location, value);
+	}
+
+	void OpenGLShader::UploadUniformIntArray(const std::string& name, int value1, int value2)
+	{
+		PX_PROFILE_FUNCTION();
+
+
+		GLint location = glGetUniformLocation(m_RendererID, name.c_str());
+		if (location == -1)
+			PX_CORE_ASSERT(false, "Uniform '" + name + "' not in shader!");
+		int samplers[2] = { value1, value2 };
+		glUniform1iv(location, sizeof(samplers) / sizeof(int), samplers);
 	}
 
 	void OpenGLShader::UploadUniformFloat(const std::string& name, float value)

@@ -22,6 +22,7 @@ namespace Povox
 		
 	// Uniforms
 		virtual void SetInt(const std::string& name, int value) override;
+		virtual void SetIntArray(const std::string& name, int value1, int value2) override;
 
 		virtual void SetFloat3(const std::string& name, const glm::vec3& vector) override;
 		virtual void SetFloat4(const std::string& name, const glm::vec4& vector) override;
@@ -31,6 +32,7 @@ namespace Povox
 
 
 		virtual void UploadUniformInt(const std::string& name, int value);
+		virtual void UploadUniformIntArray(const std::string& name, int value1, int value2);
 		
 		virtual void UploadUniformFloat(const std::string& name, float value);
 		virtual void UploadUniformFloat2(const std::string& name, const glm::vec2& vector);

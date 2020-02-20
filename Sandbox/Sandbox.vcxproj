@@ -147,7 +147,8 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <None Include="assets\shaders\CubeTextureFlat.glsl" />
+    <None Include="assets\shaders\CubeFlatColored.glsl" />
+    <None Include="assets\shaders\CubeTextured.glsl" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

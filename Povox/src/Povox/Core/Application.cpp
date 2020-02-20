@@ -6,6 +6,7 @@
 #include "Povox/Core/Input.h"
 
 #include "Povox/Renderer/Renderer.h"
+#include "Povox/Renderer/VoxelRenderer.h"
 
 #include "Povox/Core/Time.h"
 
@@ -120,6 +121,7 @@ namespace Povox {
 
 		m_Minimized = false;
 		Renderer::OnWindowResize(e.GetWidth(), e.GetHeight());
+		VoxelRenderer::OnWindowResize(e.GetWidth(), e.GetHeight());
 
 		return false;
 	}

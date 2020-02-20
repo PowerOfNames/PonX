@@ -91,5 +91,4 @@ namespace Povox
 
 		glBindTextureUnit(slot, m_RendererID);
 	}
-
 }

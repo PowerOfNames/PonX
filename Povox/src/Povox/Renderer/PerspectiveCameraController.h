@@ -4,6 +4,7 @@
 #include "Povox/Events/Event.h"
 #include "Povox/Events/ApplicationEvent.h"
 #include "Povox/Events/MouseEvent.h"
+#include "Povox/Events/KeyEvent.h"
 
 namespace Povox {
 
@@ -16,6 +17,8 @@ namespace Povox {
 		void OnUpdate(float deltaTime);
 		void OnEvent(Event& event);
 
+		void OnImGuiRender();
+
 		void SetTranslationSpeed(float speed);
 		void SetRotationSpeed(float speed);
 
@@ -26,8 +29,10 @@ namespace Povox {
 		bool OnWindowResized(WindowResizeEvent& e);
 		bool OnMouseMoved(MouseMovedEvent& e);
 		bool OnMouseScrolled(MouseScrolledEvent& e);
+		bool OnKeyPressed(KeyPressedEvent& e);
 
 	private:
+		bool m_IsActive = true;
 		float m_Width, m_Height;
 		float m_AspectRatio;
 		float m_ZoomLevel;
@@ -42,7 +47,7 @@ namespace Povox {
 
 		float m_FOV = 45.0f; // with 1.0f being minimum and 90.0f being max
 
-		float m_CameraTranslationSpeed = 5.0f, m_CameraRotationSpeed = 1.0f;
+		float m_CameraTranslationSpeed = 5.0f, m_CameraRotationSpeed = 0.3f;
 	};
 
 }

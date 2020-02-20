@@ -3,6 +3,28 @@
 
 namespace Povox {
 
+	struct Vertex
+	{
+		glm::vec3 Position;
+		glm::vec4 Color;
+		glm::vec2 TexCoord;
+		float TexID;
+
+		std::string ToString() const
+		{
+			std::stringstream ss;
+			ss << "Vertex: Pos(" << Position.x << "|" << Position.y << "|" << Position.z
+				<< "), Color(" << Color.r << "|" << Color.g << "|" << Color.g << "|" << Color.a
+				<< "), Texture Crd(" << TexCoord.x << "|" << TexCoord.y << "), Texture ID(" << TexID << ")";
+			return ss.str();
+		}
+	};
+
+	inline std::ostream& operator<<(std::ostream& os, const Vertex& v)
+	{
+		return os << v.ToString();
+	}
+
 	struct BufferElement
 	{
 		ShaderDataType Type;
@@ -79,10 +101,17 @@ namespace Povox {
 		virtual void Bind() const = 0;
 		virtual void Unbind() const = 0;
 
+		virtual void Submit(Vertex* vertices) const = 0;
+		virtual void Submit(const std::vector<Vertex*>& vertices) const = 0;
+
 		virtual void SetLayout(const BufferLayout& layout) = 0;
 		virtual const BufferLayout& GetLayout() const = 0;
 
+		virtual uint32_t GetID() const = 0;
+
 		static Ref<VertexBuffer> Create(float* vertices, uint32_t size);
+		static Ref<VertexBuffer> Create(Vertex* vertices, uint32_t size);
+		static Ref<VertexBuffer> CreateBatch(uint32_t size);
 	};
 
 	class IndexBuffer

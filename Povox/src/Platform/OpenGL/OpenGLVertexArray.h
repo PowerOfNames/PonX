@@ -14,6 +14,8 @@ namespace Povox {
 		virtual void Unbind() const override;
 
 		virtual void AddVertexBuffer(const Ref<VertexBuffer>& vertexBuffer) override;
+		virtual void SubmitVertexData(Vertex* vertices) const override;
+		virtual void SubmitVertexData(const std::vector<Vertex*>& vertices) const override;
 		virtual void SetIndexBuffer(const Ref<IndexBuffer>& indexBuffer) override;
 
 		inline virtual const std::vector<Ref<VertexBuffer>>& GetVertexBuffers() const override { return m_VertexBuffers; }
