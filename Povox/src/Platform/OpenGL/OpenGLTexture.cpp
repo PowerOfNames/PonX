@@ -5,8 +5,8 @@
 
 namespace Povox
 {
-	OpenGLTexture2D::OpenGLTexture2D(uint32_t width, uint32_t height)
-		:m_Width(width), m_Height(height)
+	OpenGLTexture2D::OpenGLTexture2D(const std::string& name, uint32_t width, uint32_t height)
+		: m_Name(name), m_Width(width), m_Height(height)
 	{
 		PX_PROFILE_FUNCTION();
 
@@ -28,10 +28,54 @@ namespace Povox
 	{
 		PX_PROFILE_FUNCTION();
 
+		Compile(path);
 
+		// Extract name form filepath
+		auto lastSlash = path.find_last_of("/\\");
+		lastSlash = lastSlash == std::string::npos ? 0 : lastSlash + 1;
+		auto lastDot = path.rfind(".");
+		auto count = lastDot == std::string::npos ? path.size() - lastSlash : lastDot - lastSlash;
+		m_Name = path.substr(lastSlash, count);
+	}
+
+	OpenGLTexture2D::OpenGLTexture2D(const std::string& name, const std::string& path)
+		: m_Name(name)
+	{
+		PX_PROFILE_FUNCTION();
+
+		Compile(path);		
+	}
+
+	OpenGLTexture2D::~OpenGLTexture2D()
+	{
+		PX_PROFILE_FUNCTION();
+
+
+		glDeleteTextures(1, &m_RendererID);
+	}
+
+	void OpenGLTexture2D::SetData(void* data, uint32_t size)
+	{
+		PX_PROFILE_FUNCTION();
+
+
+		PX_CORE_ASSERT(size == m_Width * m_Height * (m_DataFormat == GL_RGBA ? 4 : 3), "Size has to be entire texture!")
+		glTextureSubImage2D(m_RendererID, 0, 0, 0, m_Width, m_Height, m_DataFormat, GL_UNSIGNED_BYTE, data);
+	}
+
+	void OpenGLTexture2D::Bind(uint32_t slot) const
+	{
+		PX_PROFILE_FUNCTION();
+
+
+		glBindTextureUnit(slot, m_RendererID);
+	}
+
+	void OpenGLTexture2D::Compile(const std::string& filepath)
+	{
 		int width, height, channels;
 		stbi_set_flip_vertically_on_load(1);
-		stbi_uc* data = stbi_load(path.c_str(), &width, &height, &channels, 0);
+		stbi_uc* data = stbi_load(filepath.c_str(), &width, &height, &channels, 0);
 		PX_CORE_ASSERT(data, "Failed to load image!");
 		m_Width = width;
 		m_Height = height;
@@ -67,28 +111,4 @@ namespace Povox
 		stbi_image_free(data);
 	}
 
-	OpenGLTexture2D::~OpenGLTexture2D()
-	{
-		PX_PROFILE_FUNCTION();
-
-
-		glDeleteTextures(1, &m_RendererID);
-	}
-
-	void OpenGLTexture2D::SetData(void* data, uint32_t size)
-	{
-		PX_PROFILE_FUNCTION();
-
-
-		PX_CORE_ASSERT(size == m_Width * m_Height * (m_DataFormat == GL_RGBA ? 4 : 3), "Size has to be entire texture!")
-		glTextureSubImage2D(m_RendererID, 0, 0, 0, m_Width, m_Height, m_DataFormat, GL_UNSIGNED_BYTE, data);
-	}
-
-	void OpenGLTexture2D::Bind(uint32_t slot) const
-	{
-		PX_PROFILE_FUNCTION();
-
-
-		glBindTextureUnit(slot, m_RendererID);
-	}
 }

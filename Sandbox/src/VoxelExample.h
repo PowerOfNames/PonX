@@ -20,4 +20,5 @@ private:
 
 private:
 	glm::vec3* m_CameraPosition;
+	float m_DeltaTime;
 };

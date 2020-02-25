@@ -19,7 +19,7 @@ namespace Povox {
 		virtual void Bind() const override;
 		virtual void Unbind() const override;
 
-		virtual void Submit(Vertex* vertices) const override;
+		virtual void Submit(Vertex* vertices, size_t size) const override;
 		virtual void Submit(const std::vector<Vertex*>& vertices) const override;
 
 		virtual const BufferLayout& GetLayout() const override { return m_Layout; }

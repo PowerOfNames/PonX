@@ -68,6 +68,7 @@ ExampleLayer::ExampleLayer()
 
 void ExampleLayer::OnAttach()
 {
+	Povox::Renderer::Init();
 }
 
 void ExampleLayer::OnDetach()

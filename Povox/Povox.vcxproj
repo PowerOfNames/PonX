@@ -181,6 +181,7 @@
     <ClInclude Include="src\Povox\Renderer\VertexArray.h" />
     <ClInclude Include="src\Povox\Renderer\VoxelRenderer.h" />
     <ClInclude Include="src\Povox\Renderer\World\Primitives.h" />
+    <ClInclude Include="src\Povox\Utility\Misc.h" />
     <ClInclude Include="src\pxpch.h" />
     <ClInclude Include="vendor\glm\glm\common.hpp" />
     <ClInclude Include="vendor\glm\glm\detail\_features.hpp" />

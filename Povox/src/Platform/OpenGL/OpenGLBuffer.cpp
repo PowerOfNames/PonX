@@ -45,12 +45,13 @@ namespace Povox {
 		glDeleteBuffers(1, &m_RendererID);
 	}
 
-	void OpenGLVertexBuffer::Submit(Vertex* vertices) const
+	void OpenGLVertexBuffer::Submit(Vertex* vertices, size_t size) const
 	{
 		PX_PROFILE_FUNCTION();
+		PX_CORE_INFO("Size: ({0})", size);
 
 		glBindBuffer(GL_ARRAY_BUFFER, m_RendererID);
-		glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices);
+		glBufferSubData(GL_ARRAY_BUFFER, 0, size, vertices);
 	}
 
 	void OpenGLVertexBuffer::Submit(const std::vector<Vertex*>& vertices) const

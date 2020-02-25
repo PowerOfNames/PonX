@@ -43,7 +43,7 @@ namespace Povox {
 		Ref<IndexBuffer> squareIB = IndexBuffer::Create(squareIndices, sizeof(squareIndices) / sizeof(uint32_t));
 		s_QuadData->QuadVertexArray->SetIndexBuffer(squareIB);
 
-		s_QuadData->WhiteTexture = Texture2D::Create(1, 1);
+		s_QuadData->WhiteTexture = Texture2D::Create("WhiteTexture", 1, 1);
 		uint32_t whiteTextureData = 0xffffffff;
 		s_QuadData->WhiteTexture->SetData(&whiteTextureData, sizeof(uint32_t));
 

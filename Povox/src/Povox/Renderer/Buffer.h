@@ -101,7 +101,7 @@ namespace Povox {
 		virtual void Bind() const = 0;
 		virtual void Unbind() const = 0;
 
-		virtual void Submit(Vertex* vertices) const = 0;
+		virtual void Submit(Vertex* vertices, size_t size) const = 0;
 		virtual void Submit(const std::vector<Vertex*>& vertices) const = 0;
 
 		virtual void SetLayout(const BufferLayout& layout) = 0;
