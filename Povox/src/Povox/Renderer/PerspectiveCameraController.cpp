@@ -8,10 +8,8 @@
 
 namespace Povox {
 
-
-
 	PerspectiveCameraController::PerspectiveCameraController(float width, float height)
-		: m_Width(width), m_Height(height), m_AspectRatio(width / height), m_ZoomLevel(1.0f), m_Camera(width / height)
+		: m_Width(width), m_Height(height), m_AspectRatio(width / height), m_ZoomLevel(1.0f), m_Camera(width, height)
 	{
 		PX_PROFILE_FUNCTION();
 
@@ -98,9 +96,14 @@ namespace Povox {
 	{
 		PX_PROFILE_FUNCTION();
 
-
-		float aspectRatio = e.GetWidth() / e.GetHeight();
-		m_Camera.SetProjectionMatrix(aspectRatio);
+		float width = e.GetWidth();
+		float height = e.GetHeight();
+		m_Width = width;
+		m_Height = height;
+		m_AspectRatio = width / height;
+		m_Camera.SetWidth(width);
+		m_Camera.SetHeight(height);
+		m_Camera.SetProjectionMatrix(m_AspectRatio);
 
 		return false;
 	}
@@ -129,16 +132,17 @@ namespace Povox {
 
 			m_Yaw += xOffset;
 			m_Pitch += yOffset;
-
+		//Left-right
+			if (m_Yaw >= 360)
+				m_Yaw = 0;
+			if (m_Yaw <= -360)
+				m_Yaw = 0;
+		//Up-down
 			if (m_Pitch > 89)
 				m_Pitch = 89;
 			if (m_Pitch < -89)
 				m_Pitch = -89;
 
-			if (m_Yaw >= 360)
-				m_Yaw = 0;
-			if (m_Yaw <= -360)
-				m_Yaw = 0;
 			glm::vec3 direction;
 			direction.x = cos(glm::radians(m_Yaw)) * cos(glm::radians(m_Pitch));
 			direction.y = sin(glm::radians(m_Pitch));
@@ -189,6 +193,8 @@ namespace Povox {
 	{
 		ImGui::Begin("Camera Settings");
 		ImGui::Text("CameraPosition: (%.3f|%.3f|%.3f))", m_Camera.GetPosition().x, m_Camera.GetPosition().y, m_Camera.GetPosition().z);
+		ImGui::Text("CameraFront: (%.3f|%.3f|%.3f))", m_Camera.GetFront().x, m_Camera.GetFront().y, m_Camera.GetFront().z);
+		ImGui::Text("CameraUp: (%.3f|%.3f|%.3f))", m_Camera.GetUp().x, m_Camera.GetUp().y, m_Camera.GetUp().z);
 		ImGui::SliderFloat("CameraTranslationSpeed", &m_CameraTranslationSpeed, 0.0f, 20.0f);
 		ImGui::SliderFloat("CameraRotationSpeed", &m_CameraRotationSpeed, 0.0f, 20.0f);
 		ImGui::Checkbox("Toggle Control", &m_IsActive);

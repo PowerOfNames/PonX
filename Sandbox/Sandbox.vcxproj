@@ -133,12 +133,14 @@
   <ItemGroup>
     <ClInclude Include="src\ExampleLayer.h" />
     <ClInclude Include="src\Sandbox2D.h" />
+    <ClInclude Include="src\TracerLayer.h" />
     <ClInclude Include="src\VoxelExample.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\ExampleLayer.cpp" />
     <ClCompile Include="src\Sandbox2D.cpp" />
     <ClCompile Include="src\SandboxApp.cpp" />
+    <ClCompile Include="src\TracerLayer.cpp" />
     <ClCompile Include="src\VoxelExample.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -149,6 +151,7 @@
   <ItemGroup>
     <None Include="assets\shaders\CubeFlatColored.glsl" />
     <None Include="assets\shaders\CubeTextured.glsl" />
+    <None Include="assets\shaders\RayMarchingShader.glsl" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

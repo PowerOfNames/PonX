@@ -16,7 +16,7 @@ namespace Povox {
 
 		virtual void AddVertexBuffer(const Ref<VertexBuffer>& vertexBuffer) = 0;
 		virtual void SubmitVertexData(Vertex* vertices, size_t size) const = 0;
-		virtual void SubmitVertexData(const std::vector<Vertex*>& vertices) const = 0;
+		virtual void SubmitIndices(uint32_t* indices, size_t size) const = 0;
 		virtual void SetIndexBuffer(const Ref<IndexBuffer>& indexBuffer) = 0;
 
 		virtual const std::vector<Ref<VertexBuffer>>& GetVertexBuffers() const = 0;

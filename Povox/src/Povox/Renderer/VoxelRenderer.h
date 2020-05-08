@@ -31,6 +31,7 @@ namespace Povox {
 		{
 			uint32_t DrawCount = 0;
 			uint32_t CubeCount = 0;
+			uint32_t TriangleCount = 0;
 		};
 
 		static const Stats& GetStats();

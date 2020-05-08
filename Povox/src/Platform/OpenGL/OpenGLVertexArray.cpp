@@ -99,15 +99,16 @@ namespace Povox {
 
 	}
 
-	void OpenGLVertexArray::SubmitVertexData(const std::vector<Vertex*>& vertices) const
+	void OpenGLVertexArray::SubmitIndices(uint32_t* indices, size_t size) const
 	{
 		PX_PROFILE_FUNCTION();
 
+		glBindVertexArray(m_RendererID);
 
-		for (Ref<VertexBuffer> buffer : m_VertexBuffers)
-		{
-			buffer->Submit(vertices);
-		}
+
+		m_IndexBuffer->Submit(indices, size);
+		glBindVertexArray(0);
+
 	}
 
 	void OpenGLVertexArray::SetIndexBuffer(const Ref<IndexBuffer>& indexBuffer)

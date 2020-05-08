@@ -25,6 +25,7 @@
 #include "Povox/Renderer/Renderer.h"
 #include "Povox/Renderer/Renderer2D.h"
 #include "Povox/Renderer/VoxelRenderer.h"
+#include "Povox/Renderer/RayTracing/RayTracerTesting.h"
 
 #include "Povox/Renderer/VertexArray.h"
 #include "Povox/Renderer/Buffer.h"

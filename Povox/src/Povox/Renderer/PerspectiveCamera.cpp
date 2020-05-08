@@ -6,10 +6,11 @@
 
 namespace Povox {
 
-	PerspectiveCamera::PerspectiveCamera(float aspectRatio)
-		: m_AspectRatio(aspectRatio), m_ViewMatrix(1.0f)
+	PerspectiveCamera::PerspectiveCamera(float width, float height)
+		: m_Width(width), m_Height(height), m_ViewMatrix(1.0f)
 	{
-		SetProjectionMatrix(aspectRatio);
+		m_AspectRatio = width / height;
+		SetProjectionMatrix(m_AspectRatio);
 		m_ViewProjectionMatrix = m_ProjectionMatrix * m_ViewMatrix;
 	}
 
@@ -27,8 +28,7 @@ namespace Povox {
 		PX_PROFILE_FUNCTION();
 
 
-		glm::mat4 view = glm::lookAt(m_Position, m_Position + m_CameraFront, m_CameraUp);
-		m_ViewMatrix = view;
+		m_ViewMatrix = glm::lookAt(m_Position, m_Position + m_CameraFront, m_CameraUp);
 		m_ViewProjectionMatrix = m_ProjectionMatrix * m_ViewMatrix;
 	}
 
@@ -45,6 +45,18 @@ namespace Povox {
 	{
 		m_CameraFront = front;
 		RecalculateViewMatrix();
+	}
+
+	void PerspectiveCamera::SetWidth(float width)
+	{
+		m_Width = width;
+		m_AspectRatio = m_Width / m_Height;
+	}
+
+	void PerspectiveCamera::SetHeight(float height)
+	{
+		m_Height = height;
+		m_AspectRatio = m_Width / m_Height;
 	}
 
 }

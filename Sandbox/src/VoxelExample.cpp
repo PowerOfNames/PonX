@@ -34,20 +34,25 @@ void VoxelExample::OnUpdate(float deltaTime)
 
 	Povox::RenderCommand::SetClearColor({ 0.1f, 0.1f, 0.2f, 1.0f });
 	Povox::RenderCommand::Clear();
+	Povox::RenderCommand::SetDrawMode(m_DrawMode);
 
 	Povox::VoxelRenderer::BeginScene(m_CameraController.GetCamera());
 
 	Povox::VoxelRenderer::ResetStats();
 	Povox::VoxelRenderer::BeginBatch();
 
-	for (int i = 0; i < 1; i++)
-	{		
-		Povox::VoxelRenderer::DrawCube(glm::vec3( 0.0f, (float)i, 0.0f ), 1.0f, glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));
-	}
-	for (int i = 0; i < 1; i++)
+	for (int i = 0; i < m_Size; i++)
 	{
-		Povox::VoxelRenderer::DrawCube(glm::vec3((float)i, 1.0f, 0.0f), 1.0f, "assets/textures/green.png");
+		for (int j = 0; j < m_Size; j++)
+		{
+			for (int k = 0; k < m_Size; k++)
+			{
+				Povox::VoxelRenderer::DrawCube(glm::vec3((float)i, (float)j, (float)k), 1.0f, glm::vec4(32.0f / 255, 95.0f / 255, 83.0f / 255, 1.0f));
+			}
+		}
 	}
+	//Povox::VoxelRenderer::DrawCube({0.0f, 5.0f, 0.0f}, 1.0f, "assets/textures/green.png");
+
 
 	Povox::VoxelRenderer::EndBatch();
 	Povox::VoxelRenderer::Flush();
@@ -63,9 +68,12 @@ void VoxelExample::OnImGuiRender()
 	m_CameraController.OnImGuiRender();
 
 	ImGui::Begin("Renderer-Info");
+	ImGui::Checkbox("Toggle Draw Mode", &m_DrawMode);
+	ImGui::SliderInt("Size: ", &m_Size, 0, 100);
 	ImGui::Text("Cubes: %i", Povox::VoxelRenderer::GetStats().CubeCount);
 	ImGui::Text("Draws: %i", Povox::VoxelRenderer::GetStats().DrawCount);
-	ImGui::Text("Draws: %.4f", m_DeltaTime);
+	ImGui::Text("Triangles: %i", Povox::VoxelRenderer::GetStats().TriangleCount);
+	ImGui::Text("FPS: %.4f", 1/m_DeltaTime);
 	ImGui::End();
 }
 

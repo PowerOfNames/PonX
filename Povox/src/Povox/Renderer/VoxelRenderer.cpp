@@ -12,7 +12,7 @@
 
 #include <glm/gtc/matrix_transform.hpp>
 
-#define MAX_CUBE_COUNT 1000
+#define MAX_CUBE_COUNT 20000
 #define MAX_VERTEX_COUNT MAX_CUBE_COUNT * 8
 #define MAX_INDEX_COUNT MAX_CUBE_COUNT * 6 * 6
 #define MAX_TEXTURES 32
@@ -33,7 +33,11 @@ namespace Povox {
 
 		Vertex* CubeBuffer = nullptr;
 		Vertex* CubeBufferPtr = nullptr;
+
+		uint32_t* IndexBuffer = nullptr;
+		uint32_t* IndexBufferPtr = nullptr;
 		
+		uint32_t IndexOffset = 0;
 		uint32_t IndexCount = 0;
 
 		std::array<Ref<Texture>, MAX_TEXTURES> TextureSlots;
@@ -41,12 +45,6 @@ namespace Povox {
 
 		VoxelRenderer::Stats Stats;
 	};
-
-
-	static void CreateCube(const glm::vec3& pos, float scale, float texID)
-	{
-		
-	}
 
 	static VoxelRendererData* s_VoxelData;
 
@@ -56,10 +54,12 @@ namespace Povox {
 
 
 		RenderCommand::Init();
-		//Renderer2D::Init();
+		RenderCommand::SetCulling(true, false);
+		Renderer2D::Init();
 
 		s_VoxelData = new VoxelRendererData();
 		s_VoxelData->CubeBuffer = new Vertex[MAX_VERTEX_COUNT];
+		s_VoxelData->IndexBuffer = new uint32_t[MAX_INDEX_COUNT];
 
 		s_VoxelData->VoxelVertexArray = VertexArray::Create();
 
@@ -73,76 +73,7 @@ namespace Povox {
 		});
 		s_VoxelData->VoxelVertexArray->AddVertexBuffer(cubeVB);
 
-		uint32_t indices[MAX_INDEX_COUNT];
-		uint32_t offset = 0;
-
-		for (uint32_t i = 0; i < MAX_INDEX_COUNT;)
-		{
-			//Front
-			indices[i++] = offset + 0;
-			indices[i++] = offset + 1;
-			indices[i++] = offset + 5;
-			indices[i++] = offset + 5;
-			indices[i++] = offset + 4;
-			indices[i++] = offset + 0;
-			//Right
-			indices[i++] = offset + 1;
-			indices[i++] = offset + 2;
-			indices[i++] = offset + 6;
-			indices[i++] = offset + 6;
-			indices[i++] = offset + 5;
-			indices[i++] = offset + 1;
-			//Back
-			indices[i++] = offset + 2;
-			indices[i++] = offset + 3;
-			indices[i++] = offset + 7;
-			indices[i++] = offset + 7;
-			indices[i++] = offset + 6;
-			indices[i++] = offset + 2;
-			//Left
-			indices[i++] = offset + 3;
-			indices[i++] = offset + 0;
-			indices[i++] = offset + 4;
-			indices[i++] = offset + 4;
-			indices[i++] = offset + 7;
-			indices[i++] = offset + 3;
-			//Top
-			indices[i++] = offset + 4;
-			indices[i++] = offset + 5;
-			indices[i++] = offset + 6;
-			indices[i++] = offset + 6;
-			indices[i++] = offset + 7;
-			indices[i++] = offset + 4;
-			//Bottom
-			indices[i++] = offset + 3;
-			indices[i++] = offset + 2;
-			indices[i++] = offset + 1;
-			indices[i++] = offset + 1;
-			indices[i++] = offset + 0;
-			indices[i++] = offset + 3;
-
-			offset += 8;			
-		}
-		/*
-		uint32_t indices[] =
-		{
-			0, 1, 5, 5, 4, 0,
-			1, 2, 6, 6, 5, 1,
-			2, 3, 7, 7, 6, 2,
-			3, 0, 4, 4, 7, 3,
-			4, 5, 6, 6, 7, 4,
-			3, 2, 1, 1, 0, 3,
-
-			 8,  9, 13, 13, 12,  8,
-			 9, 10, 14, 14, 13,  9,
-			10, 11, 15, 15, 14, 10,
-			11,  8, 12, 12, 15, 11,
-			12, 13, 14, 14, 15, 12,
-			11, 10,  9,  9,  8, 11
-		};
-		*/
-
-		Ref<IndexBuffer> cubeIB = IndexBuffer::Create(indices, sizeof(indices) / sizeof(uint32_t));
+		Ref<IndexBuffer> cubeIB = IndexBuffer::CreateBatch(MAX_INDEX_COUNT);
 		s_VoxelData->VoxelVertexArray->SetIndexBuffer(cubeIB);
 
 		s_VoxelData->TextureSlots[s_VoxelData->WhiteTextureSlot] = s_VoxelData->Texture2DLib.Load("WhiteBaseTexture", 1, 1);
@@ -163,6 +94,7 @@ namespace Povox {
 		
 
 		delete[] s_VoxelData->CubeBuffer;
+		delete[] s_VoxelData->IndexBuffer;
 		delete s_VoxelData;
 	}
 
@@ -191,26 +123,40 @@ namespace Povox {
 
 	void VoxelRenderer::BeginBatch()
 	{
+		PX_PROFILE_FUNCTION();
+
+
 		s_VoxelData->CubeBufferPtr = s_VoxelData->CubeBuffer;
+		s_VoxelData->IndexBufferPtr = s_VoxelData->IndexBuffer;
 	}
 
 	void VoxelRenderer::EndBatch()
 	{
+		PX_PROFILE_FUNCTION();
+
+
 		s_VoxelData->VoxelVertexArray->Bind();
 		s_VoxelData->ShaderLib.Get("CubeFlatColored")->Bind();
 		s_VoxelData->ShaderLib.Get("CubeFlatColored")->SetMat4("u_Transform", glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f)));
+
 		s_VoxelData->VoxelVertexArray->SubmitVertexData(s_VoxelData->CubeBuffer, (uint8_t*)s_VoxelData->CubeBufferPtr - (uint8_t*)s_VoxelData->CubeBuffer);
+		s_VoxelData->VoxelVertexArray->SubmitIndices(s_VoxelData->IndexBuffer, (uint8_t*)s_VoxelData->IndexBufferPtr - (uint8_t*)s_VoxelData->IndexBuffer);
 	}
 
 	void VoxelRenderer::Flush()
 	{
+		PX_PROFILE_FUNCTION();
+
+
 		for (uint32_t i = 0; i < s_VoxelData->TextureSlotIndex; i++)
 		{
 			s_VoxelData->TextureSlots[i]->Bind(i);
 		}
+
 		RenderCommand::DrawIndexed(s_VoxelData->VoxelVertexArray);
 		s_VoxelData->Stats.DrawCount++;
 
+		s_VoxelData->IndexOffset = 0;
 		s_VoxelData->IndexCount = 0;
 		s_VoxelData->TextureSlotIndex = 1;
 
@@ -219,9 +165,6 @@ namespace Povox {
 	//FlatColoredCube
 	void VoxelRenderer::DrawCube(glm::vec3 position, float scale, glm::vec4 color)
 	{
-		PX_PROFILE_FUNCTION();
-		
-
 		if (s_VoxelData->IndexCount >= MAX_INDEX_COUNT)
 		{
 			EndBatch();
@@ -279,16 +222,61 @@ namespace Povox {
 		s_VoxelData->CubeBufferPtr->TexID = textureIndex;
 		s_VoxelData->CubeBufferPtr++;
 
-		s_VoxelData->IndexCount += 6 * 6;
+		uint32_t offset = s_VoxelData->IndexOffset;
+
+		*s_VoxelData->IndexBufferPtr++ = offset + 0;
+		*s_VoxelData->IndexBufferPtr++ = offset + 1;
+		*s_VoxelData->IndexBufferPtr++ = offset + 5;
+		*s_VoxelData->IndexBufferPtr++ = offset + 5;
+		*s_VoxelData->IndexBufferPtr++ = offset + 4;
+		*s_VoxelData->IndexBufferPtr++ = offset + 0;
+
+		*s_VoxelData->IndexBufferPtr++ = offset + 1;
+		*s_VoxelData->IndexBufferPtr++ = offset + 2;
+		*s_VoxelData->IndexBufferPtr++ = offset + 6;
+		*s_VoxelData->IndexBufferPtr++ = offset + 6;
+		*s_VoxelData->IndexBufferPtr++ = offset + 5;
+		*s_VoxelData->IndexBufferPtr++ = offset + 1;
+
+		*s_VoxelData->IndexBufferPtr++ = offset + 2;
+		*s_VoxelData->IndexBufferPtr++ = offset + 3;
+		*s_VoxelData->IndexBufferPtr++ = offset + 7;
+		*s_VoxelData->IndexBufferPtr++ = offset + 7;
+		*s_VoxelData->IndexBufferPtr++ = offset + 6;
+		*s_VoxelData->IndexBufferPtr++ = offset + 2;
+
+		*s_VoxelData->IndexBufferPtr++ = offset + 3;
+		*s_VoxelData->IndexBufferPtr++ = offset + 0;
+		*s_VoxelData->IndexBufferPtr++ = offset + 4;
+		*s_VoxelData->IndexBufferPtr++ = offset + 4;
+		*s_VoxelData->IndexBufferPtr++ = offset + 7;
+		*s_VoxelData->IndexBufferPtr++ = offset + 3;
+
+		*s_VoxelData->IndexBufferPtr++ = offset + 4;
+		*s_VoxelData->IndexBufferPtr++ = offset + 5;
+		*s_VoxelData->IndexBufferPtr++ = offset + 6;
+		*s_VoxelData->IndexBufferPtr++ = offset + 6;
+		*s_VoxelData->IndexBufferPtr++ = offset + 7;
+		*s_VoxelData->IndexBufferPtr++ = offset + 4;
+
+		*s_VoxelData->IndexBufferPtr++ = offset + 3;
+		*s_VoxelData->IndexBufferPtr++ = offset + 2;
+		*s_VoxelData->IndexBufferPtr++ = offset + 1;
+		*s_VoxelData->IndexBufferPtr++ = offset + 1;
+		*s_VoxelData->IndexBufferPtr++ = offset + 0;
+		*s_VoxelData->IndexBufferPtr++ = offset + 3;
+
+		s_VoxelData->IndexOffset += 8;
+
+		s_VoxelData->IndexCount += 36;
 		s_VoxelData->Stats.CubeCount++;
+		s_VoxelData->Stats.TriangleCount += 12;
 	}
 
 	//TexturedCube
 	void VoxelRenderer::DrawCube(glm::vec3 position, float scale, const std::string& filepath)
 	{
-		PX_PROFILE_FUNCTION();
-
-
+		std::string name = GetNameFromPath(filepath);
 		if (s_VoxelData->IndexCount >= MAX_INDEX_COUNT || s_VoxelData->TextureSlotIndex > MAX_TEXTURES - 1)
 		{
 			EndBatch();
@@ -299,7 +287,7 @@ namespace Povox {
 		float textureIndex = 0.0f;
 		for (uint32_t i = 1; i < s_VoxelData->TextureSlotIndex; i++)
 		{
-			if (s_VoxelData->TextureSlots[i]->GetName() == GetNameFromPath(filepath))
+			if (s_VoxelData->TextureSlots[i]->GetName() == name)
 			{
 				textureIndex = (float)i;
 				break;
@@ -309,12 +297,20 @@ namespace Povox {
 		if (textureIndex == 0.0f)
 		{
 			textureIndex = (float)s_VoxelData->TextureSlotIndex;
-			s_VoxelData->TextureSlots[(int)textureIndex] = s_VoxelData->Texture2DLib.Load(filepath);
+			if (!s_VoxelData->Texture2DLib.Contains(name))
+			{
+				s_VoxelData->TextureSlots[(int)textureIndex] = s_VoxelData->Texture2DLib.Load(filepath);
+			}
+			else
+			{
+				s_VoxelData->TextureSlots[(int)textureIndex] = s_VoxelData->Texture2DLib.Get(name);
+			}
 			s_VoxelData->TextureSlotIndex++;
 		}
 
 		constexpr glm::vec4 color = { 1.0f, 1.0f, 1.0f, 1.0f };
 
+			
 		s_VoxelData->CubeBufferPtr->Position = { position.x, position.y, position.z };
 		s_VoxelData->CubeBufferPtr->Color = color;
 		s_VoxelData->CubeBufferPtr->TexCoord = { 0.0f, 0.0f };
@@ -363,8 +359,55 @@ namespace Povox {
 		s_VoxelData->CubeBufferPtr->TexID = textureIndex;
 		s_VoxelData->CubeBufferPtr++;
 
-		s_VoxelData->IndexCount += 6 * 6;
-		s_VoxelData->Stats.CubeCount++;		
+		uint32_t offset = s_VoxelData->IndexOffset;
+
+		*s_VoxelData->IndexBufferPtr++ = offset + 0;
+		*s_VoxelData->IndexBufferPtr++ = offset + 1;
+		*s_VoxelData->IndexBufferPtr++ = offset + 5;
+		*s_VoxelData->IndexBufferPtr++ = offset + 5;
+		*s_VoxelData->IndexBufferPtr++ = offset + 4;
+		*s_VoxelData->IndexBufferPtr++ = offset + 0;
+
+		*s_VoxelData->IndexBufferPtr++ = offset + 1;
+		*s_VoxelData->IndexBufferPtr++ = offset + 2;
+		*s_VoxelData->IndexBufferPtr++ = offset + 6;
+		*s_VoxelData->IndexBufferPtr++ = offset + 6;
+		*s_VoxelData->IndexBufferPtr++ = offset + 5;
+		*s_VoxelData->IndexBufferPtr++ = offset + 1;
+
+		*s_VoxelData->IndexBufferPtr++ = offset + 2;
+		*s_VoxelData->IndexBufferPtr++ = offset + 3;
+		*s_VoxelData->IndexBufferPtr++ = offset + 7;
+		*s_VoxelData->IndexBufferPtr++ = offset + 7;
+		*s_VoxelData->IndexBufferPtr++ = offset + 6;
+		*s_VoxelData->IndexBufferPtr++ = offset + 2;
+
+		*s_VoxelData->IndexBufferPtr++ = offset + 3;
+		*s_VoxelData->IndexBufferPtr++ = offset + 0;
+		*s_VoxelData->IndexBufferPtr++ = offset + 4;
+		*s_VoxelData->IndexBufferPtr++ = offset + 4;
+		*s_VoxelData->IndexBufferPtr++ = offset + 7;
+		*s_VoxelData->IndexBufferPtr++ = offset + 3;
+
+		*s_VoxelData->IndexBufferPtr++ = offset + 4;
+		*s_VoxelData->IndexBufferPtr++ = offset + 5;
+		*s_VoxelData->IndexBufferPtr++ = offset + 6;
+		*s_VoxelData->IndexBufferPtr++ = offset + 6;
+		*s_VoxelData->IndexBufferPtr++ = offset + 7;
+		*s_VoxelData->IndexBufferPtr++ = offset + 4;
+
+		*s_VoxelData->IndexBufferPtr++ = offset + 3;
+		*s_VoxelData->IndexBufferPtr++ = offset + 2;
+		*s_VoxelData->IndexBufferPtr++ = offset + 1;
+		*s_VoxelData->IndexBufferPtr++ = offset + 1;
+		*s_VoxelData->IndexBufferPtr++ = offset + 0;
+		*s_VoxelData->IndexBufferPtr++ = offset + 3;
+
+		s_VoxelData->IndexOffset += 8;
+
+		s_VoxelData->IndexCount += 36;
+		s_VoxelData->Stats.CubeCount++;	
+		s_VoxelData->Stats.TriangleCount += 12;
 	}
 
 	void VoxelRenderer::OnWindowResize(uint32_t width, uint32_t height)

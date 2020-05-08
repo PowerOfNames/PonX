@@ -13,6 +13,7 @@ namespace Povox
 	public:
 		OpenGLShader(const std::string& filepath);
 		OpenGLShader(const std::string& name, const std::string& vertexSrc, const std::string& fragmentSrc);
+		OpenGLShader(const std::string& name, const std::string& vertexSrc, const std::string& geometrySrc, const std::string& fragmentSrc);
 		~OpenGLShader();
 
 		virtual void Bind() const override;
@@ -24,6 +25,8 @@ namespace Povox
 		virtual void SetInt(const std::string& name, int value) override;
 		virtual void SetIntArray(const std::string& name, int values[32]) override;
 
+		virtual void SetFloat(const std::string& name, const float value) override;
+		virtual void SetFloat2(const std::string& name, const glm::vec2& vector) override;
 		virtual void SetFloat3(const std::string& name, const glm::vec3& vector) override;
 		virtual void SetFloat4(const std::string& name, const glm::vec4& vector) override;
 

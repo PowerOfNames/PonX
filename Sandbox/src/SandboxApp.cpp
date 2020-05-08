@@ -4,6 +4,7 @@
 #include "ExampleLayer.h"
 #include "Sandbox2D.h"
 #include "VoxelExample.h"
+#include "TracerLayer.h"
 
 class Sandbox : public Povox::Application
 {
@@ -12,7 +13,8 @@ public:
 	{
 		//PushLayer(new Sandbox2D());
 		//PushLayer(new ExampleLayer());
-		PushLayer(new VoxelExample());
+		//PushLayer(new VoxelExample());
+		PushLayer(new TracerLayer());
 	}
 
 	~Sandbox()

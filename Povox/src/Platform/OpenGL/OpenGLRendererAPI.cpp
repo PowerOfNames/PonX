@@ -39,6 +39,39 @@ namespace Povox {
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	}
 
+	void OpenGLRendererAPI::SetCulling(bool active, bool clockwise)
+	{
+		PX_PROFILE_FUNCTION();
+
+
+		if (active)
+		{
+			glEnable(GL_CULL_FACE);
+		}
+		else
+		{
+			glDisable(GL_CULL_FACE);
+		}
+		if (clockwise)
+		{
+			glFrontFace(GL_CW);
+		}
+		else
+		{
+			glFrontFace(GL_CCW);
+		}
+		glCullFace(GL_FRONT);
+	}
+
+	void OpenGLRendererAPI::SetDrawMode(bool active)
+	{
+		if (active)
+		{
+			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+		}
+		else glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+	}
+
 	void OpenGLRendererAPI::SetViewport(uint32_t x, uint32_t y, uint32_t width, uint32_t height)
 	{
 		PX_PROFILE_FUNCTION();

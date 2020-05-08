@@ -13,7 +13,9 @@ namespace Povox {
 	static GLenum ShaderTypeFromString(const std::string& name)
 	{
 		if (name == "vertex") 
-			return GL_VERTEX_SHADER;		
+			return GL_VERTEX_SHADER;
+		if (name == "geometry")
+			return GL_GEOMETRY_SHADER;
 		if (name == "fragment" || name == "pixel")
 			return GL_FRAGMENT_SHADER;
 
@@ -49,10 +51,21 @@ namespace Povox {
 		Compile(shaderSources);
 	}
 
-	OpenGLShader::~OpenGLShader()
+	OpenGLShader::OpenGLShader(const std::string& name, const std::string& vertexSrc, const std::string& geometrySrc, const std::string& fragmentSrc)
+		: m_Name(name)
 	{
 		PX_PROFILE_FUNCTION();
 
+
+		std::unordered_map<GLenum, std::string> shaderSources;
+		shaderSources[GL_VERTEX_SHADER] = vertexSrc;
+		shaderSources[GL_FRAGMENT_SHADER] = fragmentSrc;
+		Compile(shaderSources);
+	}
+
+	OpenGLShader::~OpenGLShader()
+	{
+		PX_PROFILE_FUNCTION();
 
 
 		glDeleteShader(m_RendererID);
@@ -84,6 +97,14 @@ namespace Povox {
 		UploadUniformIntArray(name, values);
 	}
 
+	void OpenGLShader::SetFloat(const std::string& name, const float value)
+	{
+		UploadUniformFloat(name, value);
+	}
+	void OpenGLShader::SetFloat2(const std::string& name, const glm::vec2& vector)
+	{
+		UploadUniformFloat2(name, vector);
+	}
 	void OpenGLShader::SetFloat3(const std::string& name, const glm::vec3& vector)
 	{
 		UploadUniformFloat3(name, vector);
@@ -255,8 +276,9 @@ namespace Povox {
 
 
 		GLuint program = glCreateProgram();
-		PX_CORE_ASSERT(shaderSources.size() <= 2, "We only support 2 shaders for now!");
-		std::array<GLenum, 2> glShaderIDs;
+		PX_CORE_ASSERT(shaderSources.size() <= 3, "We only support up to 3 shaders for now!");
+		
+		std::array<GLenum, 3> glShaderIDs;
 		int shaderIdIndex = 0;
 
 		// For each enum type in 'shaderSources' create and bind the corresponding shader to the program
@@ -315,8 +337,8 @@ namespace Povox {
 			// We don't need the program anymore.
 			glDeleteProgram(program);
 			// Don't leak shaders either.
-			for (auto id : glShaderIDs)
-				glDeleteShader(id);
+			for (int i = 0; i <= shaderIdIndex; i++)
+				glDeleteShader(glShaderIDs[i]);
 
 			PX_CORE_ERROR("{0}", infoLog.data());
 			PX_CORE_ASSERT(false, "Shader program linking failure!");
@@ -325,10 +347,10 @@ namespace Povox {
 		}
 
 		// Always detach shaders after a successful link.
-		for (auto id : glShaderIDs)
+		for (int i = 0; i <= shaderIdIndex; i++)
 		{
-			glDetachShader(program, id);
-			glDeleteShader(id);
+			glDetachShader(program, glShaderIDs[i]);
+			glDeleteShader(glShaderIDs[i]);
 		}
 	}
 

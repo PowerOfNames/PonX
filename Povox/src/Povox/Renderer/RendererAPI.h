@@ -20,6 +20,9 @@ namespace Povox {
 		virtual void SetClearColor(glm::vec4 clearColor) = 0;
 		virtual void Clear() = 0;
 
+		virtual void SetCulling(bool active, bool clockwise) = 0;
+		virtual void SetDrawMode(bool active) = 0;
+
 		virtual void SetViewport(uint32_t x, uint32_t y, uint32_t width, uint32_t height) = 0;
 		virtual void DrawIndexed(const Ref<VertexArray>& vertexArray) = 0;
 
