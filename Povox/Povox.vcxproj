@@ -177,6 +177,7 @@
     <ClInclude Include="src\Povox\Renderer\Renderer.h" />
     <ClInclude Include="src\Povox\Renderer\Renderer2D.h" />
     <ClInclude Include="src\Povox\Renderer\RendererAPI.h" />
+    <ClInclude Include="src\Povox\Renderer\Scene\Lighting.h" />
     <ClInclude Include="src\Povox\Renderer\Shader.h" />
     <ClInclude Include="src\Povox\Renderer\Texture.h" />
     <ClInclude Include="src\Povox\Renderer\VertexArray.h" />
@@ -580,6 +581,7 @@
     <ClCompile Include="src\Povox\Renderer\Renderer.cpp" />
     <ClCompile Include="src\Povox\Renderer\Renderer2D.cpp" />
     <ClCompile Include="src\Povox\Renderer\RendererAPI.cpp" />
+    <ClCompile Include="src\Povox\Renderer\Scene\Lighting.cpp" />
     <ClCompile Include="src\Povox\Renderer\Shader.cpp" />
     <ClCompile Include="src\Povox\Renderer\Texture.cpp" />
     <ClCompile Include="src\Povox\Renderer\VertexArray.cpp" />

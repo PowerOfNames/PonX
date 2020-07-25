@@ -45,7 +45,7 @@ namespace Povox {
 	// TODO: later should submit every call into a render command queue
 	void Renderer::Submit(const Ref<Shader>& shader, const Ref<VertexArray>& vertexArray, const glm::mat4& transform)
 	{
-		PX_PROFILE_FUNCTION();
+		//PX_PROFILE_FUNCTION();
 
 
 		shader->Bind();

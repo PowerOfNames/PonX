@@ -92,9 +92,9 @@ namespace Povox {
 		UploadUniformInt(name, value); 
 	}
 
-	void OpenGLShader::SetIntArray(const std::string& name, int values[32])
+	void OpenGLShader::SetIntArray(const std::string& name, int* values, uint32_t count)
 	{
-		UploadUniformIntArray(name, values);
+		UploadUniformIntArray(name, values, count);
 	}
 
 	void OpenGLShader::SetFloat(const std::string& name, const float value)
@@ -134,7 +134,7 @@ namespace Povox {
 		glUniform1i(location, value);
 	}
 
-	void OpenGLShader::UploadUniformIntArray(const std::string& name, int values[32])
+	void OpenGLShader::UploadUniformIntArray(const std::string& name, int* values, uint32_t count)
 	{
 		PX_PROFILE_FUNCTION();
 
@@ -142,7 +142,7 @@ namespace Povox {
 		GLint location = glGetUniformLocation(m_RendererID, name.c_str());
 		if (location == -1)
 			PX_CORE_ASSERT(false, "Uniform '" + name + "' not in shader!");
-		glUniform1iv(location, 32, values);
+		glUniform1iv(location, count, values);
 	}
 
 	void OpenGLShader::UploadUniformFloat(const std::string& name, float value)

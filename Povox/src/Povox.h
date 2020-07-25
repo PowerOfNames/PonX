@@ -32,6 +32,7 @@
 #include "Povox/Renderer/Shader.h"
 #include "Povox/Renderer/Texture.h"
 
+#include "Povox/Renderer/Scene/Lighting.h"
 
 #include "Povox/Renderer/OrthographicCamera.h"
 #include "Povox/Renderer/PerspectiveCamera.h"

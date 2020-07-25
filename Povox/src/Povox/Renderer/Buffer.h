@@ -101,7 +101,7 @@ namespace Povox {
 		virtual void Bind() const = 0;
 		virtual void Unbind() const = 0;
 
-		virtual void Submit(Vertex* vertices, size_t size) const = 0;
+		virtual void Submit(const void* data, size_t size) const = 0;
 
 		virtual void SetLayout(const BufferLayout& layout) = 0;
 		virtual const BufferLayout& GetLayout() const = 0;
@@ -109,8 +109,7 @@ namespace Povox {
 		virtual uint32_t GetID() const = 0;
 
 		static Ref<VertexBuffer> Create(float* vertices, uint32_t size);
-		static Ref<VertexBuffer> Create(Vertex* vertices, uint32_t size);
-		static Ref<VertexBuffer> CreateBatch(uint32_t size);
+		static Ref<VertexBuffer> Create(uint32_t size);
 	};
 
 	class IndexBuffer
@@ -121,11 +120,11 @@ namespace Povox {
 		virtual void Bind() const = 0;
 		virtual void Unbind() const = 0;
 
-		virtual void Submit(uint32_t* indices, size_t size) const = 0;
+		virtual void Submit(const void* data, size_t size) const = 0;
 
 		virtual uint32_t GetCount() const = 0;
 
 		static Ref<IndexBuffer> Create(uint32_t* indices, uint32_t size);
-		static Ref<IndexBuffer> CreateBatch(uint32_t size);
+		static Ref<IndexBuffer> Create(uint32_t size);
 	};
 }

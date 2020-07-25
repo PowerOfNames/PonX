@@ -16,8 +16,18 @@ void Sandbox2D::OnAttach()
 {
 	PX_PROFILE_FUNCTION();
 
+	Povox::Renderer2D::Init();
 
-	m_TextureLogo = Povox::Texture2D::Create("assets/textures/logo.png");
+
+	m_MapData = Povox::Texture2D::Create("MapData", 8, 8);
+	uint32_t mapData[64];
+	for (unsigned int i = 0; i < 64; i++)
+	{
+		mapData[i] = 0xffffffff;
+	}
+	mapData[0] = 0x00000000;
+	mapData[63] = 0x00000000;
+	m_MapData->SetData(&mapData, sizeof(uint32_t) * 64);
 }
 
 void Sandbox2D::OnDetach()
@@ -41,7 +51,9 @@ void Sandbox2D::OnUpdate(float deltatime)
 
 	Povox::Renderer2D::BeginScene(m_CameraController.GetCamera());
 
-	//Povox::Renderer2D::DrawQuad({ 1.0f, 1.0f }, { 0.5f, 0.5f }, m_SquareColor1);
+	Povox::Renderer2D::DrawQuad({ 1.0f, 1.0f }, { 1.0f, 1.0f }, "assets/textures/green.png");
+	Povox::Renderer2D::DrawQuad({ -1.0f, -1.0f }, { 1.0f, 1.0f }, m_MapData);
+	Povox::Renderer2D::DrawQuad(m_SquarePos1, { 1.0f, 1.0f }, m_SquareColor1);
 
 	Povox::Renderer2D::EndScene();
 }
@@ -53,6 +65,7 @@ void Sandbox2D::OnImGuiRender()
 
 	ImGui::Begin("Square1");
 	ImGui::ColorPicker4("Square1ColorPicker", &m_SquareColor1.r);
+	ImGui::SliderFloat2("Square1Position", &m_SquarePos1.x, -5.0f, 5.0f);
 	ImGui::End();
 }
 

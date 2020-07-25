@@ -149,8 +149,8 @@ namespace Povox {
 			direction.z = sin(glm::radians(m_Yaw)) * cos(glm::radians(m_Pitch));
 
 			m_CameraFront = glm::normalize(direction);
-
 			m_Camera.SetCameraFront(m_CameraFront);
+			m_Camera.RecalculateUpandRight();
 		}
 		return false;
 	}

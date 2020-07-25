@@ -1,6 +1,7 @@
 #pragma once
 
-#include "Povox/Renderer/PerspectiveCamera.h"
+#include "Povox/Renderer/PerspectiveCameraController.h"
+#include "Povox/Renderer/Scene/Lighting.h"
 
 namespace Povox {
 
@@ -10,9 +11,9 @@ namespace Povox {
 		static void Init();
 		static void Shutdown();
 
-		static void BeginScene(PerspectiveCamera& camera);
+		static void BeginScene(PerspectiveCamera& camera, Light& lightsource);
 		static void EndScene();
 
-		static void Trace(PerspectiveCamera& camera);
+		static void Trace(PerspectiveCameraController& cameraController);
 	};
 }

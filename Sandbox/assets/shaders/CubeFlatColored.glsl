@@ -38,4 +38,5 @@ void main()
 {
 	int index = int(v_TexID);
 	o_Color = texture(u_Textures[index], v_TexCoord) * v_Color;
+	o_Color = vec4(v_TexID, v_TexID, v_TexID, 1.0);
 }

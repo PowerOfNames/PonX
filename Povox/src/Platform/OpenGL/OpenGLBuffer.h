@@ -13,13 +13,12 @@ namespace Povox {
 	public:
 		OpenGLVertexBuffer(uint32_t size);
 		OpenGLVertexBuffer(float* vertices, uint32_t size);
-		OpenGLVertexBuffer(Vertex* vertices, uint32_t size);
 		virtual ~OpenGLVertexBuffer();
 
 		virtual void Bind() const override;
 		virtual void Unbind() const override;
 
-		virtual void Submit(Vertex* vertices, size_t size) const override;
+		virtual void Submit(const void* data, size_t size) const override;
 
 		virtual const BufferLayout& GetLayout() const override { return m_Layout; }
 		virtual void SetLayout(const BufferLayout& layout) override { m_Layout = layout;  }
@@ -45,7 +44,7 @@ namespace Povox {
 		virtual void Bind() const override;
 		virtual void Unbind() const	override;
 
-		virtual void Submit(uint32_t* indices, size_t size) const override;
+		virtual void Submit(const void* data, size_t size) const override;
 
 		inline virtual uint32_t GetCount() const override { return m_Count; }
 

@@ -44,7 +44,15 @@ namespace Povox {
 	void PerspectiveCamera::SetCameraFront(glm::vec3 front)
 	{
 		m_CameraFront = front;
+		RecalculateUpandRight();
+
 		RecalculateViewMatrix();
+	}
+
+	void PerspectiveCamera::RecalculateUpandRight()
+	{
+		m_CameraRight = glm::normalize(glm::cross(m_Up, m_CameraFront));
+		m_CameraUp = glm::normalize(glm::cross(m_CameraFront, m_CameraRight));
 	}
 
 	void PerspectiveCamera::SetWidth(float width)

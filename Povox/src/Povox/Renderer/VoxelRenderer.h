@@ -20,6 +20,7 @@ namespace Povox {
 		static void EndBatch();
 
 		static void Flush();
+		static void FlushAndReset();
 
 		static void OnWindowResize(uint32_t width, uint32_t height);
 		

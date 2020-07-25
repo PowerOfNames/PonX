@@ -27,6 +27,7 @@ namespace Povox {
 
 		inline const float GetWindowWidth() const { return m_Width; }
 		inline const float GetWindowHeight() const { return m_Height; }
+		inline const float GetFOV() const { return m_FOV; }
 
 	private:
 		bool OnWindowResized(WindowResizeEvent& e);
@@ -41,7 +42,7 @@ namespace Povox {
 		float m_ZoomLevel;
 		PerspectiveCamera m_Camera;
 
-		glm::vec3 m_CameraPosition = { 0.0f, 0.0f, 5.0f };
+		glm::vec3 m_CameraPosition = { 0.0f, 0.0f, 0.0f };
 		glm::vec3 m_CameraFront = { 0.0f, 0.0f, -1.0f };
 		glm::vec3 m_CameraUp = { 0.0f, 1.0f, 0.0f };
 

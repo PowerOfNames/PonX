@@ -151,7 +151,10 @@
   <ItemGroup>
     <None Include="assets\shaders\CubeFlatColored.glsl" />
     <None Include="assets\shaders\CubeTextured.glsl" />
+    <None Include="assets\shaders\FlatColor.glsl" />
     <None Include="assets\shaders\RayMarchingShader.glsl" />
+    <None Include="assets\shaders\RayMarchingShader_grid.glsl" />
+    <None Include="assets\shaders\Texture.glsl" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

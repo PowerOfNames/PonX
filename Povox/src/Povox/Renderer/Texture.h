@@ -45,7 +45,7 @@ namespace Povox {
 
 		Ref<Texture2D> Get(const std::string& name);
 
-		bool Contains(const std::string& name) const;
+		bool Contains(const std::string& name);
 
 	private:
 		std::unordered_map<std::string, Ref<Texture2D>> m_Textures;

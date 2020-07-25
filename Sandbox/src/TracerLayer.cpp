@@ -35,9 +35,9 @@ void TracerLayer::OnUpdate(float deltaTime)
 	Povox::RenderCommand::SetClearColor({ 0.1f, 0.1f, 0.2f, 1.0f });
 	Povox::RenderCommand::Clear();
 
-	Povox::RayTracer::BeginScene(m_CameraController.GetCamera());
+	Povox::RayTracer::BeginScene(m_CameraController.GetCamera(), m_PointLight);
 
-	Povox::RayTracer::Trace(m_CameraController.GetCamera());
+	Povox::RayTracer::Trace(m_CameraController);
 
 	Povox::RayTracer::EndScene();
 }
@@ -48,6 +48,16 @@ void TracerLayer::OnImGuiRender()
 
 
 	m_CameraController.OnImGuiRender();
+
+	ImGui::Begin("Light options");
+	ImGui::Text("Name: %s", m_PointLight.GetName());
+	ImGui::SliderFloat3("Position: ", &m_LightPosition.x, -10.0f, 10.0f);
+	m_PointLight.SetPosition(m_LightPosition);
+	ImGui::SliderFloat3("Color: ", &m_LightColor.x, 0.0f, 1.0f);
+	m_PointLight.SetColor(m_LightColor);
+	ImGui::SliderFloat("Intensity: ", &m_LightIntensity, 0.0f, 1.0f);
+	m_PointLight.SetIntensity(m_LightIntensity);
+	ImGui::End();
 
 	ImGui::Begin("Renderer-Info");
 	ImGui::Text("FPS: %.4f", 1 / m_DeltaTime);

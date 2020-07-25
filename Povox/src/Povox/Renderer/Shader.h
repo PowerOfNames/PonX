@@ -45,7 +45,7 @@ namespace Povox {
 
 	// Uniforms
 		virtual void SetInt(const std::string& name, int value) = 0;
-		virtual void SetIntArray(const std::string& name, int values[32]) = 0;
+		virtual void SetIntArray(const std::string& name, int* values, uint32_t count) = 0;
 
 		virtual void SetFloat(const std::string& name, const float value) = 0;
 		virtual void SetFloat2(const std::string& name, const glm::vec2& vector) = 0;

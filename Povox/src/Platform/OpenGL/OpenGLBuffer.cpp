@@ -12,6 +12,7 @@ namespace Povox {
 	{
 		PX_PROFILE_FUNCTION();
 
+
 		glCreateBuffers(1, &m_RendererID);
 		glBindBuffer(GL_ARRAY_BUFFER, m_RendererID);
 		glBufferData(GL_ARRAY_BUFFER, size, nullptr, GL_DYNAMIC_DRAW);
@@ -27,15 +28,6 @@ namespace Povox {
 		glBufferData(GL_ARRAY_BUFFER, size, vertices, GL_STATIC_DRAW);
 	}
 
-	OpenGLVertexBuffer::OpenGLVertexBuffer(Vertex* vertices, uint32_t size)
-	{
-		PX_PROFILE_FUNCTION();
-
-
-		glCreateBuffers(1, &m_RendererID);
-		glBindBuffer(GL_ARRAY_BUFFER, m_RendererID);
-		glBufferData(GL_ARRAY_BUFFER, size, vertices, GL_DYNAMIC_DRAW);
-	}
 	
 	OpenGLVertexBuffer::~OpenGLVertexBuffer()
 	{
@@ -45,13 +37,13 @@ namespace Povox {
 		glDeleteBuffers(1, &m_RendererID);
 	}
 
-	void OpenGLVertexBuffer::Submit(Vertex* vertices, size_t size) const
+	void OpenGLVertexBuffer::Submit(const void* data, size_t size) const
 	{
 		PX_PROFILE_FUNCTION();
 
 
 		glBindBuffer(GL_ARRAY_BUFFER, m_RendererID);
-		glBufferSubData(GL_ARRAY_BUFFER, 0, size, vertices);
+		glBufferSubData(GL_ARRAY_BUFFER, 0, size, data);
 	}
 
 	void OpenGLVertexBuffer::Bind() const
@@ -120,11 +112,12 @@ namespace Povox {
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
 	}
 
-	void OpenGLIndexBuffer::Submit(uint32_t* indices, size_t size) const
+	void OpenGLIndexBuffer::Submit(const void* data, size_t size) const
 	{
 		PX_PROFILE_FUNCTION();
 
+
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_RendererID);
-		glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, size, indices);
+		glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, size, data);
 	}
 }

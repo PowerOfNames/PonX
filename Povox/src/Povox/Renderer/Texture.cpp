@@ -64,9 +64,7 @@ namespace Povox {
 
 	void Texture2DLibrary::Add(const std::string& name, const Ref<Texture2D>& texture)
 	{
-		if (Contains(name))
-			PX_CORE_INFO("Shader '{0}' already exists!", name);
-		else
+		if (!Contains(name))
 			m_Textures[name] = texture;
 	}
 
@@ -81,7 +79,7 @@ namespace Povox {
 		auto texture = Texture2D::Create(name, width, height);
 		Add(name, texture);
 
-		return texture;
+		return m_Textures[name];
 	}
 
 	Ref<Povox::Texture2D> Texture2DLibrary::Load(const std::string& name, std::string& filepath)
@@ -89,24 +87,25 @@ namespace Povox {
 		auto texture = Texture2D::Create(filepath);
 		Add(name, texture);
 
-		return texture;
+		return m_Textures[name];
 	}
 
 	Ref<Povox::Texture2D> Texture2DLibrary::Load(const std::string& filepath)
 	{
 		auto texture = Texture2D::Create(filepath);
-		Add(GetNameFromPath(filepath), texture);
+		std::string name = texture->GetName();
+		Add(name, texture);
 
-		return texture;
+		return m_Textures[name];
 	}
 
 	Ref<Povox::Texture2D> Texture2DLibrary::Get(const std::string& name)
 	{
-		PX_CORE_ASSERT(Contains(name), "Shader does not exist!");
+		PX_CORE_ASSERT(Contains(name), "Texture does not exist!");
 		return m_Textures[name];
 	}
 
-	bool Texture2DLibrary::Contains(const std::string& name) const
+	bool Texture2DLibrary::Contains(const std::string& name)
 	{
 		return m_Textures.find(name) != m_Textures.end();
 	}

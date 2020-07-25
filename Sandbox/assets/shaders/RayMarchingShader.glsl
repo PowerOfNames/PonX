@@ -14,20 +14,27 @@ void main()
 in vec4 gl_FragCoord;
 //layout(location = 0) out vec4 gl_FragColor;
 
-
+// Camera
 uniform vec3 u_CameraPos;
 uniform vec3 u_CameraFront;
+uniform vec3 u_CameraUp;
 uniform vec2 u_WindowDims;
-
-//uniform mat4 u_ViewProjection;
 
 uniform float u_AspectRatio;
 uniform int u_FOV;
 
+// Lightsources
+uniform vec3 u_PointLightPos;
+uniform vec3 u_PointLightColor;
+uniform float u_PointLightIntensity;
+
+//uniform mat4 u_ViewProjection;
+
+//Mapdata
+uniform sampler2D u_MapData;
+
+//Constants
 #define PI 3.14159
-
-
-
 
 //p is the point, c is the sphere centre, r the radius
 float sdSphere(in vec3 p, in vec3 centre, float radius)
@@ -35,18 +42,19 @@ float sdSphere(in vec3 p, in vec3 centre, float radius)
     return length(p - centre) - radius;
 }
 
-float sdBox(in vec3 p, in vec3 size )
+float sdBox(in vec3 p, in vec3 size, in vec3 position )
 {
-  vec3 q = abs(p) - size;
-  return length(max(q,0.0)) + min(max(q.x,max(q.y,q.z)),0.0);
+    vec3 q = abs(p - position) - size;
+    return length(max(q, 0.0)) + min(max(q.x,max(q.y, q.z)), 0.0);
 }
 
-float map_the_world(in vec3 position)
+float map_the_world(in vec3 p)
 {
-    float cube_0 = sdBox(position, vec3(1.0, 1.0, 1.0));
-    float sphere_0 = sdSphere(position, vec3(4.0, 1.0, 4.0), 2.0);
+    float cube_0 = sdBox(p, vec3(1.0, 1.0, 1.0), vec3(2.0, 2.0, 2.0));
+    float light_0 = sdBox(p, vec3(1.0, 1.0, 1.0), u_PointLightPos + 1.0);
+    float sphere_0 = sdSphere(p, vec3(4.0, 1.0, 4.0), 2.0);
 
-    return min(sphere_0, cube_0);
+    return min(sphere_0, min(cube_0, light_0));
 }
 
 
@@ -64,6 +72,16 @@ vec3 calculate_normal(in vec3 position)
     return normalize(normal);
 }
 
+
+bool CheckMap(in int px, in int py)
+{
+    vec4 blockstate = texture(u_MapData, vec2(px, py));
+    if(blockstate == vec4(0.0, 0.0, 0.0, 0.0))
+    {
+        return false;
+    }
+    else return true;
+}
 
 vec3 ray_march(in vec3 origin, in vec3 dir)
 {
@@ -87,11 +105,10 @@ vec3 ray_march(in vec3 origin, in vec3 dir)
         {
             // We hit something! Return red for now
             vec3 normal = calculate_normal(currentPosition);
-            vec3 lightPosition = vec3(3.0, 5.0, 3.0);
 
             // Calculate the unit direction vector that points from 
             // the point of intersection to the light-source
-            vec3 direction_to_light = normalize(currentPosition - lightPosition);
+            vec3 direction_to_light = normalize(currentPosition - u_PointLightPos);
             vec3 viewVector = dir;
         
         //Ambient
@@ -99,12 +116,12 @@ vec3 ray_march(in vec3 origin, in vec3 dir)
             vec3 ambientColor = vec3(1.0, 1.0, 1.0);
             vec3 ambientLight = ambientColor * ambientIntensity;
         //Diffuse
-            float diffuseIntensity = 0.1;
-            vec3 diffuseColor = vec3(1.0, 1.0, 1.0);
-            vec3 diffuseLight = diffuseColor * dot(normal, -direction_to_light) * diffuseIntensity;
+            //float diffuseIntensity = 0.1;
+            //vec3 diffuseColor = vec3(1.0, 1.0, 1.0);
+            vec3 diffuseLight = u_PointLightColor * dot(normal, -direction_to_light) * u_PointLightIntensity;
         //Specular
             float roughness = 2.0;
-            float specularIntensity = 0.4;
+            float specularIntensity = 0.8;
             vec3 reflectionVector = 2.0 * dot(normal, direction_to_light) * normal - direction_to_light;
             float specularLight = specularIntensity * (2*roughness)/(2*PI) * pow(max(0.0, dot(viewVector, reflectionVector)), roughness);
 
@@ -127,12 +144,12 @@ vec3 ray_march(in vec3 origin, in vec3 dir)
     return vec3(0.2);
 }
 
-//Calculates the direction of the current Ray from the camera Position through the current pixel
+//Calculates the direction of the current ray from the cameraPosition through the current pixel
 vec3 GetRayWindowIntersection(vec2 uv)
 {
     vec2 screenspace_Uv = vec2((2 * (gl_FragCoord.x +uv.x)/u_WindowDims.x - 1.0) * u_AspectRatio * tan(u_FOV/2 * PI / 180), (1 - 2.0 * (gl_FragCoord.y +uv.y)/u_WindowDims.y) * tan(u_FOV/2 * PI / 180));
     
-    vec3 cameraRight = cross(u_CameraFront, vec3(0.0, 1.0, 0.0));
+    vec3 cameraRight = cross(u_CameraFront, u_CameraUp);
     vec3 cameraUp = cross(u_CameraFront, cameraRight);
     vec3 direction = cameraRight * screenspace_Uv.x + cameraUp * screenspace_Uv.y + u_CameraPos + u_CameraFront;
     
@@ -144,7 +161,7 @@ void main()
 {
     
     vec3 color = vec3(0.0);
-    int resolution_Factor = 4;
+    int resolution_Factor = 4; // -> 4*4 rays per pixel
     for(int i = 0; i < resolution_Factor; i++)
     {
         for(int j = 0; j < resolution_Factor; j++)
@@ -153,5 +170,7 @@ void main()
         }
     }
     color /= resolution_Factor * resolution_Factor;
-    gl_FragColor = vec4(color, 1.0);
+    float gamma = 1.5;
+    color = pow(color, vec3(1.0/gamma));
+    gl_FragColor = vec4(color, 0.6);
 }

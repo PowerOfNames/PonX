@@ -32,14 +32,13 @@ void VoxelExample::OnUpdate(float deltaTime)
 	m_CameraController.OnUpdate(deltaTime);
 	m_DeltaTime = deltaTime;
 
-	Povox::RenderCommand::SetClearColor({ 0.1f, 0.1f, 0.2f, 1.0f });
+	Povox::RenderCommand::SetClearColor({ 0.1f, 0.1f, 0.1f, 1.0f });
 	Povox::RenderCommand::Clear();
 	Povox::RenderCommand::SetDrawMode(m_DrawMode);
 
 	Povox::VoxelRenderer::BeginScene(m_CameraController.GetCamera());
 
 	Povox::VoxelRenderer::ResetStats();
-	Povox::VoxelRenderer::BeginBatch();
 
 	for (int i = 0; i < m_Size; i++)
 	{
@@ -48,14 +47,11 @@ void VoxelExample::OnUpdate(float deltaTime)
 			for (int k = 0; k < m_Size; k++)
 			{
 				Povox::VoxelRenderer::DrawCube(glm::vec3((float)i, (float)j, (float)k), 1.0f, glm::vec4(32.0f / 255, 95.0f / 255, 83.0f / 255, 1.0f));
+				
 			}
 		}
 	}
 	//Povox::VoxelRenderer::DrawCube({0.0f, 5.0f, 0.0f}, 1.0f, "assets/textures/green.png");
-
-
-	Povox::VoxelRenderer::EndBatch();
-	Povox::VoxelRenderer::Flush();
 
 	Povox::VoxelRenderer::EndScene();
 }

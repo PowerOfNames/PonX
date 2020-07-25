@@ -105,9 +105,7 @@ namespace Povox {
 
 		glBindVertexArray(m_RendererID);
 
-
 		m_IndexBuffer->Submit(indices, size);
-		glBindVertexArray(0);
 
 	}
 

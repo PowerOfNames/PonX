@@ -23,10 +23,12 @@ namespace Povox {
 
 		inline const glm::mat4& GetViewProjection() { return m_ViewProjectionMatrix; }
 
-		inline const glm::vec3& GetFront() { return m_CameraFront; }
+		inline const glm::vec3& GetFront() const { return m_CameraFront; }
 		void SetCameraFront(glm::vec3 front);
 
-		inline const glm::vec3& GetUp() { return m_CameraUp; }
+		inline const glm::vec3& GetUp() const { return m_CameraUp; }
+		inline const glm::vec3& GetRight() const { return m_CameraRight; }
+		void RecalculateUpandRight();
 
 		inline const float GetAspectRatio() const { return m_AspectRatio; }
 
@@ -40,9 +42,11 @@ namespace Povox {
 		glm::mat4 m_ProjectionMatrix;
 		glm::mat4 m_ViewProjectionMatrix;
 
-		glm::vec3 m_Position = { 0.0f, 0.0f, 0.0f };
+		glm::vec3 m_Position	= { 0.0f, 0.0f, 0.0f };
 		glm::vec3 m_CameraFront = { 0.0f, 0.0f, -1.0f };
-		glm::vec3 m_CameraUp = { 0.0f, 1.0f, 0.0f };
+		glm::vec3 m_Up			= { 0.0f, 1.0f, 0.0f };
+		glm::vec3 m_CameraUp	= { 0.0f, 1.0f, 0.0f };
+		glm::vec3 m_CameraRight = {1.0f, 0.0f, 0.0f};
 
 		float m_AspectRatio, m_Width, m_Height;
 	};

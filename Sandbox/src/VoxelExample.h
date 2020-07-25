@@ -21,6 +21,6 @@ private:
 private:
 	glm::vec3* m_CameraPosition;
 	float m_DeltaTime = 0.0f;
-	int m_Size = 1;
+	int m_Size = 3;
 	bool m_DrawMode = false;
 };
