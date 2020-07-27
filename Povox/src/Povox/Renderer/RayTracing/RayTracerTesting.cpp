@@ -55,15 +55,15 @@ namespace Povox {
 		uint32_t mapData[512];
 		for (unsigned int i = 0; i < 512; i++)
 		{
-			mapData[i] = 0xffffffff;
+			mapData[i] = 0x00000000;
 		}
 		mapData[0] = 0xffffffff;
 		mapData[511] = 0xffffffff;
 		s_TracerData->MapData->SetData(&mapData, sizeof(uint32_t) * 512);
 
-		s_TracerData->RayMarchingShader = Shader::Create("assets/shaders/RayMarchingShader.glsl");
+		s_TracerData->RayMarchingShader = Shader::Create("assets/shaders/RayMarchingShader_grid.glsl");
 		s_TracerData->RayMarchingShader->Bind();
-		//s_TracerData->RayMarchingShader->SetInt("u_MapData", 0);
+		s_TracerData->RayMarchingShader->SetInt("u_MapData", 0);
 	}
 
 	void RayTracer::Shutdown()
@@ -76,9 +76,9 @@ namespace Povox {
 		PX_PROFILE_FUNCTION();
 
 		//s_TracerData->RayMarchingShader->SetMat4("u_ViewProjection", camera.GetViewProjection());
-		s_TracerData->RayMarchingShader->SetFloat3("u_PointLightPos", lightsource.GetPosition());
-		s_TracerData->RayMarchingShader->SetFloat3("u_PointLightColor", lightsource.GetColor());
-		s_TracerData->RayMarchingShader->SetFloat("u_PointLightIntensity", lightsource.GetIntensity());
+		//s_TracerData->RayMarchingShader->SetFloat3("u_PointLightPos", lightsource.GetPosition());
+		//s_TracerData->RayMarchingShader->SetFloat3("u_PointLightColor", lightsource.GetColor());
+		//s_TracerData->RayMarchingShader->SetFloat("u_PointLightIntensity", lightsource.GetIntensity());
 		s_TracerData->VertexArray->Bind();
 	}
 
@@ -99,7 +99,7 @@ namespace Povox {
 		s_TracerData->RayMarchingShader->SetFloat2("u_WindowDims", glm::vec2(cameraController.GetWindowWidth(), cameraController.GetWindowHeight()));
 		s_TracerData->RayMarchingShader->SetInt("u_FOV", cameraController.GetFOV());
 		s_TracerData->VertexArray->Bind();
-		RenderCommand::DrawIndexed(s_TracerData->VertexArray);
+		RenderCommand::DrawIndexed(s_TracerData->VertexArray, 4);
 	}
 
 }

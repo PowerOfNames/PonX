@@ -26,6 +26,11 @@ namespace Povox {
 
 		inline const uint32_t GetId() { return m_RendererID; };
 
+		virtual bool operator==(const Texture& other) const override
+		{
+			return m_RendererID == ((OpenGLTexture2D&)other).m_RendererID;
+		}
+
 	private:
 		void Compile(const std::string& filepath);
 	private:

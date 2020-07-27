@@ -9,6 +9,9 @@ void main()
 	gl_Position = vec4(a_Position, 1.0f);
 }
 
+
+
+
 #type fragment
 #version 430 core		
 in vec4 gl_FragCoord;

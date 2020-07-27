@@ -11,80 +11,100 @@
 
 namespace Povox {
 
-	struct Render2DStorage
+	struct QuadVertex
 	{
-		Ref<VertexArray> QuadVertexArray;
-		Ref<Shader> TextureShader;
-		Texture2DLibrary Textures;
-		Ref<Texture2D> WhiteTexture;
-		Ref<Texture2D> MapData;
-		Ref<Texture2D> GreenTexture;
+		glm::vec3 Position;
+		glm::vec4 Color;
+		glm::vec2 TexCoord;
+		float TexIndex;
+		float TilingFactor;
 	};
 
-	static Render2DStorage* s_QuadData;
+	struct Renderer2DData
+	{
+		static const uint32_t MaxQuads = 20000;
+		static const uint32_t MaxVertices = MaxQuads * 4;
+		static const uint32_t MaxIndices = MaxQuads * 6;
+		static const uint32_t MaxTextureSlots = 32;
+
+		Ref<VertexArray> QuadVertexArray;
+		Ref<VertexBuffer> QuadVertexBuffer;
+		Ref<Shader> TextureShader;
+		Ref<Texture2D> WhiteTexture;
+
+		Texture2DLibrary Textures;
+
+		uint32_t QuadIndexCount = 0;
+		QuadVertex* QuadVertexBufferPtr = nullptr;
+		QuadVertex* QuadVertexBufferBase = nullptr;
+
+		std::array<Ref<Texture2D>, MaxTextureSlots> TextureSlots;
+		uint32_t TextureSlotIndex = 1;
+
+		glm::vec4 QuadVertexPositions[4];
+
+		Renderer2D::Statistics Stats;
+	};
+
+	static Renderer2DData s_Data;
+
 
 	void Renderer2D::Init()
 	{
 		PX_PROFILE_FUNCTION();
 
 
-		s_QuadData = new Render2DStorage();
-		s_QuadData->QuadVertexArray = VertexArray::Create();
+		s_Data.QuadVertexArray = VertexArray::Create();
 
-		float squareVertices[4 * 5 * 3] = {
-			-0.5f, -0.5f, 0.0f, 0.0f, 0.0f,
-			 0.5f, -0.5f, 0.0f, 1.0f, 0.0f,
-			 0.5f,  0.5f, 0.0f, 1.0f, 1.0f,
-			-0.5f,  0.5f, 0.0f, 0.0f, 1.0f,
-
-			-0.5f, -0.5f, 0.0f, 0.0f, 0.0f,
-			 0.5f, -0.5f, 0.0f, 1.0f, 0.0f,
-			 0.5f,  0.5f, 0.0f, 1.0f, 1.0f,
-			-0.5f,  0.5f, 0.0f, 0.0f, 1.0f,
-
-			-0.5f, -0.5f, 0.0f, 0.0f, 0.0f,
-			 0.5f, -0.5f, 0.0f, 1.0f, 0.0f,
-			 0.5f,  0.5f, 0.0f, 1.0f, 1.0f,
-			-0.5f,  0.5f, 0.0f, 0.0f, 1.0f
-		};
-		Ref<VertexBuffer> squareVB = VertexBuffer::Create(squareVertices, sizeof(squareVertices));
-		squareVB->SetLayout({
+		s_Data.QuadVertexBuffer = VertexBuffer::Create(s_Data.MaxVertices * sizeof(QuadVertex));
+		s_Data.QuadVertexBuffer->SetLayout({
 			{ ShaderDataType::Float3, "a_Position" },
-			{ ShaderDataType::Float2, "a_TexCoord" }
+			{ ShaderDataType::Float4, "a_Color" },
+			{ ShaderDataType::Float2, "a_TexCoord" },
+			{ ShaderDataType::Float, "a_TexIndex" },
+			{ ShaderDataType::Float, "a_TilingFactor" }
 			});
-		s_QuadData->QuadVertexArray->AddVertexBuffer(squareVB);
+		s_Data.QuadVertexArray->AddVertexBuffer(s_Data.QuadVertexBuffer);
+		s_Data.QuadVertexBufferBase = new QuadVertex[s_Data.MaxVertices];
 
-		uint32_t squareIndices[6 * 3] = { 
-			0, 1, 2, 2, 3, 0,
-			4, 5, 6, 6, 7, 4,
-			8, 9, 10, 10, 11, 8
-		};
-		Ref<IndexBuffer> squareIB = IndexBuffer::Create(squareIndices, sizeof(squareIndices) / sizeof(uint32_t));
-		s_QuadData->QuadVertexArray->SetIndexBuffer(squareIB);
+		uint32_t* quadIndices = new uint32_t[s_Data.MaxIndices];
 
-		s_QuadData->WhiteTexture = Texture2D::Create("WhiteTexture", 1, 1);
-		uint32_t whiteTextureData = 0xffffffff;
-		s_QuadData->WhiteTexture->SetData(&whiteTextureData, sizeof(uint32_t));
-		s_QuadData->Textures.Add("WhiteTexture", s_QuadData->WhiteTexture);
-
-		s_QuadData->MapData = Texture2D::Create("MapDataTest", 8, 8);
-		uint32_t mapData[64];
-		for (unsigned int i = 0; i < 64; i++)
+		uint32_t offset = 0;
+		for (uint32_t i = 0; i < s_Data.MaxIndices; i += 6)
 		{
-			mapData[i] = 0xffffffff;
+			quadIndices[i + 0] = offset + 0;
+			quadIndices[i + 1] = offset + 1;
+			quadIndices[i + 2] = offset + 2;
+
+			quadIndices[i + 3] = offset + 2;
+			quadIndices[i + 4] = offset + 3;
+			quadIndices[i + 5] = offset + 0;
+
+			offset += 4;
 		}
-		mapData[0] = 0x00000000;
-		mapData[63] = 0x00000000;
-		s_QuadData->MapData->SetData(&mapData, sizeof(uint32_t) * 64);
-		s_QuadData->Textures.Add(s_QuadData->MapData);
+		Ref<IndexBuffer> quadIB = IndexBuffer::Create(quadIndices, s_Data.MaxIndices);
+		s_Data.QuadVertexArray->SetIndexBuffer(quadIB);
+		delete[] quadIndices;
 
-		s_QuadData->GreenTexture = Texture2D::Create("GreenTexture", "assets/textures/green.png");
-		s_QuadData->Textures.Add(s_QuadData->GreenTexture);
+		s_Data.WhiteTexture = Texture2D::Create("WhiteTexture", 1, 1);
+		uint32_t whiteTextureData = 0xffffffff;
+		s_Data.WhiteTexture->SetData(&whiteTextureData, sizeof(uint32_t));
+		s_Data.Textures.Add("WhiteTexture", s_Data.WhiteTexture);
 
-		s_QuadData->TextureShader = Shader::Create("assets/shaders/Texture.glsl");
+		int32_t samplers[s_Data.MaxTextureSlots];
+		for (uint32_t i = 0; i < s_Data.MaxTextureSlots; i++)
+			samplers[i] = i;				
 
-		s_QuadData->TextureShader->Bind();
-		s_QuadData->TextureShader->SetInt("u_Texture", 0);
+		s_Data.TextureShader = Shader::Create("assets/shaders/Texture.glsl");
+		s_Data.TextureShader->Bind();
+		s_Data.TextureShader->SetIntArray("u_Textures", samplers, s_Data.MaxTextureSlots);
+
+		s_Data.TextureSlots[0] = s_Data.Textures.Get("WhiteTexture");
+
+		s_Data.QuadVertexPositions[0] = { -0.5f, -0.5f, 0.0f, 1.0f };
+		s_Data.QuadVertexPositions[1] = { 0.5f, -0.5f, 0.0f, 1.0f };
+		s_Data.QuadVertexPositions[2] = { 0.5f,  0.5f, 0.0f, 1.0f };
+		s_Data.QuadVertexPositions[3] = { -0.5f,  0.5f, 0.0f, 1.0f };
 	}
 
 	void Renderer2D::Shutdown()
@@ -92,7 +112,7 @@ namespace Povox {
 		PX_PROFILE_FUNCTION();
 
 
-		delete s_QuadData;
+		delete[] s_Data.QuadVertexBufferBase;
 	}
 
 	void Renderer2D::BeginScene(OrthographicCamera& camera)
@@ -100,38 +120,150 @@ namespace Povox {
 		PX_PROFILE_FUNCTION();
 
 
-		s_QuadData->TextureShader->Bind();
+		s_Data.TextureShader->Bind();
+		s_Data.TextureShader->SetMat4("u_ViewProjection", camera.GetViewProjectionMatrix());
 
-		s_QuadData->TextureShader->SetMat4("u_ViewProjection", camera.GetViewProjectionMatrix());
+		s_Data.QuadIndexCount = 0;
+		s_Data.QuadVertexBufferPtr = s_Data.QuadVertexBufferBase;
+
+		s_Data.TextureSlotIndex = 1;
 	}
 
 	void Renderer2D::EndScene()
 	{
 		PX_PROFILE_FUNCTION();
 
+		s_Data.QuadVertexBuffer->Submit(s_Data.QuadVertexBufferBase, (uint32_t)((uint8_t*)s_Data.QuadVertexBufferPtr - (uint8_t*)s_Data.QuadVertexBufferBase ));
 
+		Flush();
+	}
+
+	void Renderer2D::Flush()
+	{
+		if (s_Data.QuadIndexCount == 0)
+			return; //nothing to draw
+
+		//Bind textures
+		for (uint32_t i = 0; i < s_Data.TextureSlotIndex; i++)
+			s_Data.TextureSlots[i]->Bind(i);
+
+		RenderCommand::DrawIndexed(s_Data.QuadVertexArray, s_Data.QuadIndexCount);
+		s_Data.Stats.DrawCalls++;
+	}
+
+	void Renderer2D::FlushAndReset()
+	{
+		EndScene();
+
+		s_Data.QuadIndexCount = 0;
+		s_Data.QuadVertexBufferPtr = s_Data.QuadVertexBufferBase;
+
+		s_Data.TextureSlotIndex = 1;
 	}
 
 	/*Renders a quad in 2D without depth*/
-	void Renderer2D::DrawQuad(const glm::vec2& position, const glm::vec2 size, const glm::vec4& color)
+	void Renderer2D::DrawQuad(const glm::vec2& position, const glm::vec2& size, const glm::vec4& color)
 	{
 		DrawQuad({ position.x, position.y, 0.0f }, size, color);
 	}
 
 	/*Renders a quad with possible depth*/
-	void Renderer2D::DrawQuad(const glm::vec3& position, const glm::vec2 size, const glm::vec4& color)
+	void Renderer2D::DrawQuad(const glm::vec3& position, const glm::vec2& size, const glm::vec4& color)
 	{
-		s_QuadData->TextureShader->SetFloat4("u_Color", color);
-		s_QuadData->Textures.Get("WhiteTexture")->Bind();
+		PX_PROFILE_FUNCTION();
 
-		glm::mat4 transform = glm::translate(glm::mat4(1.0f), position) * glm::scale(glm::mat4(1.0f), glm::vec3(size.x, size.y, 1.0f));
-		s_QuadData->TextureShader->SetMat4("u_Transform", transform);
 
-		s_QuadData->QuadVertexArray->Bind();
-		RenderCommand::DrawIndexed(s_QuadData->QuadVertexArray);
+		glm::mat4 transform = glm::translate(glm::mat4(1.0f), position)
+			* glm::scale(glm::mat4(1.0f), { size.x, size.y, 1.0f });
+
+		DrawQuad(transform, color);
 	}
 
+	void Renderer2D::DrawQuad(const glm::vec2& position, const glm::vec2& size, const Ref<Texture2D>& texture, float tilingFactor, const glm::vec4& tintColor)
+	{
+		DrawQuad({ position.x, position.y, 0.0f }, size, texture, tilingFactor);
+	}
 
+	void Renderer2D::DrawQuad(const glm::vec3& position, const glm::vec2& size, const Ref<Texture2D>& texture, float tilingFactor, const glm::vec4& tintColor)
+	{
+		PX_PROFILE_FUNCTION();
+
+
+		glm::mat4 transform = glm::translate(glm::mat4(1.0f), position)
+			* glm::scale(glm::mat4(1.0f), { size.x, size.y, 1.0f });
+
+		DrawQuad(transform, texture, tilingFactor);
+	}
+
+	void Renderer2D::DrawQuad(const glm::mat4& transform, const glm::vec4& color)
+	{
+		constexpr size_t quadVertexCount = 4;
+		const float textureIndex = 0.0f;
+		constexpr glm::vec2 textureCoords[] = { { 0.0f, 0.0f }, { 1.0f, 0.0f }, { 1.0f, 1.0f }, { 0.0f, 1.0f } };
+		const float tilingFactor = 1.0f;
+
+		if (s_Data.QuadIndexCount >= Renderer2DData::MaxIndices)
+			FlushAndReset();
+
+		for (size_t i = 0; i < quadVertexCount; i++)
+		{
+			s_Data.QuadVertexBufferPtr->Position = transform * s_Data.QuadVertexPositions[i];
+			s_Data.QuadVertexBufferPtr->Color = color;
+			s_Data.QuadVertexBufferPtr->TexCoord = textureCoords[i];
+			s_Data.QuadVertexBufferPtr->TexIndex = textureIndex;
+			s_Data.QuadVertexBufferPtr->TilingFactor = tilingFactor;
+			s_Data.QuadVertexBufferPtr++;
+		}
+
+		s_Data.QuadIndexCount += 6;
+
+		s_Data.Stats.QuadCount++;
+	}
+	
+	void Renderer2D::DrawQuad(const glm::mat4& transform, const Ref<Texture2D>& texture, float tilingFactor, const glm::vec4& tintColor)
+	{
+		constexpr size_t quadVertexCount = 4;
+		constexpr glm::vec2 textureCoords[] = { { 0.0f, 0.0f }, { 1.0f, 0.0f }, { 1.0f, 1.0f }, { 0.0f, 1.0f } };
+
+		if (s_Data.QuadIndexCount >= Renderer2DData::MaxIndices)
+			FlushAndReset();
+
+		float textureIndex = 0.0f;
+		for (uint32_t i = 1; i < s_Data.TextureSlotIndex; i++)
+		{
+			if (*s_Data.TextureSlots[i].get() == *texture.get())
+			{
+				textureIndex = (float)i;
+				break;
+			}
+		}
+
+		if (textureIndex == 0.0f)
+		{
+			if (s_Data.TextureSlotIndex >= Renderer2DData::MaxTextureSlots)
+				FlushAndReset();
+
+			textureIndex = (float)s_Data.TextureSlotIndex;
+			s_Data.TextureSlots[s_Data.TextureSlotIndex] = texture;
+			s_Data.TextureSlotIndex++;
+		}
+
+		for (size_t i = 0; i < quadVertexCount; i++)
+		{
+			s_Data.QuadVertexBufferPtr->Position = transform * s_Data.QuadVertexPositions[i];
+			s_Data.QuadVertexBufferPtr->Color = tintColor;
+			s_Data.QuadVertexBufferPtr->TexCoord = textureCoords[i];
+			s_Data.QuadVertexBufferPtr->TexIndex = textureIndex;
+			s_Data.QuadVertexBufferPtr->TilingFactor = tilingFactor;
+			s_Data.QuadVertexBufferPtr++;
+		}
+
+		s_Data.QuadIndexCount += 6;
+
+		s_Data.Stats.QuadCount++;
+	}
+
+	/*
 	void Renderer2D::DrawQuad(const glm::vec2& position, const glm::vec2 size, const std::string& filepath)
 	{
 		DrawQuad({ position.x, position.y, 0.0f }, size, filepath);
@@ -139,32 +271,17 @@ namespace Povox {
 
 	void Renderer2D::DrawQuad(const glm::vec3& position, const glm::vec2 size, const std::string& filepath)
 	{
-		s_QuadData->TextureShader->SetFloat4("u_Color", glm::vec4(1.0f));
-		s_QuadData->Textures.Load(filepath)->Bind();
-
-		glm::mat4 transform = glm::translate(glm::mat4(1.0f), position) * glm::scale(glm::mat4(1.0f), glm::vec3(size.x, size.y, 1.0f));
-		s_QuadData->TextureShader->SetMat4("u_Transform", transform);
-
-		s_QuadData->QuadVertexArray->Bind();
-		RenderCommand::DrawIndexed(s_QuadData->QuadVertexArray);
-	}
-
-	void Renderer2D::DrawQuad(const glm::vec2& position, const glm::vec2 size, const Ref<Texture2D>& texture)
-	{
-		DrawQuad({ position.x, position.y, 0.0f }, size, texture);
-	}
-
-	void Renderer2D::DrawQuad(const glm::vec3& position, const glm::vec2 size, const Ref<Texture2D>& texture)
-	{
-		s_QuadData->TextureShader->SetFloat4("u_Color", glm::vec4(1.0f));
-		s_QuadData->Textures.Add(texture);
-		s_QuadData->Textures.Get(texture->GetName())->Bind();
-
-		glm::mat4 transform = glm::translate(glm::mat4(1.0f), position) * glm::scale(glm::mat4(1.0f), glm::vec3(size.x, size.y, 1.0f));
-		s_QuadData->TextureShader->SetMat4("u_Transform", transform);
 		
-		s_QuadData->QuadVertexArray->Bind();
-		RenderCommand::DrawIndexed(s_QuadData->QuadVertexArray);
+	}
+	*/
+
+	void Renderer2D::ResetStats()
+	{
+		memset(&s_Data.Stats, 0, sizeof(Statistics));
 	}
 
+	Renderer2D::Statistics Renderer2D::GetStats()
+	{
+		return s_Data.Stats;
+	}
 }

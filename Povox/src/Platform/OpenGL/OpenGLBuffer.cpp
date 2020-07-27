@@ -37,7 +37,7 @@ namespace Povox {
 		glDeleteBuffers(1, &m_RendererID);
 	}
 
-	void OpenGLVertexBuffer::Submit(const void* data, size_t size) const
+	void OpenGLVertexBuffer::Submit(const void* data, uint32_t size) const
 	{
 		PX_PROFILE_FUNCTION();
 
@@ -112,7 +112,7 @@ namespace Povox {
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
 	}
 
-	void OpenGLIndexBuffer::Submit(const void* data, size_t size) const
+	void OpenGLIndexBuffer::Submit(const void* data, uint32_t size) const
 	{
 		PX_PROFILE_FUNCTION();
 

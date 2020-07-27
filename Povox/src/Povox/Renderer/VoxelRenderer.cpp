@@ -148,7 +148,7 @@ namespace Povox {
 			s_VoxelData->TextureSlots[i]->Bind(i);
 
 
-		RenderCommand::DrawIndexed(s_VoxelData->VoxelVertexArray);
+		RenderCommand::DrawIndexed(s_VoxelData->VoxelVertexArray, s_VoxelData->IndexCount);
 		s_VoxelData->Stats.DrawCount++;
 	}
 
