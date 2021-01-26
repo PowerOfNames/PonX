@@ -54,6 +54,8 @@ namespace Povox {
 		PX_PROFILE_FUNCTION();
 
 
+		RenderCommand::Init();
+
 		s_Data.QuadVertexArray = VertexArray::Create();
 
 		s_Data.QuadVertexBuffer = VertexBuffer::Create(s_Data.MaxVertices * sizeof(QuadVertex));

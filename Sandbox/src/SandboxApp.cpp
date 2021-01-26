@@ -12,9 +12,9 @@ public:
 	Sandbox()
 	{
 		//PushLayer(new ExampleLayer());
-		//PushLayer(new Sandbox2D());
+		PushLayer(new Sandbox2D());
 		//PushLayer(new VoxelExample());
-		PushLayer(new TracerLayer());
+		//PushLayer(new TracerLayer());
 	}
 
 	~Sandbox()

@@ -35,9 +35,9 @@ uniform sampler2D u_MapData;
 //Constants
 #define PI 3.14159
 
-#define MAP_WIDTH 8
-#define MAP_HEIGHT 8
-#define MAP_DEPTH 8
+#define MAP_WIDTH 2
+#define MAP_DEPTH 2
+#define MAP_HEIGHT 1
 
 float sdBox(in vec3 p, in vec3 size, in vec3 position )
 {
@@ -45,112 +45,157 @@ float sdBox(in vec3 p, in vec3 size, in vec3 position )
     return length(max(q, 0.0)) + min(max(q.x,max(q.y, q.z)), 0.0);
 }
 
-vec3 GridRayMarch(in vec3 origin, in vec3 dir)
+vec3 GridRayMarch(in vec3 camPos, in vec3 dir)
 {
-    ivec3 pos = ivec3(origin);
-    ivec3 stepAmount;
-    vec3 tDelta = abs(1.0 / dir);
-    vec3 tMax;
-    vec4 voxel;
-    int side;
+    vec3 gridOrigin = vec3(0.0, 0.0, 0.0);              // the bottom front most left corner of the given grid
+    vec3 rayPos = camPos;
+    ivec3 cellIndex = ivec3(camPos);
+    ivec3 cellIndexIt;
+    vec3 deltaT;                                        // what is missing to the next cellborder in x, y, z, respectivly
+    vec3 tMax;                                          // current t to the next border
 
     if (dir.x < 0)
     {
-        stepAmount.x = -1;
-        tMax.x = (origin.x - pos.x) * tDelta.x;
+        deltaT.x = -1/dir.x;
+        cellIndexIt.x = -1;
+        tMax.x = (cellIndex.x - rayPos.x) / dir.x;
     }
     else if (dir.x > 0)
     {
-        stepAmount.x = 1;
-        tMax.x = (pos.x + 1.0 - origin.x) * tDelta.x;
+        deltaT.x = 1/dir.x;
+        cellIndexIt.x = 1;
+        tMax.x = (cellIndex.x + 1.0 - rayPos.x) / dir.x;
     }
     else
     {
-        stepAmount.x = 0;
-        tMax.x = 0;
+        deltaT.x = 1000;
+        cellIndexIt.x = 0;
+        tMax.x = 0.0;
     }
+
 
     if (dir.y < 0)
     {
-        stepAmount.y = -1;
-        tMax.y = (origin.y - pos.y) * tDelta.y;
+        deltaT.y = -1/dir.y;
+        cellIndexIt.y = -1;
+        tMax.y = (cellIndex.y - rayPos.y) / dir.y;
     }
     else if (dir.y > 0)
     {
-        stepAmount.y = 1;
-        tMax.y = (pos.y + 1.0 - origin.y) * tDelta.y;
+        deltaT.y = 1/dir.y;
+        cellIndexIt.y = 1;
+        tMax.y = (cellIndex.y + 1.0 - rayPos.y) / dir.y;
     }
     else
     {
-        stepAmount.y = 0;
-        tMax.y = 0;
+        deltaT.y = 1000;
+        cellIndexIt.y = 0;
+        tMax.y = 0.0;
     }
 
     if (dir.z < 0)
     {
-        stepAmount.z = -1;
-        tMax.z = (origin.z - pos.z) * tDelta.z;
+        deltaT.z = -1/dir.z;
+        cellIndexIt.z = -1;
+        tMax.z = (cellIndex.z - rayPos.z) / dir.z;
     }
     else if (dir.z > 0)
     {
-        stepAmount.z = 1;
-        tMax.z = (pos.z + 1.0 - origin.z) * tDelta.z;
+        deltaT.z = 1/dir.z;
+        cellIndexIt.z = 1;
+        tMax.z = (cellIndex.z + 1.0 - rayPos.z) / dir.z;
     }
     else
     {
-        stepAmount.z = 0;
-        tMax.z = 0;
+        deltaT.z = 1000;
+        cellIndexIt.z = 0;
+        tMax.z = 0.0;
     }
 
-    do
+    vec3 backgroundX = vec3(1.0, 0.0, 0.0);
+    vec3 backgroundY = vec3(0.0, 1.0, 0.0);
+    vec3 backgroundZ = vec3(0.0, 0.0, 1.0);
+    float t = 0;                                        // mutliplier for the direction 
+    vec4 voxel;
+    while(t < 200)
     {
         if (tMax.x < tMax.y)
         {
             if (tMax.x < tMax.z)
             {
-                pos.x += stepAmount.x;
-                if (pos.x >= MAP_WIDTH && stepAmount.x >= 0 || pos.x < 0 && stepAmount.x <= 0)
-                    return vec3(0.2);
-                tMax.x += tDelta.x;
-                side = 0;
+                t = tMax.x;
+                tMax.x += deltaT.x;
+                if (dir.x < 0)
+                    cellIndex.x -= 1;
+                    if(cellIndex.x < 0)
+                        return backgroundX;
+                else
+                    cellIndex.x += 1;
+                    if(cellIndex.x > MAP_WIDTH -1)
+                        return backgroundX;
             }
             else
             {
-                pos.z += stepAmount.z;
-                if (pos.z >= MAP_DEPTH && stepAmount.z >= 0 || pos.z < 0 && stepAmount.z <= 0)
-                    return vec3(0.5);
-                tMax.z += tDelta.z;
-                side = 1;
+                t = tMax.z;
+                tMax.z += deltaT.z;
+                if (dir.z < 0)
+                    cellIndex.z -= 1;
+                    if(cellIndex.z < 0)
+                        return backgroundZ;
+                else
+                    cellIndex.z += 1;
+                    if(cellIndex.z > MAP_DEPTH -1)
+                        return backgroundZ;
             }
-        }
+        } // end if
         else
         {
             if (tMax.y < tMax.z)
             {
-                pos.y += stepAmount.y;
-                if (pos.y >= MAP_HEIGHT && stepAmount.y >= 0 || pos.y < 0 && stepAmount.y <= 0)
-                    return vec3(0.8);
-                tMax.y += tDelta.y;
-                side = 2;
+                t = tMax.y;
+                tMax.y += deltaT.y;
+                if (dir.y < 0)
+                    cellIndex.y -= 1;
+                    if(cellIndex.y < 0)
+                        return backgroundY;
+                else
+                    cellIndex.y += 1;
+                    if(cellIndex.y > MAP_HEIGHT -1)
+                        return backgroundY;
             }
             else
             {
-                pos.z += stepAmount.z;
-                if (pos.z >= MAP_DEPTH && stepAmount.z >= 0 || pos.z < 0 && stepAmount.z <= 0)
-                    return vec3(0.5);
-                tMax.z += tDelta.z;
-                side = 1;
+                t = tMax.z;
+                tMax.z += deltaT.z;
+                if (dir.z < 0)
+                    cellIndex.z -= 1;
+                    if(cellIndex.z < 0)
+                        return backgroundZ;
+                else
+                    cellIndex.z += 1;
+                    if(cellIndex.z > MAP_DEPTH -1)
+                        return backgroundZ;
             }
-        }
+        } // end else
 
-        if(((pos.x >= 0) && (pos.x < MAP_WIDTH)) && ((pos.z >= 0) && (pos.z < MAP_DEPTH)) && ((pos.y >= 0) && (pos.y < MAP_HEIGHT)))
-            voxel = texture(u_MapData, vec2( (1.0/8)*7, (1.0/64)*63) );
+        // This if statement is not final, because at the moment it will always break form the loop if the rtay is outside of the grid, which I do not want
+        // The goal is to tell when the ray got through the whole grtid without finding something and then terminate.
+        // At the moment, is terminates if the ray is in front of the grid and didnt even reach it.
 
+        // To fix this, one possible solution would be to check before the loop if the current ray would ever hit the grid. This, however, would just be a temporary solution, cause at the end of the day,
+        //the grid should be everywhere (In this particular case of ray-tracing accelaration-structure)
+        // In addition to that, I would have to to a normal ray-box intersection test for every ray several times to decide on hitting or not. That would be redundant, 
+        //because then I could direcly render a cube at the given positions
 
-        if(voxel == vec4(1.0))
-            return vec3(1.0, 1.0, 1.0);
+        // So instead, I should use the current ray position, check if it is within the grid and do the mapData-retrieving AFTER that check is true.
+        // This will result in a couple of If- statements, which may not be the most efficient way to do, but on that problem later
+        if(cellIndex.x > -1 && cellIndex.x < MAP_WIDTH && cellIndex.y > -1 && cellIndex.y < MAP_HEIGHT && cellIndex.z > -1 && cellIndex.z < MAP_DEPTH)
+            voxel = texture(u_MapData, vec2( cellIndex.x, cellIndex.y * MAP_DEPTH * MAP_WIDTH + cellIndex.z * MAP_WIDTH));
 
-    } while (voxel == vec4(0));
+        if(voxel.a != 0x00)
+            return voxel.xyz;
+
+    } // end while
 
     return voxel.xyz;
 }
@@ -179,11 +224,12 @@ void main()
     {
         for(int j = 0; j < resolution_Factor; j++)
         {
-            color += GridRayMarch(u_CameraPos, normalize(GetRayWindowIntersection(vec2(i * 0.25, j * 0.25)) - u_CameraPos));
+            vec3 dir = normalize(GetRayWindowIntersection(vec2(i * 0.25, j * 0.25)) - u_CameraPos);
+            color += GridRayMarch(u_CameraPos, dir);
         }
     }
     color /= resolution_Factor * resolution_Factor;
     float gamma = 1.5;
     color = pow(color, vec3(1.0/gamma));
-    gl_FragColor = vec4(color, 0.6);
+    gl_FragColor = vec4(color, 1.0);
 }

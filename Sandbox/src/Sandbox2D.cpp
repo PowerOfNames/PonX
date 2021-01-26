@@ -23,10 +23,10 @@ void Sandbox2D::OnAttach()
 	uint32_t mapData[64];
 	for (unsigned int i = 0; i < 64; i++)
 	{
-		mapData[i] = 0xffffffff;
+		mapData[i] = 0x000000ff;
 	}
-	mapData[0] = 0x00000000;
-	mapData[63] = 0x00000000;
+	mapData[0] = 0xff000000;
+	mapData[63] = 0xffffffff;
 	m_MapData->SetData(&mapData, sizeof(uint32_t) * 64);
 }
 
@@ -45,13 +45,13 @@ void Sandbox2D::OnUpdate(float deltatime)
 
 	m_CameraController.OnUpdate(deltatime);
 
-	Povox::RenderCommand::SetClearColor({ 0.1f, 0.1f, 0.2f, 1.0f });
+	Povox::RenderCommand::SetClearColor({ 1.0f, 1.0f, 1.0f, 1.0f });
 	Povox::RenderCommand::Clear();
 
 
 	Povox::Renderer2D::BeginScene(m_CameraController.GetCamera());
 
-	//Povox::Renderer2D::DrawQuad({ 1.0f, 1.0f }, { 1.0f, 1.0f }, "assets/textures/green.png");
+	Povox::Renderer2D::DrawQuad({ 1.0f, 1.0f }, { 1.0f, 1.0f }, "assets/textures/green.png");
 	Povox::Renderer2D::DrawQuad({ -1.0f, -1.0f }, { 1.0f, 1.0f }, m_MapData);
 	Povox::Renderer2D::DrawQuad(m_SquarePos1, { 1.0f, 1.0f }, m_SquareColor1);
 	Povox::Renderer2D::DrawQuad({ 1.0f, 1.0f }, { 0.5f, 0.5f }, m_SquareColor1);

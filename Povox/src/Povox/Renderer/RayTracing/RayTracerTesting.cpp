@@ -15,7 +15,7 @@ namespace Povox {
 		Ref<VertexArray> VertexArray;
 		Ref<Shader> RayMarchingShader;
 
-		Ref<Texture> MapData;
+		Ref<Texture> MapData1, MapData2, MapData3;
 	};
 
 	static TracerData* s_TracerData;
@@ -51,19 +51,37 @@ namespace Povox {
 		Ref<IndexBuffer> indexBuffer = IndexBuffer::Create(indices, sizeof(indices) / sizeof(uint32_t));
 		s_TracerData->VertexArray->SetIndexBuffer(indexBuffer);
 
-		s_TracerData->MapData = Texture2D::Create("MapData", 8, 64);
-		uint32_t mapData[512];
+		s_TracerData->MapData1 = Texture2D::Create("MapData", 8, 64);
+		uint32_t mapData1[512];
 		for (unsigned int i = 0; i < 512; i++)
 		{
-			mapData[i] = 0x00000000;
+			mapData1[i] = 0x00000000;
 		}
-		mapData[0] = 0xffffffff;
-		mapData[511] = 0xffffffff;
-		s_TracerData->MapData->SetData(&mapData, sizeof(uint32_t) * 512);
+		mapData1[0] = 0xffffffff;
+		mapData1[511] = 0xffffffff;
+		s_TracerData->MapData1->SetData(&mapData1, sizeof(uint32_t) * 512);
 
-		s_TracerData->RayMarchingShader = Shader::Create("assets/shaders/RayMarchingShader_grid.glsl");
+		s_TracerData->MapData2 = Texture2D::Create("MapData", 1, 2);
+		uint32_t mapData2[2];
+		for (unsigned int i = 0; i < 2; i++)
+		{
+			mapData2[i] = 0x22222222;
+		}
+		mapData2[1] = 0x77007700;
+		s_TracerData->MapData2->SetData(&mapData2, sizeof(uint32_t) * 2);
+
+
+		s_TracerData->MapData3 = Texture2D::Create("MapData", 1, 1);
+		uint32_t MapData3[1];
+		for (unsigned int i = 0; i < 1; i++)
+		{
+			MapData3[i] = 0x22222222;
+		}
+		s_TracerData->MapData3->SetData(&MapData3, sizeof(uint32_t) * 1);
+
+		s_TracerData->RayMarchingShader = Shader::Create("assets/shaders/RayMarchingShader.glsl");
 		s_TracerData->RayMarchingShader->Bind();
-		s_TracerData->RayMarchingShader->SetInt("u_MapData", 0);
+		//s_TracerData->RayMarchingShader->SetInt("u_MapData", 0);
 	}
 
 	void RayTracer::Shutdown()
@@ -76,9 +94,9 @@ namespace Povox {
 		PX_PROFILE_FUNCTION();
 
 		//s_TracerData->RayMarchingShader->SetMat4("u_ViewProjection", camera.GetViewProjection());
-		//s_TracerData->RayMarchingShader->SetFloat3("u_PointLightPos", lightsource.GetPosition());
-		//s_TracerData->RayMarchingShader->SetFloat3("u_PointLightColor", lightsource.GetColor());
-		//s_TracerData->RayMarchingShader->SetFloat("u_PointLightIntensity", lightsource.GetIntensity());
+		s_TracerData->RayMarchingShader->SetFloat("u_PointLightIntensity", lightsource.GetIntensity());
+		s_TracerData->RayMarchingShader->SetFloat3("u_PointLightPos", lightsource.GetPosition());
+		s_TracerData->RayMarchingShader->SetFloat3("u_PointLightColor", lightsource.GetColor());
 		s_TracerData->VertexArray->Bind();
 	}
 
@@ -99,7 +117,8 @@ namespace Povox {
 		s_TracerData->RayMarchingShader->SetFloat2("u_WindowDims", glm::vec2(cameraController.GetWindowWidth(), cameraController.GetWindowHeight()));
 		s_TracerData->RayMarchingShader->SetInt("u_FOV", cameraController.GetFOV());
 		s_TracerData->VertexArray->Bind();
-		RenderCommand::DrawIndexed(s_TracerData->VertexArray, 4);
+		s_TracerData->MapData2->Bind();
+		RenderCommand::DrawIndexed(s_TracerData->VertexArray, 6);
 	}
 
 }
