@@ -10,9 +10,9 @@ class Sandbox : public Povox::Application
 public:
 	Sandbox()
 	{
-		//PushLayer(new Sandbox2D());
+		PushLayer(new Sandbox2D());
 		//PushLayer(new ExampleLayer());
-		PushLayer(new VoxelExample());
+		//PushLayer(new VoxelExample());
 	}
 
 	~Sandbox()

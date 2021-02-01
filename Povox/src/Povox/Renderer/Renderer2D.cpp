@@ -77,19 +77,18 @@ namespace Povox {
 
 	}
 
-	/*Renders a quad in 2D without depth*/
 	void Renderer2D::DrawQuad(const glm::vec2& position, const glm::vec2 size, const glm::vec4& color)
 	{
 		DrawQuad({ position.x, position.y, 0.0f }, size, color);
 	}
 
-	/*Renders a quad with possible depth*/
 	void Renderer2D::DrawQuad(const glm::vec3& position, const glm::vec2 size, const glm::vec4& color)
 	{
 		PX_PROFILE_FUNCTION();
 
 
 		s_QuadData->TextureShader->SetFloat4("u_Color", color);
+		s_QuadData->TextureShader->SetFloat("u_TilingFactor", 1.0f);
 		s_QuadData->WhiteTexture->Bind();
 
 		glm::mat4 transform = glm::translate(glm::mat4(1.0f), position) * glm::scale(glm::mat4(1.0f), glm::vec3(size.x, size.y, 1.0f));
@@ -99,22 +98,70 @@ namespace Povox {
 		RenderCommand::DrawIndexed(s_QuadData->QuadVertexArray);
 	}
 
-	void Renderer2D::DrawQuad(const glm::vec2& position, const glm::vec2 size, const Ref<Texture2D>& texture)
+	void Renderer2D::DrawQuad(const glm::vec2& position, const glm::vec2 size, const Ref<Texture2D>& texture, float tilingFactor, const glm::vec4& tintingColor)
 	{
-		DrawQuad({ position.x, position.y, 0.0f }, size, texture);
+		DrawQuad({ position.x, position.y, 0.0f }, size, texture, tilingFactor, tintingColor);
 	}
 
-	void Renderer2D::DrawQuad(const glm::vec3& position, const glm::vec2 size, const Ref<Texture2D>& texture)
+	void Renderer2D::DrawQuad(const glm::vec3& position, const glm::vec2 size, const Ref<Texture2D>& texture, float tilingFactor, const glm::vec4& tintingColor)
 	{
 		PX_PROFILE_FUNCTION();
 
 
-		s_QuadData->TextureShader->SetFloat4("u_Color", glm::vec4(1.0f));
+		s_QuadData->TextureShader->SetFloat4("u_Color", tintingColor);
+		s_QuadData->TextureShader->SetFloat("u_TilingFactor", tilingFactor);
 		texture->Bind();
 
 		glm::mat4 transform = glm::translate(glm::mat4(1.0f), position) * glm::scale(glm::mat4(1.0f), glm::vec3(size.x, size.y, 1.0f));
 		s_QuadData->TextureShader->SetMat4("u_Transform", transform);
 		
+		s_QuadData->QuadVertexArray->Bind();
+		RenderCommand::DrawIndexed(s_QuadData->QuadVertexArray);
+	}
+
+	//Rotatables
+
+	void Renderer2D::DrawRotatedQuad(const glm::vec2& position, float rotation, const glm::vec2 size, const glm::vec4& color)
+	{
+		DrawRotatedQuad({ position.x, position.y, 0.0f }, rotation, size, color);
+	}
+
+	void Renderer2D::DrawRotatedQuad(const glm::vec3& position, float rotation, const glm::vec2 size, const glm::vec4& color)
+	{
+		PX_PROFILE_FUNCTION();
+
+
+		s_QuadData->TextureShader->SetFloat4("u_Color", color);
+		s_QuadData->WhiteTexture->Bind();
+
+		glm::mat4 transform = glm::translate(glm::mat4(1.0f), position)
+			* glm::rotate(glm::mat4(1.0), rotation, { 0.0f, 0.0f, 1.0f })
+			* glm::scale(glm::mat4(1.0f), glm::vec3(size.x, size.y, 1.0f));
+		s_QuadData->TextureShader->SetMat4("u_Transform", transform);
+
+		s_QuadData->QuadVertexArray->Bind();
+		RenderCommand::DrawIndexed(s_QuadData->QuadVertexArray);
+	}
+
+	void Renderer2D::DrawRotatedQuad(const glm::vec2& position, float rotation, const glm::vec2 size, const Ref<Texture2D>& texture, float tilingFactor, const glm::vec4& tintingColor)
+	{
+		DrawRotatedQuad({ position.x, position.y, 0.0f }, rotation, size, texture, tilingFactor, tintingColor);
+	}
+
+	void Renderer2D::DrawRotatedQuad(const glm::vec3& position, float rotation, const glm::vec2 size, const Ref<Texture2D>& texture, float tilingFactor, const glm::vec4& tintingColor)
+	{
+		PX_PROFILE_FUNCTION();
+
+
+		s_QuadData->TextureShader->SetFloat4("u_Color", tintingColor);
+		s_QuadData->TextureShader->SetFloat("u_TilingFactor", tilingFactor);
+		texture->Bind();
+
+		glm::mat4 transform = glm::translate(glm::mat4(1.0f), position)
+			* glm::rotate(glm::mat4(1.0), rotation, { 0.0f, 0.0f, 1.0f })
+			* glm::scale(glm::mat4(1.0f), glm::vec3(size.x, size.y, 1.0f));
+		s_QuadData->TextureShader->SetMat4("u_Transform", transform);
+
 		s_QuadData->QuadVertexArray->Bind();
 		RenderCommand::DrawIndexed(s_QuadData->QuadVertexArray);
 	}
