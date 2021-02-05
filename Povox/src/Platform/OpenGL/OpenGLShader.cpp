@@ -29,7 +29,7 @@ namespace Povox {
 		std::string shaderSources = ReadFile(filepath);
 		Compile(PreProcess(shaderSources));
 
-		// Extract name form filepath
+		// Extract name from filepath
 		auto lastSlash = filepath.find_last_of("/\\");
 		lastSlash = lastSlash == std::string::npos ? 0 : lastSlash + 1;
 		auto lastDot = filepath.rfind(".");
@@ -88,6 +88,11 @@ namespace Povox {
 	void OpenGLShader::SetFloat(const std::string& name, float value)
 	{
 		UploadUniformFloat(name, value);
+	}
+
+	void OpenGLShader::SetFloat2(const std::string& name, const glm::vec2& vector)
+	{
+		UploadUniformFloat2(name, vector);
 	}
 
 	void OpenGLShader::SetFloat3(const std::string& name, const glm::vec3& vector)

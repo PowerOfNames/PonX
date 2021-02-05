@@ -45,7 +45,8 @@ namespace Povox {
 			{ ShaderDataType::Float3, "a_Position" },
 			{ ShaderDataType::Float4, "a_Color" },
 			{ ShaderDataType::Float2, "a_TexCoord" },
-			{ ShaderDataType::Float, "a_TexID" }
+			{ ShaderDataType::Float, "a_TexID" },
+			{ ShaderDataType::Float, "a_TilingFactor" }
 			});
 		s_QuadData.QuadVertexArray->AddVertexBuffer(s_QuadData.QuadVertexBuffer);
 
@@ -110,13 +111,13 @@ namespace Povox {
 
 	void Renderer2D::Flush()
 	{
-		uint32_t dataSize = (uint32_t)((uint8_t)s_QuadData.QuadVertexBufferPtr - (uint8_t)s_QuadData.QuadVertexBufferBase);
+		//s_QuadData.QuadVertexArray->Bind();
+		uint32_t dataSize = (uint32_t)((uint8_t*)s_QuadData.QuadVertexBufferPtr - (uint8_t*)s_QuadData.QuadVertexBufferBase);
 		s_QuadData.QuadVertexBuffer->SetData(s_QuadData.QuadVertexBufferBase, dataSize);
 
 		for (uint32_t i = 0; i < s_QuadData.TextureSlotIndex; i++)
 			s_QuadData.TextureSlots[i]->Bind(i);
 
-		//s_QuadData.QuadVertexArray->Bind();
 		RenderCommand::DrawIndexed(s_QuadData.QuadVertexArray, s_QuadData.QuadIndexCount);
 	}
 
@@ -138,29 +139,34 @@ namespace Povox {
 		PX_PROFILE_FUNCTION();
 
 		constexpr float whiteTextureID = 0.0f;
+		constexpr float tilingFactor = 1.0f;
 
 		s_QuadData.QuadVertexBufferPtr->Position = position;
 		s_QuadData.QuadVertexBufferPtr->Color = color;
 		s_QuadData.QuadVertexBufferPtr->TexCoord = { 0.0f, 0.0f };
 		s_QuadData.QuadVertexBufferPtr->TexID = whiteTextureID;
+		s_QuadData.QuadVertexBufferPtr->TilingFactor = tilingFactor;
 		s_QuadData.QuadVertexBufferPtr++;
 
 		s_QuadData.QuadVertexBufferPtr->Position = { position.x + size.x, position.y, 0.0f };
 		s_QuadData.QuadVertexBufferPtr->Color = color;
 		s_QuadData.QuadVertexBufferPtr->TexCoord = { 1.0f, 0.0f };
 		s_QuadData.QuadVertexBufferPtr->TexID = whiteTextureID;
+		s_QuadData.QuadVertexBufferPtr->TilingFactor = tilingFactor;
 		s_QuadData.QuadVertexBufferPtr++;
 
 		s_QuadData.QuadVertexBufferPtr->Position = { position.x + size.x, position.y + size.y, 0.0f };
 		s_QuadData.QuadVertexBufferPtr->Color = color;
 		s_QuadData.QuadVertexBufferPtr->TexCoord = { 1.0f, 1.0f };
 		s_QuadData.QuadVertexBufferPtr->TexID = whiteTextureID;
+		s_QuadData.QuadVertexBufferPtr->TilingFactor = tilingFactor;
 		s_QuadData.QuadVertexBufferPtr++;
 
 		s_QuadData.QuadVertexBufferPtr->Position = { position.x, position.y + size.y, 0.0f };
 		s_QuadData.QuadVertexBufferPtr->Color = color;
 		s_QuadData.QuadVertexBufferPtr->TexCoord = { 0.0f, 1.0f };
 		s_QuadData.QuadVertexBufferPtr->TexID = whiteTextureID;
+		s_QuadData.QuadVertexBufferPtr->TilingFactor = tilingFactor;
 		s_QuadData.QuadVertexBufferPtr++;
 
 		s_QuadData.QuadIndexCount += 6;
@@ -210,24 +216,28 @@ namespace Povox {
 		s_QuadData.QuadVertexBufferPtr->Color = tintingColor;
 		s_QuadData.QuadVertexBufferPtr->TexCoord = { 0.0f, 0.0f };
 		s_QuadData.QuadVertexBufferPtr->TexID = textureIndex;
+		s_QuadData.QuadVertexBufferPtr->TilingFactor = tilingFactor;
 		s_QuadData.QuadVertexBufferPtr++;
 
 		s_QuadData.QuadVertexBufferPtr->Position = { position.x + size.x, position.y, 0.0f };
 		s_QuadData.QuadVertexBufferPtr->Color = tintingColor;
 		s_QuadData.QuadVertexBufferPtr->TexCoord = { 1.0f, 0.0f };
 		s_QuadData.QuadVertexBufferPtr->TexID = textureIndex;
+		s_QuadData.QuadVertexBufferPtr->TilingFactor = tilingFactor;
 		s_QuadData.QuadVertexBufferPtr++;
 
 		s_QuadData.QuadVertexBufferPtr->Position = { position.x + size.x, position.y + size.y, 0.0f };
 		s_QuadData.QuadVertexBufferPtr->Color = tintingColor;
 		s_QuadData.QuadVertexBufferPtr->TexCoord = { 1.0f, 1.0f };
 		s_QuadData.QuadVertexBufferPtr->TexID = textureIndex;
+		s_QuadData.QuadVertexBufferPtr->TilingFactor = tilingFactor;
 		s_QuadData.QuadVertexBufferPtr++;
 
 		s_QuadData.QuadVertexBufferPtr->Position = { position.x, position.y + size.y, 0.0f };
 		s_QuadData.QuadVertexBufferPtr->Color = tintingColor;
 		s_QuadData.QuadVertexBufferPtr->TexCoord = { 0.0f, 1.0f };
 		s_QuadData.QuadVertexBufferPtr->TexID = textureIndex;
+		s_QuadData.QuadVertexBufferPtr->TilingFactor = tilingFactor;
 		s_QuadData.QuadVertexBufferPtr++;
 
 		s_QuadData.QuadIndexCount += 6;

@@ -25,6 +25,7 @@ namespace Povox
 		virtual void SetIntArray(const std::string& name, int* values, uint32_t count) override;
 
 		virtual void SetFloat(const std::string& name, float value) override;
+		virtual void SetFloat2(const std::string& name, const glm::vec2& vector) override;
 		virtual void SetFloat3(const std::string& name, const glm::vec3& vector) override;
 		virtual void SetFloat4(const std::string& name, const glm::vec4& vector) override;
 

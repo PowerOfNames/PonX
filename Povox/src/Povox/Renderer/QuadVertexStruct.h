@@ -6,4 +6,5 @@ struct QuadVertex {
 	glm::vec4 Color;
 	glm::vec2 TexCoord;
 	float TexID;
+	float TilingFactor;
 };
