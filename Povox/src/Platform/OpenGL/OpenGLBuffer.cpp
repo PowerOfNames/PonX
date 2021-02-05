@@ -3,6 +3,9 @@
 
 #include <glad/glad.h>
 
+#include "Povox/Renderer/QuadVertexStruct.h"
+
+
 namespace Povox {
 
 //////////////////////////////////////////////////////////////////////////////////////
@@ -12,6 +15,7 @@ namespace Povox {
 	{
 		PX_PROFILE_FUNCTION();
 
+		PX_CORE_INFO("VertexBuffer Size: {0}", size);
 
 		glCreateBuffers(1, &m_RendererID);
 		glBindBuffer(GL_ARRAY_BUFFER, m_RendererID);
@@ -31,6 +35,9 @@ namespace Povox {
 	void OpenGLVertexBuffer::SetData(const void* data, uint32_t size)
 	{
 		PX_PROFILE_FUNCTION();
+
+		for (uint32_t i = 0; i < 16; i++)
+			std::cout << "QuadVertexColor: " << ((QuadVertex*)data)[i].Color.x << "|" << ((QuadVertex*)data)[i].Color.y << "|" << ((QuadVertex*)data)[i].Color.z << "|" << ((QuadVertex*)data)[i].Color.a << std::endl;
 
 
 		glBindBuffer(GL_ARRAY_BUFFER, m_RendererID);
@@ -69,11 +76,13 @@ namespace Povox {
 		:m_Count(count)
 	{
 		PX_PROFILE_FUNCTION();
-
+		
+		//for (uint32_t i = 0; i < count; i++)
+		//	PX_CORE_INFO("Index: {0}", indices[i]);
 
 		glCreateBuffers(1, &m_RendererID);
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_RendererID);
-		glBufferData(GL_ELEMENT_ARRAY_BUFFER, count * sizeof(uint32_t), indices, GL_STATIC_DRAW);
+		glBindBuffer(GL_ARRAY_BUFFER, m_RendererID);
+		glBufferData(GL_ARRAY_BUFFER, count * sizeof(uint32_t), indices, GL_STATIC_DRAW);
 	}
 	OpenGLIndexBuffer::~OpenGLIndexBuffer()
 	{

@@ -1274,6 +1274,7 @@
     <ClInclude Include="src\Povox\Renderer\VoxelRenderer.h" />
     <ClInclude Include="src\Povox\Renderer\PerspectiveCamera.h" />
     <ClInclude Include="src\Povox\Renderer\PerspectiveCameraController.h" />
+    <ClInclude Include="src\Povox\Renderer\QuadVertexStruct.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Platform\OpenGL\OpenGLBuffer.cpp">
