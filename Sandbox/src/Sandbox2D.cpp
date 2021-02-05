@@ -45,13 +45,13 @@ void Sandbox2D::OnUpdate(float deltatime)
 
 	m_CameraController.OnUpdate(deltatime);
 
-	Povox::RenderCommand::SetClearColor({ 1.0f, 1.0f, 1.0f, 1.0f });
+	Povox::RenderCommand::SetClearColor({ 1.0f, 0.5f, 1.0f, 1.0f });
 	Povox::RenderCommand::Clear();
 
 
 	Povox::Renderer2D::BeginScene(m_CameraController.GetCamera());
 
-	Povox::Renderer2D::DrawQuad({ 1.0f, 1.0f }, { 1.0f, 1.0f }, "assets/textures/green.png");
+	//Povox::Renderer2D::DrawQuad({ 1.0f, 1.0f }, { 1.0f, 1.0f }, "assets/textures/green.png");
 	Povox::Renderer2D::DrawQuad({ -1.0f, -1.0f }, { 1.0f, 1.0f }, m_MapData);
 	Povox::Renderer2D::DrawQuad(m_SquarePos1, { 1.0f, 1.0f }, m_SquareColor1);
 	Povox::Renderer2D::DrawQuad({ 1.0f, 1.0f }, { 0.5f, 0.5f }, m_SquareColor1);
