@@ -45,7 +45,8 @@ void Sandbox2D::OnUpdate(float deltatime)
 	Povox::Renderer2D::DrawQuad({ 0.5f, -0.7f }, { 0.25f, 0.3f }, { 0.2f, 0.8f, 0.8f , 0.3f });
 	Povox::Renderer2D::DrawQuad({ 0.0f, 0.0f, -0.1f }, { 2.0f, 2.0f }, m_TextureLogo, 2.0f, {1.0f, 0.5, 0.6f, 1.0f});
 
-	//Povox::Renderer2D::DrawRotatedQuad({ 0.8f, -1.5f }, glm::radians(45.0), { 0.5f, 0.5f }, { 1.0f, 0.2f, 0.5f , 0.3f });
+	Povox::Renderer2D::DrawRotatedQuad({ -0.8f, -1.0f }, { 0.5f, 0.5f }, 45.0f, m_TextureLogo);
+	Povox::Renderer2D::DrawRotatedQuad({ 0.8f, -1.0f }, { 0.5f, 0.5f }, 45.0f, { 1.0f, 0.2f, 0.5f , 0.3f });
 
 	Povox::Renderer2D::EndScene();
 }
