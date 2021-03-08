@@ -11,11 +11,11 @@
 namespace Povox {
 
 
-	struct Render2DData
+	struct Renderer2DData
 	{
-		const uint32_t MaxQuads = 10000;
-		const uint32_t MaxVertices = MaxQuads * 4;
-		const uint32_t MaxIndices = MaxQuads * 6;
+		static const uint32_t MaxQuads = 20000;
+		static const uint32_t MaxVertices = MaxQuads * 4;
+		static const uint32_t MaxIndices = MaxQuads * 6;
 		static const uint32_t MaxTextureSlots = 32; //TODO: needs to be dynamic to the GPU, comes from Renderer Capabilities
 
 		Ref<VertexArray> QuadVertexArray;
@@ -31,9 +31,11 @@ namespace Povox {
 		uint32_t TextureSlotIndex = 1; // 0 is reserved for whiteTexture
 
 		glm::vec4 QuadVertexPositions[4];
+
+		Renderer2D::Statistics Stats;
 	};
 
-	static Render2DData s_QuadData;
+	static Renderer2DData s_QuadData;
 
 	void Renderer2D::Init()
 	{
@@ -118,22 +120,31 @@ namespace Povox {
 
 	void Renderer2D::Flush()
 	{
-		//s_QuadData.QuadVertexArray->Bind();
-		uint32_t dataSize = (uint32_t)((uint8_t*)s_QuadData.QuadVertexBufferPtr - (uint8_t*)s_QuadData.QuadVertexBufferBase);
-		s_QuadData.QuadVertexBuffer->SetData(s_QuadData.QuadVertexBufferBase, dataSize);
-
 		for (uint32_t i = 0; i < s_QuadData.TextureSlotIndex; i++)
 			s_QuadData.TextureSlots[i]->Bind(i);
 
 		RenderCommand::DrawIndexed(s_QuadData.QuadVertexArray, s_QuadData.QuadIndexCount);
+		s_QuadData.Stats.DrawCalls++;
 	}
 
 	void Renderer2D::EndScene()
 	{
 		PX_PROFILE_FUNCTION();
 
-		
+		uint32_t dataSize = (uint32_t)((uint8_t*)s_QuadData.QuadVertexBufferPtr - (uint8_t*)s_QuadData.QuadVertexBufferBase);
+		s_QuadData.QuadVertexBuffer->SetData(s_QuadData.QuadVertexBufferBase, dataSize);
+
 		Flush();
+	}
+
+	void Renderer2D::FlushAndReset()
+	{
+		EndScene();
+
+		s_QuadData.QuadIndexCount = 0;
+		s_QuadData.QuadVertexBufferPtr = s_QuadData.QuadVertexBufferBase;
+
+		s_QuadData.TextureSlotIndex = 1;
 	}
 
 	void Renderer2D::DrawQuad(const glm::vec2& position, const glm::vec2 size, const glm::vec4& color)
@@ -144,6 +155,9 @@ namespace Povox {
 	void Renderer2D::DrawQuad(const glm::vec3& position, const glm::vec2 size, const glm::vec4& color)
 	{
 		PX_PROFILE_FUNCTION();
+
+		if (s_QuadData.QuadIndexCount >= Renderer2DData::MaxIndices)
+			FlushAndReset();
 
 		constexpr float whiteTextureID = 0.0f;
 		constexpr float tilingFactor = 1.0f;
@@ -180,6 +194,8 @@ namespace Povox {
 		s_QuadData.QuadVertexBufferPtr++;
 
 		s_QuadData.QuadIndexCount += 6;
+
+		s_QuadData.Stats.QuadCount++;
 	}
 
 	void Renderer2D::DrawQuad(const glm::vec2& position, const glm::vec2 size, const Ref<Texture2D>& texture, float tilingFactor, const glm::vec4& tintingColor)
@@ -189,6 +205,10 @@ namespace Povox {
 
 	void Renderer2D::DrawQuad(const glm::vec3& position, const glm::vec2 size, const Ref<Texture2D>& texture, float tilingFactor, const glm::vec4& tintingColor)
 	{
+		if (s_QuadData.QuadIndexCount >= Renderer2DData::MaxIndices)
+			FlushAndReset();
+
+
 		float textureIndex = 0.0f;
 		for (uint32_t i = 1; i < s_QuadData.TextureSlotIndex; i++)
 		{
@@ -239,6 +259,8 @@ namespace Povox {
 		s_QuadData.QuadVertexBufferPtr++;
 
 		s_QuadData.QuadIndexCount += 6;
+
+		s_QuadData.Stats.QuadCount++;
 	}
 
 	//Rotatables
@@ -252,6 +274,9 @@ namespace Povox {
 	{
 		PX_PROFILE_FUNCTION();
 
+		if (s_QuadData.QuadIndexCount >= Renderer2DData::MaxIndices)
+			FlushAndReset();
+
 		constexpr float whiteTextureID = 0.0f;
 		constexpr float tilingFactor = 1.0f;
 
@@ -288,6 +313,8 @@ namespace Povox {
 		s_QuadData.QuadVertexBufferPtr++;
 
 		s_QuadData.QuadIndexCount += 6;
+
+		s_QuadData.Stats.QuadCount++;
 	}
 
 	void Renderer2D::DrawRotatedQuad(const glm::vec2& position, const glm::vec2 size, float rotation, const Ref<Texture2D>& texture, float tilingFactor, const glm::vec4& tintingColor)
@@ -297,6 +324,10 @@ namespace Povox {
 
 	void Renderer2D::DrawRotatedQuad(const glm::vec3& position, const glm::vec2 size, float rotation, const Ref<Texture2D>& texture, float tilingFactor, const glm::vec4& tintingColor)
 	{
+
+		if (s_QuadData.QuadIndexCount >= Renderer2DData::MaxIndices)
+			FlushAndReset();
+
 		float textureIndex = 0.0f;
 		for (uint32_t i = 1; i < s_QuadData.TextureSlotIndex; i++)
 		{
@@ -348,6 +379,17 @@ namespace Povox {
 		s_QuadData.QuadVertexBufferPtr++;
 
 		s_QuadData.QuadIndexCount += 6;
+
+		s_QuadData.Stats.QuadCount++;
 	}
 
+	Renderer2D::Statistics Renderer2D::GetStats()
+	{
+		return s_QuadData.Stats;
+	}
+
+	void Renderer2D::ResetStats()
+	{
+		memset(&s_QuadData.Stats, 0, sizeof(Statistics));
+	}
 }
