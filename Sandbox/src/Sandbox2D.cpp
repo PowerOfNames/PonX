@@ -18,6 +18,8 @@ void Sandbox2D::OnAttach()
 
 
 	m_TextureLogo = Povox::Texture2D::Create("assets/textures/logo.png");
+	m_SubTextureLogo = Povox::SubTexture2D::CreateFromCoords(m_TextureLogo, { 1, 2 }, { 64, 64 }, { 1, 2 });
+
 }
 
 void Sandbox2D::OnDetach()
@@ -44,11 +46,11 @@ void Sandbox2D::OnUpdate(float deltatime)
 	static float x = 0.0f;
 	static float y = 0.0f;
 
-	x = glm::cos(rotation * 0.05) * 1.2;
-	y = glm::sin(rotation * 0.05) * 1.2;
+	x = glm::cos(rotation * m_RotationVel.x) * 1.2;
+	y = glm::sin(rotation * m_RotationVel.y) * 1.2;
 
-	PX_INFO("X = {0}", x);
-	PX_INFO("Y = {0}", y);
+	//PX_INFO("X = {0}", x);
+	//PX_INFO("Y = {0}", y);
 
 	Povox::Renderer2D::ResetStats();
 	Povox::Renderer2D::BeginScene(m_CameraController.GetCamera());
@@ -56,6 +58,7 @@ void Sandbox2D::OnUpdate(float deltatime)
  	Povox::Renderer2D::DrawQuad(m_SquarePos, { 0.5f, 0.5f }, m_SquareColor1);
 	Povox::Renderer2D::DrawQuad({ 0.5f, -0.7f }, { 0.25f, 0.3f }, { 0.2f, 0.8f, 0.8f , 0.3f });
 	Povox::Renderer2D::DrawQuad({ 0.0f, 0.0f, -0.1f }, { 2.0f, 2.0f }, m_TextureLogo, 10.0f, {1.0f, 0.5, 0.6f, 1.0f});
+	Povox::Renderer2D::DrawQuad({ 0.5f, 0.5f, 0.1f }, { 0.5f, 1.0f }, m_SubTextureLogo);
 
 	Povox::Renderer2D::DrawRotatedQuad({ -0.8f, -1.0f }, { 0.5f, 0.5f }, 45.0f, m_TextureLogo);
 	Povox::Renderer2D::DrawRotatedQuad({ x + m_SquarePos.x, y + m_SquarePos.y}, { 0.5f, 0.5f }, rotation * 3, { x, y, x , 0.3f });
@@ -80,6 +83,7 @@ void Sandbox2D::OnImGuiRender()
 	ImGui::Begin("Square1");
 	ImGui::ColorPicker4("Square1ColorPicker", &m_SquareColor1.r);
 	ImGui::DragFloat2("Position", &m_SquarePos.x, 0.05f, -2.0f, 2.0f);
+	ImGui::DragFloat2("Rotation Velocity", &m_RotationVel.x, 0.01f, -0.5f, 0.5f);
 	ImGui::End();
 }
 
