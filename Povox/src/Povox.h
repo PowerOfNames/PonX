@@ -28,6 +28,7 @@
 
 #include "Povox/Renderer/VertexArray.h"
 #include "Povox/Renderer/Buffer.h"
+#include "Povox/Renderer/Framebuffer.h"
 #include "Povox/Renderer/Shader.h"
 #include "Povox/Renderer/Texture.h"
 #include "Povox/Renderer/SubTexture2D.h"

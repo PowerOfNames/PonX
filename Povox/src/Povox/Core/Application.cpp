@@ -123,4 +123,9 @@ namespace Povox {
 
 		return false;
 	}
+
+	void Application::Close()
+	{
+		m_Running = false;
+	}
 }

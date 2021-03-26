@@ -1276,6 +1276,8 @@
     <ClInclude Include="src\Povox\Renderer\PerspectiveCameraController.h" />
     <ClInclude Include="src\Povox\Renderer\QuadVertexStruct.h" />
     <ClInclude Include="src\Povox\Renderer\SubTexture2D.h" />
+    <ClInclude Include="src\Povox\Renderer\Framebuffer.h" />
+    <ClInclude Include="src\Platform\OpenGL\OpenGLFramebuffer.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Platform\OpenGL\OpenGLBuffer.cpp">
@@ -1361,5 +1363,7 @@
     <ClCompile Include="src\Povox\Renderer\PerspectiveCamera.cpp" />
     <ClCompile Include="src\Povox\Renderer\PerspectiveCameraController.cpp" />
     <ClCompile Include="src\Povox\Renderer\SubTexture2D.cpp" />
+    <ClCompile Include="src\Povox\Renderer\Framebuffer.cpp" />
+    <ClCompile Include="src\Platform\OpenGL\OpenGLFramebuffer.cpp" />
   </ItemGroup>
 </Project>

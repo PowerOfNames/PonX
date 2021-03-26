@@ -28,8 +28,9 @@ namespace Povox {
 		void PushLayer(Layer* layer);
 		void PushOverlay(Layer* overlay);
 
-		inline Window& GetWindow() const { return *m_Window; }
+		void Close();
 
+		inline Window& GetWindow() const { return *m_Window; }
 		inline static Application& Get() {	return *s_Instance; }
 
 	private:

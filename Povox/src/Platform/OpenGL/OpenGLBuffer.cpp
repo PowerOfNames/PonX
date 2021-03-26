@@ -15,6 +15,7 @@ namespace Povox {
 	{
 		PX_PROFILE_FUNCTION();
 
+
 		PX_CORE_INFO("VertexBuffer Size: {0}", size);
 
 		glCreateBuffers(1, &m_RendererID);
