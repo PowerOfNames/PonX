@@ -1,6 +1,6 @@
 workspace "Povox"
 	architecture "x86_64"
-	startproject "Sandbox"
+	startproject "Povosom"
 
 	configurations 
 	{
@@ -103,6 +103,57 @@ project "Povox"
 
 project "Sandbox"
 	location "Sandbox"
+	kind "ConsoleApp"
+	language "C++"
+	cppdialect "C++17"
+	staticruntime "on"
+
+
+
+	targetdir("bin/" .. outputdir .. "/%{prj.name}")
+	objdir("bin-int/" .. outputdir .. "/%{prj.name}")
+
+	files
+	{
+		"%{prj.name}/src/**.h",
+		"%{prj.name}/src/**.cpp"
+	}
+
+	includedirs
+	{
+		"Povox/src",
+		"Povox/vendor/spdlog/include",
+		"Povox/vendor",
+		"%{IncludeDir.glm}"
+	}
+
+	links
+	{
+		"Povox"
+	}
+
+	filter "system:windows"
+		systemversion "latest"
+
+
+	filter "configurations:Debug"
+		defines "PX_DEBUG"
+		runtime "Debug"
+		symbols "on"
+		
+	filter "configurations:Release"
+		defines "PX_RELEASE"
+		runtime "Release"
+		optimize "on"
+
+	filter "configurations:Dist"
+		defines "PX_DIST"
+		runtime "Release"
+		optimize "on"
+
+
+project "Povosom"
+	location "Povosom"
 	kind "ConsoleApp"
 	language "C++"
 	cppdialect "C++17"

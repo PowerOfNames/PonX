@@ -19,6 +19,9 @@
     <Filter Include="src\Povox\Core">
       <UniqueIdentifier>{F07C3394-DC4A-279A-C5DE-97C0B14B03FF}</UniqueIdentifier>
     </Filter>
+    <Filter Include="src\Povox\Debugging">
+      <UniqueIdentifier>{5315B232-BF76-8F40-48E4-D5F2B444C6FF}</UniqueIdentifier>
+    </Filter>
     <Filter Include="src\Povox\Events">
       <UniqueIdentifier>{7C8A2874-6883-47C6-91B5-2C4B7D0D27D2}</UniqueIdentifier>
     </Filter>
@@ -58,6 +61,9 @@
       <Filter>src\Platform\OpenGL</Filter>
     </ClInclude>
     <ClInclude Include="src\Platform\OpenGL\OpenGLContext.h">
+      <Filter>src\Platform\OpenGL</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Platform\OpenGL\OpenGLFramebuffer.h">
       <Filter>src\Platform\OpenGL</Filter>
     </ClInclude>
     <ClInclude Include="src\Platform\OpenGL\OpenGLRendererAPI.h">
@@ -108,8 +114,14 @@
     <ClInclude Include="src\Povox\Core\MouseButtonCodes.h">
       <Filter>src\Povox\Core</Filter>
     </ClInclude>
+    <ClInclude Include="src\Povox\Core\Time.h">
+      <Filter>src\Povox\Core</Filter>
+    </ClInclude>
     <ClInclude Include="src\Povox\Core\Window.h">
       <Filter>src\Povox\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Povox\Debugging\Instrumentor.h">
+      <Filter>src\Povox\Debugging</Filter>
     </ClInclude>
     <ClInclude Include="src\Povox\Events\ApplicationEvent.h">
       <Filter>src\Povox\Events</Filter>
@@ -129,6 +141,9 @@
     <ClInclude Include="src\Povox\Renderer\Buffer.h">
       <Filter>src\Povox\Renderer</Filter>
     </ClInclude>
+    <ClInclude Include="src\Povox\Renderer\Framebuffer.h">
+      <Filter>src\Povox\Renderer</Filter>
+    </ClInclude>
     <ClInclude Include="src\Povox\Renderer\GraphicsContext.h">
       <Filter>src\Povox\Renderer</Filter>
     </ClInclude>
@@ -138,10 +153,22 @@
     <ClInclude Include="src\Povox\Renderer\OrthographicCameraController.h">
       <Filter>src\Povox\Renderer</Filter>
     </ClInclude>
+    <ClInclude Include="src\Povox\Renderer\PerspectiveCamera.h">
+      <Filter>src\Povox\Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Povox\Renderer\PerspectiveCameraController.h">
+      <Filter>src\Povox\Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Povox\Renderer\QuadVertexStruct.h">
+      <Filter>src\Povox\Renderer</Filter>
+    </ClInclude>
     <ClInclude Include="src\Povox\Renderer\RenderCommand.h">
       <Filter>src\Povox\Renderer</Filter>
     </ClInclude>
     <ClInclude Include="src\Povox\Renderer\Renderer.h">
+      <Filter>src\Povox\Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Povox\Renderer\Renderer2D.h">
       <Filter>src\Povox\Renderer</Filter>
     </ClInclude>
     <ClInclude Include="src\Povox\Renderer\RendererAPI.h">
@@ -150,10 +177,16 @@
     <ClInclude Include="src\Povox\Renderer\Shader.h">
       <Filter>src\Povox\Renderer</Filter>
     </ClInclude>
+    <ClInclude Include="src\Povox\Renderer\SubTexture2D.h">
+      <Filter>src\Povox\Renderer</Filter>
+    </ClInclude>
     <ClInclude Include="src\Povox\Renderer\Texture.h">
       <Filter>src\Povox\Renderer</Filter>
     </ClInclude>
     <ClInclude Include="src\Povox\Renderer\VertexArray.h">
+      <Filter>src\Povox\Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Povox\Renderer\VoxelRenderer.h">
       <Filter>src\Povox\Renderer</Filter>
     </ClInclude>
     <ClInclude Include="src\pxpch.h">
@@ -1266,24 +1299,15 @@
     <ClInclude Include="vendor\stb_image\stb_image.h">
       <Filter>vendor\stb_image</Filter>
     </ClInclude>
-    <ClInclude Include="src\Povox\Renderer\Renderer2D.h" />
-    <ClInclude Include="src\Povox\Debugging\Instrumentor.h" />
-    <ClInclude Include="src\Povox\Core\Time.h">
-      <Filter>src\Povox\Core</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Povox\Renderer\VoxelRenderer.h" />
-    <ClInclude Include="src\Povox\Renderer\PerspectiveCamera.h" />
-    <ClInclude Include="src\Povox\Renderer\PerspectiveCameraController.h" />
-    <ClInclude Include="src\Povox\Renderer\QuadVertexStruct.h" />
-    <ClInclude Include="src\Povox\Renderer\SubTexture2D.h" />
-    <ClInclude Include="src\Povox\Renderer\Framebuffer.h" />
-    <ClInclude Include="src\Platform\OpenGL\OpenGLFramebuffer.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Platform\OpenGL\OpenGLBuffer.cpp">
       <Filter>src\Platform\OpenGL</Filter>
     </ClCompile>
     <ClCompile Include="src\Platform\OpenGL\OpenGLContext.cpp">
+      <Filter>src\Platform\OpenGL</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Platform\OpenGL\OpenGLFramebuffer.cpp">
       <Filter>src\Platform\OpenGL</Filter>
     </ClCompile>
     <ClCompile Include="src\Platform\OpenGL\OpenGLRendererAPI.cpp">
@@ -1328,10 +1352,19 @@
     <ClCompile Include="src\Povox\Renderer\Buffer.cpp">
       <Filter>src\Povox\Renderer</Filter>
     </ClCompile>
+    <ClCompile Include="src\Povox\Renderer\Framebuffer.cpp">
+      <Filter>src\Povox\Renderer</Filter>
+    </ClCompile>
     <ClCompile Include="src\Povox\Renderer\OrthographicCamera.cpp">
       <Filter>src\Povox\Renderer</Filter>
     </ClCompile>
     <ClCompile Include="src\Povox\Renderer\OrthographicCameraController.cpp">
+      <Filter>src\Povox\Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Povox\Renderer\PerspectiveCamera.cpp">
+      <Filter>src\Povox\Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Povox\Renderer\PerspectiveCameraController.cpp">
       <Filter>src\Povox\Renderer</Filter>
     </ClCompile>
     <ClCompile Include="src\Povox\Renderer\RenderCommand.cpp">
@@ -1340,10 +1373,16 @@
     <ClCompile Include="src\Povox\Renderer\Renderer.cpp">
       <Filter>src\Povox\Renderer</Filter>
     </ClCompile>
+    <ClCompile Include="src\Povox\Renderer\Renderer2D.cpp">
+      <Filter>src\Povox\Renderer</Filter>
+    </ClCompile>
     <ClCompile Include="src\Povox\Renderer\RendererAPI.cpp">
       <Filter>src\Povox\Renderer</Filter>
     </ClCompile>
     <ClCompile Include="src\Povox\Renderer\Shader.cpp">
+      <Filter>src\Povox\Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Povox\Renderer\SubTexture2D.cpp">
       <Filter>src\Povox\Renderer</Filter>
     </ClCompile>
     <ClCompile Include="src\Povox\Renderer\Texture.cpp">
@@ -1352,18 +1391,14 @@
     <ClCompile Include="src\Povox\Renderer\VertexArray.cpp">
       <Filter>src\Povox\Renderer</Filter>
     </ClCompile>
+    <ClCompile Include="src\Povox\Renderer\VoxelRenderer.cpp">
+      <Filter>src\Povox\Renderer</Filter>
+    </ClCompile>
     <ClCompile Include="src\pxpch.cpp">
       <Filter>src</Filter>
     </ClCompile>
     <ClCompile Include="vendor\stb_image\stb_image.cpp">
       <Filter>vendor\stb_image</Filter>
     </ClCompile>
-    <ClCompile Include="src\Povox\Renderer\Renderer2D.cpp" />
-    <ClCompile Include="src\Povox\Renderer\VoxelRenderer.cpp" />
-    <ClCompile Include="src\Povox\Renderer\PerspectiveCamera.cpp" />
-    <ClCompile Include="src\Povox\Renderer\PerspectiveCameraController.cpp" />
-    <ClCompile Include="src\Povox\Renderer\SubTexture2D.cpp" />
-    <ClCompile Include="src\Povox\Renderer\Framebuffer.cpp" />
-    <ClCompile Include="src\Platform\OpenGL\OpenGLFramebuffer.cpp" />
   </ItemGroup>
 </Project>
