@@ -66,7 +66,6 @@ namespace Povox {
         Povox::Renderer2D::BeginScene(m_CameraController.GetCamera());
 
         Povox::Renderer2D::DrawQuad(m_SquarePos, { 0.5f, 0.5f }, m_SquareColor1);
-        Povox::Renderer2D::DrawQuad({ 0.5f, -0.7f }, { 0.25f, 0.3f }, { 0.2f, 0.8f, 0.8f , 0.3f });
         Povox::Renderer2D::DrawQuad({ 0.0f, 0.0f, -0.1f }, { 2.0f, 2.0f }, m_TextureLogo, 10.0f, { 1.0f, 0.5, 0.6f, 1.0f });
         Povox::Renderer2D::DrawQuad({ 0.5f, 0.5f, 0.1f }, { 0.5f, 1.0f }, m_SubTextureLogo);
 
@@ -153,11 +152,23 @@ namespace Povox {
         ImGui::Text("Quads: %d", stats.QuadCount);
         ImGui::Text("Vertices: %d", stats.GetTotalVertexCount());
         ImGui::Text("Indices: %d", stats.GetTotalIndexCount());
-
-        uint32_t textureID = m_Framebuffer->GetColorAttachmentRendererID();
-        ImGui::Image((void*)textureID, { 1280, 960 }, { 0, 1 }, { 1, 0 });
         ImGui::End();
 
+
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{ 0, 0 });
+        ImGui::Begin("Viewport");
+        ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail();
+        if (m_ViewportSize != *((glm::vec2*)&viewportPanelSize))
+        {
+            m_Framebuffer->Resize((uint32_t)viewportPanelSize.x, (uint32_t)viewportPanelSize.y);
+            m_ViewportSize = { viewportPanelSize.x, viewportPanelSize.y };
+
+            m_CameraController.OnResize(viewportPanelSize.x, viewportPanelSize.y);
+        }
+        uint32_t textureID = m_Framebuffer->GetColorAttachmentRendererID();
+        ImGui::Image((void*)textureID, ImVec2(m_ViewportSize.x, m_ViewportSize.y), { 0, 1 }, { 1, 0 });
+        ImGui::End();
+        ImGui::PopStyleVar(ImGuiStyleVar_WindowPadding);
 
         ImGui::Begin("Square1");
         ImGui::ColorPicker4("Square1ColorPicker", &m_SquareColor1.r);

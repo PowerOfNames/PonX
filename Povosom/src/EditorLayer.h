@@ -24,6 +24,8 @@ namespace Povox {
 		Ref<SubTexture2D> m_SubTextureLogo;
 		Ref<Framebuffer> m_Framebuffer;
 
+		glm::vec2 m_ViewportSize = { 0.0f, 0.0f };
+
 		Ref<Shader> m_FlatColorShader;
 		glm::vec4 m_SquareColor1 = { 32.0f / 255, 95.0f / 255, 83.0f / 255 , 1.0f };
 		glm::vec2 m_SquarePos = { 0.0f, 0.0f };

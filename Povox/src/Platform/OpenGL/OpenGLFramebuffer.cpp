@@ -15,12 +15,21 @@ namespace Povox {
 	OpenGLFramebuffer::~OpenGLFramebuffer()
 	{
 		glDeleteFramebuffers(1, &m_RendererID);
+		glDeleteTextures(1, &m_ColorAttachment);
+		glDeleteTextures(1, &m_DepthAttachment);
 	}
 
 	void OpenGLFramebuffer::Invalidate()
 	{
 		PX_PROFILE_FUNCTION();
 
+
+		if (m_RendererID)
+		{
+			glDeleteFramebuffers(1, &m_RendererID);
+			glDeleteTextures(1, &m_ColorAttachment);
+			glDeleteTextures(1, &m_DepthAttachment);
+		}
 
 		glCreateFramebuffers(1, &m_RendererID);
 		glBindFramebuffer(GL_FRAMEBUFFER, m_RendererID);
@@ -47,6 +56,7 @@ namespace Povox {
 	void OpenGLFramebuffer::Bind() const
 	{
 		glBindFramebuffer(GL_FRAMEBUFFER, m_RendererID);
+		glViewport(0, 0, m_Specification.Width, m_Specification.Height);
 	}
 
 	void OpenGLFramebuffer::Unbind() const
