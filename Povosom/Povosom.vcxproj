@@ -131,10 +131,10 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="src\Povosom2D.h" />
+    <ClInclude Include="src\EditorLayer.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\Povosom2D.cpp" />
+    <ClCompile Include="src\EditorLayer.cpp" />
     <ClCompile Include="src\PovosomApp.cpp" />
   </ItemGroup>
   <ItemGroup>

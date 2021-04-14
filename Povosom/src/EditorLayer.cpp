@@ -1,4 +1,4 @@
-#include "Povosom2D.h"
+#include "EditorLayer.h"
 
 #include "Platform/OpenGL/OpenGLShader.h"
 
@@ -9,12 +9,12 @@
 
 namespace Povox {
 
-    Povosom2D::Povosom2D()
+    EditorLayer::EditorLayer()
         :Layer("Povosom2D"), m_CameraController(1280.0f / 720.0f, false)
     {
     }
 
-    void Povosom2D::OnAttach()
+    void EditorLayer::OnAttach()
     {
         PX_PROFILE_FUNCTION();
 
@@ -28,7 +28,7 @@ namespace Povox {
 
     }
 
-    void Povosom2D::OnDetach()
+    void EditorLayer::OnDetach()
     {
         PX_PROFILE_FUNCTION();
 
@@ -36,7 +36,7 @@ namespace Povox {
         Povox::Renderer2D::Shutdown();
     }
 
-    void Povosom2D::OnUpdate(float deltatime)
+    void EditorLayer::OnUpdate(float deltatime)
     {
         PX_PROFILE_FUNCTION();
 
@@ -70,15 +70,15 @@ namespace Povox {
         Povox::Renderer2D::DrawQuad({ 0.0f, 0.0f, -0.1f }, { 2.0f, 2.0f }, m_TextureLogo, 10.0f, { 1.0f, 0.5, 0.6f, 1.0f });
         Povox::Renderer2D::DrawQuad({ 0.5f, 0.5f, 0.1f }, { 0.5f, 1.0f }, m_SubTextureLogo);
 
-        Povox::Renderer2D::DrawRotatedQuad({ -0.8f, -1.0f }, { 0.5f, 0.5f }, 45.0f, m_TextureLogo);
-        Povox::Renderer2D::DrawRotatedQuad({ x + m_SquarePos.x, y + m_SquarePos.y }, { 0.5f, 0.5f }, rotation * 3, { x, y, x , 0.3f });
+        Povox::Renderer2D::DrawRotatedQuad({ -0.8f, -1.0f }, { 0.5f, 0.5f }, glm::radians(45.0f), m_TextureLogo);
+        Povox::Renderer2D::DrawRotatedQuad({ x + m_SquarePos.x, y + m_SquarePos.y }, { 0.5f, 0.5f }, glm::radians(rotation * 3), { x, y, x , 0.3f });
 
         Povox::Renderer2D::EndScene();
 
         m_Framebuffer->Unbind();
     }
 
-    void Povosom2D::OnImGuiRender()
+    void EditorLayer::OnImGuiRender()
     {
         PX_PROFILE_FUNCTION();
 
@@ -169,7 +169,7 @@ namespace Povox {
         ImGui::End();
     }
 
-    void Povosom2D::OnEvent(Povox::Event& e)
+    void EditorLayer::OnEvent(Povox::Event& e)
     {
         m_CameraController.OnEvent(e);
     }

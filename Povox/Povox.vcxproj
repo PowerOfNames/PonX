@@ -147,7 +147,6 @@
     <ClInclude Include="src\Platform\OpenGL\OpenGLShader.h" />
     <ClInclude Include="src\Platform\OpenGL\OpenGLTexture.h" />
     <ClInclude Include="src\Platform\OpenGL\OpenGLVertexArray.h" />
-    <ClInclude Include="src\Platform\Windows\WindowsInput.h" />
     <ClInclude Include="src\Platform\Windows\WindowsWindow.h" />
     <ClInclude Include="src\Povox.h" />
     <ClInclude Include="src\Povox\Core\Application.h" />
@@ -158,7 +157,7 @@
     <ClInclude Include="src\Povox\Core\Layer.h" />
     <ClInclude Include="src\Povox\Core\LayerStack.h" />
     <ClInclude Include="src\Povox\Core\Log.h" />
-    <ClInclude Include="src\Povox\Core\MouseButtonCodes.h" />
+    <ClInclude Include="src\Povox\Core\MouseCodes.h" />
     <ClInclude Include="src\Povox\Core\Time.h" />
     <ClInclude Include="src\Povox\Core\Window.h" />
     <ClInclude Include="src\Povox\Debugging\Instrumentor.h" />

@@ -1,7 +1,7 @@
 #include <Povox.h>
 #include <Povox/Core/EntryPoint.h>
 
-#include "Povosom2D.h"
+#include "EditorLayer.h"
 
 
 namespace Povox {
@@ -11,7 +11,7 @@ namespace Povox {
 	public:
 		Povosom()
 		{
-			PushLayer(new Povosom2D());
+			PushLayer(new EditorLayer());
 		}
 
 		~Povosom()

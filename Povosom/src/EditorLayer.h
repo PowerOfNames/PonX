@@ -3,11 +3,11 @@
 
 namespace Povox {
 
-	class Povosom2D : public Layer
+	class EditorLayer : public Layer
 	{
 	public:
-		Povosom2D();
-		~Povosom2D() = default;
+		EditorLayer();
+		~EditorLayer() = default;
 
 		virtual void OnAttach() override;
 		virtual void OnDetach() override;

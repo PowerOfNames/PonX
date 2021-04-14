@@ -15,7 +15,7 @@
 // --- Inputs
 #include "Povox/Core/Input.h"
 #include "Povox/Core/KeyCodes.h"
-#include "Povox/Core/MouseButtonCodes.h"
+#include "Povox/Core/MouseCodes.h"
 #include "Povox/Renderer/OrthographicCameraController.h"
 #include "Povox/Renderer/PerspectiveCameraController.h"
 

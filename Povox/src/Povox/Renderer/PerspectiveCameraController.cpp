@@ -2,6 +2,7 @@
 #include "Povox/Renderer/PerspectiveCameraController.h"
 
 #include "Povox/Core/Input.h"
+#include "Povox/Core/KeyCodes.h"
 
 namespace Povox {
 
@@ -15,31 +16,26 @@ namespace Povox {
 		m_MousePosX = width / 2;
 		m_MousePosY = height / 2;
 
-		//Set default controls here!
-		Input::Remap("camera_move_forward", KeyAlternative(Keys::W));
-		Input::Remap("camera_move_left", KeyAlternative(Keys::A));
-		Input::Remap("camera_move_back", KeyAlternative(Keys::S));
-		Input::Remap("camera_move_right", KeyAlternative(Keys::D));
 	}
 
 	void PerspectiveCameraController::OnUpdate(float deltaTime)
 	{
 		PX_PROFILE_FUNCTION();
 
-		if (Input::IsInputPressed("camera_move_forward"))
+		if (Input::IsKeyPressed(Key::W))
 		{
 			m_CameraPosition += m_CameraTranslationSpeed * deltaTime * m_CameraFront;
 		}
-		else if (Input::IsInputPressed("camera_move_back"))
+		else if (Input::IsKeyPressed(Key::S))
 		{
 			m_CameraPosition -= m_CameraTranslationSpeed * deltaTime * m_CameraFront;
 		}
 
-		if (Input::IsInputPressed("camera_move_right"))
+		if (Input::IsKeyPressed(Key::D))
 		{
 			m_CameraPosition += m_CameraTranslationSpeed * deltaTime * glm::normalize(glm::cross(m_CameraFront, m_CameraUp));
 		}
-		else if (Input::IsInputPressed("camera_move_left"))
+		else if (Input::IsKeyPressed(Key::A))
 		{
 			m_CameraPosition -= m_CameraTranslationSpeed * deltaTime * glm::normalize(glm::cross(m_CameraFront, m_CameraUp));
 		}
