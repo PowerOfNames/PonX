@@ -20,6 +20,8 @@ namespace Povox {
 	class POVOX_API Input
 	{
 	public:
+		virtual ~Input() = default;
+
 		inline static bool IsInputPressed(const std::string& name)
 		{
 			if (s_Instance->m_KeyMapping.count(name) != 0)
