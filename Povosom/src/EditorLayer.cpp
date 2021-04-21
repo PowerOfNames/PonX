@@ -41,7 +41,8 @@ namespace Povox {
         PX_PROFILE_FUNCTION();
 
 
-        m_CameraController.OnUpdate(deltatime);
+        if(m_ViewportIsFocused)
+            m_CameraController.OnUpdate(deltatime);
 
         Povox::Renderer2D::ResetStats();
         {
@@ -157,6 +158,11 @@ namespace Povox {
 
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{ 0, 0 });
         ImGui::Begin("Viewport");
+
+        m_ViewportIsFocused = ImGui::IsWindowFocused();
+        m_ViewportIsHovered = ImGui::IsWindowHovered();
+        Application::Get().GetImGuiLayer()->BlockEvents(!m_ViewportIsFocused || !m_ViewportIsHovered);
+
         ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail();
         if (m_ViewportSize != *((glm::vec2*)&viewportPanelSize))
         {

@@ -14,13 +14,17 @@ namespace Povox {
 
 		virtual void OnAttach() override;
 		virtual void OnDetach() override;
+		virtual void OnEvent(Event& event);
+
 		virtual void OnImGuiRender() override;
+
+		void BlockEvents(bool state) { m_BlockEvents = state; }
 
 		void Begin();
 		void End();
 
 	private:
 		float m_Time = 0.0f;
-
+		bool m_BlockEvents = true;
 	};
 }

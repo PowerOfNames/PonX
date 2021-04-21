@@ -24,6 +24,7 @@ namespace Povox {
 		Ref<SubTexture2D> m_SubTextureLogo;
 		Ref<Framebuffer> m_Framebuffer;
 
+		bool m_ViewportIsFocused = false, m_ViewportIsHovered = false;
 		glm::vec2 m_ViewportSize = { 0.0f, 0.0f };
 
 		Ref<Shader> m_FlatColorShader;
