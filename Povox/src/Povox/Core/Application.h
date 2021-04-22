@@ -44,7 +44,7 @@ namespace Povox {
 		bool m_Running = true;
 		bool m_Minimized = false;
 		LayerStack m_Layerstack;
-		float m_DeltaTime = 0.0f;;
+		float m_DeltaTime = 0.0f;
 
 	private:
 		static Application* s_Instance;

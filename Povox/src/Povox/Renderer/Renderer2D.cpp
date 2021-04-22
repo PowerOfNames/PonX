@@ -147,12 +147,51 @@ namespace Povox {
 		s_QuadData.TextureSlotIndex = 1;
 	}
 
+
+// Quads Color
 	void Renderer2D::DrawQuad(const glm::vec2& position, const glm::vec2 size, const glm::vec4& color)
 	{
 		DrawQuad({ position.x, position.y, 0.0f }, size, color);
 	}
 
 	void Renderer2D::DrawQuad(const glm::vec3& position, const glm::vec2 size, const glm::vec4& color)
+	{
+		glm::mat4 transform = glm::translate(glm::mat4(1.0f), position)
+			* glm::scale(glm::mat4(1.0f), { size.x, size.y, 1.0f });
+
+		DrawQuad(transform, color);
+	}
+// Quads Texture
+	void Renderer2D::DrawQuad(const glm::vec2& position, const glm::vec2 size, const Ref<Texture2D>& texture, float tilingFactor, const glm::vec4& tintingColor)
+	{
+		DrawQuad({ position.x, position.y, 0.0f }, size, texture, tilingFactor, tintingColor);
+	}
+
+	void Renderer2D::DrawQuad(const glm::vec3& position, const glm::vec2 size, const Ref<Texture2D>& texture, float tilingFactor, const glm::vec4& tintingColor)
+	{
+		PX_PROFILE_FUNCTION();
+
+
+		glm::mat4 transform = glm::translate(glm::mat4(1.0f), position)
+			* glm::scale(glm::mat4(1.0f), { size.x, size.y, 1.0f });
+		
+		DrawQuad(transform, texture, tilingFactor, tintingColor);
+	}
+// Quads Subtexture
+	void Renderer2D::DrawQuad(const glm::vec2& position, const glm::vec2 size, const Ref<SubTexture2D>& subTexture, float tilingFactor, const glm::vec4& tintingColor)
+	{
+		DrawQuad({ position.x, position.y, 0.0f }, size, subTexture, tilingFactor, tintingColor);
+	}
+
+	void Renderer2D::DrawQuad(const glm::vec3& position, const glm::vec2 size, const Ref<SubTexture2D>& subTexture, float tilingFactor, const glm::vec4& tintingColor)
+	{
+		glm::mat4 transform = glm::translate(glm::mat4(1.0f), position)
+			* glm::scale(glm::mat4(1.0f), { size.x, size.y, 1.0f });
+
+		DrawQuad(transform, subTexture, tilingFactor, tintingColor);
+	}
+// Quads Transforms
+	void Renderer2D::DrawQuad(const glm::mat4& transform, const glm::vec4& color)
 	{
 		PX_PROFILE_FUNCTION();
 
@@ -163,9 +202,6 @@ namespace Povox {
 		constexpr float whiteTextureID = 0.0f;
 		constexpr float tilingFactor = 1.0f;
 		constexpr glm::vec2 textureCoords[4] = { {0.0f, 0.0f}, {1.0f, 0.0f}, {1.0f, 1.0f}, {0.0f, 1.0f} };
-
-		glm::mat4 transform = glm::translate(glm::mat4(1.0f), position)
-			* glm::scale(glm::mat4(1.0f), { size.x, size.y, 1.0f });
 
 		for (uint32_t i = 0; i < 4; i++)
 		{
@@ -181,18 +217,10 @@ namespace Povox {
 		s_QuadData.Stats.QuadCount++;
 	}
 
-	void Renderer2D::DrawQuad(const glm::vec2& position, const glm::vec2 size, const Ref<Texture2D>& texture, float tilingFactor, const glm::vec4& tintingColor)
+	void Renderer2D::DrawQuad(const glm::mat4& transform, const Ref<Texture2D>& texture, float tilingFactor, const glm::vec4& tintingColor)
 	{
-		DrawQuad({ position.x, position.y, 0.0f }, size, texture, tilingFactor, tintingColor);
-	}
-
-	void Renderer2D::DrawQuad(const glm::vec3& position, const glm::vec2 size, const Ref<Texture2D>& texture, float tilingFactor, const glm::vec4& tintingColor)
-	{
-		PX_PROFILE_FUNCTION();
-
-
 		constexpr glm::vec2 textureCoords[4] = { {0.0f, 0.0f}, {1.0f, 0.0f}, {1.0f, 1.0f}, {0.0f, 1.0f} };
-		
+
 		if (s_QuadData.QuadIndexCount >= Renderer2DData::MaxIndices)
 			FlushAndReset();
 
@@ -214,9 +242,7 @@ namespace Povox {
 			s_QuadData.TextureSlotIndex++;
 		}
 
-		
-		glm::mat4 transform = glm::translate(glm::mat4(1.0f), position)
-			* glm::scale(glm::mat4(1.0f), { size.x, size.y, 1.0f });
+
 
 		for (uint32_t i = 0; i < 4; i++)
 		{
@@ -232,12 +258,7 @@ namespace Povox {
 		s_QuadData.Stats.QuadCount++;
 	}
 
-	void Renderer2D::DrawQuad(const glm::vec2& position, const glm::vec2 size, const Ref<SubTexture2D>& subTexture, float tilingFactor, const glm::vec4& tintingColor)
-	{
-		DrawQuad({ position.x, position.y, 0.0f }, size, subTexture, tilingFactor, tintingColor);
-	}
-
-	void Renderer2D::DrawQuad(const glm::vec3& position, const glm::vec2 size, const Ref<SubTexture2D>& subTexture, float tilingFactor, const glm::vec4& tintingColor)
+	void Renderer2D::DrawQuad(const glm::mat4& transform, const Ref<SubTexture2D>& subTexture, float tilingFactor, const glm::vec4& tintingColor)
 	{
 		PX_PROFILE_FUNCTION();
 
@@ -265,10 +286,6 @@ namespace Povox {
 			s_QuadData.TextureSlots[s_QuadData.TextureSlotIndex] = texture;
 			s_QuadData.TextureSlotIndex++;
 		}
-
-
-		glm::mat4 transform = glm::translate(glm::mat4(1.0f), position)
-			* glm::scale(glm::mat4(1.0f), { size.x, size.y, 1.0f });
 
 		for (uint32_t i = 0; i < 4; i++)
 		{
@@ -293,32 +310,11 @@ namespace Povox {
 
 	void Renderer2D::DrawRotatedQuad(const glm::vec3& position, const glm::vec2 size, float rotation, const glm::vec4& color)
 	{
-		PX_PROFILE_FUNCTION();
-
-
-		if (s_QuadData.QuadIndexCount >= Renderer2DData::MaxIndices)
-			FlushAndReset();
-
-		constexpr float whiteTextureID = 0.0f;
-		constexpr float tilingFactor = 1.0f;
-		constexpr glm::vec2 textureCoords[4] = { {0.0f, 0.0f}, {1.0f, 0.0f}, {1.0f, 1.0f}, {0.0f, 1.0f} };
-
 		glm::mat4 transform = glm::translate(glm::mat4(1.0f), position)
 			* glm::rotate(glm::mat4(1.0f), rotation, { 0.0f, 0.0f, 1.0f })
 			* glm::scale(glm::mat4(1.0f), { size.x, size.y, 1.0f });
 
-		for (uint32_t i = 0; i < 4; i++)
-		{
-			s_QuadData.QuadVertexBufferPtr->Position = transform * s_QuadData.QuadVertexPositions[i];
-			s_QuadData.QuadVertexBufferPtr->Color = color;
-			s_QuadData.QuadVertexBufferPtr->TexCoord = textureCoords[i];
-			s_QuadData.QuadVertexBufferPtr->TexID = whiteTextureID;
-			s_QuadData.QuadVertexBufferPtr->TilingFactor = tilingFactor;
-			s_QuadData.QuadVertexBufferPtr++;
-		}
-		s_QuadData.QuadIndexCount += 6;
-
-		s_QuadData.Stats.QuadCount++;
+		DrawQuad(transform, color);
 	}
 
 	void Renderer2D::DrawRotatedQuad(const glm::vec2& position, const glm::vec2 size, float rotation, const Ref<Texture2D>& texture, float tilingFactor, const glm::vec4& tintingColor)
@@ -328,48 +324,11 @@ namespace Povox {
 
 	void Renderer2D::DrawRotatedQuad(const glm::vec3& position, const glm::vec2 size, float rotation, const Ref<Texture2D>& texture, float tilingFactor, const glm::vec4& tintingColor)
 	{
-		PX_PROFILE_FUNCTION();
-
-
-		if (s_QuadData.QuadIndexCount >= Renderer2DData::MaxIndices)
-			FlushAndReset();
-
-		float textureIndex = 0.0f;
-		for (uint32_t i = 1; i < s_QuadData.TextureSlotIndex; i++)
-		{
-			if (*s_QuadData.TextureSlots[i].get() == *texture.get()) // s_QuadData.TextureSlots[i] == texture -> compares the shared ptr, so .get() gives the ptr and * dereferences is to the fnc uses the boolean == operator defined in the openGLTexture2D class
-			{
-				textureIndex = (float)i;
-				break;
-			}
-
-		}
-
-		if (textureIndex == 0.0f)
-		{
-			textureIndex = (float)s_QuadData.TextureSlotIndex;
-			s_QuadData.TextureSlots[s_QuadData.TextureSlotIndex] = texture;
-			s_QuadData.TextureSlotIndex++;
-		}
-
-		constexpr glm::vec2 textureCoords[4] = { {0.0f, 0.0f}, {1.0f, 0.0f}, {1.0f, 1.0f}, {0.0f, 1.0f} };
-
 		glm::mat4 transform = glm::translate(glm::mat4(1.0f), position)
 			* glm::rotate(glm::mat4(1.0f), rotation, { 0.0f, 0.0f, 1.0f })
 			* glm::scale(glm::mat4(1.0f), { size.x, size.y, 1.0f });
-
-		for (uint32_t i = 0; i < 4; i++)
-		{
-			s_QuadData.QuadVertexBufferPtr->Position = transform * s_QuadData.QuadVertexPositions[i];
-			s_QuadData.QuadVertexBufferPtr->Color = tintingColor;
-			s_QuadData.QuadVertexBufferPtr->TexCoord = textureCoords[i];
-			s_QuadData.QuadVertexBufferPtr->TexID = textureIndex;
-			s_QuadData.QuadVertexBufferPtr->TilingFactor = tilingFactor;
-			s_QuadData.QuadVertexBufferPtr++;
-		}
-		s_QuadData.QuadIndexCount += 6;
-
-		s_QuadData.Stats.QuadCount++;
+		
+		DrawQuad(transform, texture, tilingFactor, tintingColor);
 	}
 
 	void Renderer2D::DrawRotatedQuad(const glm::vec2& position, const glm::vec2 size, float rotation, const Ref<SubTexture2D>& subTexture, float tilingFactor, const glm::vec4& tintingColor)
@@ -379,50 +338,14 @@ namespace Povox {
 
 	void Renderer2D::DrawRotatedQuad(const glm::vec3& position, const glm::vec2 size, float rotation, const Ref<SubTexture2D>& subTexture, float tilingFactor, const glm::vec4& tintingColor)
 	{
-		PX_PROFILE_FUNCTION();
-
-
-		const glm::vec2* textureCoords = subTexture->GetTexCoords();
-		const Ref<Texture2D> texture = subTexture->GetTexture();
-
-		if (s_QuadData.QuadIndexCount >= Renderer2DData::MaxIndices)
-			FlushAndReset();
-
-		float textureIndex = 0.0f;
-		for (uint32_t i = 1; i < s_QuadData.TextureSlotIndex; i++)
-		{
-			if (*s_QuadData.TextureSlots[i].get() == *texture.get()) // s_QuadData.TextureSlots[i] == texture -> compares the shared ptr, so .get() gives the ptr and * dereferences is to the fnc uses the boolean == operator defined in the openGLTexture2D class
-			{
-				textureIndex = (float)i;
-				break;
-			}
-
-		}
-
-		if (textureIndex == 0.0f)
-		{
-			textureIndex = (float)s_QuadData.TextureSlotIndex;
-			s_QuadData.TextureSlots[s_QuadData.TextureSlotIndex] = texture;
-			s_QuadData.TextureSlotIndex++;
-		}
-
 		glm::mat4 transform = glm::translate(glm::mat4(1.0f), position)
 			* glm::rotate(glm::mat4(1.0f), rotation, { 0.0f, 0.0f, 1.0f })
 			* glm::scale(glm::mat4(1.0f), { size.x, size.y, 1.0f });
 
-		for (uint32_t i = 0; i < 4; i++)
-		{
-			s_QuadData.QuadVertexBufferPtr->Position = transform * s_QuadData.QuadVertexPositions[i];
-			s_QuadData.QuadVertexBufferPtr->Color = tintingColor;
-			s_QuadData.QuadVertexBufferPtr->TexCoord = textureCoords[i];
-			s_QuadData.QuadVertexBufferPtr->TexID = textureIndex;
-			s_QuadData.QuadVertexBufferPtr->TilingFactor = tilingFactor;
-			s_QuadData.QuadVertexBufferPtr++;
-		}
-		s_QuadData.QuadIndexCount += 6;
-
-		s_QuadData.Stats.QuadCount++;
+		DrawQuad(transform, subTexture, tilingFactor, tintingColor);
 	}
+
+	
 
 	Renderer2D::Statistics Renderer2D::GetStats()
 	{

@@ -2,12 +2,11 @@
 #include "Povox/Core/Application.h"
 
 #include "Povox/Core/Log.h"
-
 #include "Povox/Core/Input.h"
-
 #include "Povox/Renderer/Renderer.h"
+#include "Povox/Core/Timestep.h"
 
-#include "Povox/Core/Time.h"
+#include <GLFW/glfw3.h>
 
 
 namespace Povox {
@@ -77,13 +76,18 @@ namespace Povox {
 
 		while (m_Running)
 		{
-			MyTimestep time(&m_DeltaTime);
+			PX_PROFILE_SCOPE("Application Run-Loop")
+
+
+			float time = (float)glfwGetTime();
+			Timestep timestep = time - m_DeltaTime;
+			m_DeltaTime = time;
 
 			if (!m_Minimized)
 			{
 				for (Layer* layer : m_Layerstack)
 				{
-					layer->OnUpdate(m_DeltaTime);
+					layer->OnUpdate(timestep);
 				}
 			}
 			// To be executed on the Render thread
@@ -94,7 +98,7 @@ namespace Povox {
 			}
 			m_ImGuiLayer->End();
 
-			m_Window->OnUpdate(m_DeltaTime);
+			m_Window->OnUpdate();
 		}
 	}
 

@@ -18,6 +18,7 @@ IncludeDir["Glad"] = ("Povox/vendor/Glad/include")
 IncludeDir["ImGui"] = ("Povox/vendor/ImGui")
 IncludeDir["glm"] = ("Povox/vendor/glm")
 IncludeDir["stb_image"] = ("Povox/vendor/stb_image")
+IncludeDir["entt"] = ("Povox/vendor/entt/include")
 
 group "Dependencies"
 	include "Povox/vendor/GLFW"
@@ -63,7 +64,8 @@ project "Povox"
 		"%{IncludeDir.Glad}",
 		"%{IncludeDir.ImGui}",
 		"%{IncludeDir.glm}",
-		"%{IncludeDir.stb_image}"
+		"%{IncludeDir.stb_image}",
+		"%{IncludeDir.entt}"
 
 	}
 
@@ -124,7 +126,8 @@ project "Sandbox"
 		"Povox/src",
 		"Povox/vendor/spdlog/include",
 		"Povox/vendor",
-		"%{IncludeDir.glm}"
+		"%{IncludeDir.glm}",
+		"%{IncludeDir.entt}"
 	}
 
 	links
@@ -175,7 +178,8 @@ project "Povosom"
 		"Povox/src",
 		"Povox/vendor/spdlog/include",
 		"Povox/vendor",
-		"%{IncludeDir.glm}"
+		"%{IncludeDir.glm}",
+		"%{IncludeDir.entt}"
 	}
 
 	links

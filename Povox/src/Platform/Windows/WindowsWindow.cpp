@@ -174,7 +174,7 @@ namespace Povox {
 		glfwDestroyWindow(m_Window);
 	}
 
-	void WindowsWindow::OnUpdate(float deltatime)
+	void WindowsWindow::OnUpdate()
 	{
 		PX_PROFILE_FUNCTION();
 

@@ -25,7 +25,7 @@ void VoxelExample::OnDetach()
 
 }
 
-void VoxelExample::OnUpdate(float deltaTime)
+void VoxelExample::OnUpdate(Povox::Timestep deltaTime)
 {
 	PX_PROFILE_FUNCTION();
 

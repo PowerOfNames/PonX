@@ -10,7 +10,7 @@
 #include "Povox/Core/Layer.h"
 #include "Povox/Core/Log.h"
 
-#include "Povox/Core/Time.h"
+#include "Povox/Core/Timestep.h"
 
 // --- Inputs
 #include "Povox/Core/Input.h"
@@ -20,6 +20,10 @@
 #include "Povox/Renderer/PerspectiveCameraController.h"
 
 #include "Povox/ImGui/ImGuiLayer.h"
+
+#include "Povox/Scene/Scene.h"
+#include "Povox/Scene/Entity.h"
+#include "Povox/Scene/Components.h"
 
 // --- Renderer
 #include "Povox/Renderer/Renderer.h"

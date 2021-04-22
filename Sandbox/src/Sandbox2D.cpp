@@ -30,7 +30,7 @@ void Sandbox2D::OnDetach()
 	Povox::Renderer2D::Shutdown();
 }
 
-void Sandbox2D::OnUpdate(float deltatime)
+void Sandbox2D::OnUpdate(Povox::Timestep deltatime)
 {
 	PX_PROFILE_FUNCTION();
 

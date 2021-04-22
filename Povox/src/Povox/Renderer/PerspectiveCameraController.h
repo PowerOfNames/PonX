@@ -1,5 +1,6 @@
 #pragma once
 #include "Povox/Renderer/PerspectiveCamera.h"
+#include "Povox/Core/Timestep.h"
 
 #include "Povox/Events/Event.h"
 #include "Povox/Events/ApplicationEvent.h"
@@ -13,7 +14,7 @@ namespace Povox {
 		PerspectiveCameraController(float width, float height);
 		~PerspectiveCameraController() = default;
 
-		void OnUpdate(float deltaTime);
+		void OnUpdate(Timestep deltaTime);
 		void OnEvent(Event& event);
 
 		void SetTranslationSpeed(float speed);

@@ -11,7 +11,7 @@ public:
 	virtual void OnAttach() override;
 	virtual void OnDetach() override;
 
-	void OnUpdate(float deltatime) override;
+	void OnUpdate(Povox::Timestep deltatime) override;
 	virtual void OnImGuiRender() override;
 	void OnEvent(Povox::Event& e) override;
 

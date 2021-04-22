@@ -12,7 +12,7 @@ namespace Povox {
 		virtual void OnAttach() override;
 		virtual void OnDetach() override;
 
-		void OnUpdate(float deltatime) override;
+		void OnUpdate(Timestep deltatime) override;
 		virtual void OnImGuiRender() override;
 		void OnEvent(Event& e) override;
 
@@ -23,6 +23,11 @@ namespace Povox {
 		Ref<Texture2D> m_TextureLogo;
 		Ref<SubTexture2D> m_SubTextureLogo;
 		Ref<Framebuffer> m_Framebuffer;
+
+		Ref<Scene> m_ActiveScene;
+		Entity m_SquareEntity;
+
+		float m_Deltatime = 0.0f;
 
 		bool m_ViewportIsFocused = false, m_ViewportIsHovered = false;
 		glm::vec2 m_ViewportSize = { 0.0f, 0.0f };

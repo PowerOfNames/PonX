@@ -18,7 +18,7 @@ namespace Povox {
 
 	}
 
-	void PerspectiveCameraController::OnUpdate(float deltaTime)
+	void PerspectiveCameraController::OnUpdate(Timestep deltaTime)
 	{
 		PX_PROFILE_FUNCTION();
 

@@ -2,6 +2,7 @@
 
 #include "Povox/Core/Core.h"
 #include "Povox/Events/Event.h"
+#include "Povox/Core/Timestep.h"
 
 namespace Povox {
 
@@ -13,7 +14,7 @@ namespace Povox {
 
 		virtual void OnAttach() {}
 		virtual void OnDetach() {}
-		virtual void OnUpdate(float deltatime) {}
+		virtual void OnUpdate(Timestep deltatime) {}
 		virtual void OnImGuiRender() {}
 		virtual void OnEvent(Event& event) {}
 

@@ -1,5 +1,6 @@
 #pragma once
 #include "Povox/Renderer/OrthographicCamera.h"
+#include "Povox/Core/Timestep.h"
 
 #include "Povox/Events/Event.h"
 
@@ -24,7 +25,7 @@ namespace Povox {
 		~OrthographicCameraController() = default;
 
 
-		void OnUpdate(float deltatime);
+		void OnUpdate(Timestep deltatime);
 		void OnEvent(Event& e);
 
 		void OnResize(float width, float height);

@@ -31,6 +31,9 @@
     <Filter Include="src\Povox\Renderer">
       <UniqueIdentifier>{3E287017-2A0C-316D-936C-2BC07F6F1BEF}</UniqueIdentifier>
     </Filter>
+    <Filter Include="src\Povox\Scene">
+      <UniqueIdentifier>{B5D8BD1B-2164-2BE0-2A75-AED4967F87E0}</UniqueIdentifier>
+    </Filter>
     <Filter Include="vendor">
       <UniqueIdentifier>{B3738122-9F15-ACF8-88D0-BF4C74113349}</UniqueIdentifier>
     </Filter>
@@ -108,6 +111,9 @@
     <ClInclude Include="src\Povox\Core\Log.h">
       <Filter>src\Povox\Core</Filter>
     </ClInclude>
+    <ClInclude Include="src\Povox\Core\MouseCodes.h">
+      <Filter>src\Povox\Core</Filter>
+    </ClInclude>
     <ClInclude Include="src\Povox\Core\Time.h">
       <Filter>src\Povox\Core</Filter>
     </ClInclude>
@@ -182,6 +188,9 @@
     </ClInclude>
     <ClInclude Include="src\Povox\Renderer\VoxelRenderer.h">
       <Filter>src\Povox\Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Povox\Scene\Scene.h">
+      <Filter>src\Povox\Scene</Filter>
     </ClInclude>
     <ClInclude Include="src\pxpch.h">
       <Filter>src</Filter>
@@ -1293,9 +1302,9 @@
     <ClInclude Include="vendor\stb_image\stb_image.h">
       <Filter>vendor\stb_image</Filter>
     </ClInclude>
-    <ClInclude Include="src\Povox\Core\MouseCodes.h">
-      <Filter>src\Povox\Core</Filter>
-    </ClInclude>
+    <ClInclude Include="src\Povox\Core\Timestep.h" />
+    <ClInclude Include="src\Povox\Scene\Components.h" />
+    <ClInclude Include="src\Povox\Scene\Entity.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Platform\OpenGL\OpenGLBuffer.cpp">
@@ -1318,6 +1327,9 @@
     </ClCompile>
     <ClCompile Include="src\Platform\OpenGL\OpenGLVertexArray.cpp">
       <Filter>src\Platform\OpenGL</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Platform\Windows\WindowsInput.cpp">
+      <Filter>src\Platform\Windows</Filter>
     </ClCompile>
     <ClCompile Include="src\Platform\Windows\WindowsWindow.cpp">
       <Filter>src\Platform\Windows</Filter>
@@ -1388,12 +1400,15 @@
     <ClCompile Include="src\Povox\Renderer\VoxelRenderer.cpp">
       <Filter>src\Povox\Renderer</Filter>
     </ClCompile>
+    <ClCompile Include="src\Povox\Scene\Scene.cpp">
+      <Filter>src\Povox\Scene</Filter>
+    </ClCompile>
     <ClCompile Include="src\pxpch.cpp">
       <Filter>src</Filter>
     </ClCompile>
     <ClCompile Include="vendor\stb_image\stb_image.cpp">
       <Filter>vendor\stb_image</Filter>
     </ClCompile>
-    <ClCompile Include="src\Platform\Windows\WindowsInput.cpp" />
+    <ClCompile Include="src\Povox\Scene\Entity.cpp" />
   </ItemGroup>
 </Project>

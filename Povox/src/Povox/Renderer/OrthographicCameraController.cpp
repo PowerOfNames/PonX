@@ -1,6 +1,7 @@
 #include "pxpch.h"
 #include "Povox/Renderer/OrthographicCameraController.h"
 
+
 #include "Povox/Core/Input.h"
 #include "Povox/Core/KeyCodes.h"
 
@@ -13,7 +14,7 @@ namespace Povox {
 	
 	}
 
-	void OrthographicCameraController::OnUpdate(float deltatime)
+	void OrthographicCameraController::OnUpdate(Timestep deltatime)
 	{
 		PX_PROFILE_FUNCTION();
 		

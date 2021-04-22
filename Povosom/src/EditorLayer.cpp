@@ -6,6 +6,7 @@
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
 namespace Povox {
 
@@ -18,14 +19,21 @@ namespace Povox {
     {
         PX_PROFILE_FUNCTION();
 
-        Povox::FramebufferSpecification fbspec;
+        FramebufferSpecification fbspec;
         fbspec.Width = 1280;
         fbspec.Height = 720;
 
-        m_Framebuffer = Povox::Framebuffer::Create(fbspec);
-        m_TextureLogo = Povox::Texture2D::Create("assets/textures/logo.png");
-        m_SubTextureLogo = Povox::SubTexture2D::CreateFromCoords(m_TextureLogo, { 1, 2 }, { 64, 64 }, { 1, 2 });
+        m_Framebuffer = Framebuffer::Create(fbspec);
+        m_TextureLogo = Texture2D::Create("assets/textures/logo.png");
+        m_SubTextureLogo = SubTexture2D::CreateFromCoords(m_TextureLogo, { 1, 2 }, { 64, 64 }, { 1, 2 });
 
+        m_ActiveScene = CreateRef<Scene>();
+
+        // Create entities
+        Entity squareEntity = m_ActiveScene->CreateEntity("Square");
+        squareEntity.AddComponent<SpriteRendererComponent>(glm::vec4{ 0.5f, 0.8f, 0.0f, 0.9f });
+
+        m_SquareEntity = squareEntity;
     }
 
     void EditorLayer::OnDetach()
@@ -33,47 +41,29 @@ namespace Povox {
         PX_PROFILE_FUNCTION();
 
 
-        Povox::Renderer2D::Shutdown();
+        Renderer2D::Shutdown();
     }
 
-    void EditorLayer::OnUpdate(float deltatime)
+    void EditorLayer::OnUpdate(Timestep deltatime)
     {
         PX_PROFILE_FUNCTION();
 
 
+        m_Deltatime = deltatime;
         if(m_ViewportIsFocused)
             m_CameraController.OnUpdate(deltatime);
 
-        Povox::Renderer2D::ResetStats();
-        {
-            PX_PROFILE_SCOPE("Renderer_Preps")
-                m_Framebuffer->Bind();
-            Povox::RenderCommand::SetClearColor({ 0.1f, 0.1f, 0.2f, 1.0f });
-            Povox::RenderCommand::Clear();
-        }
+               
+        Renderer2D::ResetStats();
+        m_Framebuffer->Bind();
+        RenderCommand::SetClearColor({ 0.1f, 0.1f, 0.2f, 1.0f });
+        RenderCommand::Clear();
 
-        static float rotation = 0.0;
-        rotation += deltatime * 20;
 
-        static float x = 0.0f;
-        static float y = 0.0f;
+        Renderer2D::BeginScene(m_CameraController.GetCamera());
+        m_ActiveScene->OnUpdate(deltatime);
+        Renderer2D::EndScene();
 
-        x = glm::cos(rotation * m_RotationVel.x) * 1.2;
-        y = glm::sin(rotation * m_RotationVel.y) * 1.2;
-
-        //PX_INFO("X = {0}", x);
-        //PX_INFO("Y = {0}", y);
-
-        Povox::Renderer2D::BeginScene(m_CameraController.GetCamera());
-
-        Povox::Renderer2D::DrawQuad(m_SquarePos, { 0.5f, 0.5f }, m_SquareColor1);
-        Povox::Renderer2D::DrawQuad({ 0.0f, 0.0f, -0.1f }, { 2.0f, 2.0f }, m_TextureLogo, 10.0f, { 1.0f, 0.5, 0.6f, 1.0f });
-        Povox::Renderer2D::DrawQuad({ 0.5f, 0.5f, 0.1f }, { 0.5f, 1.0f }, m_SubTextureLogo);
-
-        Povox::Renderer2D::DrawRotatedQuad({ -0.8f, -1.0f }, { 0.5f, 0.5f }, glm::radians(45.0f), m_TextureLogo);
-        Povox::Renderer2D::DrawRotatedQuad({ x + m_SquarePos.x, y + m_SquarePos.y }, { 0.5f, 0.5f }, glm::radians(rotation * 3), { x, y, x , 0.3f });
-
-        Povox::Renderer2D::EndScene();
 
         m_Framebuffer->Unbind();
     }
@@ -83,7 +73,7 @@ namespace Povox {
         PX_PROFILE_FUNCTION();
 
 
-        auto stats = Povox::Renderer2D::GetStats();
+        auto stats = Renderer2D::GetStats();
 
 
         static bool dockspaceOpen = true;
@@ -140,7 +130,7 @@ namespace Povox {
                 //ImGui::MenuItem("Fullscreen", NULL, &opt_fullscreen_persistant);
 
                 if (ImGui::MenuItem("Exit"))
-                    Povox::Application::Get().Close();
+                    Application::Get().Close();
 
                 ImGui::EndMenu();
             }
@@ -153,6 +143,7 @@ namespace Povox {
         ImGui::Text("Quads: %d", stats.QuadCount);
         ImGui::Text("Vertices: %d", stats.GetTotalVertexCount());
         ImGui::Text("Indices: %d", stats.GetTotalIndexCount());
+        ImGui::Text("Deltatime: %f", m_Deltatime);
         ImGui::End();
 
 
@@ -164,7 +155,7 @@ namespace Povox {
         Application::Get().GetImGuiLayer()->BlockEvents(!m_ViewportIsFocused || !m_ViewportIsHovered);
 
         ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail();
-        if (m_ViewportSize != *((glm::vec2*)&viewportPanelSize))
+        if (m_ViewportSize != *((glm::vec2*)&viewportPanelSize) && (viewportPanelSize.x > 0) && (viewportPanelSize.y > 0))
         {
             m_Framebuffer->Resize((uint32_t)viewportPanelSize.x, (uint32_t)viewportPanelSize.y);
             m_ViewportSize = { viewportPanelSize.x, viewportPanelSize.y };
@@ -176,8 +167,15 @@ namespace Povox {
         ImGui::End();
         ImGui::PopStyleVar(ImGuiStyleVar_WindowPadding);
 
+
         ImGui::Begin("Square1");
-        ImGui::ColorPicker4("Square1ColorPicker", &m_SquareColor1.r);
+
+        if (m_SquareEntity)
+        {
+            auto& color = m_SquareEntity.GetComponent<SpriteRendererComponent>().Color;
+            ImGui::ColorEdit4("Square1ColorPicker", glm::value_ptr(color));
+        }
+        
         ImGui::DragFloat2("Position", &m_SquarePos.x, 0.05f, -2.0f, 2.0f);
         ImGui::DragFloat2("Rotation Velocity", &m_RotationVel.x, 0.01f, -0.5f, 0.5f);
         ImGui::End();
@@ -186,7 +184,7 @@ namespace Povox {
         ImGui::End();
     }
 
-    void EditorLayer::OnEvent(Povox::Event& e)
+    void EditorLayer::OnEvent(Event& e)
     {
         m_CameraController.OnEvent(e);
     }
