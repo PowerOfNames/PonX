@@ -33,7 +33,7 @@ namespace Povox {
 	{
 		//Render sprites
 		Camera* mainCamera = nullptr;
-		glm::mat4* cameraTransform = nullptr;
+		glm::mat4 cameraTransform;
 		{
 			auto group = m_Registry.group<CameraComponent, TransformComponent>();
 			for (auto entity : group)
@@ -43,7 +43,7 @@ namespace Povox {
 				if (camera.Primary)
 				{
 					mainCamera = &camera.Camera;
-					cameraTransform = &transform.Transform;
+					cameraTransform = transform.Transform;
 					break;
 				}
 			}
@@ -51,8 +51,8 @@ namespace Povox {
 
 		if(mainCamera)
 		{
+			Renderer2D::BeginScene(*mainCamera, cameraTransform);
 			auto group = m_Registry.group<SpriteRendererComponent>(entt::get<TransformComponent>);
-			Renderer2D::BeginScene(mainCamera->GetProjection(), *cameraTransform);
 			for (auto entity : group)
 			{
 				auto& [sprite, transform] = group.get<SpriteRendererComponent, TransformComponent>(entity);
@@ -60,6 +60,21 @@ namespace Povox {
 				Renderer2D::DrawQuad(transform, sprite.Color);
 			}
 			Renderer2D::EndScene();
+		}
+	}
+
+	void Scene::OnViewportResize(uint32_t width, uint32_t height)
+	{
+		m_ViewportWidth = width;
+		m_ViewportHeight = height;
+
+		auto view = m_Registry.view<CameraComponent>();
+		for (auto entity : view)
+		{
+			auto& cameraComponent = view.get<CameraComponent>(entity);
+
+			if (!cameraComponent.FixedAspectRatio)
+				cameraComponent.Camera.SetViewportSize(width, height);
 		}
 	}
 }

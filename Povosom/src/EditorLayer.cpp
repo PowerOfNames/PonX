@@ -36,7 +36,7 @@ namespace Povox {
         m_SquareEntity = squareEntity;
 
         m_CameraEntity = m_ActiveScene->CreateEntity("Camera");
-        m_CameraEntity.AddComponent<CameraComponent>(glm::ortho(-16.0f, 16.0f, -9.0f, 9.0f, -1.0f, 1.0f));
+        m_CameraEntity.AddComponent<CameraComponent>();
     }
 
     void EditorLayer::OnDetach()
@@ -62,6 +62,8 @@ namespace Povox {
         {
             m_Framebuffer->Resize((uint32_t)m_ViewportSize.x, (uint32_t)m_ViewportSize.y);
             m_CameraController.OnResize(m_ViewportSize.x, m_ViewportSize.y);
+
+            m_ActiveScene->OnViewportResize((uint32_t)m_ViewportSize.x, (uint32_t)m_ViewportSize.y);
         }
 
 
@@ -169,34 +171,29 @@ namespace Povox {
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{ 0, 0 });
         ImGui::Begin("Viewport");
 
+
         m_ViewportIsFocused = ImGui::IsWindowFocused();
         m_ViewportIsHovered = ImGui::IsWindowHovered();
         Application::Get().GetImGuiLayer()->BlockEvents(!m_ViewportIsFocused || !m_ViewportIsHovered);
 
-        ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail();
-        if (m_ViewportSize != *((glm::vec2*)&viewportPanelSize) && (viewportPanelSize.x > 0) && (viewportPanelSize.y > 0))
-        {
-            m_Framebuffer->Resize((uint32_t)viewportPanelSize.x, (uint32_t)viewportPanelSize.y);
-            m_ViewportSize = { viewportPanelSize.x, viewportPanelSize.y };
 
-            m_CameraController.OnResize(viewportPanelSize.x, viewportPanelSize.y);
-        }
+        ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail();
+        m_ViewportSize = { viewportPanelSize.x, viewportPanelSize.y };
+
+
         uint32_t textureID = m_Framebuffer->GetColorAttachmentRendererID();
-        ImGui::Image((void*)textureID, ImVec2(m_ViewportSize.x, m_ViewportSize.y), { 0, 1 }, { 1, 0 });
+        ImGui::Image(reinterpret_cast<void*>(textureID), ImVec2(m_ViewportSize.x, m_ViewportSize.y), ImVec2{ 0, 1 }, ImVec2{ 1, 0 });
         ImGui::End();
         ImGui::PopStyleVar(ImGuiStyleVar_WindowPadding);
 
 
         ImGui::Begin("Square1");
-
         if (m_SquareEntity)
         {
             auto& color = m_SquareEntity.GetComponent<SpriteRendererComponent>().Color;
             ImGui::ColorEdit4("Square1ColorPicker", glm::value_ptr(color));
-        }
-        
-        ImGui::DragFloat2("Position", &m_SquarePos.x, 0.05f, -2.0f, 2.0f);
-        ImGui::DragFloat2("Rotation Velocity", &m_RotationVel.x, 0.01f, -0.5f, 0.5f);
+        }        
+
         ImGui::End();
 
         //Dockspace end

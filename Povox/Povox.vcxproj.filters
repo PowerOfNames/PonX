@@ -1306,6 +1306,7 @@
     <ClInclude Include="src\Povox\Scene\Components.h" />
     <ClInclude Include="src\Povox\Scene\Entity.h" />
     <ClInclude Include="src\Povox\Renderer\Camera.h" />
+    <ClInclude Include="src\Povox\Scene\SceneCamera.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Platform\OpenGL\OpenGLBuffer.cpp">
@@ -1411,5 +1412,6 @@
       <Filter>vendor\stb_image</Filter>
     </ClCompile>
     <ClCompile Include="src\Povox\Scene\Entity.cpp" />
+    <ClCompile Include="src\Povox\Scene\SceneCamera.cpp" />
   </ItemGroup>
 </Project>

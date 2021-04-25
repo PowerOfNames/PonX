@@ -1,7 +1,7 @@
 #pragma once
 
 #include <glm/glm.hpp>
-#include "Povox/Renderer/Camera.h"
+#include "Povox/Scene/SceneCamera.h"
 
 namespace Povox {
 
@@ -17,7 +17,7 @@ namespace Povox {
 
 	struct TransformComponent
 	{
-		glm::mat4 Transform{ 1.0f };
+		glm::mat4 Transform = glm::mat4(1.0f);
 
 		TransformComponent() = default;
 		TransformComponent(const TransformComponent&) = default;
@@ -40,14 +40,12 @@ namespace Povox {
 
 	struct CameraComponent
 	{
-		Povox::Camera Camera;
+		Povox::SceneCamera Camera;
 		bool Primary = true; //the scene may be responsible to know which the active camera is instead of the cameracomponent itself
-
+		bool FixedAspectRatio = false;
 
 		CameraComponent() = default;
 		CameraComponent(const CameraComponent&) = default;
-		CameraComponent(const glm::mat4 & projection)
-			: Camera(projection) {}
 	};
 
 }

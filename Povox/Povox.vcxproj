@@ -188,6 +188,7 @@
     <ClInclude Include="src\Povox\Scene\Components.h" />
     <ClInclude Include="src\Povox\Scene\Entity.h" />
     <ClInclude Include="src\Povox\Scene\Scene.h" />
+    <ClInclude Include="src\Povox\Scene\SceneCamera.h" />
     <ClInclude Include="src\pxpch.h" />
     <ClInclude Include="vendor\glm\glm\common.hpp" />
     <ClInclude Include="vendor\glm\glm\detail\_features.hpp" />
@@ -593,6 +594,7 @@
     <ClCompile Include="src\Povox\Renderer\VoxelRenderer.cpp" />
     <ClCompile Include="src\Povox\Scene\Entity.cpp" />
     <ClCompile Include="src\Povox\Scene\Scene.cpp" />
+    <ClCompile Include="src\Povox\Scene\SceneCamera.cpp" />
     <ClCompile Include="src\pxpch.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
