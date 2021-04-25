@@ -37,6 +37,40 @@ namespace Povox {
 
         m_CameraEntity = m_ActiveScene->CreateEntity("Camera");
         m_CameraEntity.AddComponent<CameraComponent>();
+
+        m_SecondCamera = m_ActiveScene->CreateEntity("Camera");
+        auto& cc = m_SecondCamera.AddComponent<CameraComponent>();
+        cc.Primary = false;
+
+        class CameraController : public ScriptableEntity
+        {
+        public:
+            void OnCreate()
+            {
+            }
+
+            void OnDestroy()
+            {
+            }
+
+            void OnUpdate(Timestep deltatime)
+            {
+                auto& transform = GetComponent<TransformComponent>().Transform;
+                float speed = 5.0f;
+
+                if (Input::IsKeyPressed(Key::A))
+                    transform[3][0] -= deltatime * speed;
+                if (Input::IsKeyPressed(Key::D))
+                    transform[3][0] += deltatime * speed;
+                if (Input::IsKeyPressed(Key::W))
+                    transform[3][1] += deltatime * speed;
+                if (Input::IsKeyPressed(Key::S))
+                    transform[3][1] -= deltatime * speed;
+
+            }
+        };
+        m_CameraEntity.AddComponent<NativeScriptComponent>().Bind<CameraController>();
+        m_SecondCamera.AddComponent<NativeScriptComponent>().Bind<CameraController>();
     }
 
     void EditorLayer::OnDetach()
@@ -71,19 +105,17 @@ namespace Povox {
         if(m_ViewportIsFocused)
             m_CameraController.OnUpdate(deltatime);
 
-               
+
+        //Renderer Stats
         Renderer2D::ResetStats();
+
         m_Framebuffer->Bind();
         RenderCommand::SetClearColor({ 0.1f, 0.1f, 0.2f, 1.0f });
         RenderCommand::Clear();
 
 
-        //Renderer2D::BeginScene(m_CameraController.GetCamera());
-
         // Update Scene
         m_ActiveScene->OnUpdate(deltatime);
-
-        //Renderer2D::EndScene();
 
 
         m_Framebuffer->Unbind();
@@ -159,15 +191,43 @@ namespace Povox {
             ImGui::EndMenuBar();
         }
 
+        //Renderer Stats
         ImGui::Begin("Renderer2D Stats");
         ImGui::Text("DrawCalls: %d", stats.DrawCalls);
         ImGui::Text("Quads: %d", stats.QuadCount);
         ImGui::Text("Vertices: %d", stats.GetTotalVertexCount());
         ImGui::Text("Indices: %d", stats.GetTotalIndexCount());
         ImGui::Text("Deltatime: %f", m_Deltatime);
-        ImGui::End();
+        ImGui::End(); // Renderer Stats
 
+       
+        ImGui::Begin("Square1");
+        if (m_SquareEntity)
+        {
+            auto& color = m_SquareEntity.GetComponent<SpriteRendererComponent>().Color;
+            ImGui::ColorEdit4("Square1ColorPicker", glm::value_ptr(color));
+            ImGui::Separator;
+        }        
 
+        ImGui::DragFloat3("Camera Transform", glm::value_ptr(m_CameraEntity.GetComponent<TransformComponent>().Transform[3]));
+
+        {
+            auto& camera = m_SecondCamera.GetComponent<CameraComponent>().Camera;
+            float orthoSize = camera.GetOrthographicSize();
+            if (ImGui::DragFloat("Second Camera Ortho size", &orthoSize))
+            {
+                camera.SetOrthographicSize(orthoSize);
+            }
+        }
+        
+        if (ImGui::Checkbox("Camera 1", &m_PrimaryCamera))
+        {
+            m_CameraEntity.GetComponent<CameraComponent>().Primary = m_PrimaryCamera;
+            m_SecondCamera.GetComponent<CameraComponent>().Primary = !m_PrimaryCamera;
+        }
+        ImGui::End(); // End menu
+
+        //Viewport
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{ 0, 0 });
         ImGui::Begin("Viewport");
 
@@ -185,16 +245,6 @@ namespace Povox {
         ImGui::Image(reinterpret_cast<void*>(textureID), ImVec2(m_ViewportSize.x, m_ViewportSize.y), ImVec2{ 0, 1 }, ImVec2{ 1, 0 });
         ImGui::End();
         ImGui::PopStyleVar(ImGuiStyleVar_WindowPadding);
-
-
-        ImGui::Begin("Square1");
-        if (m_SquareEntity)
-        {
-            auto& color = m_SquareEntity.GetComponent<SpriteRendererComponent>().Color;
-            ImGui::ColorEdit4("Square1ColorPicker", glm::value_ptr(color));
-        }        
-
-        ImGui::End();
 
         //Dockspace end
         ImGui::End();

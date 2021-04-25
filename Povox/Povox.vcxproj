@@ -189,6 +189,7 @@
     <ClInclude Include="src\Povox\Scene\Entity.h" />
     <ClInclude Include="src\Povox\Scene\Scene.h" />
     <ClInclude Include="src\Povox\Scene\SceneCamera.h" />
+    <ClInclude Include="src\Povox\Scene\ScriptableEntity.h" />
     <ClInclude Include="src\pxpch.h" />
     <ClInclude Include="vendor\glm\glm\common.hpp" />
     <ClInclude Include="vendor\glm\glm\detail\_features.hpp" />

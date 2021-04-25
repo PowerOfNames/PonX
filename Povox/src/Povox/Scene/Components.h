@@ -2,6 +2,7 @@
 
 #include <glm/glm.hpp>
 #include "Povox/Scene/SceneCamera.h"
+#include "Povox/Scene/ScriptableEntity.h"
 
 namespace Povox {
 
@@ -47,5 +48,31 @@ namespace Povox {
 		CameraComponent() = default;
 		CameraComponent(const CameraComponent&) = default;
 	};
+
+	struct NativeScriptComponent
+	{
+		ScriptableEntity* Instance = nullptr;
+
+		ScriptableEntity* (*InstantiateScript)();
+		void (*DestroyScript)(NativeScriptComponent*);
+		
+		template <typename T>
+		void Bind()
+		{
+			InstantiateScript = []() { return static_cast<ScriptableEntity * >(new T()); };
+			DestroyScript = [](NativeScriptComponent* nsc) {delete nsc->Instance; nsc->Instance = nullptr; };			
+		}
+	};
+
+	/*
+	From old native script version without virtual functions -> as refeence to me on how to properly write lambda-templates
+		std::function<void(ScriptableEntity*)> OnCreateFunction;
+		std::function<void(ScriptableEntity*)> OnDestroyFunction;
+		std::function<void(ScriptableEntity*, Timestep)> OnUpdateFunction;
+
+		 OnCreateFunction = [](ScriptableEntity* instance) { ((T*)instance)->OnCreate(); };
+		OnDestroyFunction = [](ScriptableEntity* instance) { ((T*)instance)->OnDestroy(); };
+		OnUpdateFunction = [](ScriptableEntity* instance, Timestep deltatime) { ((T*)instance)->OnUpdate(deltatime); };
+	*/
 
 }

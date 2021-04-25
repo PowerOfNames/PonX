@@ -27,6 +27,7 @@ namespace Povox {
 		Ref<Scene> m_ActiveScene;
 		Entity m_SquareEntity;
 		Entity m_CameraEntity;
+		Entity m_SecondCamera;
 
 		float m_Deltatime = 0.0f;
 
@@ -36,9 +37,9 @@ namespace Povox {
 		Ref<Shader> m_FlatColorShader;
 		glm::vec4 m_SquareColor1 = { 32.0f / 255, 95.0f / 255, 83.0f / 255 , 1.0f };
 		glm::vec2 m_SquarePos = { 0.0f, 0.0f };
-
-
 		glm::vec2 m_RotationVel = { 0.05f, 0.05f };
+
+		bool m_PrimaryCamera = true;
 	};
 
 }
