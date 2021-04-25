@@ -72,7 +72,7 @@ namespace Povox {
 	{
 		PX_PROFILE_FUNCTION();
 
-		float aspectRatio = e.GetWidth() / e.GetHeight();
+		float aspectRatio = (float)e.GetWidth() / (float)e.GetHeight();
 		m_Camera.SetProjectionMatrix(aspectRatio);
 
 		return false;
@@ -87,7 +87,7 @@ namespace Povox {
 		m_MousePosX	= e.GetX();
 		m_MousePosY	= e.GetY();
 
-		float sensitivity = 0.1;
+		float sensitivity = 0.1f;
 		xOffset	*= sensitivity;
 		yOffset *= sensitivity;
 

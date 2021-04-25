@@ -28,17 +28,9 @@ namespace Povox {
 
 	class Instrumentor
 	{
-	private:
-		std::ofstream m_OutputStream;
-		InstrumentationSession* m_CurrentSession;
-		std::mutex m_Mutex;
-
 	public:
-		Instrumentor()
-			:m_CurrentSession(nullptr)
-		{
-
-		}
+		Instrumentor(const Instrumentor&) = delete;
+		Instrumentor(Instrumentor&&) = delete;
 
 		void BeginSession(const std::string& name, const std::string& filepath = "results.json")
 		{
@@ -108,6 +100,15 @@ namespace Povox {
 		}
 
 	private:
+		Instrumentor()
+			:m_CurrentSession(nullptr)
+		{
+		}
+
+		~Instrumentor()
+		{
+			EndSession();
+		}
 
 		void WriteHeader()
 		{
@@ -133,6 +134,10 @@ namespace Povox {
 			}
 		}
 
+	private:
+		std::ofstream m_OutputStream;
+		InstrumentationSession* m_CurrentSession;
+		std::mutex m_Mutex;
 	};
 
 

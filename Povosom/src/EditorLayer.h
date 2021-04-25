@@ -26,6 +26,7 @@ namespace Povox {
 
 		Ref<Scene> m_ActiveScene;
 		Entity m_SquareEntity;
+		Entity m_CameraEntity;
 
 		float m_Deltatime = 0.0f;
 

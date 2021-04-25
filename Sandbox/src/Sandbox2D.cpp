@@ -50,8 +50,8 @@ void Sandbox2D::OnUpdate(Povox::Timestep deltatime)
 	static float x = 0.0f;
 	static float y = 0.0f;
 
-	x = glm::cos(rotation * m_RotationVel.x) * 1.2;
-	y = glm::sin(rotation * m_RotationVel.y) * 1.2;
+	x = glm::cos(rotation * m_RotationVel.x) * 1.2f;
+	y = glm::sin(rotation * m_RotationVel.y) * 1.2f;
 
 	Povox::Renderer2D::BeginScene(m_CameraController.GetCamera());
  	Povox::Renderer2D::DrawQuad(m_SquarePos, { 0.5f, 0.5f }, m_SquareColor1);

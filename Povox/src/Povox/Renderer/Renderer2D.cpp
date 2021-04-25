@@ -104,13 +104,28 @@ namespace Povox {
 		delete[] s_QuadData.QuadVertexBufferBase;
 	}
 
-	void Renderer2D::BeginScene(OrthographicCamera& camera)
+	void Renderer2D::BeginScene(const OrthographicCamera& camera)
 	{
 		PX_PROFILE_FUNCTION();
 
 
 		s_QuadData.TextureShader->Bind();
 		s_QuadData.TextureShader->SetMat4("u_ViewProjection", camera.GetViewProjectionMatrix());
+
+		s_QuadData.QuadIndexCount = 0;
+		s_QuadData.QuadVertexBufferPtr = s_QuadData.QuadVertexBufferBase;
+
+		s_QuadData.TextureSlotIndex = 1;
+	}
+
+	void Renderer2D::BeginScene(const Camera& camera, const glm::mat4& transform)
+	{
+		PX_PROFILE_FUNCTION();
+
+
+		glm::mat4 viewProjection = camera.GetProjection() * glm::inverse(transform);
+		s_QuadData.TextureShader->Bind();
+		s_QuadData.TextureShader->SetMat4("u_ViewProjection", viewProjection);
 
 		s_QuadData.QuadIndexCount = 0;
 		s_QuadData.QuadVertexBufferPtr = s_QuadData.QuadVertexBufferBase;

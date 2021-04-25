@@ -120,7 +120,7 @@ namespace Povox {
 
 		GLint location = glGetUniformLocation(m_RendererID, name.c_str());
 		if (location == -1)
-			PX_CORE_ASSERT(false, "Uniform '" + name + "' not in shader!");
+			PX_CORE_ASSERT(false, "Uniform '" + name + "' not in shader!")
 		glUniform1i(location, value);
 	}
 
@@ -131,7 +131,7 @@ namespace Povox {
 
 		GLint location = glGetUniformLocation(m_RendererID, name.c_str());
 		if (location == -1)
-			PX_CORE_ASSERT(false, "Uniform '" + name + "' not in shader!");
+			PX_CORE_ASSERT(false, "Uniform '" + name + "' not in shader!")
 		glUniform1iv(location, count, values);
 	}
 
@@ -142,7 +142,7 @@ namespace Povox {
 
 		GLint location = glGetUniformLocation(m_RendererID, name.c_str());
 		if (location == -1)
-			PX_CORE_ASSERT(false, "Uniform '" + name + "' not in shader!");
+			PX_CORE_ASSERT(false, "Uniform '" + name + "' not in shader!")
 		glUniform1f(location, value);
 	}
 
@@ -153,7 +153,7 @@ namespace Povox {
 
 		GLint location = glGetUniformLocation(m_RendererID, name.c_str());
 		if (location == -1)
-			PX_CORE_ASSERT(false, "Uniform '" + name + "' not in shader!");
+			PX_CORE_ASSERT(false, "Uniform '" + name + "' not in shader!")
 		glUniform2f(location, vector.x, vector.y);
 	}
 
@@ -175,7 +175,7 @@ namespace Povox {
 
 		GLint location = glGetUniformLocation(m_RendererID, name.c_str());
 		if (location == -1)
-			PX_CORE_ASSERT(false, "Uniform '" + name + "' not in shader!");
+			PX_CORE_ASSERT(false, "Uniform '" + name + "' not in shader!")
 		glUniform4f(location, vector.x, vector.y, vector.z, vector.w);
 	}
 
@@ -186,7 +186,7 @@ namespace Povox {
 
 		GLint location = glGetUniformLocation(m_RendererID, name.c_str());
 		if (location == -1)
-			PX_CORE_ASSERT(false, "Uniform '" + name + "' not in shader!");
+			PX_CORE_ASSERT(false, "Uniform '" + name + "' not in shader!")
 		glUniformMatrix3fv(location, 1, GL_FALSE, glm::value_ptr(matrix));
 	}
 
@@ -197,7 +197,7 @@ namespace Povox {
 
 		GLint location = glGetUniformLocation(m_RendererID, name.c_str());
 		if (location == -1)
-			PX_CORE_ASSERT(false, "Uniform '" + name + "' not in shader!");
+			PX_CORE_ASSERT(false, "Uniform '" + name + "' not in shader!")
 		glUniformMatrix4fv(location, 1, GL_FALSE, glm::value_ptr(matrix));
 	}
 

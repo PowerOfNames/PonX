@@ -1305,6 +1305,7 @@
     <ClInclude Include="src\Povox\Core\Timestep.h" />
     <ClInclude Include="src\Povox\Scene\Components.h" />
     <ClInclude Include="src\Povox\Scene\Entity.h" />
+    <ClInclude Include="src\Povox\Renderer\Camera.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Platform\OpenGL\OpenGLBuffer.cpp">

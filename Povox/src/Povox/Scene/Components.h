@@ -1,6 +1,7 @@
 #pragma once
 
 #include <glm/glm.hpp>
+#include "Povox/Renderer/Camera.h"
 
 namespace Povox {
 
@@ -24,7 +25,7 @@ namespace Povox {
 			: Transform(transform) {}
 
 		operator glm::mat4& () { return Transform; }
-		operator const glm::mat4& const () { return Transform; }
+		operator const glm::mat4& () const { return Transform; }
 	};
 
 	struct SpriteRendererComponent
@@ -35,6 +36,18 @@ namespace Povox {
 		SpriteRendererComponent(const SpriteRendererComponent&) = default;
 		SpriteRendererComponent(const glm::vec4& color) 
 			: Color(color) {}
+	};
+
+	struct CameraComponent
+	{
+		Povox::Camera Camera;
+		bool Primary = true; //the scene may be responsible to know which the active camera is instead of the cameracomponent itself
+
+
+		CameraComponent() = default;
+		CameraComponent(const CameraComponent&) = default;
+		CameraComponent(const glm::mat4 & projection)
+			: Camera(projection) {}
 	};
 
 }

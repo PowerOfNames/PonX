@@ -168,6 +168,7 @@
     <ClInclude Include="src\Povox\Events\MouseEvent.h" />
     <ClInclude Include="src\Povox\ImGui\ImGuiLayer.h" />
     <ClInclude Include="src\Povox\Renderer\Buffer.h" />
+    <ClInclude Include="src\Povox\Renderer\Camera.h" />
     <ClInclude Include="src\Povox\Renderer\Framebuffer.h" />
     <ClInclude Include="src\Povox\Renderer\GraphicsContext.h" />
     <ClInclude Include="src\Povox\Renderer\OrthographicCamera.h" />

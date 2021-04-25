@@ -31,12 +31,35 @@ namespace Povox {
 
 	void Scene::OnUpdate(Timestep ts)
 	{
-		auto group = m_Registry.group<TransformComponent>(entt::get<SpriteRendererComponent>);
-		for (auto entity : group)
+		//Render sprites
+		Camera* mainCamera = nullptr;
+		glm::mat4* cameraTransform = nullptr;
 		{
-			auto& [transform, sprite] = group.get<TransformComponent, SpriteRendererComponent>(entity);
-			
-			Renderer2D::DrawQuad(transform, sprite.Color);
+			auto group = m_Registry.group<CameraComponent, TransformComponent>();
+			for (auto entity : group)
+			{
+				auto& [camera, transform] = group.get<CameraComponent, TransformComponent>(entity);
+
+				if (camera.Primary)
+				{
+					mainCamera = &camera.Camera;
+					cameraTransform = &transform.Transform;
+					break;
+				}
+			}
+		}
+
+		if(mainCamera)
+		{
+			auto group = m_Registry.group<SpriteRendererComponent>(entt::get<TransformComponent>);
+			Renderer2D::BeginScene(mainCamera->GetProjection(), *cameraTransform);
+			for (auto entity : group)
+			{
+				auto& [sprite, transform] = group.get<SpriteRendererComponent, TransformComponent>(entity);
+
+				Renderer2D::DrawQuad(transform, sprite.Color);
+			}
+			Renderer2D::EndScene();
 		}
 	}
 }

@@ -38,6 +38,7 @@
 #include "Povox/Renderer/SubTexture2D.h"
 
 
+#include "Povox/Renderer/Camera.h"
 #include "Povox/Renderer/OrthographicCamera.h"
 #include "Povox/Renderer/PerspectiveCamera.h"
 
