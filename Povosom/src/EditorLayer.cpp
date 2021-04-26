@@ -8,6 +8,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+
 namespace Povox {
 
     EditorLayer::EditorLayer()
@@ -35,10 +36,10 @@ namespace Povox {
 
         m_SquareEntity = squareEntity;
 
-        m_CameraEntity = m_ActiveScene->CreateEntity("Camera");
+        m_CameraEntity = m_ActiveScene->CreateEntity("Scene Camera");
         m_CameraEntity.AddComponent<CameraComponent>();
 
-        m_SecondCamera = m_ActiveScene->CreateEntity("Camera");
+        m_SecondCamera = m_ActiveScene->CreateEntity("Second Camera");
         auto& cc = m_SecondCamera.AddComponent<CameraComponent>();
         cc.Primary = false;
 
@@ -71,6 +72,8 @@ namespace Povox {
         };
         m_CameraEntity.AddComponent<NativeScriptComponent>().Bind<CameraController>();
         m_SecondCamera.AddComponent<NativeScriptComponent>().Bind<CameraController>();
+
+        m_SceneHierarchyPanel.SetContext(m_ActiveScene);
     }
 
     void EditorLayer::OnDetach()
@@ -227,7 +230,7 @@ namespace Povox {
         }
         ImGui::End(); // End menu
 
-        //Viewport
+     // Viewport
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{ 0, 0 });
         ImGui::Begin("Viewport");
 
@@ -246,8 +249,13 @@ namespace Povox {
         ImGui::End();
         ImGui::PopStyleVar(ImGuiStyleVar_WindowPadding);
 
-        //Dockspace end
-        ImGui::End();
+        ImGui::Separator();
+
+     // Panels
+        m_SceneHierarchyPanel.OnImGuiRender();
+
+        
+        ImGui::End(); //Dockspace end
     }
 
     void EditorLayer::OnEvent(Event& e)

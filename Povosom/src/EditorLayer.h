@@ -1,6 +1,9 @@
 #pragma once
 #include <Povox.h>
 
+#include "Panels/SceneHierarchyPanel.h"
+
+
 namespace Povox {
 
 	class EditorLayer : public Layer
@@ -40,6 +43,9 @@ namespace Povox {
 		glm::vec2 m_RotationVel = { 0.05f, 0.05f };
 
 		bool m_PrimaryCamera = true;
+
+	// Panels
+		SceneHierarchyPanel m_SceneHierarchyPanel;
 	};
 
 }

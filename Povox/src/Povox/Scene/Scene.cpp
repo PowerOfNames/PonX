@@ -11,12 +11,10 @@ namespace Povox {
 
 	Scene::Scene()
 	{
-
 	}
 
 	Scene::~Scene()
 	{
-
 	}
 
 	Entity Scene::CreateEntity(const std::string& name)
