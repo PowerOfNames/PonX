@@ -203,32 +203,6 @@ namespace Povox {
         ImGui::Text("Deltatime: %f", m_Deltatime);
         ImGui::End(); // Renderer Stats
 
-       
-        ImGui::Begin("Square1");
-        if (m_SquareEntity)
-        {
-            auto& color = m_SquareEntity.GetComponent<SpriteRendererComponent>().Color;
-            ImGui::ColorEdit4("Square1ColorPicker", glm::value_ptr(color));
-            ImGui::Separator;
-        }        
-
-        ImGui::DragFloat3("Camera Transform", glm::value_ptr(m_CameraEntity.GetComponent<TransformComponent>().Transform[3]));
-
-        {
-            auto& camera = m_SecondCamera.GetComponent<CameraComponent>().Camera;
-            float orthoSize = camera.GetOrthographicSize();
-            if (ImGui::DragFloat("Second Camera Ortho size", &orthoSize))
-            {
-                camera.SetOrthographicSize(orthoSize);
-            }
-        }
-        
-        if (ImGui::Checkbox("Camera 1", &m_PrimaryCamera))
-        {
-            m_CameraEntity.GetComponent<CameraComponent>().Primary = m_PrimaryCamera;
-            m_SecondCamera.GetComponent<CameraComponent>().Primary = !m_PrimaryCamera;
-        }
-        ImGui::End(); // End menu
 
      // Viewport
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{ 0, 0 });
