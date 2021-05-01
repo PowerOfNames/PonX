@@ -56,17 +56,17 @@ namespace Povox {
 
             void OnUpdate(Timestep deltatime)
             {
-                auto& transform = GetComponent<TransformComponent>().Transform;
+                auto& translation = GetComponent<TransformComponent>().Translation;
                 float speed = 5.0f;
 
                 if (Input::IsKeyPressed(Key::A))
-                    transform[3][0] -= deltatime * speed;
+                    translation.x -= deltatime * speed;
                 if (Input::IsKeyPressed(Key::D))
-                    transform[3][0] += deltatime * speed;
+                    translation.x += deltatime * speed;
                 if (Input::IsKeyPressed(Key::W))
-                    transform[3][1] += deltatime * speed;
+                    translation.y += deltatime * speed;
                 if (Input::IsKeyPressed(Key::S))
-                    transform[3][1] -= deltatime * speed;
+                    translation.y -= deltatime * speed;
 
             }
         };
@@ -162,6 +162,7 @@ namespace Povox {
         // all active windows docked into it will lose their parent and become undocked.
         // We cannot preserve the docking relationship between an active window and an inactive docking, otherwise
         // any change of dockspace/settings would lead to windows being stuck in limbo and never being visible.
+
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
         ImGui::Begin("DockSpace Demo", &dockspaceOpen, window_flags);
         ImGui::PopStyleVar();
@@ -228,7 +229,7 @@ namespace Povox {
      // Panels
         m_SceneHierarchyPanel.OnImGuiRender();
 
-        
+        ImGui::ShowDemoWindow();
         ImGui::End(); //Dockspace end
     }
 

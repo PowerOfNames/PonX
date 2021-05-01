@@ -58,7 +58,7 @@ namespace Povox {
 				if (camera.Primary)
 				{
 					mainCamera = &camera.Camera;
-					cameraTransform = transform.Transform;
+					cameraTransform = transform.GetTransform();
 					break;
 				}
 			}
@@ -70,9 +70,9 @@ namespace Povox {
 			auto group = m_Registry.group<SpriteRendererComponent>(entt::get<TransformComponent>);
 			for (auto entity : group)
 			{
-				auto [sprite, transform] = group.get<SpriteRendererComponent, TransformComponent>(entity);
+				auto [spriteComp, transformComp] = group.get<SpriteRendererComponent, TransformComponent>(entity);
 
-				Renderer2D::DrawQuad(transform, sprite.Color);
+				Renderer2D::DrawQuad(transformComp.GetTransform(), spriteComp.Color);
 			}
 			Renderer2D::EndScene();
 		}
