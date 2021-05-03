@@ -15,8 +15,8 @@ namespace Povox {
 		unsigned int Height;
 
 		WindowProps(const std::string& title = "Povox Engine", 
-					unsigned int width = 1280, 
-					unsigned int height = 720)
+					unsigned int width = 1600, 
+					unsigned int height = 900)
 			: Title(title), Width(width), Height(height) 
 		{
 		}
