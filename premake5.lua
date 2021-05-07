@@ -19,11 +19,13 @@ IncludeDir["ImGui"] = ("Povox/vendor/ImGui")
 IncludeDir["glm"] = ("Povox/vendor/glm")
 IncludeDir["stb_image"] = ("Povox/vendor/stb_image")
 IncludeDir["entt"] = ("Povox/vendor/entt/include")
+IncludeDir["yaml_cpp"] = ("Povox/vendor/yaml-cpp/include")
 
 group "Dependencies"
 	include "Povox/vendor/GLFW"
 	include "Povox/vendor/Glad"
 	include "Povox/vendor/ImGui"
+	include "Povox/vendor/yaml-cpp"
 
 group ""
 
@@ -53,7 +55,8 @@ project "Povox"
 
 	defines
 	{
-		"_CRT_SECURE_NO_WARNINGS"
+		"_CRT_SECURE_NO_WARNINGS",
+		"GLFW_INCLUDE_NONE"
 	}
 
 	includedirs
@@ -65,7 +68,8 @@ project "Povox"
 		"%{IncludeDir.ImGui}",
 		"%{IncludeDir.glm}",
 		"%{IncludeDir.stb_image}",
-		"%{IncludeDir.entt}"
+		"%{IncludeDir.entt}",
+		"%{IncludeDir.yaml_cpp}",
 
 	}
 
@@ -74,6 +78,7 @@ project "Povox"
 		"GLFW",
 		"Glad",
 		"ImGui",
+		"yaml-cpp",
 		"opengl32.lib"
 	}
 

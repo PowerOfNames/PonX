@@ -8,6 +8,9 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+#include "Povox/Utils/PlatformsUtils.h"
+#include "Povox/Scene/SceneSerializer.h"
+
 
 namespace Povox {
 
@@ -31,6 +34,7 @@ namespace Povox {
         m_ActiveScene = CreateRef<Scene>();
 
         // Create entities
+#if 0
         Entity squareEntity = m_ActiveScene->CreateEntity("Square");
         squareEntity.AddComponent<SpriteRendererComponent>(glm::vec4{ 0.5f, 0.8f, 0.0f, 0.9f });
 
@@ -72,7 +76,7 @@ namespace Povox {
         };
         m_CameraEntity.AddComponent<NativeScriptComponent>().Bind<CameraController>();
         m_SecondCamera.AddComponent<NativeScriptComponent>().Bind<CameraController>();
-
+#endif
         m_SceneHierarchyPanel.SetContext(m_ActiveScene);
     }
 
@@ -190,7 +194,27 @@ namespace Povox {
                 // which we can't undo at the moment without finer window depth/z control.
                 //ImGui::MenuItem("Fullscreen", NULL, &opt_fullscreen_persistant);
 
-                if (ImGui::MenuItem("Exit"))
+                if (ImGui::MenuItem("New", "Ctrl+N"))
+                {
+                    NewScene();
+                }
+
+                if (ImGui::MenuItem("Open...", "Ctrl+O"))
+                {
+                    OpenScene();
+                }
+
+                if (ImGui::MenuItem("Save", "Ctrl+S"))
+                {
+                    SaveScene();
+                }
+
+                if (ImGui::MenuItem("Save As...", "Ctrl+Shift+S"))
+                {
+                    SaveSceneAs();
+                }
+
+                if (ImGui::MenuItem("Exit", "Ctrl+Esc"))
                     Application::Get().Close();
 
                 ImGui::EndMenu();
@@ -228,18 +252,108 @@ namespace Povox {
         ImGui::End();
         ImGui::PopStyleVar(ImGuiStyleVar_WindowPadding);
 
-        ImGui::Separator();
+        ImGui::Begin("Test Tab");
+        ImGui::Checkbox("Demo ImGui", &m_DemoActive);
+        if(m_DemoActive)
+            ImGui::ShowDemoWindow();
+        ImGui::End();
 
      // Panels
         m_SceneHierarchyPanel.OnImGuiRender();
 
-        ImGui::ShowDemoWindow();
         ImGui::End(); //Dockspace end
     }
 
     void EditorLayer::OnEvent(Event& e)
     {
         m_CameraController.OnEvent(e);
+
+        EventDispatcher dispatcher(e);
+        dispatcher.Dispatch<KeyPressedEvent>(PX_BIND_EVENT_FN(EditorLayer::OnKeyPressed));
     }
 
+    bool EditorLayer::OnKeyPressed(KeyPressedEvent& e)
+    {
+        //shortcuts
+        if (e.GetRepeatCount() > 0)
+            return false;
+        bool controlPressed = Input::IsKeyPressed(Key::LeftControl) || Input::IsKeyPressed(Key::RightControl);
+        bool shiftPressed = Input::IsKeyPressed(Key::LeftShift) || Input::IsKeyPressed(Key::RightShift);
+        switch (e.GetKeyCode())
+        {
+            case Key::N:
+            {
+                if (controlPressed)
+                {
+                    NewScene();
+                    break;
+                }
+            }
+            case Key::O:
+            {
+                if (controlPressed)
+                {
+                    OpenScene();
+                    break;
+                }
+            }
+            case Key::S:
+            {
+                if (controlPressed)
+                {
+                    if (shiftPressed)
+                    {
+                        SaveSceneAs();
+                        break;
+                    }
+                    SaveScene();
+                    break;
+                }
+            }
+        }
+    }
+
+    void EditorLayer::NewScene()
+    {
+        m_CurrentScenePath = {};
+
+        m_ActiveScene = CreateRef<Scene>();
+        m_ActiveScene->OnViewportResize((uint32_t)m_ViewportSize.x, (uint32_t)m_ViewportSize.y);
+        m_SceneHierarchyPanel.SetContext(m_ActiveScene);
+    }
+
+    void EditorLayer::OpenScene()
+    {
+        m_CurrentScenePath = FileDialog::OpenFile("Povox Scene (*.povox)\0*.povox\0");
+        if (!m_CurrentScenePath.empty())
+        {
+            m_ActiveScene = CreateRef<Scene>();
+            m_ActiveScene->OnViewportResize((uint32_t)m_ViewportSize.x, (uint32_t)m_ViewportSize.y);
+            m_SceneHierarchyPanel.SetContext(m_ActiveScene);
+            SceneSerializer serializer(m_ActiveScene);
+            serializer.Deserialize(m_CurrentScenePath);
+        }
+    }
+
+    void EditorLayer::SaveScene()
+    {
+        if (!m_CurrentScenePath.empty())
+        {
+            SceneSerializer serializer(m_ActiveScene);
+            serializer.Serialize(m_CurrentScenePath);
+        }
+        else
+        {
+            SaveSceneAs();
+        }
+    }
+
+    void EditorLayer::SaveSceneAs()
+    {
+        m_CurrentScenePath = FileDialog::SaveFile("Povox Scene (*.povox)\0*.povox\0");
+        if (!m_CurrentScenePath.empty())
+        {
+            SaveScene();
+        }
+    }
 }

@@ -21,10 +21,12 @@
 
 #include "Povox/ImGui/ImGuiLayer.h"
 
+// --- Scene
 #include "Povox/Scene/Scene.h"
 #include "Povox/Scene/Entity.h"
 #include "Povox/Scene/ScriptableEntity.h"
 #include "Povox/Scene/Components.h"
+#include "Povox/Scene/SceneSerializer.h"
 
 // --- Renderer
 #include "Povox/Renderer/Renderer.h"

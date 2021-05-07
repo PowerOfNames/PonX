@@ -165,8 +165,6 @@ namespace Povox {
 	template<typename T, typename UIFunction>
 	static void DrawComponent(const std::string& name, Entity entity, UIFunction uiFunction)
 	{
-		//TODO: Good looks stuff in here
-
 		ImGuiTreeNodeFlags treeFlags = ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_AllowItemOverlap | ImGuiTreeNodeFlags_SpanAvailWidth;
 
 		if (entity.HasComponent<T>())
@@ -290,7 +288,7 @@ namespace Povox {
 			{
 				float verticalFOV = glm::degrees(camera.GetPerspectiveVerticalFOV());
 				if (ImGui::DragFloat("Vertical FOV", &verticalFOV))
-					camera.SetOrthographicSize(glm::radians(verticalFOV));
+					camera.SetPerspectiveVerticalFOV(glm::radians(verticalFOV));
 
 				float perspectiveNearClip = camera.GetPerspectiveNearClip();
 				if (ImGui::DragFloat("Near Clip", &perspectiveNearClip))

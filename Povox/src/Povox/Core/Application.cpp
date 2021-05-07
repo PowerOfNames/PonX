@@ -106,7 +106,6 @@ namespace Povox {
 	{
 		PX_PROFILE_FUNCTION();
 
-
 		m_Running = false;
 		return true;
 	}

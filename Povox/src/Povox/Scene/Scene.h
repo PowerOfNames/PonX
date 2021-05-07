@@ -1,8 +1,8 @@
 #pragma once
-#include <entt.hpp>
 
 #include "Povox/Core/Timestep.h"
 
+#include <entt.hpp>
 
 namespace Povox {
 
@@ -22,7 +22,6 @@ namespace Povox {
 		void OnViewportResize(uint32_t width, uint32_t height);
 
 	private:
-
 		template<typename T>
 		void OnComponentAdded(Entity entity, T& component);
 
@@ -32,5 +31,6 @@ namespace Povox {
 
 		friend class Entity;
 		friend class SceneHierarchyPanel;
+		friend class SceneSerializer;
 	};
 }

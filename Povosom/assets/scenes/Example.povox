@@ -1,0 +1,29 @@
+Scene: Noname
+Entities:
+  - Entity: 63725789201658
+    TagComponent:
+      Tag: Cam
+    TransformComponent:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    CameraComponent:
+      Camera:
+        Projection Type: 1
+        Perspective Vertical FOV: 0.785398185
+        Perspective Near Clip: 0.00999999978
+        Perspective Far Clip: 1000
+        Orthographic Size: 10
+        Orthographic Near Clip: -1
+        Orthographic Far Clip: 1
+      Primary: true
+      Fixed Aspect Ratio: false
+  - Entity: 63725789201658
+    TagComponent:
+      Tag: White
+    TransformComponent:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    SpriteRendererComponent:
+      Color: [1, 1, 1, 1]

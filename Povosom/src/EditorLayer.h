@@ -18,16 +18,22 @@ namespace Povox {
 		void OnUpdate(Timestep deltatime) override;
 		virtual void OnImGuiRender() override;
 		void OnEvent(Event& e) override;
-
 	private:
-		Povox::OrthographicCameraController m_CameraController;
+		bool OnKeyPressed(KeyPressedEvent& e);
 
+		void NewScene();
+		void OpenScene();
+		void SaveScene();
+		void SaveSceneAs();
 	private:
+		OrthographicCameraController m_CameraController;
+
 		Ref<Texture2D> m_TextureLogo;
 		Ref<SubTexture2D> m_SubTextureLogo;
 		Ref<Framebuffer> m_Framebuffer;
 
 		Ref<Scene> m_ActiveScene;
+		std::string m_CurrentScenePath;
 		Entity m_SquareEntity;
 		Entity m_CameraEntity;
 		Entity m_SecondCamera;
@@ -43,6 +49,8 @@ namespace Povox {
 		glm::vec2 m_RotationVel = { 0.05f, 0.05f };
 
 		bool m_PrimaryCamera = true;
+
+		bool m_DemoActive = false;
 
 	// Panels
 		SceneHierarchyPanel m_SceneHierarchyPanel;
