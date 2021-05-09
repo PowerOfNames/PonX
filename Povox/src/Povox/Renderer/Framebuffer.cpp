@@ -1,7 +1,7 @@
 #include "pxpch.h"
+#include "Framebuffer.h"
 
 #include "Povox/Core/Core.h"
-#include "Povox/Renderer/Framebuffer.h"
 #include "Platform/OpenGL/OpenGLFramebuffer.h"
 
 #include "Povox/Renderer/Renderer.h"

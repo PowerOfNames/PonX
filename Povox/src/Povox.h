@@ -42,6 +42,7 @@
 
 
 #include "Povox/Renderer/Camera.h"
+#include "Povox/Renderer/EditorCamera.h"
 #include "Povox/Renderer/OrthographicCamera.h"
 #include "Povox/Renderer/PerspectiveCamera.h"
 

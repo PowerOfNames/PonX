@@ -32,7 +32,7 @@ namespace Povox {
 		m_Registry.destroy(entity);
 	}
 
-	void Scene::OnUpdate(Timestep deltatime)
+	void Scene::OnUpdateRuntime(Timestep deltatime)
 	{
 		//Update scripts
 		{
@@ -49,7 +49,6 @@ namespace Povox {
 					nsc.Instance->OnUpdate(deltatime);
 				});
 		}
-
 
 		//Render sprites
 		Camera* mainCamera = nullptr;
@@ -83,6 +82,20 @@ namespace Povox {
 		}
 	}
 
+	void Scene::OnUpdateEditor(Timestep deltatime, EditorCamera& editorCamera)
+	{
+		Renderer2D::BeginScene(editorCamera);
+
+		auto group = m_Registry.group<SpriteRendererComponent>(entt::get<TransformComponent>);
+		for (auto entity : group)
+		{
+			auto [spriteComp, transformComp] = group.get<SpriteRendererComponent, TransformComponent>(entity);
+
+			Renderer2D::DrawQuad(transformComp.GetTransform(), spriteComp.Color);
+		}
+		Renderer2D::EndScene();
+	}
+
 	void Scene::OnViewportResize(uint32_t width, uint32_t height)
 	{
 		m_ViewportWidth = width;
@@ -97,6 +110,21 @@ namespace Povox {
 				cameraComponent.Camera.SetViewportSize(width, height);
 		}
 	}
+
+	Entity Scene::GetPrimaryCameraEntity()
+	{
+		auto view = m_Registry.view<CameraComponent>();
+		for (auto entity : view)
+		{
+			const auto& camera = view.get<CameraComponent>(entity);
+			if (camera.Primary)
+			{
+				return Entity{ entity, this};
+			}
+		}
+		return {};
+	}
+
 
 // OnComponentAdded
 	template<typename T>

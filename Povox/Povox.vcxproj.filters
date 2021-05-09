@@ -34,8 +34,14 @@
     <Filter Include="src\Povox\Scene">
       <UniqueIdentifier>{B5D8BD1B-2164-2BE0-2A75-AED4967F87E0}</UniqueIdentifier>
     </Filter>
+    <Filter Include="src\Povox\Utils">
+      <UniqueIdentifier>{F86CEB1B-64F8-58E0-6D09-DCD4D913B5E0}</UniqueIdentifier>
+    </Filter>
     <Filter Include="vendor">
       <UniqueIdentifier>{B3738122-9F15-ACF8-88D0-BF4C74113349}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="vendor\ImGuizmo">
+      <UniqueIdentifier>{73BF7F4C-DF4A-ED10-E85B-700554664911}</UniqueIdentifier>
     </Filter>
     <Filter Include="vendor\glm">
       <UniqueIdentifier>{829FC5A8-6E57-07F6-D75E-E051C335A2E6}</UniqueIdentifier>
@@ -207,11 +213,20 @@
     <ClInclude Include="src\Povox\Scene\SceneCamera.h">
       <Filter>src\Povox\Scene</Filter>
     </ClInclude>
+    <ClInclude Include="src\Povox\Scene\SceneSerializer.h">
+      <Filter>src\Povox\Scene</Filter>
+    </ClInclude>
     <ClInclude Include="src\Povox\Scene\ScriptableEntity.h">
       <Filter>src\Povox\Scene</Filter>
     </ClInclude>
+    <ClInclude Include="src\Povox\Utils\PlatformsUtils.h">
+      <Filter>src\Povox\Utils</Filter>
+    </ClInclude>
     <ClInclude Include="src\pxpch.h">
       <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="vendor\ImGuizmo\ImGuizmo.h">
+      <Filter>vendor\ImGuizmo</Filter>
     </ClInclude>
     <ClInclude Include="vendor\glm\glm\common.hpp">
       <Filter>vendor\glm\glm</Filter>
@@ -1320,8 +1335,8 @@
     <ClInclude Include="vendor\stb_image\stb_image.h">
       <Filter>vendor\stb_image</Filter>
     </ClInclude>
-    <ClInclude Include="src\Povox\Scene\SceneSerializer.h" />
-    <ClInclude Include="src\Povox\Utils\PlatformsUtils.h" />
+    <ClInclude Include="src\Povox\Math\Math.h" />
+    <ClInclude Include="src\Povox\Renderer\EditorCamera.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Platform\OpenGL\OpenGLBuffer.cpp">
@@ -1346,6 +1361,9 @@
       <Filter>src\Platform\OpenGL</Filter>
     </ClCompile>
     <ClCompile Include="src\Platform\Windows\WindowsInput.cpp">
+      <Filter>src\Platform\Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Platform\Windows\WindowsPlatformUtils.cpp">
       <Filter>src\Platform\Windows</Filter>
     </ClCompile>
     <ClCompile Include="src\Platform\Windows\WindowsWindow.cpp">
@@ -1426,13 +1444,19 @@
     <ClCompile Include="src\Povox\Scene\SceneCamera.cpp">
       <Filter>src\Povox\Scene</Filter>
     </ClCompile>
+    <ClCompile Include="src\Povox\Scene\SceneSerializer.cpp">
+      <Filter>src\Povox\Scene</Filter>
+    </ClCompile>
     <ClCompile Include="src\pxpch.cpp">
       <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="vendor\ImGuizmo\ImGuizmo.cpp">
+      <Filter>vendor\ImGuizmo</Filter>
     </ClCompile>
     <ClCompile Include="vendor\stb_image\stb_image.cpp">
       <Filter>vendor\stb_image</Filter>
     </ClCompile>
-    <ClCompile Include="src\Povox\Scene\SceneSerializer.cpp" />
-    <ClCompile Include="src\Platform\Windows\WindowsPlatformUtils.cpp" />
+    <ClCompile Include="src\Povox\Math\Math.cpp" />
+    <ClCompile Include="src\Povox\Renderer\EditorCamera.cpp" />
   </ItemGroup>
 </Project>

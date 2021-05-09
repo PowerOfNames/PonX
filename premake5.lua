@@ -20,6 +20,7 @@ IncludeDir["glm"] = ("Povox/vendor/glm")
 IncludeDir["stb_image"] = ("Povox/vendor/stb_image")
 IncludeDir["entt"] = ("Povox/vendor/entt/include")
 IncludeDir["yaml_cpp"] = ("Povox/vendor/yaml-cpp/include")
+IncludeDir["ImGuizmo"] = ("Povox/vendor/ImGuizmo")
 
 group "Dependencies"
 	include "Povox/vendor/GLFW"
@@ -50,7 +51,10 @@ project "Povox"
 		"%{prj.name}/vendor/stb_image/**.cpp",
 		"%{prj.name}/vendor/stb_image/**.h",
 		"%{prj.name}/vendor/glm/glm/**.hpp",
-		"%{prj.name}/vendor/glm/glm/**.inl"
+		"%{prj.name}/vendor/glm/glm/**.inl",
+
+		"%{prj.name}/vendor/ImGuizmo/ImGuizmo.h",
+		"%{prj.name}/vendor/ImGuizmo/ImGuizmo.cpp"
 	}
 
 	defines
@@ -70,6 +74,7 @@ project "Povox"
 		"%{IncludeDir.stb_image}",
 		"%{IncludeDir.entt}",
 		"%{IncludeDir.yaml_cpp}",
+		"%{IncludeDir.ImGuizmo}"
 
 	}
 
@@ -82,6 +87,8 @@ project "Povox"
 		"opengl32.lib"
 	}
 
+	filter "files:Povox/vendor/ImGuizmo/**.cpp"
+	flags { "NoPCH" }
 
 
 	filter "system:windows"
@@ -184,7 +191,8 @@ project "Povosom"
 		"Povox/vendor/spdlog/include",
 		"Povox/vendor",
 		"%{IncludeDir.glm}",
-		"%{IncludeDir.entt}"
+		"%{IncludeDir.entt}",
+		"%{IncludeDir.ImGuizmo}"
 	}
 
 	links

@@ -133,6 +133,20 @@ namespace Povox {
 		s_QuadData.TextureSlotIndex = 1;
 	}
 
+	void Renderer2D::BeginScene(const EditorCamera& camera)
+	{
+		PX_PROFILE_FUNCTION();
+
+
+		s_QuadData.TextureShader->Bind();
+		s_QuadData.TextureShader->SetMat4("u_ViewProjection", camera.GetViewProjectionMatrix());
+
+		s_QuadData.QuadIndexCount = 0;
+		s_QuadData.QuadVertexBufferPtr = s_QuadData.QuadVertexBufferBase;
+
+		s_QuadData.TextureSlotIndex = 1;
+	}
+
 	void Renderer2D::Flush()
 	{
 		for (uint32_t i = 0; i < s_QuadData.TextureSlotIndex; i++)

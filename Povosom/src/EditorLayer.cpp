@@ -3,6 +3,7 @@
 #include "Platform/OpenGL/OpenGLShader.h"
 
 #include <ImGui/imgui.h>
+#include <ImGuizmo.h>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -10,12 +11,12 @@
 
 #include "Povox/Utils/PlatformsUtils.h"
 #include "Povox/Scene/SceneSerializer.h"
-
+#include "Povox/Math/Math.h"
 
 namespace Povox {
 
     EditorLayer::EditorLayer()
-        :Layer("Povosom2D"), m_CameraController(1280.0f / 720.0f, false)
+        :Layer("Povosom2D"), m_EditorCamera(45.0f, 1280.0f / 720.0f, 0.1f, 1000.0f)
     {
     }
 
@@ -23,30 +24,14 @@ namespace Povox {
     {
         PX_PROFILE_FUNCTION();
 
+        
         FramebufferSpecification fbspec;
-        fbspec.Width = 1280;
-        fbspec.Height = 720;
-
+        fbspec.Width = 1280.0f;
+        fbspec.Height = 720.0f;
         m_Framebuffer = Framebuffer::Create(fbspec);
-        m_TextureLogo = Texture2D::Create("assets/textures/logo.png");
-        m_SubTextureLogo = SubTexture2D::CreateFromCoords(m_TextureLogo, { 1, 2 }, { 64, 64 }, { 1, 2 });
 
         m_ActiveScene = CreateRef<Scene>();
-
-        // Create entities
 #if 0
-        Entity squareEntity = m_ActiveScene->CreateEntity("Square");
-        squareEntity.AddComponent<SpriteRendererComponent>(glm::vec4{ 0.5f, 0.8f, 0.0f, 0.9f });
-
-        m_SquareEntity = squareEntity;
-
-        m_CameraEntity = m_ActiveScene->CreateEntity("Scene Camera");
-        m_CameraEntity.AddComponent<CameraComponent>();
-
-        m_SecondCamera = m_ActiveScene->CreateEntity("Second Camera");
-        auto& cc = m_SecondCamera.AddComponent<CameraComponent>();
-        cc.Primary = false;
-
         class CameraController : public ScriptableEntity
         {
         public:
@@ -74,11 +59,10 @@ namespace Povox {
 
             }
         };
-        m_CameraEntity.AddComponent<NativeScriptComponent>().Bind<CameraController>();
-        m_SecondCamera.AddComponent<NativeScriptComponent>().Bind<CameraController>();
 #endif
         m_SceneHierarchyPanel.SetContext(m_ActiveScene);
     }
+
 
     void EditorLayer::OnDetach()
     {
@@ -88,13 +72,13 @@ namespace Povox {
         Renderer2D::Shutdown();
     }
 
+
     void EditorLayer::OnUpdate(Timestep deltatime)
     {
         PX_PROFILE_FUNCTION();
 
-        //Debuginfo
-        m_Deltatime = deltatime;
 
+        m_Deltatime = deltatime;
 
         //Resize
         if (FramebufferSpecification spec = m_Framebuffer->GetSpecification();
@@ -102,16 +86,14 @@ namespace Povox {
             (spec.Width != m_ViewportSize.x || spec.Height != m_ViewportSize.y))
         {
             m_Framebuffer->Resize((uint32_t)m_ViewportSize.x, (uint32_t)m_ViewportSize.y);
-            m_CameraController.OnResize(m_ViewportSize.x, m_ViewportSize.y);
+            m_EditorCamera.SetViewportSize(m_ViewportSize.x, m_ViewportSize.y);
 
             m_ActiveScene->OnViewportResize((uint32_t)m_ViewportSize.x, (uint32_t)m_ViewportSize.y);
         }
 
-
         //Update
-        if(m_ViewportIsFocused)
-            m_CameraController.OnUpdate(deltatime);
-
+        m_EditorCamera.OnUpdate(deltatime);
+            
 
         //Renderer Stats
         Renderer2D::ResetStats();
@@ -122,7 +104,7 @@ namespace Povox {
 
 
         // Update Scene
-        m_ActiveScene->OnUpdate(deltatime);
+        m_ActiveScene->OnUpdateEditor(deltatime, m_EditorCamera);
 
 
         m_Framebuffer->Unbind();
@@ -195,27 +177,19 @@ namespace Povox {
                 //ImGui::MenuItem("Fullscreen", NULL, &opt_fullscreen_persistant);
 
                 if (ImGui::MenuItem("New", "Ctrl+N"))
-                {
                     NewScene();
-                }
 
                 if (ImGui::MenuItem("Open...", "Ctrl+O"))
-                {
                     OpenScene();
-                }
 
                 if (ImGui::MenuItem("Save", "Ctrl+S"))
-                {
                     SaveScene();
-                }
 
                 if (ImGui::MenuItem("Save As...", "Ctrl+Shift+S"))
-                {
                     SaveSceneAs();
-                }
 
                 if (ImGui::MenuItem("Exit", "Ctrl+Esc"))
-                    Application::Get().Close();
+                    CloseApp();
 
                 ImGui::EndMenu();
             }
@@ -249,8 +223,76 @@ namespace Povox {
 
         uint32_t textureID = m_Framebuffer->GetColorAttachmentRendererID();
         ImGui::Image(reinterpret_cast<void*>(textureID), ImVec2(m_ViewportSize.x, m_ViewportSize.y), ImVec2{ 0, 1 }, ImVec2{ 1, 0 });
+        
+        
+        // Gizmos
+        Entity selectedEntity = m_SceneHierarchyPanel.GetSelectedEntity();
+
+        if (selectedEntity && m_GizmoType != -1)
+        {
+            ImGuizmo::SetOrthographic(false);
+            ImGuizmo::SetDrawlist();
+            float windowWidth = (float)ImGui::GetWindowWidth();
+            float windowHeight = (float)ImGui::GetWindowHeight();
+            ImGuizmo::SetRect(ImGui::GetWindowPos().x, ImGui::GetWindowPos().y, windowWidth, windowHeight);
+
+            // Runtime camera
+            //auto cameraEntity = m_ActiveScene->GetPrimaryCameraEntity();
+            //
+            //const auto& camera = cameraEntity.GetComponent<CameraComponent>().Camera;
+            //const glm::mat4& cameraProjection = camera.GetProjection();
+            //glm::mat4 cameraView = glm::inverse(cameraEntity.GetComponent<TransformComponent>().GetTransform());
+            
+            // Editor Camera
+            
+            const glm::mat4& cameraProjection = m_EditorCamera.GetProjection();
+            glm::mat4 cameraView = m_EditorCamera.GetViewMatrix();
+
+            m_GizmoSnap = Input::IsKeyPressed(Key::LeftControl) || Input::IsKeyPressed(Key::RightControl);
+            float snapValue = 0.5f;
+            if (m_GizmoType == ImGuizmo::OPERATION::ROTATE)
+                snapValue = 45.0f;
+            glm::vec3 snapValues = { snapValue, snapValue, snapValue };
+
+            ImGui::Begin("Gizmos");
+            ImGui::Checkbox("", &m_GizmoSnap);
+            ImGui::SameLine();
+            switch ((ImGuizmo::OPERATION)m_GizmoType)
+            {
+            case ImGuizmo::TRANSLATE:
+                ImGui::InputFloat3("Snap", glm::value_ptr(snapValues));
+                break;
+            case ImGuizmo::ROTATE:
+                ImGui::InputFloat3("Angle Snap", glm::value_ptr(snapValues));
+                break;
+            case ImGuizmo::SCALE:
+                ImGui::InputFloat3("Scale Snap", glm::value_ptr(snapValues));
+                break;
+            }
+            ImGui::End();
+
+            //Entity
+            auto& tc = selectedEntity.GetComponent<TransformComponent>();
+            glm::mat4 entityTransform = tc.GetTransform();
+
+            ImGuizmo::Manipulate(glm::value_ptr(cameraView), glm::value_ptr(cameraProjection), 
+                                    (ImGuizmo::OPERATION)m_GizmoType, ImGuizmo::LOCAL, glm::value_ptr(entityTransform), (float*)0, m_GizmoSnap ? glm::value_ptr(snapValues) : NULL);
+
+            if (ImGuizmo::IsUsing())
+            {
+                glm::vec3 translation, rotation, scale;
+                Math::DecomposeTransform(entityTransform, translation, rotation, scale);
+                glm::vec3 deltaRotation = rotation - tc.Rotation;
+                tc.Translation = translation;
+                tc.Rotation += deltaRotation;
+                tc.Scale = scale;
+            }
+
+        }
+        
         ImGui::End();
         ImGui::PopStyleVar(ImGuiStyleVar_WindowPadding);
+               
 
         ImGui::Begin("Test Tab");
         ImGui::Checkbox("Demo ImGui", &m_DemoActive);
@@ -261,12 +303,17 @@ namespace Povox {
      // Panels
         m_SceneHierarchyPanel.OnImGuiRender();
 
+        ImGui::Begin("Editor Camera");
+        glm::vec3 cameraPos = m_EditorCamera.GetPostion();
+        ImGui::Text("Camera Position: {%f|%f|%f}", cameraPos.x, cameraPos.y, cameraPos.z);
+        ImGui::End();
+
         ImGui::End(); //Dockspace end
     }
 
     void EditorLayer::OnEvent(Event& e)
     {
-        m_CameraController.OnEvent(e);
+        m_EditorCamera.OnEvent(e);
 
         EventDispatcher dispatcher(e);
         dispatcher.Dispatch<KeyPressedEvent>(PX_BIND_EVENT_FN(EditorLayer::OnKeyPressed));
@@ -307,6 +354,34 @@ namespace Povox {
                         break;
                     }
                     SaveScene();
+                    break;
+                }
+            }
+            case Key::Q:
+            {
+                m_GizmoType = -1;
+                break;
+            }
+            case Key::W:
+            {
+                m_GizmoType = ImGuizmo::OPERATION::TRANSLATE;
+                break;
+            }
+            case Key::E:
+            {
+                m_GizmoType = ImGuizmo::OPERATION::ROTATE;
+                break;
+            }
+            case Key::R:
+            {
+                m_GizmoType = ImGuizmo::OPERATION::SCALE;
+                break;
+            }
+            case Key::Escape:
+            {
+                if (controlPressed)
+                {
+                    CloseApp();
                     break;
                 }
             }
@@ -355,5 +430,10 @@ namespace Povox {
         {
             SaveScene();
         }
+    }
+
+    void EditorLayer::CloseApp()
+    {
+        Application::Get().Close();
     }
 }

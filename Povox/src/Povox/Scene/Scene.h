@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Povox/Core/Timestep.h"
+#include "Povox/Renderer/EditorCamera.h"
 
 #include <entt.hpp>
 
@@ -18,9 +19,11 @@ namespace Povox {
 		void DestroyEntity(Entity entity);
 
 
-		void OnUpdate(Timestep ts);
+		void OnUpdateRuntime(Timestep ts);
+		void OnUpdateEditor(Timestep ts, EditorCamera& camera);
 		void OnViewportResize(uint32_t width, uint32_t height);
 
+		Entity GetPrimaryCameraEntity();
 	private:
 		template<typename T>
 		void OnComponentAdded(Entity entity, T& component);

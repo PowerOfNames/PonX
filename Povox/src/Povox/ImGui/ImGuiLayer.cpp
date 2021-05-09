@@ -12,6 +12,8 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
+#include <ImGuizmo.h>
+
 namespace Povox {
 
 	ImGuiLayer::ImGuiLayer()
@@ -83,6 +85,7 @@ namespace Povox {
 		ImGui_ImplOpenGL3_NewFrame();
 		ImGui_ImplGlfw_NewFrame();
 		ImGui::NewFrame();
+		ImGuizmo::BeginFrame();
 	}
 
 	void ImGuiLayer::End()
@@ -165,7 +168,7 @@ namespace Povox {
 		// Text
 		colors[ImGuiCol_Text] = ImVec4{ 0.9f, 0.9f, 0.9f, 0.9f };
 		colors[ImGuiCol_TextSelectedBg] = ImVec4{ 0.3f, 0.33f, 0.33f, 1.0f };
-		colors[ImGuiCol_TextDisabled] = ImVec4{ 1.0f, 0.29f, 0.19f, 1.0f };
+		colors[ImGuiCol_TextDisabled] = ImVec4{ 0.35f, 0.35f, 0.35f, 1.0f };
 	}
 
 	void ImGuiLayer::OnImGuiRender()

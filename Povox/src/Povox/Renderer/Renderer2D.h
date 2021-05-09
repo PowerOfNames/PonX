@@ -1,6 +1,7 @@
 #pragma once
 #include "Povox/Renderer/OrthographicCamera.h"
 #include "Povox/Renderer/Camera.h"
+#include "Povox/Renderer/EditorCamera.h"
 
 #include "Povox/Renderer/Texture.h"
 #include "Povox/Renderer/SubTexture2D.h"
@@ -17,6 +18,7 @@ namespace Povox {
 
 		static void BeginScene(const Camera& camera, const glm::mat4& transform);
 		static void BeginScene(const OrthographicCamera& camera); // TODO: Needs to be filled with environment (e.g. lighting), camera...
+		static void BeginScene(const EditorCamera& camera); // TODO: Needs to be filled with environment (e.g. lighting), camera...
 		static void EndScene();
 
 		static void Flush();
