@@ -25,16 +25,16 @@ namespace Povox {
 			glBindTexture(Utils::TextureTarget(multisampled), outID);
 		}
 
-		static void AttachColorTexture(uint32_t outID, int samples, GLenum format, uint32_t width, uint32_t height, int index)
+		static void AttachColorTexture(uint32_t outID, int samples, GLenum internalFormat, GLenum format, uint32_t width, uint32_t height, int index)
 		{
 			bool multisampled = samples > 1;
 			if (multisampled)
 			{
-				glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, samples, format, width, height, GL_FALSE);
+				glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, samples, internalFormat, width, height, GL_FALSE);
 			}
 			else
 			{
-				glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+				glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, width, height, 0, format, GL_UNSIGNED_BYTE, nullptr);
 
 				//filtering/wrapping
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -134,7 +134,12 @@ namespace Povox {
 				{
 					case FramebufferTextureFormat::RGBA8:
 					{
-						Utils::AttachColorTexture(m_ColorAttachments[i], m_Specification.Samples, GL_RGBA8, m_Specification.Width, m_Specification.Height, i);
+						Utils::AttachColorTexture(m_ColorAttachments[i], m_Specification.Samples, GL_RGBA8, GL_RGBA, m_Specification.Width, m_Specification.Height, i);
+						break;
+					}
+					case FramebufferTextureFormat::RED_INTEGER:
+					{
+						Utils::AttachColorTexture(m_ColorAttachments[i], m_Specification.Samples, GL_R32I, GL_RED_INTEGER, m_Specification.Width, m_Specification.Height, i);
 						break;
 					}
 				}
@@ -156,7 +161,7 @@ namespace Povox {
 
 		}
 		
-		if (m_ColorAttachments.size() < 1)
+		if (m_ColorAttachments.size() > 1)
 		{
 			PX_CORE_ASSERT(m_ColorAttachments.size() <= 4, "Framebuffer::Invalidate - Too many ColorAttachments!");
 			GLenum buffers[] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3 };
@@ -197,5 +202,16 @@ namespace Povox {
 		m_Specification.Height = height;
 
 		Invalidate();
+	}
+
+	int OpenGLFramebuffer::ReadPixel(uint32_t attachmentIndex, int posX, int posY)
+	{
+		PX_CORE_ASSERT(attachmentIndex < m_ColorAttachments.size(), "OGLFramebuffer::ReadPixel - Index out of scope!");
+
+		glReadBuffer(GL_COLOR_ATTACHMENT0 + attachmentIndex);
+		int pixelData;
+		glReadPixels(posX, posY, 1, 1, GL_RED_INTEGER, GL_INT, &pixelData);
+
+		return pixelData;
 	}
 }

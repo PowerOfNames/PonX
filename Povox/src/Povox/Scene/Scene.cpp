@@ -91,7 +91,7 @@ namespace Povox {
 		{
 			auto [spriteComp, transformComp] = group.get<SpriteRendererComponent, TransformComponent>(entity);
 
-			Renderer2D::DrawQuad(transformComp.GetTransform(), spriteComp.Color);
+			Renderer2D::DrawSprite(transformComp.GetTransform(), spriteComp, (int)entity);
 		}
 		Renderer2D::EndScene();
 	}

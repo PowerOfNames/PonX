@@ -3,8 +3,6 @@
 
 #include <glad/glad.h>
 
-#include "Povox/Renderer/QuadVertexStruct.h"
-
 
 namespace Povox {
 
@@ -36,9 +34,6 @@ namespace Povox {
 	void OpenGLVertexBuffer::SetData(const void* data, uint32_t size)
 	{
 		PX_PROFILE_FUNCTION();
-
-		//for (uint32_t i = 0; i < 16; i++)
-		//	std::cout << "QuadVertexColor: " << ((QuadVertex*)data)[i].Color.x << "|" << ((QuadVertex*)data)[i].Color.y << "|" << ((QuadVertex*)data)[i].Color.z << "|" << ((QuadVertex*)data)[i].Color.a << std::endl;
 
 
 		glBindBuffer(GL_ARRAY_BUFFER, m_RendererID);

@@ -26,7 +26,7 @@ namespace Povox {
 
         
         FramebufferSpecification fbspec;
-        fbspec.Attachements = {FramebufferTextureFormat::RGBA8, FramebufferTextureFormat::Depth};
+        fbspec.Attachements = {FramebufferTextureFormat::RGBA8, FramebufferTextureFormat::RED_INTEGER, FramebufferTextureFormat::Depth};
         fbspec.Width = 1280.0f;
         fbspec.Height = 720.0f;
         m_Framebuffer = Framebuffer::Create(fbspec);
@@ -107,6 +107,17 @@ namespace Povox {
         // Update Scene
         m_ActiveScene->OnUpdateEditor(deltatime, m_EditorCamera);
 
+        auto [mx, my] = ImGui::GetMousePos();
+        mx -= m_ViewportBounds[0].x;
+        my -= m_ViewportBounds[0].y;
+        glm::vec2 viewportSize = { m_ViewportBounds[1] - m_ViewportBounds[0] };
+        my = viewportSize.y - my;
+        int mouseX = (int)mx;
+        int mouseY = (int)(my /*+ viewportSize.y*/);
+
+        if (mouseX >= 0 && mouseY >= 0 && mouseX < (int)viewportSize.x && mouseY < (int)viewportSize.y)
+            PX_TRACE("Pixel Value at Mouseposition '{0}|{1}' : {2}", mouseX, mouseY, m_Framebuffer->ReadPixel(1, mouseX, mouseY));
+        
 
         m_Framebuffer->Unbind();
     }
@@ -212,6 +223,7 @@ namespace Povox {
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{ 0, 0 });
         ImGui::Begin("Viewport");
 
+        auto viewPortOffset = ImGui::GetCursorPos();
 
         m_ViewportIsFocused = ImGui::IsWindowFocused();
         m_ViewportIsHovered = ImGui::IsWindowHovered();
@@ -225,7 +237,15 @@ namespace Povox {
         uint32_t textureID = m_Framebuffer->GetColorAttachmentRendererID(0);
         ImGui::Image(reinterpret_cast<void*>(textureID), ImVec2(m_ViewportSize.x, m_ViewportSize.y), ImVec2{ 0, 1 }, ImVec2{ 1, 0 });
         
+        auto windowSize = ImGui::GetWindowSize();
+        ImVec2 minBounds = ImGui::GetWindowPos();
+        minBounds.x += viewPortOffset.x;
+        minBounds.y += viewPortOffset.y;
         
+        ImVec2 maxBounds = { minBounds.x + windowSize.x - viewPortOffset.x, minBounds.y + windowSize.y - viewPortOffset.y };
+        m_ViewportBounds[0] = { minBounds.x, minBounds.y };
+        m_ViewportBounds[1] = { maxBounds.x, maxBounds.y };
+
         // Gizmos
         Entity selectedEntity = m_SceneHierarchyPanel.GetSelectedEntity();
 
@@ -256,7 +276,6 @@ namespace Povox {
             glm::vec3 snapValues = { snapValue, snapValue, snapValue };
 
             ImGui::Begin("Gizmos");
-            ImGui::Checkbox("", &m_GizmoSnap);
             ImGui::SameLine();
             switch ((ImGuizmo::OPERATION)m_GizmoType)
             {

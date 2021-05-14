@@ -4,12 +4,19 @@
 #include "Povox/Renderer/VertexArray.h"
 #include "Povox/Renderer/Shader.h"
 #include "Povox/Renderer/RenderCommand.h"
-#include "Povox/Renderer/QuadVertexStruct.h"
 
 #include <glm/gtc/matrix_transform.hpp>
 
 namespace Povox {
 
+	struct QuadVertex {
+		glm::vec3 Position;
+		glm::vec4 Color;
+		glm::vec2 TexCoord;
+		float TexID;
+		float TilingFactor;
+		int EntityID;
+	};
 
 	struct Renderer2DData
 	{
@@ -50,7 +57,8 @@ namespace Povox {
 			{ ShaderDataType::Float4, "a_Color" },
 			{ ShaderDataType::Float2, "a_TexCoord" },
 			{ ShaderDataType::Float, "a_TexID" },
-			{ ShaderDataType::Float, "a_TilingFactor" }
+			{ ShaderDataType::Float, "a_TilingFactor" },
+			{ ShaderDataType::Int, "a_EntityID" }
 			});
 		s_QuadData.QuadVertexArray->AddVertexBuffer(s_QuadData.QuadVertexBuffer);
 
@@ -219,8 +227,10 @@ namespace Povox {
 
 		DrawQuad(transform, subTexture, tilingFactor, tintingColor);
 	}
+	
 // Quads Transforms
-	void Renderer2D::DrawQuad(const glm::mat4& transform, const glm::vec4& color)
+
+	void Renderer2D::DrawQuad(const glm::mat4& transform, const glm::vec4& color, int entityID)
 	{
 		PX_PROFILE_FUNCTION();
 
@@ -239,6 +249,7 @@ namespace Povox {
 			s_QuadData.QuadVertexBufferPtr->TexCoord = textureCoords[i];
 			s_QuadData.QuadVertexBufferPtr->TexID = whiteTextureID;
 			s_QuadData.QuadVertexBufferPtr->TilingFactor = tilingFactor;
+			s_QuadData.QuadVertexBufferPtr->EntityID = entityID;
 			s_QuadData.QuadVertexBufferPtr++;
 		}
 		s_QuadData.QuadIndexCount += 6;
@@ -246,7 +257,7 @@ namespace Povox {
 		s_QuadData.Stats.QuadCount++;
 	}
 
-	void Renderer2D::DrawQuad(const glm::mat4& transform, const Ref<Texture2D>& texture, float tilingFactor, const glm::vec4& tintingColor)
+	void Renderer2D::DrawQuad(const glm::mat4& transform, const Ref<Texture2D>& texture, float tilingFactor, const glm::vec4& tintingColor, int entityID)
 	{
 		constexpr glm::vec2 textureCoords[4] = { {0.0f, 0.0f}, {1.0f, 0.0f}, {1.0f, 1.0f}, {0.0f, 1.0f} };
 
@@ -280,6 +291,7 @@ namespace Povox {
 			s_QuadData.QuadVertexBufferPtr->TexCoord = textureCoords[i];
 			s_QuadData.QuadVertexBufferPtr->TexID = textureIndex;
 			s_QuadData.QuadVertexBufferPtr->TilingFactor = tilingFactor;
+			s_QuadData.QuadVertexBufferPtr->EntityID = entityID;
 			s_QuadData.QuadVertexBufferPtr++;
 		}
 		s_QuadData.QuadIndexCount += 6;
@@ -287,7 +299,7 @@ namespace Povox {
 		s_QuadData.Stats.QuadCount++;
 	}
 
-	void Renderer2D::DrawQuad(const glm::mat4& transform, const Ref<SubTexture2D>& subTexture, float tilingFactor, const glm::vec4& tintingColor)
+	void Renderer2D::DrawQuad(const glm::mat4& transform, const Ref<SubTexture2D>& subTexture, float tilingFactor, const glm::vec4& tintingColor, int entityID)
 	{
 		PX_PROFILE_FUNCTION();
 
@@ -323,6 +335,7 @@ namespace Povox {
 			s_QuadData.QuadVertexBufferPtr->TexCoord = textureCoords[i];
 			s_QuadData.QuadVertexBufferPtr->TexID = textureIndex;
 			s_QuadData.QuadVertexBufferPtr->TilingFactor = tilingFactor;
+			s_QuadData.QuadVertexBufferPtr->EntityID = entityID;
 			s_QuadData.QuadVertexBufferPtr++;
 		}
 		s_QuadData.QuadIndexCount += 6;
@@ -374,7 +387,10 @@ namespace Povox {
 		DrawQuad(transform, subTexture, tilingFactor, tintingColor);
 	}
 
-	
+	void Renderer2D::DrawSprite(const glm::mat4& transform, SpriteRendererComponent& src, int entityID)
+	{
+		DrawQuad(transform, src.Color, entityID);
+	}
 
 	Renderer2D::Statistics Renderer2D::GetStats()
 	{

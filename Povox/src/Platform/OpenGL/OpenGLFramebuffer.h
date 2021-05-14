@@ -17,9 +17,10 @@ namespace Povox {
 		virtual void Unbind() const override;
 
 		virtual void Resize(uint32_t width, uint32_t height) override;
+		virtual int ReadPixel(uint32_t attachmentIndex, int posX, int posY) override;
 
 		inline virtual const FramebufferSpecification& GetSpecification() const override { return m_Specification; }
-		inline virtual uint32_t GetColorAttachmentRendererID(uint32_t index = 0) const override { PX_CORE_ASSERT(index < m_ColorAttachments.size(), "OGLFramebuffer::Index out of scope!"); return m_ColorAttachments[index]; }
+		inline virtual uint32_t GetColorAttachmentRendererID(uint32_t index = 0) const override { PX_CORE_ASSERT(index < m_ColorAttachments.size(), "OGLFramebuffer::GetColorAttID - Index out of scope!"); return m_ColorAttachments[index]; }
 		inline virtual uint32_t GetDepthAttachmentRendererID() const override { return m_DepthAttachment; }
 	private:
 		uint32_t m_RendererID = 0;

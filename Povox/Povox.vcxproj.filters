@@ -171,9 +171,6 @@
     <ClInclude Include="src\Povox\Renderer\PerspectiveCameraController.h">
       <Filter>src\Povox\Renderer</Filter>
     </ClInclude>
-    <ClInclude Include="src\Povox\Renderer\QuadVertexStruct.h">
-      <Filter>src\Povox\Renderer</Filter>
-    </ClInclude>
     <ClInclude Include="src\Povox\Renderer\RenderCommand.h">
       <Filter>src\Povox\Renderer</Filter>
     </ClInclude>

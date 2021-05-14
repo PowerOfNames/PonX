@@ -38,6 +38,7 @@ namespace Povox {
 
 		bool m_ViewportIsFocused = false, m_ViewportIsHovered = false;
 		glm::vec2 m_ViewportSize = { 0.0f, 0.0f };
+		glm::vec2 m_ViewportBounds[2];
 
 		bool m_PrimaryCamera = true;
 
