@@ -2,22 +2,13 @@ Scene: Noname
 Entities:
   - Entity: 63725789201658
     TagComponent:
-      Tag: White
+      Tag: other square
     TransformComponent:
-      Translation: [0, 1.29999995, 0]
-      Rotation: [0, 0, 0]
-      Scale: [1, 1, 1]
+      Translation: [0, 0.614296436, 1.57358098]
+      Rotation: [-1.81677759, 1.19090772, 8.03693467e-07]
+      Scale: [8.22669792, 5.81225014, 0.999999046]
     SpriteRendererComponent:
-      Color: [1, 1, 1, 1]
-  - Entity: 63725789201658
-    TagComponent:
-      Tag: Pink Square
-    TransformComponent:
-      Translation: [-2, 1.29999995, 0]
-      Rotation: [0, 0, 0]
-      Scale: [1, 1, 1]
-    SpriteRendererComponent:
-      Color: [1, 0, 0.994048119, 1]
+      Color: [0.884169877, 0.334550768, 0.334550768, 1]
   - Entity: 63725789201658
     TagComponent:
       Tag: Camera
@@ -38,10 +29,19 @@ Entities:
       Fixed Aspect Ratio: false
   - Entity: 63725789201658
     TagComponent:
-      Tag: other square
+      Tag: Pink Square
     TransformComponent:
-      Translation: [0, 0, 0]
-      Rotation: [0, 0, 0]
-      Scale: [1, 1, 1]
+      Translation: [-2.55608702, 0.710172892, 0]
+      Rotation: [0.0186256208, -0.233115166, -1.38438237]
+      Scale: [2.57048631, 5.67080355, 1.16324151]
     SpriteRendererComponent:
-      Color: [0.884169877, 0.334550768, 0.334550768, 1]
+      Color: [1, 0, 0.994048119, 1]
+  - Entity: 63725789201658
+    TagComponent:
+      Tag: White
+    TransformComponent:
+      Translation: [-0.573022306, 1.78881204, 1.91522264]
+      Rotation: [4.85765213e-06, -1.49095488, 1.06958413]
+      Scale: [6.78112841, 1.76129413, 1.00000012]
+    SpriteRendererComponent:
+      Color: [1, 1, 1, 1]
