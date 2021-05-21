@@ -20,6 +20,7 @@ namespace Povox {
 		void OnEvent(Event& e) override;
 	private:
 		bool OnKeyPressed(KeyPressedEvent& e);
+		bool OnMouseButtonPressed(MouseButtonPressedEvent& e);
 
 		void NewScene();
 		void OpenScene();
@@ -32,7 +33,9 @@ namespace Povox {
 		Ref<Framebuffer> m_Framebuffer;
 
 		Ref<Scene> m_ActiveScene;
-		std::string m_CurrentScenePath;
+		std::optional<std::string> m_CurrentScenePath;
+
+		Entity m_HoveredEntity;
 
 		float m_Deltatime = 0.0f;
 

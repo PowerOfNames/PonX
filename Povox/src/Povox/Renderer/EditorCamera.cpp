@@ -34,31 +34,6 @@ namespace Povox {
 		UpdateView();
 	}
 
-	void EditorCamera::OnEvent(Event& e)
-	{
-		EventDispatcher dispatcher(e);
-		dispatcher.Dispatch<MouseScrolledEvent>(PX_BIND_EVENT_FN(EditorCamera::OnMouseScroll));
-	}
-
-	glm::vec3 EditorCamera::GetForwardVector() const
-	{
-		return glm::rotate(GetOrientation(), glm::vec3{ 0.0f, 0.0f, -1.0f });
-	}
-
-	glm::vec3 EditorCamera::GetRightVector() const
-	{
-		return glm::rotate(GetOrientation(), glm::vec3{ 1.0f, 0.0f, 0.0f });
-	}
-	
-	glm::vec3 EditorCamera::GetUpVector() const
-	{
-		return glm::rotate(GetOrientation(), glm::vec3{ 0.0f, 1.0f, 0.0f });
-	}
-	glm::quat EditorCamera::GetOrientation() const
-	{
-		return glm::quat(glm::vec3{ -m_Pitch, -m_Yaw, 0.0f });
-	}
-
 	void EditorCamera::UpdateProjection()
 	{
 		m_AspectRatio = m_ViewportWidth / m_ViewportHeight;
@@ -73,6 +48,12 @@ namespace Povox {
 		glm::quat orientation = GetOrientation();
 		m_ViewMatrix = glm::translate(glm::mat4(1.0f), m_Position) * glm::toMat4(orientation);
 		m_ViewMatrix = glm::inverse(m_ViewMatrix);
+	}
+
+	void EditorCamera::OnEvent(Event& e)
+	{
+		EventDispatcher dispatcher(e);
+		dispatcher.Dispatch<MouseScrolledEvent>(PX_BIND_EVENT_FN(EditorCamera::OnMouseScroll));
 	}
 
 	bool EditorCamera::OnMouseScroll(MouseScrolledEvent& e)
@@ -93,9 +74,9 @@ namespace Povox {
 
 	void EditorCamera::MouseRotate(const glm::vec2& delta)
 	{
-		float yawSign = GetUpVector().y < 1.0f ? -1.0f : 1.0f;
+		float yawSign = GetUpVector().y < 0 ? -1.0f : 1.0f;
 		m_Yaw += yawSign * delta.x * RotationSpeed();
-		m_Pitch += yawSign * delta.y * RotationSpeed();
+		m_Pitch += delta.y * RotationSpeed();
 	}
 
 	void EditorCamera::MouseZoom(float delta)
@@ -106,6 +87,26 @@ namespace Povox {
 			m_FocalPoint += GetForwardVector();
 			m_Distance = 1.0f;
 		}
+	}
+
+	glm::vec3 EditorCamera::GetForwardVector() const
+	{
+		return glm::rotate(GetOrientation(), glm::vec3{ 0.0f, 0.0f, -1.0f });
+	}
+
+	glm::vec3 EditorCamera::GetRightVector() const
+	{
+		return glm::rotate(GetOrientation(), glm::vec3{ 1.0f, 0.0f, 0.0f });
+	}
+	
+	glm::vec3 EditorCamera::GetUpVector() const
+	{
+		return glm::rotate(GetOrientation(), glm::vec3{ 0.0f, 1.0f, 0.0f });
+	}
+
+	glm::quat EditorCamera::GetOrientation() const
+	{
+		return glm::quat(glm::vec3{ -m_Pitch, -m_Yaw, 0.0f });
 	}
 
 	glm::vec3 EditorCamera::CalculatePosition() const
@@ -133,7 +134,7 @@ namespace Povox {
 	{
 		float distance = m_Distance * 0.2f;
 		distance = std::max(distance, 0.0f);
-		float speed = distance + distance;
+		float speed = distance * distance;
 		speed = std::min(speed, 100.0f);
 
 		return speed;

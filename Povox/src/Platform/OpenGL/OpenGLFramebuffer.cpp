@@ -78,6 +78,15 @@ namespace Povox {
 			return false;
 		}
 
+		static GLenum PovoxFbTextureFormatToGL(FramebufferTextureFormat format)
+		{
+			switch (format)
+			{
+				case FramebufferTextureFormat::RGBA8: return GL_UNSIGNED_BYTE;
+				case FramebufferTextureFormat::RED_INTEGER: return GL_RED_INTEGER;
+			}
+		}
+
 	}
 
 	OpenGLFramebuffer::OpenGLFramebuffer(const FramebufferSpecification& spec)
@@ -213,5 +222,13 @@ namespace Povox {
 		glReadPixels(posX, posY, 1, 1, GL_RED_INTEGER, GL_INT, &pixelData);
 
 		return pixelData;
+	}
+
+	void OpenGLFramebuffer::ClearColorAttachment(uint32_t attachmentIndex, int value)
+	{
+		PX_CORE_ASSERT(attachmentIndex < m_ColorAttachments.size(), "OGLFramebuffer::ReadPixel - Index out of scope!");
+
+		auto& spec = m_ColorAttachmentSpecifications[attachmentIndex];
+		glClearTexImage(m_ColorAttachments[attachmentIndex], 0, Utils::PovoxFbTextureFormatToGL(spec.TextureFormat), GL_INT, &value);
 	}
 }

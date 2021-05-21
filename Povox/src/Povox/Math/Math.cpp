@@ -16,7 +16,7 @@ namespace Povox::Math {
 		mat4 LocalMatrix(transform);
 
 		// Normalize the matrix.
-		if (epsilonEqual(LocalMatrix[3][3], static_cast<T>(0), epsilon<T>()))
+		if (epsilonEqual(LocalMatrix[3][3], static_cast<float>(0), epsilon<T>()))
 			return false;
 
 		// First, isolate perspective.  This is the messiest.
@@ -41,7 +41,7 @@ namespace Povox::Math {
 				Row[i][j] = LocalMatrix[i][j];
 		
 		// Compute X scale factor and normalize first row.
-		outScale.x = length(Row[0]);// v3Length(Row[0]);
+		outScale.x = length(Row[0]);
 		Row[0] = detail::scale(Row[0], static_cast<T>(1));
 		outScale.y = length(Row[1]);
 		Row[1] = detail::scale(Row[1], static_cast<T>(1));

@@ -21,22 +21,22 @@ namespace Povox {
 		void OnUpdate(Timestep deltatime);
 		void OnEvent(Event& e);
 
-		inline float GetDistance() const { return m_Distance; }
-		inline void SetDistance(float distance) { m_Distance = distance; }
+		float GetDistance() const { return m_Distance; }
+		void SetDistance(float distance) { m_Distance = distance; }
 
-		inline void SetViewportSize(float width, float height) { m_ViewportWidth = width; m_ViewportHeight = height; UpdateProjection(); }
+		void SetViewportSize(float width, float height) { m_ViewportWidth = width; m_ViewportHeight = height; UpdateProjection(); }
 
-		inline const glm::mat4& GetViewMatrix() const { return m_ViewMatrix; }
-		inline glm::mat4 GetViewProjectionMatrix() const { return m_Projection * m_ViewMatrix; }
+		const glm::mat4& GetViewMatrix() const { return m_ViewMatrix; }
+		glm::mat4 GetViewProjectionMatrix() const { return m_Projection * m_ViewMatrix; }
 
 		glm::vec3 GetForwardVector() const;
 		glm::vec3 GetRightVector() const;
 		glm::vec3 GetUpVector() const;
 		glm::quat GetOrientation() const;
-		inline const glm::vec3& GetPostion() { return m_Position; }
+		const glm::vec3& GetPostion() { return m_Position; }
 
-		inline float GetPitch() const { return m_Pitch; }
-		inline float GetYaw() const { return m_Yaw; }
+		float GetPitch() const { return m_Pitch; }
+		float GetYaw() const { return m_Yaw; }
 
 	private:
 		void UpdateProjection();
@@ -61,7 +61,7 @@ namespace Povox {
 		glm::vec3 m_Position{ 0.0f, 0.0f, 0.0f };
 		glm::vec3 m_FocalPoint{ 0.0f, 0.0f, 0.0f };
 
-		glm::vec2 m_InitialMousePosition;
+		glm::vec2 m_InitialMousePosition = { 0.0f, 0.0f };
 
 		float m_Distance = 10.0f;
 		float m_Pitch = 0.0f, m_Yaw = 0.0f;

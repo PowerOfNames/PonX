@@ -6,6 +6,8 @@
 #include <algorithm>
 #include <functional>
 
+#include <optional>
+
 #include <chrono>
 
 #include <string>

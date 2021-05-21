@@ -73,7 +73,6 @@ namespace Povox {
 		{
 			switch (element.Type)
 			{
-				case ShaderDataType::Bool:
 				case ShaderDataType::Float:
 				case ShaderDataType::Float2:
 				case ShaderDataType::Float3:
@@ -94,6 +93,7 @@ namespace Povox {
 				case ShaderDataType::Int2:	
 				case ShaderDataType::Int3:	
 				case ShaderDataType::Int4:
+				case ShaderDataType::Bool:
 				{
 					glEnableVertexAttribArray(index);
 					glVertexAttribIPointer(index,

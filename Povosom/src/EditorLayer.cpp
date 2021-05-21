@@ -16,7 +16,7 @@
 namespace Povox {
 
     EditorLayer::EditorLayer()
-        :Layer("Povosom2D"), m_EditorCamera(45.0f, 1280.0f / 720.0f, 0.1f, 1000.0f)
+        :Layer("Povosom2D")
     {
     }
 
@@ -32,6 +32,8 @@ namespace Povox {
         m_Framebuffer = Framebuffer::Create(fbspec);
 
         m_ActiveScene = CreateRef<Scene>();
+
+        m_EditorCamera = EditorCamera(30.0f, 1.778f, 0.1f, 1000.0f);
 #if 0
         class CameraController : public ScriptableEntity
         {
@@ -103,6 +105,8 @@ namespace Povox {
         RenderCommand::SetClearColor({ 0.1f, 0.1f, 0.2f, 1.0f });
         RenderCommand::Clear();
 
+        // Clear entityID attechment to -1
+        m_Framebuffer->ClearColorAttachment(1, -1);
 
         // Update Scene
         m_ActiveScene->OnUpdateEditor(deltatime, m_EditorCamera);
@@ -110,14 +114,17 @@ namespace Povox {
         auto [mx, my] = ImGui::GetMousePos();
         mx -= m_ViewportBounds[0].x;
         my -= m_ViewportBounds[0].y;
-        glm::vec2 viewportSize = { m_ViewportBounds[1] - m_ViewportBounds[0] };
+        glm::vec2 viewportSize = m_ViewportBounds[1] - m_ViewportBounds[0];
         my = viewportSize.y - my;
         int mouseX = (int)mx;
-        int mouseY = (int)(my /*+ viewportSize.y*/);
-
-        if (mouseX >= 0 && mouseY >= 0 && mouseX < (int)viewportSize.x && mouseY < (int)viewportSize.y)
-            PX_TRACE("Pixel Value at Mouseposition '{0}|{1}' : {2}", mouseX, mouseY, m_Framebuffer->ReadPixel(1, mouseX, mouseY));
+        int mouseY = (int)my;
         
+        if (mouseX >= 0 && mouseY >= 0 && mouseX < (int)viewportSize.x && mouseY < (int)viewportSize.y)
+        {
+            int pixelData = m_Framebuffer->ReadPixel(1, mouseX, mouseY);
+            m_HoveredEntity = pixelData == -1 ? Entity() : Entity((entt::entity)pixelData, m_ActiveScene.get());
+        }
+
 
         m_Framebuffer->Unbind();
     }
@@ -209,21 +216,31 @@ namespace Povox {
             ImGui::EndMenuBar();
         }
 
-        //Renderer Stats
-        ImGui::Begin("Renderer2D Stats");
+     // Renderer Stats
+        ImGui::Begin(" Stats ");
         ImGui::Text("DrawCalls: %d", stats.DrawCalls);
         ImGui::Text("Quads: %d", stats.QuadCount);
         ImGui::Text("Vertices: %d", stats.GetTotalVertexCount());
         ImGui::Text("Indices: %d", stats.GetTotalIndexCount());
         ImGui::Text("Deltatime: %f", m_Deltatime);
+
+        std::string name = "None";
+        if (m_HoveredEntity)
+            name = m_HoveredEntity.GetComponent<TagComponent>().Tag;
+        ImGui::Text("Hovered Entity: %s", name.c_str());
+
         ImGui::End(); // Renderer Stats
 
 
      // Viewport
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{ 0, 0 });
-        ImGui::Begin("Viewport");
+        ImGui::Begin(" Viewport ");
 
-        auto viewPortOffset = ImGui::GetCursorPos();
+        auto viewportMinRegion = ImGui::GetWindowContentRegionMin();
+        auto viewportMaxRegion = ImGui::GetWindowContentRegionMax();
+        auto viewPortOffset = ImGui::GetWindowPos();
+        m_ViewportBounds[0] = { viewportMinRegion.x + viewPortOffset.x, viewportMinRegion.y + viewPortOffset.y };
+        m_ViewportBounds[1] = { viewportMaxRegion.x+ viewPortOffset.x, viewportMaxRegion.y + viewPortOffset.y };
 
         m_ViewportIsFocused = ImGui::IsWindowFocused();
         m_ViewportIsHovered = ImGui::IsWindowHovered();
@@ -233,29 +250,17 @@ namespace Povox {
         ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail();
         m_ViewportSize = { viewportPanelSize.x, viewportPanelSize.y };
 
-
         uint32_t textureID = m_Framebuffer->GetColorAttachmentRendererID(0);
         ImGui::Image(reinterpret_cast<void*>(textureID), ImVec2(m_ViewportSize.x, m_ViewportSize.y), ImVec2{ 0, 1 }, ImVec2{ 1, 0 });
         
-        auto windowSize = ImGui::GetWindowSize();
-        ImVec2 minBounds = ImGui::GetWindowPos();
-        minBounds.x += viewPortOffset.x;
-        minBounds.y += viewPortOffset.y;
-        
-        ImVec2 maxBounds = { minBounds.x + windowSize.x - viewPortOffset.x, minBounds.y + windowSize.y - viewPortOffset.y };
-        m_ViewportBounds[0] = { minBounds.x, minBounds.y };
-        m_ViewportBounds[1] = { maxBounds.x, maxBounds.y };
 
-        // Gizmos
+     // Gizmos
         Entity selectedEntity = m_SceneHierarchyPanel.GetSelectedEntity();
-
         if (selectedEntity && m_GizmoType != -1)
         {
             ImGuizmo::SetOrthographic(false);
             ImGuizmo::SetDrawlist();
-            float windowWidth = (float)ImGui::GetWindowWidth();
-            float windowHeight = (float)ImGui::GetWindowHeight();
-            ImGuizmo::SetRect(ImGui::GetWindowPos().x, ImGui::GetWindowPos().y, windowWidth, windowHeight);
+            ImGuizmo::SetRect(m_ViewportBounds[0].x, m_ViewportBounds[0].y, m_ViewportBounds[1].x - m_ViewportBounds[0].x, m_ViewportBounds[1].y - m_ViewportBounds[0].y);
 
             // Runtime camera
             //auto cameraEntity = m_ActiveScene->GetPrimaryCameraEntity();
@@ -264,44 +269,44 @@ namespace Povox {
             //const glm::mat4& cameraProjection = camera.GetProjection();
             //glm::mat4 cameraView = glm::inverse(cameraEntity.GetComponent<TransformComponent>().GetTransform());
             
-            // Editor Camera
-            
+            // Editor Camera            
             const glm::mat4& cameraProjection = m_EditorCamera.GetProjection();
             glm::mat4 cameraView = m_EditorCamera.GetViewMatrix();
+
+            // Entity Transform
+            auto& tc = selectedEntity.GetComponent<TransformComponent>();
+            glm::mat4 transform = tc.GetTransform();
 
             m_GizmoSnap = Input::IsKeyPressed(Key::LeftControl) || Input::IsKeyPressed(Key::RightControl);
             float snapValue = 0.5f;
             if (m_GizmoType == ImGuizmo::OPERATION::ROTATE)
                 snapValue = 45.0f;
-            glm::vec3 snapValues = { snapValue, snapValue, snapValue };
+
+            float snapValues[] = { snapValue, snapValue, snapValue };
 
             ImGui::Begin("Gizmos");
             ImGui::SameLine();
             switch ((ImGuizmo::OPERATION)m_GizmoType)
             {
             case ImGuizmo::TRANSLATE:
-                ImGui::InputFloat3("Snap", glm::value_ptr(snapValues));
+                ImGui::InputFloat3("Snap", &snapValues[0]);
                 break;
             case ImGuizmo::ROTATE:
-                ImGui::InputFloat3("Angle Snap", glm::value_ptr(snapValues));
+                ImGui::InputFloat3("Angle Snap", &snapValues[1]);
                 break;
             case ImGuizmo::SCALE:
-                ImGui::InputFloat3("Scale Snap", glm::value_ptr(snapValues));
+                ImGui::InputFloat3("Scale Snap", &snapValues[2]);
                 break;
             }
+
             ImGui::End();
-
-            //Entity
-            auto& tc = selectedEntity.GetComponent<TransformComponent>();
-            glm::mat4 entityTransform = tc.GetTransform();
-
             ImGuizmo::Manipulate(glm::value_ptr(cameraView), glm::value_ptr(cameraProjection), 
-                                    (ImGuizmo::OPERATION)m_GizmoType, ImGuizmo::LOCAL, glm::value_ptr(entityTransform), (float*)0, m_GizmoSnap ? glm::value_ptr(snapValues) : NULL);
+                                    (ImGuizmo::OPERATION)m_GizmoType, ImGuizmo::LOCAL, glm::value_ptr(transform), nullptr, m_GizmoSnap ? snapValues : nullptr);
 
             if (ImGuizmo::IsUsing())
             {
                 glm::vec3 translation, rotation, scale;
-                Math::DecomposeTransform(entityTransform, translation, rotation, scale);
+                Math::DecomposeTransform(transform, translation, rotation, scale);
                 glm::vec3 deltaRotation = rotation - tc.Rotation;
                 tc.Translation = translation;
                 tc.Rotation += deltaRotation;
@@ -337,6 +342,7 @@ namespace Povox {
 
         EventDispatcher dispatcher(e);
         dispatcher.Dispatch<KeyPressedEvent>(PX_BIND_EVENT_FN(EditorLayer::OnKeyPressed));
+        dispatcher.Dispatch<MouseButtonPressedEvent>(PX_BIND_EVENT_FN(EditorLayer::OnMouseButtonPressed));
     }
 
     bool EditorLayer::OnKeyPressed(KeyPressedEvent& e)
@@ -408,10 +414,24 @@ namespace Povox {
         }
     }
 
+    bool EditorLayer::OnMouseButtonPressed(MouseButtonPressedEvent& e)
+    {
+        bool isAltPressed = Input::IsKeyPressed(Key::LeftAlt) || Input::IsKeyPressed(Key::RightAlt);
+        switch (e.GetMouseButton())
+        {
+            case Mouse::ButtonLeft:
+            {
+                if(!isAltPressed && !ImGuizmo::IsOver() && m_ViewportIsHovered)
+                    m_SceneHierarchyPanel.SetSelectedEntity(m_HoveredEntity);
+                break;
+            }
+        }
+
+        return false;
+    }
+
     void EditorLayer::NewScene()
     {
-        m_CurrentScenePath.clear();
-
         m_ActiveScene = CreateRef<Scene>();
         m_ActiveScene->OnViewportResize((uint32_t)m_ViewportSize.x, (uint32_t)m_ViewportSize.y);
         m_SceneHierarchyPanel.SetContext(m_ActiveScene);
@@ -420,22 +440,23 @@ namespace Povox {
     void EditorLayer::OpenScene()
     {
         m_CurrentScenePath = FileDialog::OpenFile("Povox Scene (*.povox)\0*.povox\0");
-        if (!m_CurrentScenePath.empty())
+        if (m_CurrentScenePath)
         {
             m_ActiveScene = CreateRef<Scene>();
             m_ActiveScene->OnViewportResize((uint32_t)m_ViewportSize.x, (uint32_t)m_ViewportSize.y);
             m_SceneHierarchyPanel.SetContext(m_ActiveScene);
+
             SceneSerializer serializer(m_ActiveScene);
-            serializer.Deserialize(m_CurrentScenePath);
+            serializer.Deserialize(*m_CurrentScenePath);
         }
     }
 
     void EditorLayer::SaveScene()
     {
-        if (!m_CurrentScenePath.empty())
+        if (m_CurrentScenePath)
         {
             SceneSerializer serializer(m_ActiveScene);
-            serializer.Serialize(m_CurrentScenePath);
+            serializer.Serialize(*m_CurrentScenePath);
         }
         else
         {
@@ -446,7 +467,7 @@ namespace Povox {
     void EditorLayer::SaveSceneAs()
     {
         m_CurrentScenePath = FileDialog::SaveFile("Povox Scene (*.povox)\0*.povox\0");
-        if (!m_CurrentScenePath.empty())
+        if (m_CurrentScenePath)
         {
             SaveScene();
         }
