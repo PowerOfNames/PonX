@@ -6,6 +6,9 @@
 #include "Povox/Events/KeyEvent.h"
 
 #include "Platform/OpenGL/OpenGLContext.h"
+#include "Platform/Vulkan/VulkanContext.h"
+
+#include "Povox/Renderer/Renderer.h"
 
 
 namespace Povox {
@@ -50,7 +53,29 @@ namespace Povox {
 		}
 
 		m_Window = glfwCreateWindow((int)m_Data.Width, (int)m_Data.Height, m_Data.Title.c_str(), nullptr, nullptr);
-		m_Context = new OpenGLContext(m_Window);
+
+		switch (Renderer::GetAPI())
+		{
+			case RendererAPI::API::NONE:
+			{
+				PX_CORE_ASSERT(false, "RendererAPI::NONE is not supported!");
+				break;
+			}
+			case RendererAPI::API::OpenGL:
+			{
+				m_Context = new OpenGLContext(m_Window);
+				break;
+			}	
+			case RendererAPI::API::Vulkan:
+			{
+				m_Context = new VulkanContext(m_Window);
+				break;
+			}
+			default:
+			{
+				PX_CORE_ASSERT(false, "Unknown RendererAPI");
+			}
+		}
 		m_Context->Init();
 
 		glfwSetWindowUserPointer(m_Window, &m_Data);

@@ -1,0 +1,208 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="dxc">
+      <UniqueIdentifier>{246C880B-9075-887C-19F1-9E7C85F9937C}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="glslang">
+      <UniqueIdentifier>{0D19B900-79F8-379C-8210-C372EE6E9EFD}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="glslang\Include">
+      <UniqueIdentifier>{60655916-CCF0-C6DA-D501-4ACF410C23DB}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="glslang\MachineIndependent">
+      <UniqueIdentifier>{BF2E5350-AB3E-FF20-14F8-633F0027EEB9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="glslang\Public">
+      <UniqueIdentifier>{9B6BC528-8739-B92E-70CD-29555C3A9593}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="glslang\SPIRV">
+      <UniqueIdentifier>{F075CAB3-5C36-46EA-2571-8F6791F08AC6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="shaderc">
+      <UniqueIdentifier>{FF44D591-6B24-542D-743C-DF03E09ABA8E}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="spirv-headers">
+      <UniqueIdentifier>{62802470-CE40-A0A6-977B-E92303FBE482}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="spirv-tools">
+      <UniqueIdentifier>{77DCCB81-E391-4477-6C86-3E4ED83A3B7B}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="spirv_cross">
+      <UniqueIdentifier>{62D13BF5-CE86-B4EA-577B-AEC1C32FABEE}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="vk_video">
+      <UniqueIdentifier>{3C78CF74-2845-2A80-515E-18283D8A5F0E}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="vulkan">
+      <UniqueIdentifier>{F6FEA123-E2A0-CCF9-CB5B-E04DB79C534A}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="include\dxc\dxcapi.h">
+      <Filter>dxc</Filter>
+    </ClInclude>
+    <ClInclude Include="include\glslang\Include\BaseTypes.h">
+      <Filter>glslang\Include</Filter>
+    </ClInclude>
+    <ClInclude Include="include\glslang\Include\Common.h">
+      <Filter>glslang\Include</Filter>
+    </ClInclude>
+    <ClInclude Include="include\glslang\Include\ConstantUnion.h">
+      <Filter>glslang\Include</Filter>
+    </ClInclude>
+    <ClInclude Include="include\glslang\Include\PoolAlloc.h">
+      <Filter>glslang\Include</Filter>
+    </ClInclude>
+    <ClInclude Include="include\glslang\Include\ResourceLimits.h">
+      <Filter>glslang\Include</Filter>
+    </ClInclude>
+    <ClInclude Include="include\glslang\Include\Types.h">
+      <Filter>glslang\Include</Filter>
+    </ClInclude>
+    <ClInclude Include="include\glslang\Include\arrays.h">
+      <Filter>glslang\Include</Filter>
+    </ClInclude>
+    <ClInclude Include="include\glslang\Include\intermediate.h">
+      <Filter>glslang\Include</Filter>
+    </ClInclude>
+    <ClInclude Include="include\glslang\MachineIndependent\Versions.h">
+      <Filter>glslang\MachineIndependent</Filter>
+    </ClInclude>
+    <ClInclude Include="include\glslang\MachineIndependent\localintermediate.h">
+      <Filter>glslang\MachineIndependent</Filter>
+    </ClInclude>
+    <ClInclude Include="include\glslang\Public\ShaderLang.h">
+      <Filter>glslang\Public</Filter>
+    </ClInclude>
+    <ClInclude Include="include\glslang\SPIRV\GlslangToSpv.h">
+      <Filter>glslang\SPIRV</Filter>
+    </ClInclude>
+    <ClInclude Include="include\glslang\SPIRV\Logger.h">
+      <Filter>glslang\SPIRV</Filter>
+    </ClInclude>
+    <ClInclude Include="include\glslang\SPIRV\SPVRemapper.h">
+      <Filter>glslang\SPIRV</Filter>
+    </ClInclude>
+    <ClInclude Include="include\glslang\SPIRV\SpvTools.h">
+      <Filter>glslang\SPIRV</Filter>
+    </ClInclude>
+    <ClInclude Include="include\glslang\SPIRV\spvIR.h">
+      <Filter>glslang\SPIRV</Filter>
+    </ClInclude>
+    <ClInclude Include="include\shaderc\env.h">
+      <Filter>shaderc</Filter>
+    </ClInclude>
+    <ClInclude Include="include\shaderc\shaderc.h">
+      <Filter>shaderc</Filter>
+    </ClInclude>
+    <ClInclude Include="include\shaderc\status.h">
+      <Filter>shaderc</Filter>
+    </ClInclude>
+    <ClInclude Include="include\shaderc\visibility.h">
+      <Filter>shaderc</Filter>
+    </ClInclude>
+    <ClInclude Include="include\spirv-headers\GLSL.std.450.h">
+      <Filter>spirv-headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\spirv-headers\spirv.h">
+      <Filter>spirv-headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\spirv-tools\libspirv.h">
+      <Filter>spirv-tools</Filter>
+    </ClInclude>
+    <ClInclude Include="include\spirv_cross\GLSL.std.450.h">
+      <Filter>spirv_cross</Filter>
+    </ClInclude>
+    <ClInclude Include="include\spirv_cross\spirv.h">
+      <Filter>spirv_cross</Filter>
+    </ClInclude>
+    <ClInclude Include="include\spirv_cross\spirv_cross_c.h">
+      <Filter>spirv_cross</Filter>
+    </ClInclude>
+    <ClInclude Include="include\vk_video\vulkan_video_codec_h264std.h">
+      <Filter>vk_video</Filter>
+    </ClInclude>
+    <ClInclude Include="include\vk_video\vulkan_video_codec_h264std_decode.h">
+      <Filter>vk_video</Filter>
+    </ClInclude>
+    <ClInclude Include="include\vk_video\vulkan_video_codec_h264std_encode.h">
+      <Filter>vk_video</Filter>
+    </ClInclude>
+    <ClInclude Include="include\vk_video\vulkan_video_codec_h265std.h">
+      <Filter>vk_video</Filter>
+    </ClInclude>
+    <ClInclude Include="include\vk_video\vulkan_video_codec_h265std_decode.h">
+      <Filter>vk_video</Filter>
+    </ClInclude>
+    <ClInclude Include="include\vk_video\vulkan_video_codecs_common.h">
+      <Filter>vk_video</Filter>
+    </ClInclude>
+    <ClInclude Include="include\vulkan\vk_enum_string_helper.h">
+      <Filter>vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="include\vulkan\vk_icd.h">
+      <Filter>vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="include\vulkan\vk_layer.h">
+      <Filter>vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="include\vulkan\vk_platform.h">
+      <Filter>vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="include\vulkan\vk_sdk_platform.h">
+      <Filter>vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="include\vulkan\vulkan.h">
+      <Filter>vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="include\vulkan\vulkan_android.h">
+      <Filter>vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="include\vulkan\vulkan_beta.h">
+      <Filter>vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="include\vulkan\vulkan_core.h">
+      <Filter>vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="include\vulkan\vulkan_directfb.h">
+      <Filter>vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="include\vulkan\vulkan_fuchsia.h">
+      <Filter>vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="include\vulkan\vulkan_ggp.h">
+      <Filter>vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="include\vulkan\vulkan_ios.h">
+      <Filter>vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="include\vulkan\vulkan_macos.h">
+      <Filter>vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="include\vulkan\vulkan_metal.h">
+      <Filter>vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="include\vulkan\vulkan_screen.h">
+      <Filter>vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="include\vulkan\vulkan_vi.h">
+      <Filter>vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="include\vulkan\vulkan_wayland.h">
+      <Filter>vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="include\vulkan\vulkan_win32.h">
+      <Filter>vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="include\vulkan\vulkan_xcb.h">
+      <Filter>vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="include\vulkan\vulkan_xlib.h">
+      <Filter>vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="include\vulkan\vulkan_xlib_xrandr.h">
+      <Filter>vulkan</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

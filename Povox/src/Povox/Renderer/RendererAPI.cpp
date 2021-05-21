@@ -3,6 +3,7 @@
 
 namespace Povox {
 
-	RendererAPI::API RendererAPI::s_API = RendererAPI::API::OpenGL;
+	//TODO: Make this swappable!
+	RendererAPI::API RendererAPI::s_API = RendererAPI::API::Vulkan;
 
 }

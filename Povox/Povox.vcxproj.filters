@@ -10,6 +10,9 @@
     <Filter Include="src\Platform\OpenGL">
       <UniqueIdentifier>{35A49437-A105-7245-2A73-B8F796D3A804}</UniqueIdentifier>
     </Filter>
+    <Filter Include="src\Platform\Vulkan">
+      <UniqueIdentifier>{81084748-ED69-2456-76D7-6A08E2375B15}</UniqueIdentifier>
+    </Filter>
     <Filter Include="src\Platform\Windows">
       <UniqueIdentifier>{5B054582-4794-CE4B-F0B2-E246DC20DFF1}</UniqueIdentifier>
     </Filter>
@@ -27,6 +30,9 @@
     </Filter>
     <Filter Include="src\Povox\ImGui">
       <UniqueIdentifier>{C2E00D1B-2E6C-7BDF-377D-FED3A387D7DF}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\Povox\Math">
+      <UniqueIdentifier>{71BD3894-5D8B-2C9A-461F-9DC0328C08FF}</UniqueIdentifier>
     </Filter>
     <Filter Include="src\Povox\Renderer">
       <UniqueIdentifier>{3E287017-2A0C-316D-936C-2BC07F6F1BEF}</UniqueIdentifier>
@@ -86,6 +92,9 @@
     </ClInclude>
     <ClInclude Include="src\Platform\OpenGL\OpenGLVertexArray.h">
       <Filter>src\Platform\OpenGL</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Platform\Vulkan\VulkanContext.h">
+      <Filter>src\Platform\Vulkan</Filter>
     </ClInclude>
     <ClInclude Include="src\Platform\Windows\WindowsWindow.h">
       <Filter>src\Platform\Windows</Filter>
@@ -147,10 +156,16 @@
     <ClInclude Include="src\Povox\ImGui\ImGuiLayer.h">
       <Filter>src\Povox\ImGui</Filter>
     </ClInclude>
+    <ClInclude Include="src\Povox\Math\Math.h">
+      <Filter>src\Povox\Math</Filter>
+    </ClInclude>
     <ClInclude Include="src\Povox\Renderer\Buffer.h">
       <Filter>src\Povox\Renderer</Filter>
     </ClInclude>
     <ClInclude Include="src\Povox\Renderer\Camera.h">
+      <Filter>src\Povox\Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Povox\Renderer\EditorCamera.h">
       <Filter>src\Povox\Renderer</Filter>
     </ClInclude>
     <ClInclude Include="src\Povox\Renderer\Framebuffer.h">
@@ -1332,8 +1347,6 @@
     <ClInclude Include="vendor\stb_image\stb_image.h">
       <Filter>vendor\stb_image</Filter>
     </ClInclude>
-    <ClInclude Include="src\Povox\Math\Math.h" />
-    <ClInclude Include="src\Povox\Renderer\EditorCamera.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Platform\OpenGL\OpenGLBuffer.cpp">
@@ -1356,6 +1369,9 @@
     </ClCompile>
     <ClCompile Include="src\Platform\OpenGL\OpenGLVertexArray.cpp">
       <Filter>src\Platform\OpenGL</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Platform\Vulkan\VulkanContext.cpp">
+      <Filter>src\Platform\Vulkan</Filter>
     </ClCompile>
     <ClCompile Include="src\Platform\Windows\WindowsInput.cpp">
       <Filter>src\Platform\Windows</Filter>
@@ -1387,7 +1403,13 @@
     <ClCompile Include="src\Povox\ImGui\ImGuiLayer.cpp">
       <Filter>src\Povox\ImGui</Filter>
     </ClCompile>
+    <ClCompile Include="src\Povox\Math\Math.cpp">
+      <Filter>src\Povox\Math</Filter>
+    </ClCompile>
     <ClCompile Include="src\Povox\Renderer\Buffer.cpp">
+      <Filter>src\Povox\Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Povox\Renderer\EditorCamera.cpp">
       <Filter>src\Povox\Renderer</Filter>
     </ClCompile>
     <ClCompile Include="src\Povox\Renderer\Framebuffer.cpp">
@@ -1453,7 +1475,5 @@
     <ClCompile Include="vendor\stb_image\stb_image.cpp">
       <Filter>vendor\stb_image</Filter>
     </ClCompile>
-    <ClCompile Include="src\Povox\Math\Math.cpp" />
-    <ClCompile Include="src\Povox\Renderer\EditorCamera.cpp" />
   </ItemGroup>
 </Project>
