@@ -15,7 +15,7 @@ outputdir = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"
 IncludeDir = {}
 IncludeDir["GLFW"] = ("Povox/vendor/GLFW/include")
 IncludeDir["Glad"] = ("Povox/vendor/Glad/include")
-IncludeDir["Vulkan"] = ("Povox/vendor/Vulkan/include")
+IncludeDir["Vulkan"] = ("Povox/vendor/Vulkan/Include")
 IncludeDir["ImGui"] = ("Povox/vendor/ImGui")
 IncludeDir["glm"] = ("Povox/vendor/glm")
 IncludeDir["stb_image"] = ("Povox/vendor/stb_image")
@@ -28,7 +28,6 @@ IncludeDir["ImGuizmo"] = ("Povox/vendor/ImGuizmo")
 group "Dependencies"
 	include "Povox/vendor/GLFW"
 	include "Povox/vendor/Glad"
-	include "Povox/vendor/Vulkan"
 	include "Povox/vendor/ImGui"
 	include "Povox/vendor/yaml-cpp"
 
@@ -73,28 +72,28 @@ project "Povox"
 		"%{prj.name}/vendor/spdlog/include",
 		"%{IncludeDir.GLFW}",
 		"%{IncludeDir.Glad}",
-		"%{IncludeDir.Vulkan}",
 		"%{IncludeDir.ImGui}",
 		"%{IncludeDir.glm}",
 		"%{IncludeDir.stb_image}",
 		"%{IncludeDir.entt}",
 		"%{IncludeDir.yaml_cpp}",
-		"%{IncludeDir.ImGuizmo}"
+		"%{IncludeDir.ImGuizmo}",
+		"%{IncludeDir.Vulkan}"
 	}
 
 	links
 	{
 		"GLFW",
 		"Glad",
-		"Vulkan",
 		"ImGui",
 		"yaml-cpp",
-		"opengl32.lib"
+		"opengl32.lib",
+		"vulkan-1.lib"
 	}
-
+	
 	libdirs
 	{
-		"{prj.name}/vendor/Vulkan/lib/vulkan-1.lib"
+		"%{prj.name}/vendor/Vulkan/Lib"
 	}
 
 	filter "files:Povox/vendor/ImGuizmo/**.cpp"

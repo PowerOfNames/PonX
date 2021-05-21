@@ -23,7 +23,7 @@ namespace Povox {
 		glEnable(GL_DEPTH_TEST);
 	}
 
-	void OpenGLRendererAPI::SetClearColor(glm::vec4 clearColor)
+	void OpenGLRendererAPI::SetClearColor(const glm::vec4& clearColor)
 	{
 		PX_PROFILE_FUNCTION();
 
@@ -53,7 +53,7 @@ namespace Povox {
 
 		uint32_t count = indexCount ? vertexArray->GetIndexBuffer()->GetCount() : indexCount;
 
-		//vertexArray->Bind();
+
 		glDrawElements(GL_TRIANGLES, count, GL_UNSIGNED_INT, nullptr);
 		glBindTexture(GL_TEXTURE_2D, 0);
 	}

@@ -15,6 +15,8 @@ namespace Povox {
 		glm::vec2 TexCoord;
 		float TexID;
 		float TilingFactor;
+
+		//Editor only
 		int EntityID;
 	};
 

@@ -2,6 +2,7 @@
 #include "Povox/Renderer/RenderCommand.h"
 
 #include "Platform/OpenGL/OpenGLRendererAPI.h"
+#include "Platform/Vulkan/VulkanRendererAPI.h"
 
 namespace Povox {
 
