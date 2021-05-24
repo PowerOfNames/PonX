@@ -13,6 +13,7 @@ namespace Povox {
 
 		virtual void Init() override;
 		virtual void SwapBuffers() override;
+		virtual void Shutdown() override;
 
 	private:
 		GLFWwindow* m_WindowHandle;

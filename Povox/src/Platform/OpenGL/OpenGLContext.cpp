@@ -36,6 +36,15 @@ namespace Povox {
 		#endif
 	}
 
+	void OpenGLContext::Shutdown()
+	{
+		PX_PROFILE_FUNCTION();
+
+
+		glfwDestroyWindow(m_WindowHandle);
+		glfwTerminate();
+	}
+
 	void OpenGLContext::SwapBuffers()
 	{
 		PX_PROFILE_FUNCTION();

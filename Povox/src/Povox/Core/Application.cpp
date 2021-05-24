@@ -4,6 +4,7 @@
 #include "Povox/Core/Log.h"
 #include "Povox/Core/Input.h"
 #include "Povox/Renderer/Renderer.h"
+#include "Povox/Renderer/RendererAPI.h"
 #include "Povox/Core/Timestep.h"
 
 #include <GLFW/glfw3.h>
@@ -21,13 +22,17 @@ namespace Povox {
 		PX_CORE_ASSERT(!s_Instance, "Application already exists!");
 		s_Instance = this;
 
+		//Set Graphics API to Vulkan when available, else to OpenGL
+		RendererAPI::SetAPI(RendererAPI::API::Vulkan);
+
 		m_Window = Window::Create();
 		m_Window->SetEventCallback(PX_BIND_EVENT_FN(Application::OnEvent));
 
 		Renderer::Init();
 		
-		m_ImGuiLayer = new ImGuiLayer();
-		PushOverlay(m_ImGuiLayer);
+		//TODO set VulkanImGuiLayer if Vulkan is used
+		//m_ImGuiLayer = new ImGuiLayer();
+		//PushOverlay(m_ImGuiLayer);
 	}
 
 	Application::~Application() 
@@ -91,13 +96,14 @@ namespace Povox {
 				}
 			}
 			// To be executed on the Render thread
+			/* disabled while there is no VulkanImGuiLayer
 			m_ImGuiLayer->Begin();
 			for (Layer* layer : m_Layerstack)
 			{
 				layer->OnImGuiRender();
 			}
 			m_ImGuiLayer->End();
-
+			*/
 			m_Window->OnUpdate();
 		}
 	}

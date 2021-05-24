@@ -64,11 +64,17 @@ namespace Povox {
 			case RendererAPI::API::OpenGL:
 			{
 				m_Context = new OpenGLContext(m_Window);
+				PX_CORE_INFO("Created OpenGLContext");
 				break;
 			}	
 			case RendererAPI::API::Vulkan:
 			{
+				glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+				glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+
 				m_Context = new VulkanContext(m_Window);
+				PX_CORE_INFO("Created VulkanContext");
+
 				break;
 			}
 			default:
@@ -79,7 +85,7 @@ namespace Povox {
 		m_Context->Init();
 
 		glfwSetWindowUserPointer(m_Window, &m_Data);
-		SetVSync(true);
+		SetVSync(false);
 
 		// Set GLFW callbacks
 	// --- Window
@@ -196,7 +202,7 @@ namespace Povox {
 		PX_PROFILE_FUNCTION();
 
 
-		glfwDestroyWindow(m_Window);
+		m_Context->Shutdown();
 	}
 
 	void WindowsWindow::OnUpdate()
@@ -205,18 +211,19 @@ namespace Povox {
 
 
 		glfwPollEvents();
-		m_Context->SwapBuffers();
+		//m_Context->SwapBuffers();
 	}
 
 	void WindowsWindow::SetVSync(bool enabled)
 	{
 		PX_PROFILE_FUNCTION();
 
-
+		/*
 		if (enabled)
 			glfwSwapInterval(1);
 		else
 			glfwSwapInterval(0);
+		*/
 
 		m_Data.VSync = enabled;
 	}

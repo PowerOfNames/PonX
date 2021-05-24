@@ -1,1 +1,1 @@
-{"otherData": {},"traceEvents":[{},{"cat":"function","dur":19110,"name":"void __cdecl Povox::WindowsWindow::Shutdown(void)","ph":"X","pid":0,"tid":9444,"ts":95100748596.800}]}
+{"otherData": {},"traceEvents":[{},{"cat":"function","dur":29428,"name":"void __cdecl Povox::VulkanContext::Shutdown(void)","ph":"X","pid":0,"tid":1568,"ts":342839235655.500},{"cat":"function","dur":29587,"name":"void __cdecl Povox::WindowsWindow::Shutdown(void)","ph":"X","pid":0,"tid":1568,"ts":342839235654.900}]}
