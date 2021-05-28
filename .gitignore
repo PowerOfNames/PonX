@@ -3,7 +3,9 @@
 bin/
 bin-int/
 Povox/vendor/Vulkan/Bin/
-*.profiling/
+Sandbox/profiling/
+Povox/profiling/
+Povosom/profiling/
 
 # Files
 *.user
