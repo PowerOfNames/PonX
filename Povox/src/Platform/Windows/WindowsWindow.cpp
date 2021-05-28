@@ -52,8 +52,6 @@ namespace Povox {
 			s_GLFWinitialized = true;
 		}
 
-		m_Window = glfwCreateWindow((int)m_Data.Width, (int)m_Data.Height, m_Data.Title.c_str(), nullptr, nullptr);
-
 		switch (Renderer::GetAPI())
 		{
 			case RendererAPI::API::NONE:
@@ -63,18 +61,18 @@ namespace Povox {
 			}
 			case RendererAPI::API::OpenGL:
 			{
+				m_Window = glfwCreateWindow((int)m_Data.Width, (int)m_Data.Height, m_Data.Title.c_str(), nullptr, nullptr);
 				m_Context = new OpenGLContext(m_Window);
 				PX_CORE_INFO("Created OpenGLContext");
 				break;
 			}	
 			case RendererAPI::API::Vulkan:
 			{
-				glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+				glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API); // we dont need a contzext for Vulkan
 				glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
-
+				m_Window = glfwCreateWindow((int)m_Data.Width, (int)m_Data.Height, m_Data.Title.c_str(), nullptr, nullptr);
 				m_Context = new VulkanContext(m_Window);
 				PX_CORE_INFO("Created VulkanContext");
-
 				break;
 			}
 			default:
