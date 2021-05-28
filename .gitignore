@@ -3,6 +3,7 @@
 bin/
 bin-int/
 Povox/vendor/Vulkan/Bin/
+*.profiling/
 
 # Files
 *.user
