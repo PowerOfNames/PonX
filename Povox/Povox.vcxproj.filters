@@ -1348,6 +1348,7 @@
       <Filter>vendor\stb_image</Filter>
     </ClInclude>
     <ClInclude Include="src\Platform\Vulkan\VulkanRendererAPI.h" />
+    <ClInclude Include="src\Platform\Vulkan\VulkanLookups.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Platform\OpenGL\OpenGLBuffer.cpp">
