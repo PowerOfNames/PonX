@@ -4,7 +4,6 @@
 
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
-
 #include <vulkan/vulkan.h>
 
 struct GLFWwindow;
@@ -36,6 +35,8 @@ namespace Povox {
 		virtual void Init() override;
 		virtual void SwapBuffers() override;
 		virtual void Shutdown() override;
+
+		static std::vector<char> ReadFile(const std::string& filepath);
 
 		static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
 		VkDebugUtilsMessageTypeFlagsEXT messageType,
@@ -69,6 +70,10 @@ namespace Povox {
 
 		void CreateImageViews();
 		
+		// Graphics Pipeline
+		void CreateGraphicsPipeline();
+		VkShaderModule CreateShaderModule(const std::vector<char>& code);
+		
 		// Extensions
 		void CreateSwapchain();
 		void CheckRequiredExtensions(const char** extensions, uint32_t glfWExtensionsCount);
@@ -92,6 +97,8 @@ namespace Povox {
 		std::vector<VkImageView> m_SwapchainImageViews;
 		VkFormat m_SwapchainImageFormat;
 		VkExtent2D m_SwapchainExtent;
+
+		VkPipelineLayout m_PipelineLayout;
 
 		const std::vector<const char*> m_ValidationLayers = { "VK_LAYER_KHRONOS_validation" };
 		const std::vector<const char*> m_DeviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };

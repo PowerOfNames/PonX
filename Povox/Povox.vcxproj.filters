@@ -1479,4 +1479,8 @@
     </ClCompile>
     <ClCompile Include="src\Platform\Vulkan\VulkanRendererAPI.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="src\Platform\Vulkan\shader.vert" />
+    <None Include="src\Platform\Vulkan\shader.frag" />
+  </ItemGroup>
 </Project>
