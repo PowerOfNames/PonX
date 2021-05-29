@@ -33,16 +33,16 @@ namespace Povox {
 		VulkanContext(GLFWwindow* windowHandle);
 
 		virtual void Init() override;
+		virtual void DrawFrame() override;
 		virtual void SwapBuffers() override;
 		virtual void Shutdown() override;
 
-		static std::vector<char> ReadFile(const std::string& filepath);
 
+		// Debug
 		static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
 		VkDebugUtilsMessageTypeFlagsEXT messageType,
 		const VkDebugUtilsMessengerCallbackDataEXT* callbackData,
 		void* userData);
-
 
 	private:
 		void CreateInstance();
@@ -70,6 +70,9 @@ namespace Povox {
 
 		void CreateImageViews();
 		
+		// Renderpass
+		void CreateRenderPass();
+
 		// Graphics Pipeline
 		void CreateGraphicsPipeline();
 		VkShaderModule CreateShaderModule(const std::vector<char>& code);
@@ -81,6 +84,17 @@ namespace Povox {
 		bool CheckValidationLayerSupport();
 		bool CheckDeviceExtensionSupport(VkPhysicalDevice device);
 
+		// Framebuffers
+		void CreateFramebuffers();
+
+		// Commands
+		void CreateCommandPool();
+		void CreateCommandBuffers();
+
+		// Semaphores
+		void CreateSemaphores();
+
+		std::vector<char> ReadFile(const std::string& filepath);
 	private:
 		GLFWwindow* m_WindowHandle;
 		VkInstance m_Instance;
@@ -98,7 +112,17 @@ namespace Povox {
 		VkFormat m_SwapchainImageFormat;
 		VkExtent2D m_SwapchainExtent;
 
+		std::vector<VkFramebuffer> m_SwapchainFramebuffers;
+
+		VkRenderPass m_RenderPass;
 		VkPipelineLayout m_PipelineLayout;
+		VkPipeline m_GraphicsPipeline;
+
+		VkCommandPool m_CommandPool;
+		std::vector<VkCommandBuffer> m_CommandBuffers;
+
+		VkSemaphore m_ImageAvailableSemaphore;
+		VkSemaphore m_RenderFinishedSemaphore;
 
 		const std::vector<const char*> m_ValidationLayers = { "VK_LAYER_KHRONOS_validation" };
 		const std::vector<const char*> m_DeviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
@@ -107,8 +131,7 @@ namespace Povox {
 		const bool m_EnableValidationLayers = true;
 #else
 		const bool m_EnableValidationLayers = false;
-#endif // 
+#endif
 
 	};
-
 }

@@ -209,7 +209,7 @@ namespace Povox {
 
 
 		glfwPollEvents();
-		//m_Context->SwapBuffers();
+		m_Context->DrawFrame();
 	}
 
 	void WindowsWindow::SetVSync(bool enabled)

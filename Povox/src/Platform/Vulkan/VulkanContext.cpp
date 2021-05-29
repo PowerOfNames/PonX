@@ -27,7 +27,77 @@ namespace Povox {
 		CreateLogicalDevice();
 		CreateSwapchain();
 		CreateImageViews();
+		CreateRenderPass();
 		CreateGraphicsPipeline();
+		CreateFramebuffers();
+		CreateCommandPool();
+		CreateCommandBuffers();
+		CreateSemaphores();
+	}
+
+	void VulkanContext::Shutdown()
+	{
+		PX_PROFILE_FUNCTION();
+
+
+		vkDestroySemaphore(m_Device, m_ImageAvailableSemaphore, nullptr);
+		vkDestroySemaphore(m_Device, m_RenderFinishedSemaphore, nullptr);
+		vkDestroyCommandPool(m_Device, m_CommandPool, nullptr);
+		for (auto framebuffer : m_SwapchainFramebuffers)
+		{
+			vkDestroyFramebuffer(m_Device, framebuffer, nullptr);
+		}
+		vkDestroyPipeline(m_Device, m_GraphicsPipeline, nullptr);
+		vkDestroyPipelineLayout(m_Device, m_PipelineLayout, nullptr);
+		vkDestroyRenderPass(m_Device, m_RenderPass, nullptr);
+		for (auto imageView : m_SwapchainImageViews)
+		{
+			vkDestroyImageView(m_Device, imageView, nullptr);
+		}
+		vkDestroySwapchainKHR(m_Device, m_Swapchain, nullptr);
+		vkDestroyDevice(m_Device, nullptr);
+		if (m_EnableValidationLayers)
+			DestroyDebugUtilsMessengerEXT(m_Instance, m_DebugMessenger, nullptr);
+		vkDestroySurfaceKHR(m_Instance, m_Surface, nullptr);
+		vkDestroyInstance(m_Instance, nullptr);
+		glfwDestroyWindow(m_WindowHandle);
+		glfwTerminate();
+	}
+
+	void VulkanContext::DrawFrame()
+	{
+		uint32_t imageIndex;
+		vkAcquireNextImageKHR(m_Device, m_Swapchain, UINT64_MAX /*disables timeout*/, m_ImageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
+
+		VkSubmitInfo submitInfo{};
+		submitInfo.sType				= VK_STRUCTURE_TYPE_SUBMIT_INFO;
+
+		VkSemaphore waitSemaphores[] = { m_ImageAvailableSemaphore };
+		VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+		submitInfo.waitSemaphoreCount	= 1;
+		submitInfo.pWaitSemaphores		= waitSemaphores;
+		submitInfo.pWaitDstStageMask	= waitStages;
+		submitInfo.commandBufferCount	= 1;
+		submitInfo.pCommandBuffers		= &m_CommandBuffers[imageIndex];
+
+		VkSemaphore signalSemaphores[] = { m_RenderFinishedSemaphore };
+		submitInfo.signalSemaphoreCount = 1;
+		submitInfo.pSignalSemaphores	= signalSemaphores;
+
+		PX_CORE_ASSERT(vkQueueSubmit(m_GraphicsQueue, 1, &submitInfo, VK_NULL_HANDLE) == VK_SUCCESS, "Failed to submit draw render buffer!");
+
+		VkPresentInfoKHR presentInfo{};
+		presentInfo.sType				= VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+		presentInfo.waitSemaphoreCount	= 1;
+		presentInfo.pWaitSemaphores		= signalSemaphores;
+
+		VkSwapchainKHR swapchains[] = { m_Swapchain };
+		presentInfo.swapchainCount		= 1;
+		presentInfo.pSwapchains			= swapchains;
+		presentInfo.pImageIndices		= &imageIndex;
+		presentInfo.pResults			= nullptr;		// optional
+
+		vkQueuePresentKHR(m_PresentQueue, &presentInfo);
 	}
 
 	void VulkanContext::CreateInstance()
@@ -73,26 +143,6 @@ namespace Povox {
 		PX_CORE_ASSERT(result == VK_SUCCESS, "Failed to create Vulkan Instance");
 	}
 
-	void VulkanContext::Shutdown()
-	{
-		PX_PROFILE_FUNCTION();
-
-
-		vkDestroyPipelineLayout(m_Device, m_PipelineLayout, nullptr);
-		for (auto imageView : m_SwapchainImageViews)
-		{
-			vkDestroyImageView(m_Device, imageView, nullptr);
-		}
-		vkDestroySwapchainKHR(m_Device, m_Swapchain, nullptr);
-		vkDestroyDevice(m_Device, nullptr);		
-		if (m_EnableValidationLayers)
-			DestroyDebugUtilsMessengerEXT(m_Instance, m_DebugMessenger, nullptr);
-		vkDestroySurfaceKHR(m_Instance, m_Surface, nullptr);
-		vkDestroyInstance(m_Instance, nullptr);
-		glfwDestroyWindow(m_WindowHandle);
-		glfwTerminate();
-	}
-
 	void VulkanContext::SwapBuffers()
 	{
 		PX_PROFILE_FUNCTION();
@@ -100,7 +150,6 @@ namespace Povox {
 
 
 	}
-
 
 	void VulkanContext::SetupDebugMessenger()
 	{
@@ -394,6 +443,53 @@ namespace Povox {
 		}
 	}
 
+// Render pass
+	void VulkanContext::CreateRenderPass()
+	{
+		VkAttachmentDescription colorAttachment{};
+		colorAttachment.format			= m_SwapchainImageFormat;
+		colorAttachment.samples			= VK_SAMPLE_COUNT_1_BIT;		// format of swapchain images
+		colorAttachment.loadOp			= VK_ATTACHMENT_LOAD_OP_CLEAR;	// load and store ops determine what to do with the data before rendering (apply to depth data)
+		colorAttachment.storeOp			= VK_ATTACHMENT_STORE_OP_STORE;
+		colorAttachment.stencilLoadOp	= VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+		colorAttachment.stencilStoreOp	= VK_ATTACHMENT_STORE_OP_DONT_CARE;
+		colorAttachment.initialLayout	= VK_IMAGE_LAYOUT_UNDEFINED;
+		colorAttachment.finalLayout		= VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;		// we want the image to be ready for presentation in the swapchain, so final is present layout
+		// Layout is importent to know, because the next operation the image is involved in needs that
+		// initial is before render pass, final is the layout the imiga is automatically transitioned to after the render pass finishes
+
+		// Subpasses  -> usefull for example to create a sequence of post processing effects
+		VkAttachmentReference colorAttachmentRef{};
+		colorAttachmentRef.attachment	= 0;		// index in attachment description array
+		colorAttachmentRef.layout		= VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+		VkSubpassDescription subpass{};
+		subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+		subpass.colorAttachmentCount = 1;
+		subpass.pColorAttachments = &colorAttachmentRef;
+
+		VkSubpassDependency dependency{};
+		dependency.srcSubpass = VK_SUBPASS_EXTERNAL;	// refers to before or after the render pass depending on it being specified on src or dst
+		dependency.dstSubpass = 0;						// index of subpass, dstSubpass must always be higher then src subpass unless on of them is VK_SUBPASS_EXTERNAL
+		dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT; // operation to wait on
+		dependency.srcAccessMask = 0;
+		dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+		dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
+
+		VkRenderPassCreateInfo renderPassInfo{};
+		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+		renderPassInfo.attachmentCount = 1;
+		renderPassInfo.pAttachments = &colorAttachment;
+		renderPassInfo.subpassCount = 1;
+		renderPassInfo.pSubpasses = &subpass;
+		renderPassInfo.dependencyCount = 1;
+		renderPassInfo.pDependencies = &dependency;
+
+		PX_CORE_ASSERT(vkCreateRenderPass(m_Device, &renderPassInfo, nullptr, &m_RenderPass) == VK_SUCCESS, "Failed to create render pass!");
+	}
+
+// Graphics Pipeline
 	void VulkanContext::CreateGraphicsPipeline()
 	{
 		auto vertexShaderCode = ReadFile("assets/shaders/vert.spv");
@@ -428,10 +524,10 @@ namespace Povox {
 
 
 		// Kind of geometry and (primitive restart?)
-		VkPipelineInputAssemblyStateCreateInfo assemblyInfo{};
-		assemblyInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-		assemblyInfo.topology					= VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
-		assemblyInfo.primitiveRestartEnable		= VK_FALSE;
+		VkPipelineInputAssemblyStateCreateInfo assemblyStateInfo{};
+		assemblyStateInfo.sType						= VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+		assemblyStateInfo.topology					= VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
+		assemblyStateInfo.primitiveRestartEnable	= VK_FALSE;
 
 
 		// Vieports and scissors
@@ -444,30 +540,30 @@ namespace Povox {
 		viewport.maxDepth	= 1.0f;
 
 		VkRect2D scissor;
-		scissor.offset = { 0.0f, 0.0f };
+		scissor.offset = { 0, 0 };
 		scissor.extent = m_SwapchainExtent;
 
-		VkPipelineViewportStateCreateInfo viewportInfo{};
-		viewportInfo.sType				= VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
-		viewportInfo.viewportCount		= 1;
-		viewportInfo.pViewports			= &viewport;
-		viewportInfo.scissorCount		= 1;
-		viewportInfo.pScissors			= &scissor;
+		VkPipelineViewportStateCreateInfo viewportStateInfo{};
+		viewportStateInfo.sType				= VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+		viewportStateInfo.viewportCount		= 1;
+		viewportStateInfo.pViewports		= &viewport;
+		viewportStateInfo.scissorCount		= 1;
+		viewportStateInfo.pScissors			= &scissor;
 
 
 		// Rasterizer -> rasterization, face culling, depth testing, scissoring, wire frame rendering
-		VkPipelineRasterizationStateCreateInfo rasterizationInfo{};
-		rasterizationInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
-		rasterizationInfo.depthClampEnable			= VK_FALSE;								// if true, too near or too far fragments will be clamped instead of discareded
-		rasterizationInfo.rasterizerDiscardEnable	= VK_FALSE;								// if true, geometry will never be rasterized, so there will be no output to the framebuffer
-		rasterizationInfo.polygonMode				= VK_POLYGON_MODE_FILL;					// determines if filled, lines or point shall be rendered
-		rasterizationInfo.lineWidth					= 1.0f;									// thicker then 1.0f reuires wideLine GPU feature
-		rasterizationInfo.cullMode					= VK_CULL_MODE_BACK_BIT;				// 
-		rasterizationInfo.frontFace					= VK_FRONT_FACE_CLOCKWISE;
-		rasterizationInfo.depthBiasEnable			= VK_FALSE;
-		rasterizationInfo.depthBiasClamp			= 0.0f;		//	optional
-		rasterizationInfo.depthBiasConstantFactor	= 0.0f;		//	optional
-		rasterizationInfo.depthBiasSlopeFactor		= 0.0f;		//	optional
+		VkPipelineRasterizationStateCreateInfo rasterizationStateInfo{};
+		rasterizationStateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+		rasterizationStateInfo.depthClampEnable			= VK_FALSE;								// if true, too near or too far fragments will be clamped instead of discareded
+		rasterizationStateInfo.rasterizerDiscardEnable	= VK_FALSE;								// if true, geometry will never be rasterized, so there will be no output to the framebuffer
+		rasterizationStateInfo.polygonMode				= VK_POLYGON_MODE_FILL;					// determines if filled, lines or point shall be rendered
+		rasterizationStateInfo.lineWidth				= 1.0f;									// thicker then 1.0f reuires wideLine GPU feature
+		rasterizationStateInfo.cullMode					= VK_CULL_MODE_BACK_BIT;				// 
+		rasterizationStateInfo.frontFace				= VK_FRONT_FACE_CLOCKWISE;
+		rasterizationStateInfo.depthBiasEnable			= VK_FALSE;
+		rasterizationStateInfo.depthBiasClamp			= 0.0f;		//	optional
+		rasterizationStateInfo.depthBiasConstantFactor	= 0.0f;		//	optional
+		rasterizationStateInfo.depthBiasSlopeFactor		= 0.0f;		//	optional
 
 
 		// Multisampling   -> one way to anti-aliasing			(enabling also rewuires a GPU feature)
@@ -505,16 +601,16 @@ namespace Povox {
 		finalColor = finalColor & colorWriteMask;		
 		*/
 
-		VkPipelineColorBlendStateCreateInfo colorBlendInfo{};
-		colorBlendInfo.sType				= VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
-		colorBlendInfo.logicOpEnable		= VK_FALSE;
-		colorBlendInfo.logicOp				= VK_LOGIC_OP_COPY;
-		colorBlendInfo.attachmentCount		= 1;
-		colorBlendInfo.pAttachments			= &colorBlendAttachment;
-		colorBlendInfo.blendConstants[0]	= 0.0f;
-		colorBlendInfo.blendConstants[1]	= 0.0f;
-		colorBlendInfo.blendConstants[2]	= 0.0f;
-		colorBlendInfo.blendConstants[3]	= 0.0f;
+		VkPipelineColorBlendStateCreateInfo colorBlendStateInfo{};
+		colorBlendStateInfo.sType				= VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+		colorBlendStateInfo.logicOpEnable		= VK_FALSE;
+		colorBlendStateInfo.logicOp				= VK_LOGIC_OP_COPY;
+		colorBlendStateInfo.attachmentCount		= 1;
+		colorBlendStateInfo.pAttachments			= &colorBlendAttachment;
+		colorBlendStateInfo.blendConstants[0]	= 0.0f;
+		colorBlendStateInfo.blendConstants[1]	= 0.0f;
+		colorBlendStateInfo.blendConstants[2]	= 0.0f;
+		colorBlendStateInfo.blendConstants[3]	= 0.0f;
 
 
 		// Dynamic state  -> allows to modify some of the states above during runtime without recreating the pipeline, such as blend constants, line width and viewport
@@ -541,6 +637,30 @@ namespace Povox {
 		PX_CORE_ASSERT(vkCreatePipelineLayout(m_Device, &layoutInfo, nullptr, &m_PipelineLayout) == VK_SUCCESS, "Failed to create pipeline layout!");
 
 
+		// The Pipeline
+		VkGraphicsPipelineCreateInfo pipelineInfo{};
+		pipelineInfo.sType					= VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+		pipelineInfo.stageCount				= 2;
+		pipelineInfo.pStages				= shaderStages;
+		pipelineInfo.pVertexInputState		= &vertexStateInfo;
+		pipelineInfo.pInputAssemblyState	= &assemblyStateInfo;
+		pipelineInfo.pViewportState			= &viewportStateInfo;
+		pipelineInfo.pRasterizationState	= &rasterizationStateInfo;
+		pipelineInfo.pMultisampleState		= &multisampleInfo;
+		pipelineInfo.pDepthStencilState		= nullptr;
+		pipelineInfo.pColorBlendState		= &colorBlendStateInfo;
+		pipelineInfo.pDynamicState			= nullptr;
+
+		pipelineInfo.layout					= m_PipelineLayout;
+		pipelineInfo.renderPass				= m_RenderPass;
+		pipelineInfo.subpass				= 0; // index
+
+		pipelineInfo.basePipelineHandle		= VK_NULL_HANDLE;	// only used if VK_PIPELINE_CREATE_DERIVATIVE_BIT is specified under flags in VkGraphicsPipelineCreateInfo
+		pipelineInfo.basePipelineIndex		= -1;
+		
+
+		PX_CORE_ASSERT(vkCreateGraphicsPipelines(m_Device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_GraphicsPipeline) == VK_SUCCESS, "Failed to create Graphics pipeline!");
+		
 		vkDestroyShaderModule(m_Device, vertexShaderModule, nullptr);
 		vkDestroyShaderModule(m_Device, fragmentShaderModule, nullptr);
 	}
@@ -548,9 +668,9 @@ namespace Povox {
 	VkShaderModule VulkanContext::CreateShaderModule(const std::vector<char>& code)
 	{
 		VkShaderModuleCreateInfo createInfo{};
-		createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-		createInfo.codeSize = code.size;
-		createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
+		createInfo.sType		= VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+		createInfo.codeSize		= code.size();
+		createInfo.pCode		= reinterpret_cast<const uint32_t*>(code.data());
 
 		VkShaderModule shaderModule;
 		PX_CORE_ASSERT(vkCreateShaderModule(m_Device, &createInfo, nullptr, &shaderModule) == VK_SUCCESS, "Failed to create shader module!");
@@ -561,10 +681,10 @@ namespace Povox {
 	void VulkanContext::PopulateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo)
 	{
 		createInfo = {};
-		createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
-		createInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
-		createInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
-		createInfo.pfnUserCallback = DebugCallback;
+		createInfo.sType			= VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+		createInfo.messageSeverity	= VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+		createInfo.messageType		= VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+		createInfo.pfnUserCallback	= DebugCallback;
 	}
 
 	void VulkanContext::CheckRequiredExtensions(const char** glfwExtensions, uint32_t glfWExtensionsCount)
@@ -657,6 +777,94 @@ namespace Povox {
 
 		return requiredExtensions.empty();
 	}
+
+// Framebuffers
+	void VulkanContext::CreateFramebuffers()
+	{
+		m_SwapchainFramebuffers.resize(m_SwapchainImageViews.size());
+		for (size_t i = 0; i < m_SwapchainImageViews.size(); i++)
+		{
+			VkImageView attachments[] = { m_SwapchainImageViews[i] };
+
+			VkFramebufferCreateInfo framebufferInfo{};
+			framebufferInfo.sType			= VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+			framebufferInfo.renderPass		= m_RenderPass;			// needs to be compatible (roughly, use the same number and type of attachments)
+			framebufferInfo.attachmentCount = 1;					// The attachmentCount and pAttachments parameters specify the VkImageView objects that should be bound to the respective attachment descriptions in the render pass pAttachment array.
+			framebufferInfo.pAttachments	= attachments;
+			framebufferInfo.width			= m_SwapchainExtent.width;
+			framebufferInfo.height			= m_SwapchainExtent.height;
+			framebufferInfo.layers			= 1;					// number of layers in image array
+
+			PX_CORE_ASSERT(vkCreateFramebuffer(m_Device, &framebufferInfo, nullptr, &m_SwapchainFramebuffers[i]) == VK_SUCCESS, "Failed to create framebuffer!");
+		}
+	}
+
+// Command pools
+	void VulkanContext::CreateCommandPool()
+	{
+		QueueFamilyIndices queueFamilies = FindQueueFamilies(m_PhysicalDevice);
+
+		VkCommandPoolCreateInfo commandPoolInfo{};
+		commandPoolInfo.sType				= VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+		commandPoolInfo.queueFamilyIndex	= queueFamilies.GraphicsFamily.value();
+		commandPoolInfo.flags				= 0;		// optional
+
+
+		PX_CORE_ASSERT(vkCreateCommandPool(m_Device, &commandPoolInfo, nullptr, &m_CommandPool) == VK_SUCCESS, "Failed to create command pool!");
+	}
+
+	void VulkanContext::CreateCommandBuffers()
+	{
+		m_CommandBuffers.resize(m_SwapchainFramebuffers.size());
+
+		VkCommandBufferAllocateInfo allocInfo{};
+		allocInfo.sType					= VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+		allocInfo.commandPool			= m_CommandPool;
+		allocInfo.level					= VK_COMMAND_BUFFER_LEVEL_PRIMARY;	// primary can be called for execution, secondary can be called from primaries		
+		allocInfo.commandBufferCount	= (uint32_t)m_CommandBuffers.size();
+
+		PX_CORE_ASSERT(vkAllocateCommandBuffers(m_Device, &allocInfo, m_CommandBuffers.data()) == VK_SUCCESS, "Failed to create command buffers!");
+
+		for (size_t i = 0; i < m_CommandBuffers.size(); i++)
+		{
+			VkCommandBufferBeginInfo beginInfo{};
+			beginInfo.sType				= VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+			beginInfo.flags				= 0;		// optional
+			beginInfo.pInheritanceInfo	= nullptr;	// optional, only used if buffer is secondary
+
+			PX_CORE_ASSERT(vkBeginCommandBuffer(m_CommandBuffers[i], &beginInfo) == VK_SUCCESS, "Failed to begin recording command buffer!");
+
+			VkRenderPassBeginInfo renderPassInfo{};
+			renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+			renderPassInfo.renderPass = m_RenderPass;
+			renderPassInfo.framebuffer = m_SwapchainFramebuffers[i];
+			renderPassInfo.renderArea.offset = { 0, 0 };
+			renderPassInfo.renderArea.extent = m_SwapchainExtent;
+			VkClearValue clearColor = { 0.0f, 0.0f, 0.0f, 1.0f };
+			renderPassInfo.clearValueCount = 1;
+			renderPassInfo.pClearValues = &clearColor;
+
+			vkCmdBeginRenderPass(m_CommandBuffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+			vkCmdBindPipeline(m_CommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, m_GraphicsPipeline);
+			vkCmdDraw(m_CommandBuffers[i], 3, 1, 0, 0); // instance -> 1 for no instanced rendering | offset for the first vertex, defines lowest value gl_VertexIndex | same for index and gl_InstanceIndex
+			vkCmdEndRenderPass(m_CommandBuffers[i]);
+
+			PX_CORE_ASSERT(vkEndCommandBuffer(m_CommandBuffers[i]) == VK_SUCCESS, "Failed to record command buffer!");
+		}
+	}
+
+// Semaphores
+	void VulkanContext::CreateSemaphores()
+	{
+		VkSemaphoreCreateInfo createInfo{};
+		createInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+		PX_CORE_ASSERT((vkCreateSemaphore(m_Device, &createInfo, nullptr, &m_ImageAvailableSemaphore) == VK_SUCCESS)
+			&& (vkCreateSemaphore(m_Device, &createInfo, nullptr, &m_RenderFinishedSemaphore) == VK_SUCCESS), "Failed to create semaphores!");
+
+
+	}
+
 
 // File reading
 	std::vector<char> VulkanContext::ReadFile(const std::string& filepath)
