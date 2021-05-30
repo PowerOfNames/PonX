@@ -13,6 +13,9 @@ namespace Povox {
 		: m_WindowHandle(windowHandle)
 	{
 		PX_CORE_ASSERT(windowHandle, "Window handle is null");
+
+		glfwSetWindowUserPointer(windowHandle, this);
+		glfwSetFramebufferSizeCallback(windowHandle, FramebufferResizeCallback);
 	}
 
 	void VulkanContext::Init()
@@ -32,47 +35,103 @@ namespace Povox {
 		CreateFramebuffers();
 		CreateCommandPool();
 		CreateCommandBuffers();
-		CreateSemaphores();
+		CreateSyncObjects();
+	}
+
+	void VulkanContext::RecreateSwapchain()
+	{
+		int width = 0, height = 0;
+		glfwGetFramebufferSize(m_WindowHandle, &width, &height);
+		while (width == 0 || height == 0)
+		{
+			glfwGetFramebufferSize(m_WindowHandle, &width, &height);
+			glfwWaitEvents();
+		}
+
+		vkDeviceWaitIdle(m_Device);
+
+		CleanupSwapchain();
+		CreateSwapchain();
+		CreateImageViews();
+		CreateRenderPass();
+		CreateGraphicsPipeline(); // avoid recreating here by using dynamic state for viewport and scissors
+		CreateFramebuffers();
+		CreateCommandBuffers();
+
+	}
+
+	void VulkanContext::CleanupSwapchain()
+	{
+		for (auto framebuffer : m_SwapchainFramebuffers)
+		{
+			vkDestroyFramebuffer(m_Device, framebuffer, nullptr);
+		}
+		vkFreeCommandBuffers(m_Device, m_CommandPool, static_cast<uint32_t>(m_CommandBuffers.size()), m_CommandBuffers.data());
+		vkDestroyPipeline(m_Device, m_GraphicsPipeline, nullptr);
+		vkDestroyPipelineLayout(m_Device, m_PipelineLayout, nullptr);		
+		vkDestroyRenderPass(m_Device, m_RenderPass, nullptr);		
+		for (auto imageView : m_SwapchainImageViews)
+		{
+			vkDestroyImageView(m_Device, imageView, nullptr);
+		}		
+		vkDestroySwapchainKHR(m_Device, m_Swapchain, nullptr);
 	}
 
 	void VulkanContext::Shutdown()
 	{
 		PX_PROFILE_FUNCTION();
 
-
-		vkDestroySemaphore(m_Device, m_ImageAvailableSemaphore, nullptr);
-		vkDestroySemaphore(m_Device, m_RenderFinishedSemaphore, nullptr);
+		vkDeviceWaitIdle(m_Device);
+		
+		CleanupSwapchain();
+		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+		{
+			vkDestroySemaphore(m_Device, m_ImageAvailableSemaphores[i], nullptr);
+			vkDestroySemaphore(m_Device, m_RenderFinishedSemaphores[i], nullptr);
+			vkDestroyFence(m_Device, m_InFlightFence[i], nullptr);
+		}
 		vkDestroyCommandPool(m_Device, m_CommandPool, nullptr);
-		for (auto framebuffer : m_SwapchainFramebuffers)
-		{
-			vkDestroyFramebuffer(m_Device, framebuffer, nullptr);
-		}
-		vkDestroyPipeline(m_Device, m_GraphicsPipeline, nullptr);
-		vkDestroyPipelineLayout(m_Device, m_PipelineLayout, nullptr);
-		vkDestroyRenderPass(m_Device, m_RenderPass, nullptr);
-		for (auto imageView : m_SwapchainImageViews)
-		{
-			vkDestroyImageView(m_Device, imageView, nullptr);
-		}
-		vkDestroySwapchainKHR(m_Device, m_Swapchain, nullptr);
 		vkDestroyDevice(m_Device, nullptr);
 		if (m_EnableValidationLayers)
 			DestroyDebugUtilsMessengerEXT(m_Instance, m_DebugMessenger, nullptr);
 		vkDestroySurfaceKHR(m_Instance, m_Surface, nullptr);
 		vkDestroyInstance(m_Instance, nullptr);
+
 		glfwDestroyWindow(m_WindowHandle);
 		glfwTerminate();
 	}
 
 	void VulkanContext::DrawFrame()
 	{
+		vkWaitForFences(m_Device, 1, &m_InFlightFence[m_CurrentFrame], VK_TRUE, UINT64_MAX);
+
 		uint32_t imageIndex;
-		vkAcquireNextImageKHR(m_Device, m_Swapchain, UINT64_MAX /*disables timeout*/, m_ImageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
+		VkResult result = vkAcquireNextImageKHR(m_Device, m_Swapchain, UINT64_MAX /*disables timeout*/, m_ImageAvailableSemaphores[m_CurrentFrame], VK_NULL_HANDLE, &imageIndex);
+
+		if (result == VK_ERROR_OUT_OF_DATE_KHR)
+		{
+			RecreateSwapchain();
+			return;
+		}
+		else
+		{
+			PX_CORE_ASSERT(!((result != VK_SUCCESS) && (result != VK_SUBOPTIMAL_KHR)), "Failed to acquire swap chain image!");
+		}
+
+		// check if a previous fram is using this image (i.e. there is its fence to wait on)
+		if (m_ImagesInFlight[m_CurrentFrame] != VK_NULL_HANDLE)
+		{
+			vkWaitForFences(m_Device, 1, &m_InFlightFence[m_CurrentFrame], VK_TRUE, UINT64_MAX);
+		}
+		else // mark the image as now being used now by this frame
+		{
+			m_ImagesInFlight[m_CurrentFrame] = m_InFlightFence[m_CurrentFrame];
+		}
 
 		VkSubmitInfo submitInfo{};
 		submitInfo.sType				= VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
-		VkSemaphore waitSemaphores[] = { m_ImageAvailableSemaphore };
+		VkSemaphore waitSemaphores[] = { m_ImageAvailableSemaphores[m_CurrentFrame] };
 		VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
 		submitInfo.waitSemaphoreCount	= 1;
 		submitInfo.pWaitSemaphores		= waitSemaphores;
@@ -80,11 +139,12 @@ namespace Povox {
 		submitInfo.commandBufferCount	= 1;
 		submitInfo.pCommandBuffers		= &m_CommandBuffers[imageIndex];
 
-		VkSemaphore signalSemaphores[] = { m_RenderFinishedSemaphore };
+		VkSemaphore signalSemaphores[] = { m_RenderFinishedSemaphores[m_CurrentFrame] };
 		submitInfo.signalSemaphoreCount = 1;
 		submitInfo.pSignalSemaphores	= signalSemaphores;
 
-		PX_CORE_ASSERT(vkQueueSubmit(m_GraphicsQueue, 1, &submitInfo, VK_NULL_HANDLE) == VK_SUCCESS, "Failed to submit draw render buffer!");
+		vkResetFences(m_Device, 1, &m_InFlightFence[m_CurrentFrame]);
+		PX_CORE_ASSERT(vkQueueSubmit(m_GraphicsQueue, 1, &submitInfo, m_InFlightFence[m_CurrentFrame]) == VK_SUCCESS, "Failed to submit draw render buffer!");
 
 		VkPresentInfoKHR presentInfo{};
 		presentInfo.sType				= VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
@@ -97,7 +157,18 @@ namespace Povox {
 		presentInfo.pImageIndices		= &imageIndex;
 		presentInfo.pResults			= nullptr;		// optional
 
-		vkQueuePresentKHR(m_PresentQueue, &presentInfo);
+		result = vkQueuePresentKHR(m_PresentQueue, &presentInfo);
+		if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || m_FramebufferResized)
+		{
+			m_FramebufferResized = false;
+			RecreateSwapchain();
+		}
+		else
+		{
+			PX_CORE_ASSERT(result == VK_SUCCESS, "Failed to present swap chain image!");
+		}
+
+		m_CurrentFrame = (m_CurrentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 	}
 
 	void VulkanContext::CreateInstance()
@@ -854,13 +925,26 @@ namespace Povox {
 	}
 
 // Semaphores
-	void VulkanContext::CreateSemaphores()
+	void VulkanContext::CreateSyncObjects()
 	{
-		VkSemaphoreCreateInfo createInfo{};
-		createInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+		m_ImageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
+		m_RenderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
+		m_InFlightFence.resize(MAX_FRAMES_IN_FLIGHT);
+		m_ImagesInFlight.resize(m_SwapchainImages.size(), VK_NULL_HANDLE);
 
-		PX_CORE_ASSERT((vkCreateSemaphore(m_Device, &createInfo, nullptr, &m_ImageAvailableSemaphore) == VK_SUCCESS)
-			&& (vkCreateSemaphore(m_Device, &createInfo, nullptr, &m_RenderFinishedSemaphore) == VK_SUCCESS), "Failed to create semaphores!");
+		VkSemaphoreCreateInfo createSemaphoreInfo{};
+		createSemaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+		VkFenceCreateInfo createFenceInfo{};
+		createFenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+		createFenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+
+		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+		{
+			PX_CORE_ASSERT((vkCreateSemaphore(m_Device, &createSemaphoreInfo, nullptr, &m_ImageAvailableSemaphores[i]) == VK_SUCCESS)
+				&& (vkCreateSemaphore(m_Device, &createSemaphoreInfo, nullptr, &m_RenderFinishedSemaphores[i]) == VK_SUCCESS)
+				&& (vkCreateFence(m_Device, &createFenceInfo, nullptr, &m_InFlightFence[i]) == VK_SUCCESS), "Failed to create synchronization objects for a frame!");
+		}
 
 
 	}
@@ -882,6 +966,12 @@ namespace Povox {
 		return buffer;
 	}
 
+//Framebuffer resize callback
+	void VulkanContext::FramebufferResizeCallback(GLFWwindow* window, int width, int height)
+	{
+		auto app = reinterpret_cast<VulkanContext*>(glfwGetWindowUserPointer(window));
+		app->m_FramebufferResized = true;
+	}
 
 // Debugging Callback
 	VKAPI_ATTR VkBool32 VKAPI_CALL VulkanContext::DebugCallback(

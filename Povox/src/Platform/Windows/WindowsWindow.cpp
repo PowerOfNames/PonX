@@ -69,7 +69,7 @@ namespace Povox {
 			case RendererAPI::API::Vulkan:
 			{
 				glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API); // we dont need a contzext for Vulkan
-				glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+
 				m_Window = glfwCreateWindow((int)m_Data.Width, (int)m_Data.Height, m_Data.Title.c_str(), nullptr, nullptr);
 				m_Context = new VulkanContext(m_Window);
 				PX_CORE_INFO("Created VulkanContext");

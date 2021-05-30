@@ -10,6 +10,8 @@ struct GLFWwindow;
 
 namespace Povox {
 
+	const uint32_t MAX_FRAMES_IN_FLIGHT = 2;
+
 	struct QueueFamilyIndices
 	{
 		std::optional<uint32_t> GraphicsFamily;
@@ -37,6 +39,10 @@ namespace Povox {
 		virtual void SwapBuffers() override;
 		virtual void Shutdown() override;
 
+		void RecreateSwapchain();
+
+		//Framebuffer Callback
+		static void FramebufferResizeCallback(GLFWwindow* window, int width, int height);
 
 		// Debug
 		static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
@@ -46,6 +52,8 @@ namespace Povox {
 
 	private:
 		void CreateInstance();
+
+		void CleanupSwapchain();
 
 		// Debug
 		void SetupDebugMessenger();
@@ -92,7 +100,7 @@ namespace Povox {
 		void CreateCommandBuffers();
 
 		// Semaphores
-		void CreateSemaphores();
+		void CreateSyncObjects();
 
 		std::vector<char> ReadFile(const std::string& filepath);
 	private:
@@ -121,8 +129,13 @@ namespace Povox {
 		VkCommandPool m_CommandPool;
 		std::vector<VkCommandBuffer> m_CommandBuffers;
 
-		VkSemaphore m_ImageAvailableSemaphore;
-		VkSemaphore m_RenderFinishedSemaphore;
+		std::vector<VkSemaphore> m_ImageAvailableSemaphores;
+		std::vector<VkSemaphore> m_RenderFinishedSemaphores;
+		std::vector<VkFence> m_InFlightFence;
+		std::vector<VkFence> m_ImagesInFlight;
+		uint32_t m_CurrentFrame = 0;
+
+		bool m_FramebufferResized = false;
 
 		const std::vector<const char*> m_ValidationLayers = { "VK_LAYER_KHRONOS_validation" };
 		const std::vector<const char*> m_DeviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
