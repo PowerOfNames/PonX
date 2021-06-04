@@ -217,6 +217,7 @@ namespace Povox {
 	{
 		PX_CORE_ASSERT(attachmentIndex < m_ColorAttachments.size(), "OGLFramebuffer::ReadPixel - Index out of scope!");
 
+
 		glReadBuffer(GL_COLOR_ATTACHMENT0 + attachmentIndex);
 		int pixelData;
 		glReadPixels(posX, posY, 1, 1, GL_RED_INTEGER, GL_INT, &pixelData);
@@ -227,6 +228,7 @@ namespace Povox {
 	void OpenGLFramebuffer::ClearColorAttachment(uint32_t attachmentIndex, int value)
 	{
 		PX_CORE_ASSERT(attachmentIndex < m_ColorAttachments.size(), "OGLFramebuffer::ReadPixel - Index out of scope!");
+
 
 		auto& spec = m_ColorAttachmentSpecifications[attachmentIndex];
 		glClearTexImage(m_ColorAttachments[attachmentIndex], 0, Utils::PovoxFbTextureFormatToGL(spec.TextureFormat), GL_INT, &value);

@@ -9,7 +9,7 @@ namespace Povox {
 	public:
 		inline static void Init() { s_RendererAPI->Init(); }
 
-		inline static void SetClearColor(glm::vec4 clearColor) { s_RendererAPI->SetClearColor(clearColor); }
+		inline static void SetClearColor(glm::vec4 clearColor) { s_RendererAPI->SetClearColor(clearColor); } // framebuffer property
 		inline static void Clear() { s_RendererAPI->Clear(); }
 
 		inline static void SetViewport(uint32_t x, uint32_t y, uint32_t width, uint32_t height)

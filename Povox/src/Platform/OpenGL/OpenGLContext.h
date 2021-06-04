@@ -12,10 +12,10 @@ namespace Povox {
 		OpenGLContext(GLFWwindow* windowHandle);
 
 		virtual void Init() override;
-		virtual void DrawFrame() override {};
 		virtual void SwapBuffers() override;
 		virtual void Shutdown() override;
 
+		virtual void DrawFrame() override {};
 	private:
 		GLFWwindow* m_WindowHandle;
 	};

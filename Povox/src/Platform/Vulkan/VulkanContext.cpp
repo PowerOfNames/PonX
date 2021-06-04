@@ -25,16 +25,21 @@ namespace Povox {
 
 		CreateInstance();
 		SetupDebugMessenger();
+
 		CreateSurface();
 		PickPhysicalDevice();
 		CreateLogicalDevice();
+
 		CreateSwapchain();
 		CreateImageViews();
 		CreateRenderPass();
 		CreateGraphicsPipeline();
+
 		CreateFramebuffers();
+
 		CreateCommandPool();
 		CreateCommandBuffers();
+
 		CreateSyncObjects();
 	}
 
@@ -144,7 +149,9 @@ namespace Povox {
 		submitInfo.pSignalSemaphores	= signalSemaphores;
 
 		vkResetFences(m_Device, 1, &m_InFlightFence[m_CurrentFrame]);
-		PX_CORE_ASSERT(vkQueueSubmit(m_GraphicsQueue, 1, &submitInfo, m_InFlightFence[m_CurrentFrame]) == VK_SUCCESS, "Failed to submit draw render buffer!");
+
+		VkResult resultQueueSubmit = vkQueueSubmit(m_GraphicsQueue, 1, &submitInfo, m_InFlightFence[m_CurrentFrame]);
+		PX_CORE_ASSERT(resultQueueSubmit == VK_SUCCESS, "Failed to submit draw render buffer!");
 
 		VkPresentInfoKHR presentInfo{};
 		presentInfo.sType				= VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
@@ -227,14 +234,16 @@ namespace Povox {
 		VkDebugUtilsMessengerCreateInfoEXT createInfo;
 		PopulateDebugMessengerCreateInfo(createInfo);	
 
-		PX_CORE_ASSERT(CreateDebugUtilsMessengerEXT(m_Instance, &createInfo, nullptr, &m_DebugMessenger) == VK_SUCCESS, "Failed to set up debug messenger!");
+		VkResult result = CreateDebugUtilsMessengerEXT(m_Instance, &createInfo, nullptr, &m_DebugMessenger);
+		PX_CORE_ASSERT(result == VK_SUCCESS, "Failed to set up debug messenger!");
 	}
 
 
 // Surface
 	void VulkanContext::CreateSurface()
 	{
-		PX_CORE_ASSERT(glfwCreateWindowSurface(m_Instance, m_WindowHandle, nullptr, &m_Surface) == VK_SUCCESS, "Failed to create window surface!");
+		VkResult result = glfwCreateWindowSurface(m_Instance, m_WindowHandle, nullptr, &m_Surface);
+		PX_CORE_ASSERT(result == VK_SUCCESS, "Failed to create window surface!");
 	}
 
 
@@ -336,7 +345,6 @@ namespace Povox {
 			queueCreateInfo.pQueuePriorities	= &queuePriority;
 
 			queueCreateInfos.push_back(queueCreateInfo);
-
 		}
 
 		// Here we specify the features we queried to with vkGetPhysicalDeviseFeatures in RateDeviceSuitability
@@ -350,7 +358,6 @@ namespace Povox {
 		createInfo.enabledExtensionCount	= static_cast<uint32_t>(m_DeviceExtensions.size());
 		createInfo.ppEnabledExtensionNames	= m_DeviceExtensions.data();
 
-
 		if (m_EnableValidationLayers)
 		{
 			createInfo.enabledLayerCount	= static_cast<uint32_t>(m_ValidationLayers.size());
@@ -361,7 +368,8 @@ namespace Povox {
 			createInfo.enabledLayerCount	= 0;
 		}
 
-		PX_CORE_ASSERT(vkCreateDevice(m_PhysicalDevice, &createInfo, nullptr, &m_Device) == VK_SUCCESS, "Failed to create logical device!");
+		VkResult result = vkCreateDevice(m_PhysicalDevice, &createInfo, nullptr, &m_Device);
+		PX_CORE_ASSERT(result == VK_SUCCESS, "Failed to create logical device!");
 
 		vkGetDeviceQueue(m_Device, indices.GraphicsFamily.value(), 0, &m_GraphicsQueue);
 		vkGetDeviceQueue(m_Device, indices.PresentFamily.value(), 0, &m_PresentQueue);
@@ -386,13 +394,14 @@ namespace Povox {
 		createInfo.surface			= m_Surface;		
 		createInfo.minImageCount	= imageCount;
 		createInfo.imageFormat		= surfaceFormat.format;
-		m_SwapchainImageFormat		= surfaceFormat.format;
 		createInfo.imageColorSpace	= surfaceFormat.colorSpace;
 		createInfo.imageExtent		= extent;
-		m_SwapchainExtent			= extent;
 		createInfo.imageArrayLayers = 1;
 		createInfo.imageUsage		= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 		createInfo.presentMode		= presentMode;
+
+		m_SwapchainImageFormat		= surfaceFormat.format;
+		m_SwapchainExtent			= extent;
 
 		QueueFamilyIndices indices = FindQueueFamilies(m_PhysicalDevice);
 		uint32_t queueFamilyIndices[] = { indices.GraphicsFamily.value(), indices.PresentFamily.value() };
@@ -416,7 +425,8 @@ namespace Povox {
 		createInfo.clipped			= VK_TRUE;
 		createInfo.oldSwapchain		= VK_NULL_HANDLE;
 
-		PX_CORE_ASSERT(vkCreateSwapchainKHR(m_Device, &createInfo, nullptr, &m_Swapchain) == VK_SUCCESS, "Failed to create swapchain!");
+		VkResult result = vkCreateSwapchainKHR(m_Device, &createInfo, nullptr, &m_Swapchain);
+		PX_CORE_ASSERT(result == VK_SUCCESS, "Failed to create swapchain!");
 
 
 		vkGetSwapchainImagesKHR(m_Device, m_Swapchain, &imageCount, nullptr);
@@ -510,7 +520,8 @@ namespace Povox {
 			createInfo.subresourceRange.baseArrayLayer	= 0;
 			createInfo.subresourceRange.layerCount		= 1;
 
-			PX_CORE_ASSERT(vkCreateImageView(m_Device, &createInfo, nullptr, &m_SwapchainImageViews[i]) == VK_SUCCESS, "Failed to create swapchainimage views!");
+			VkResult result = vkCreateImageView(m_Device, &createInfo, nullptr, &m_SwapchainImageViews[i]);
+			PX_CORE_ASSERT(result == VK_SUCCESS, "Failed to create swapchainimage views!");
 		}
 	}
 
@@ -557,7 +568,8 @@ namespace Povox {
 		renderPassInfo.dependencyCount = 1;
 		renderPassInfo.pDependencies = &dependency;
 
-		PX_CORE_ASSERT(vkCreateRenderPass(m_Device, &renderPassInfo, nullptr, &m_RenderPass) == VK_SUCCESS, "Failed to create render pass!");
+		VkResult result = vkCreateRenderPass(m_Device, &renderPassInfo, nullptr, &m_RenderPass);
+		PX_CORE_ASSERT(result == VK_SUCCESS, "Failed to create render pass!");
 	}
 
 // Graphics Pipeline
@@ -705,7 +717,8 @@ namespace Povox {
 		layoutInfo.pushConstantRangeCount	= 0;		// optional
 		layoutInfo.pPushConstantRanges		= nullptr;	// optional
 
-		PX_CORE_ASSERT(vkCreatePipelineLayout(m_Device, &layoutInfo, nullptr, &m_PipelineLayout) == VK_SUCCESS, "Failed to create pipeline layout!");
+		VkResult resultPipelineLayout = vkCreatePipelineLayout(m_Device, &layoutInfo, nullptr, &m_PipelineLayout);
+		PX_CORE_ASSERT(resultPipelineLayout == VK_SUCCESS, "Failed to create pipeline layout!");
 
 
 		// The Pipeline
@@ -729,8 +742,8 @@ namespace Povox {
 		pipelineInfo.basePipelineHandle		= VK_NULL_HANDLE;	// only used if VK_PIPELINE_CREATE_DERIVATIVE_BIT is specified under flags in VkGraphicsPipelineCreateInfo
 		pipelineInfo.basePipelineIndex		= -1;
 		
-
-		PX_CORE_ASSERT(vkCreateGraphicsPipelines(m_Device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_GraphicsPipeline) == VK_SUCCESS, "Failed to create Graphics pipeline!");
+		VkResult result = vkCreateGraphicsPipelines(m_Device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_GraphicsPipeline);
+		PX_CORE_ASSERT(result == VK_SUCCESS, "Failed to create Graphics pipeline!");
 		
 		vkDestroyShaderModule(m_Device, vertexShaderModule, nullptr);
 		vkDestroyShaderModule(m_Device, fragmentShaderModule, nullptr);
@@ -744,7 +757,9 @@ namespace Povox {
 		createInfo.pCode		= reinterpret_cast<const uint32_t*>(code.data());
 
 		VkShaderModule shaderModule;
-		PX_CORE_ASSERT(vkCreateShaderModule(m_Device, &createInfo, nullptr, &shaderModule) == VK_SUCCESS, "Failed to create shader module!");
+
+		VkResult result = vkCreateShaderModule(m_Device, &createInfo, nullptr, &shaderModule);
+		PX_CORE_ASSERT(result == VK_SUCCESS, "Failed to create shader module!");
 
 		return shaderModule;
 	}
@@ -866,7 +881,8 @@ namespace Povox {
 			framebufferInfo.height			= m_SwapchainExtent.height;
 			framebufferInfo.layers			= 1;					// number of layers in image array
 
-			PX_CORE_ASSERT(vkCreateFramebuffer(m_Device, &framebufferInfo, nullptr, &m_SwapchainFramebuffers[i]) == VK_SUCCESS, "Failed to create framebuffer!");
+			VkResult result = vkCreateFramebuffer(m_Device, &framebufferInfo, nullptr, &m_SwapchainFramebuffers[i]);
+			PX_CORE_ASSERT(result == VK_SUCCESS, "Failed to create framebuffer!");
 		}
 	}
 
@@ -880,8 +896,8 @@ namespace Povox {
 		commandPoolInfo.queueFamilyIndex	= queueFamilies.GraphicsFamily.value();
 		commandPoolInfo.flags				= 0;		// optional
 
-
-		PX_CORE_ASSERT(vkCreateCommandPool(m_Device, &commandPoolInfo, nullptr, &m_CommandPool) == VK_SUCCESS, "Failed to create command pool!");
+		VkResult result = vkCreateCommandPool(m_Device, &commandPoolInfo, nullptr, &m_CommandPool);
+		PX_CORE_ASSERT(result == VK_SUCCESS, "Failed to create command pool!");
 	}
 
 	void VulkanContext::CreateCommandBuffers()
@@ -894,7 +910,8 @@ namespace Povox {
 		allocInfo.level					= VK_COMMAND_BUFFER_LEVEL_PRIMARY;	// primary can be called for execution, secondary can be called from primaries		
 		allocInfo.commandBufferCount	= (uint32_t)m_CommandBuffers.size();
 
-		PX_CORE_ASSERT(vkAllocateCommandBuffers(m_Device, &allocInfo, m_CommandBuffers.data()) == VK_SUCCESS, "Failed to create command buffers!");
+		VkResult result = vkAllocateCommandBuffers(m_Device, &allocInfo, m_CommandBuffers.data());
+		PX_CORE_ASSERT(result == VK_SUCCESS, "Failed to create command buffers!");
 
 		for (size_t i = 0; i < m_CommandBuffers.size(); i++)
 		{
@@ -903,7 +920,8 @@ namespace Povox {
 			beginInfo.flags				= 0;		// optional
 			beginInfo.pInheritanceInfo	= nullptr;	// optional, only used if buffer is secondary
 
-			PX_CORE_ASSERT(vkBeginCommandBuffer(m_CommandBuffers[i], &beginInfo) == VK_SUCCESS, "Failed to begin recording command buffer!");
+			VkResult resultCommandBufferBegin = vkBeginCommandBuffer(m_CommandBuffers[i], &beginInfo);
+			PX_CORE_ASSERT(resultCommandBufferBegin == VK_SUCCESS, "Failed to begin recording command buffer!");
 
 			VkRenderPassBeginInfo renderPassInfo{};
 			renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -920,7 +938,8 @@ namespace Povox {
 			vkCmdDraw(m_CommandBuffers[i], 3, 1, 0, 0); // instance -> 1 for no instanced rendering | offset for the first vertex, defines lowest value gl_VertexIndex | same for index and gl_InstanceIndex
 			vkCmdEndRenderPass(m_CommandBuffers[i]);
 
-			PX_CORE_ASSERT(vkEndCommandBuffer(m_CommandBuffers[i]) == VK_SUCCESS, "Failed to record command buffer!");
+			VkResult resultCommandBufferEnd = vkEndCommandBuffer(m_CommandBuffers[i]);
+			PX_CORE_ASSERT(resultCommandBufferEnd == VK_SUCCESS, "Failed to record command buffer!");
 		}
 	}
 
@@ -941,9 +960,12 @@ namespace Povox {
 
 		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
 		{
-			PX_CORE_ASSERT((vkCreateSemaphore(m_Device, &createSemaphoreInfo, nullptr, &m_ImageAvailableSemaphores[i]) == VK_SUCCESS)
+			bool result = false;
+			if ((vkCreateSemaphore(m_Device, &createSemaphoreInfo, nullptr, &m_ImageAvailableSemaphores[i]) == VK_SUCCESS)
 				&& (vkCreateSemaphore(m_Device, &createSemaphoreInfo, nullptr, &m_RenderFinishedSemaphores[i]) == VK_SUCCESS)
-				&& (vkCreateFence(m_Device, &createFenceInfo, nullptr, &m_InFlightFence[i]) == VK_SUCCESS), "Failed to create synchronization objects for a frame!");
+				&& (vkCreateFence(m_Device, &createFenceInfo, nullptr, &m_InFlightFence[i]) == VK_SUCCESS))
+				result = true;
+			PX_CORE_ASSERT(result, "Failed to create synchronization objects for a frame!");
 		}
 
 
@@ -954,8 +976,8 @@ namespace Povox {
 	std::vector<char> VulkanContext::ReadFile(const std::string& filepath)
 	{
 		std::ifstream stream(filepath, std::ios::ate | std::ios::binary);
-
-		PX_CORE_ASSERT(stream.is_open(), "Failed to open file!");
+		bool isOpen = stream.is_open();
+		PX_CORE_ASSERT(isOpen, "Failed to open file!");
 
 		size_t fileSize = (size_t)stream.tellg();
 		std::vector<char> buffer(fileSize);

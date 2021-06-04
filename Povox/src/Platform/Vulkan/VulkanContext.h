@@ -10,8 +10,6 @@ struct GLFWwindow;
 
 namespace Povox {
 
-	const uint32_t MAX_FRAMES_IN_FLIGHT = 2;
-
 	struct QueueFamilyIndices
 	{
 		std::optional<uint32_t> GraphicsFamily;
@@ -71,6 +69,7 @@ namespace Povox {
 		void CreateLogicalDevice();
 
 		// Swapchain
+		void CreateSwapchain();
 		SwapchainSupportDetails QuerySwapchainSupport(VkPhysicalDevice device);
 		VkSurfaceFormatKHR ChooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
 		VkPresentModeKHR ChooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
@@ -85,13 +84,6 @@ namespace Povox {
 		void CreateGraphicsPipeline();
 		VkShaderModule CreateShaderModule(const std::vector<char>& code);
 		
-		// Extensions
-		void CreateSwapchain();
-		void CheckRequiredExtensions(const char** extensions, uint32_t glfWExtensionsCount);
-		std::vector<const char*> GetRequiredExtensions();
-		bool CheckValidationLayerSupport();
-		bool CheckDeviceExtensionSupport(VkPhysicalDevice device);
-
 		// Framebuffers
 		void CreateFramebuffers();
 
@@ -102,12 +94,20 @@ namespace Povox {
 		// Semaphores
 		void CreateSyncObjects();
 
+		// Extensions
+		void CheckRequiredExtensions(const char** extensions, uint32_t glfWExtensionsCount);
+		std::vector<const char*> GetRequiredExtensions();
+		bool CheckValidationLayerSupport();
+		bool CheckDeviceExtensionSupport(VkPhysicalDevice device);
+
 		std::vector<char> ReadFile(const std::string& filepath);
+
 	private:
 		GLFWwindow* m_WindowHandle;
-		VkInstance m_Instance;
-		VkSurfaceKHR m_Surface;
+		VkInstance m_Instance = VK_NULL_HANDLE;
 		VkDebugUtilsMessengerEXT m_DebugMessenger;
+		VkSurfaceKHR m_Surface;
+
 		VkPhysicalDevice m_PhysicalDevice = VK_NULL_HANDLE;
 		VkDevice m_Device;
 
@@ -139,12 +139,14 @@ namespace Povox {
 
 		const std::vector<const char*> m_ValidationLayers = { "VK_LAYER_KHRONOS_validation" };
 		const std::vector<const char*> m_DeviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
+		
+		const uint32_t MAX_FRAMES_IN_FLIGHT = 2;
 
-#ifdef PX_DEBUG
+//#ifdef PX_DEBUG
 		const bool m_EnableValidationLayers = true;
-#else
-		const bool m_EnableValidationLayers = false;
-#endif
+//#else
+	//	const bool m_EnableValidationLayers = false;
+//#endif
 
 	};
 }
