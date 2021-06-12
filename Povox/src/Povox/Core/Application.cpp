@@ -22,6 +22,7 @@ namespace Povox {
 		PX_CORE_ASSERT(!s_Instance, "Application already exists!");
 		s_Instance = this;
 
+		//TODO: Implement OnStartup() -> sets up rendererCOntext, which renderer to use, creates window etc.
 		//Set Graphics API to Vulkan when available, else to OpenGL
 		RendererAPI::SetAPI(RendererAPI::API::Vulkan);
 
