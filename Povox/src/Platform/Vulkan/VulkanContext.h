@@ -42,6 +42,7 @@ namespace Povox {
 	{
 		glm::vec2 Position;
 		glm::vec3 Color;
+		glm::vec2 TexCoord;
 
 		static VkVertexInputBindingDescription getBindingDescription()
 		{
@@ -53,9 +54,9 @@ namespace Povox {
 			return vertexBindingDescription;
 		}
 
-		static std::array<VkVertexInputAttributeDescription, 2> getAttributeDescriptions()
+		static std::array<VkVertexInputAttributeDescription, 3> getAttributeDescriptions()
 		{
-			std::array<VkVertexInputAttributeDescription, 2> vertexAttributeDescriptions{};
+			std::array<VkVertexInputAttributeDescription, 3> vertexAttributeDescriptions{};
 			vertexAttributeDescriptions[0].binding = 0;
 			vertexAttributeDescriptions[0].location = 0;
 			vertexAttributeDescriptions[0].format = VK_FORMAT_R32G32_SFLOAT;
@@ -65,6 +66,11 @@ namespace Povox {
 			vertexAttributeDescriptions[1].location = 1;
 			vertexAttributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
 			vertexAttributeDescriptions[1].offset = offsetof(VertexData, Color);
+
+			vertexAttributeDescriptions[2].binding = 0;
+			vertexAttributeDescriptions[2].location = 2;
+			vertexAttributeDescriptions[2].format = VK_FORMAT_R32G32_SFLOAT;
+			vertexAttributeDescriptions[2].offset = offsetof(VertexData, TexCoord);
 
 			return vertexAttributeDescriptions;
 		}
@@ -122,6 +128,7 @@ namespace Povox {
 		QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice device);
 		
 		// Image Views
+		VkImageView CreateImageView(VkImage image, VkFormat format);
 		void CreateImageViews();
 
 		// Renderpass
@@ -139,6 +146,12 @@ namespace Povox {
 		// Commands
 		void CreateCommandPool();
 
+		void CreateTextureImage();
+		void CreateTextureImageView();
+		void CreateTextureSampler();
+		void TransitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
+		void CopyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);
+
 		void CreateVertexBuffer();
 		void CreateIndexBuffer();
 		void CreateUniformBuffers();
@@ -146,10 +159,14 @@ namespace Povox {
 		void CreateDescriptorPool();
 		void CreateDescriptorSets();
 
+		void CreateImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& memory);
 		void CreateBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, 
 			VkBuffer& buffer, VkDeviceMemory& memory, uint32_t familyIndexCount = 0, uint32_t* familyIndices = nullptr, VkSharingMode sharingMode = VK_SHARING_MODE_EXCLUSIVE);
 		void CopyBuffer(VkBuffer src, VkBuffer dst, VkDeviceSize size);
 		uint32_t FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags propertiyFlags);
+
+		VkCommandBuffer BeginSingleTimeCommands(VkCommandPool commandPool);
+		void EndSingleTimeCommands(VkCommandBuffer commandBuffer, VkQueue queue, VkCommandPool commandPool);
 		void CreateCommandBuffers();
 
 		// Semaphores
@@ -191,6 +208,11 @@ namespace Povox {
 		VkCommandPool m_CommandPoolGraphics;
 		VkCommandPool m_CommandPoolTransfer;
 
+		VkImage m_TextureImage;
+		VkImageView m_TextureImageView;
+		VkDeviceMemory m_TextureImageMemory;
+		VkSampler m_TextureSampler;
+
 		VkBuffer m_VertexBuffer;
 		VkDeviceMemory m_VertexBufferMemory;
 		VkBuffer m_IndexBuffer;
@@ -218,10 +240,10 @@ namespace Povox {
 		const uint32_t MAX_FRAMES_IN_FLIGHT = 2;
 
 		const std::vector<VertexData> m_Vertices = {
-			{{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
-			{{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
-			{{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}},
-			{{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}}
+			{{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
+			{{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}},
+			{{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},
+			{{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}}
 		};
 
 		const std::vector<uint16_t> m_Indices = {
