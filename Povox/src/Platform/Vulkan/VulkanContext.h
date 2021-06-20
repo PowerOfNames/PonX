@@ -2,6 +2,9 @@
 
 #include "Povox/Renderer/GraphicsContext.h"
 
+#include "Povox/Core/Core.h"
+#include "VulkanDevice.h"
+
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 #include <vulkan/vulkan.h>
@@ -17,30 +20,11 @@ namespace Povox {
 		alignas(16) glm::mat4 ModelMatrix;
 		alignas(16) glm::mat4 ViewMatrix;
 		alignas(16) glm::mat4 ProjectionMatrix;
-	};
-
-	struct QueueFamilyIndices
-	{
-		std::optional<uint32_t> GraphicsFamily;
-		std::optional<uint32_t> PresentFamily;					// Does support windows
-		std::optional<uint32_t> TransferFamily;					// not supported by all GPUs
-
-		bool IsComplete() { return GraphicsFamily.has_value() && PresentFamily.has_value(); }
-		bool HasTransfer() { return TransferFamily.has_value(); }
-	};
-
-	struct SwapchainSupportDetails
-	{
-		VkSurfaceCapabilitiesKHR Capabilities;
-		std::vector<VkSurfaceFormatKHR> Formats;
-		std::vector<VkPresentModeKHR> PresentModes;
-
-		bool IsAdequat() { return !Formats.empty() && !PresentModes.empty(); }
-	};
+	};	
 
 	struct VertexData
 	{
-		glm::vec2 Position;
+		glm::vec3 Position;
 		glm::vec3 Color;
 		glm::vec2 TexCoord;
 
@@ -59,7 +43,7 @@ namespace Povox {
 			std::array<VkVertexInputAttributeDescription, 3> vertexAttributeDescriptions{};
 			vertexAttributeDescriptions[0].binding = 0;
 			vertexAttributeDescriptions[0].location = 0;
-			vertexAttributeDescriptions[0].format = VK_FORMAT_R32G32_SFLOAT;
+			vertexAttributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
 			vertexAttributeDescriptions[0].offset = offsetof(VertexData, Position);
 
 			vertexAttributeDescriptions[1].binding = 0;
@@ -98,6 +82,7 @@ namespace Povox {
 		void* userData);
 
 	private:
+	// stay here!
 		// Instance
 		void CreateInstance();
 		bool CheckValidationLayerSupport();
@@ -109,26 +94,16 @@ namespace Povox {
 		void PopulateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
 
 		// Surface
-		void CreateSurface();
-		
-		// Physical Device
-		void PickPhysicalDevice();
-		int RateDeviceSuitability(VkPhysicalDevice device);
-		bool CheckDeviceExtensionSupport(VkPhysicalDevice device);
-
-		// Logical Device
-		void CreateLogicalDevice();
+		void CreateSurface();		
 		
 		// Swapchain
 		void CreateSwapchain();
-		SwapchainSupportDetails QuerySwapchainSupport(VkPhysicalDevice device);
 		VkSurfaceFormatKHR ChooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
 		VkPresentModeKHR ChooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
 		VkExtent2D ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
-		QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice device);
 		
 		// Image Views
-		VkImageView CreateImageView(VkImage image, VkFormat format);
+		VkImageView CreateImageView(VkImage image, VkFormat format, VkImageAspectFlags aspects);
 		void CreateImageViews();
 
 		// Renderpass
@@ -145,6 +120,11 @@ namespace Povox {
 		
 		// Commands
 		void CreateCommandPool();
+
+		void CreateDepthResources();
+		VkFormat FindSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
+		VkFormat FindDepthFormat();
+		bool HasStencilComponent(VkFormat format);
 
 		void CreateTextureImage();
 		void CreateTextureImageView();
@@ -183,13 +163,7 @@ namespace Povox {
 		VkDebugUtilsMessengerEXT m_DebugMessenger;
 		VkSurfaceKHR m_Surface;
 
-		VkPhysicalDevice m_PhysicalDevice = VK_NULL_HANDLE;
-		VkDevice m_Device;
-
-		VkQueue m_GraphicsQueue;
-		VkQueue m_PresentQueue;
-		VkQueue m_TransferQueue;
-
+		Ref<VulkanDevice> m_Device;
 
 		VkSwapchainKHR m_Swapchain;
 		std::vector<VkImage> m_SwapchainImages;
@@ -213,6 +187,10 @@ namespace Povox {
 		VkDeviceMemory m_TextureImageMemory;
 		VkSampler m_TextureSampler;
 
+		VkImage m_DepthImage;
+		VkDeviceMemory m_DepthImageMemory;
+		VkImageView m_DepthImageView;
+
 		VkBuffer m_VertexBuffer;
 		VkDeviceMemory m_VertexBufferMemory;
 		VkBuffer m_IndexBuffer;
@@ -235,19 +213,24 @@ namespace Povox {
 		bool m_FramebufferResized = false;
 
 		const std::vector<const char*> m_ValidationLayers = { "VK_LAYER_KHRONOS_validation" };
-		const std::vector<const char*> m_DeviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
 		
 		const uint32_t MAX_FRAMES_IN_FLIGHT = 2;
 
 		const std::vector<VertexData> m_Vertices = {
-			{{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
-			{{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}},
-			{{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},
-			{{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}}
+			{{-0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
+			{{0.5f, -0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}},
+			{{0.5f, 0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},
+			{{-0.5f, 0.5f, 0.0f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}},
+
+			{{-0.5f, -0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
+			{{0.5f, -0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}},
+			{{0.5f, 0.5f, -0.5f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},
+			{{-0.5f, 0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}}
 		};
 
 		const std::vector<uint16_t> m_Indices = {
-			 0, 1, 2, 2, 3, 0
+			 0, 1, 2, 2, 3, 0,
+			 4, 5, 6, 6, 7, 4
 		};
 
 

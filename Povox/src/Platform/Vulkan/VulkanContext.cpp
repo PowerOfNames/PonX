@@ -5,7 +5,7 @@
 
 #include <cstdint>
 #include <fstream>
-
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/gtc/matrix_transform.hpp>
 #include <stb_image.h>
 
@@ -30,8 +30,10 @@ namespace Povox {
 		SetupDebugMessenger();
 
 		CreateSurface();
-		PickPhysicalDevice();
-		CreateLogicalDevice();
+		m_Device = CreateRef<VulkanDevice>();
+		m_Device->AddDeviceExtension(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
+		m_Device->PickPhysicalDevice(m_Instance, m_Surface);
+		m_Device->CreateLogicalDevice(m_Surface, m_ValidationLayers, m_EnableValidationLayers);
 
 		CreateSwapchain();
 		CreateImageViews();
@@ -39,9 +41,10 @@ namespace Povox {
 		CreateDescriptorSetLayout();
 		CreateGraphicsPipeline();
 
-		CreateFramebuffers();
 
 		CreateCommandPool();
+		CreateDepthResources();
+		CreateFramebuffers();
 		CreateTextureImage();
 		CreateTextureImageView();
 		CreateTextureSampler();
@@ -67,47 +70,51 @@ namespace Povox {
 			glfwWaitEvents();
 		}
 
-		vkDeviceWaitIdle(m_Device);
+		vkDeviceWaitIdle(m_Device->GetLogicalDevice());
 
 		CleanupSwapchain();
 		CreateSwapchain();
 		CreateImageViews();
 		CreateRenderPass();
 		CreateGraphicsPipeline(); // avoid recreating here by using dynamic state for viewport and scissors
+		CreateDepthResources();
 		CreateFramebuffers();
 		CreateUniformBuffers();
 		CreateDescriptorPool();
 		CreateDescriptorSets();
 		CreateCommandBuffers();
-
 	}
 
 	void VulkanContext::CleanupSwapchain()
 	{
-		vkDeviceWaitIdle(m_Device);
+		vkDeviceWaitIdle(m_Device->GetLogicalDevice());
 
+
+		vkDestroyImageView(m_Device->GetLogicalDevice(), m_DepthImageView, nullptr);
+		vkDestroyImage(m_Device->GetLogicalDevice(), m_DepthImage, nullptr);
+		vkFreeMemory(m_Device->GetLogicalDevice(), m_DepthImageMemory, nullptr);
 
 		for (auto framebuffer : m_SwapchainFramebuffers)
 		{
-			vkDestroyFramebuffer(m_Device, framebuffer, nullptr);
+			vkDestroyFramebuffer(m_Device->GetLogicalDevice(), framebuffer, nullptr);
 		}
-		vkFreeCommandBuffers(m_Device, m_CommandPoolGraphics, static_cast<uint32_t>(m_CommandBuffersGraphics.size()), m_CommandBuffersGraphics.data());
-		vkDestroyPipeline(m_Device, m_GraphicsPipeline, nullptr);
-		vkDestroyPipelineLayout(m_Device, m_PipelineLayout, nullptr);		
-		vkDestroyRenderPass(m_Device, m_RenderPass, nullptr);		
+		vkFreeCommandBuffers(m_Device->GetLogicalDevice(), m_CommandPoolGraphics, static_cast<uint32_t>(m_CommandBuffersGraphics.size()), m_CommandBuffersGraphics.data());
+		vkDestroyPipeline(m_Device->GetLogicalDevice(), m_GraphicsPipeline, nullptr);
+		vkDestroyPipelineLayout(m_Device->GetLogicalDevice(), m_PipelineLayout, nullptr);		
+		vkDestroyRenderPass(m_Device->GetLogicalDevice(), m_RenderPass, nullptr);		
 		for (auto imageView : m_SwapchainImageViews)
 		{
-			vkDestroyImageView(m_Device, imageView, nullptr);
+			vkDestroyImageView(m_Device->GetLogicalDevice(), imageView, nullptr);
 		}		
-		vkDestroySwapchainKHR(m_Device, m_Swapchain, nullptr);
+		vkDestroySwapchainKHR(m_Device->GetLogicalDevice(), m_Swapchain, nullptr);
 
 		for (size_t i = 0; i < m_SwapchainImages.size(); i++)
 		{
-			vkDestroyBuffer(m_Device, m_UniformBuffers[i], nullptr);
-			vkFreeMemory(m_Device, m_UniformBuffersMemory[i], nullptr);
+			vkDestroyBuffer(m_Device->GetLogicalDevice(), m_UniformBuffers[i], nullptr);
+			vkFreeMemory(m_Device->GetLogicalDevice(), m_UniformBuffersMemory[i], nullptr);
 		}
 
-		vkDestroyDescriptorPool(m_Device, m_DescriptorPool, nullptr);
+		vkDestroyDescriptorPool(m_Device->GetLogicalDevice(), m_DescriptorPool, nullptr);
 	}
 
 	void VulkanContext::Shutdown()
@@ -117,28 +124,30 @@ namespace Povox {
 		
 		CleanupSwapchain();
 
-		vkDestroySampler(m_Device, m_TextureSampler, nullptr);
-		vkDestroyImageView(m_Device, m_TextureImageView, nullptr);
-		vkDestroyImage(m_Device, m_TextureImage, nullptr);
-		vkFreeMemory(m_Device, m_TextureImageMemory, nullptr);
+		vkDestroySampler(m_Device->GetLogicalDevice(), m_TextureSampler, nullptr);
+		vkDestroyImageView(m_Device->GetLogicalDevice(), m_TextureImageView, nullptr);
+		vkDestroyImage(m_Device->GetLogicalDevice(), m_TextureImage, nullptr);
+		vkFreeMemory(m_Device->GetLogicalDevice(), m_TextureImageMemory, nullptr);
 
-		vkDestroyDescriptorSetLayout(m_Device, m_DescriptorSetLayout, nullptr);
+		vkDestroyDescriptorSetLayout(m_Device->GetLogicalDevice(), m_DescriptorSetLayout, nullptr);
 
-		vkDestroyBuffer(m_Device, m_IndexBuffer, nullptr);
-		vkFreeMemory(m_Device, m_IndexBufferMemory, nullptr);
+		vkDestroyBuffer(m_Device->GetLogicalDevice(), m_IndexBuffer, nullptr);
+		vkFreeMemory(m_Device->GetLogicalDevice(), m_IndexBufferMemory, nullptr);
 
-		vkDestroyBuffer(m_Device, m_VertexBuffer, nullptr);
-		vkFreeMemory(m_Device, m_VertexBufferMemory, nullptr);
+		vkDestroyBuffer(m_Device->GetLogicalDevice(), m_VertexBuffer, nullptr);
+		vkFreeMemory(m_Device->GetLogicalDevice(), m_VertexBufferMemory, nullptr);
 
 		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
 		{
-			vkDestroySemaphore(m_Device, m_ImageAvailableSemaphores[i], nullptr);
-			vkDestroySemaphore(m_Device, m_RenderFinishedSemaphores[i], nullptr);
-			vkDestroyFence(m_Device, m_InFlightFence[i], nullptr);
+			vkDestroySemaphore(m_Device->GetLogicalDevice(), m_ImageAvailableSemaphores[i], nullptr);
+			vkDestroySemaphore(m_Device->GetLogicalDevice(), m_RenderFinishedSemaphores[i], nullptr);
+			vkDestroyFence(m_Device->GetLogicalDevice(), m_InFlightFence[i], nullptr);
 		}
-		vkDestroyCommandPool(m_Device, m_CommandPoolTransfer, nullptr);
-		vkDestroyCommandPool(m_Device, m_CommandPoolGraphics, nullptr);
-		vkDestroyDevice(m_Device, nullptr);
+		vkDestroyCommandPool(m_Device->GetLogicalDevice(), m_CommandPoolTransfer, nullptr);
+		vkDestroyCommandPool(m_Device->GetLogicalDevice(), m_CommandPoolGraphics, nullptr);
+
+		m_Device->Destroy();
+
 		if (m_EnableValidationLayers)
 			DestroyDebugUtilsMessengerEXT(m_Instance, m_DebugMessenger, nullptr);
 		vkDestroySurfaceKHR(m_Instance, m_Surface, nullptr);
@@ -158,10 +167,10 @@ namespace Povox {
 
 	void VulkanContext::DrawFrame()
 	{
-		vkWaitForFences(m_Device, 1, &m_InFlightFence[m_CurrentFrame], VK_TRUE, UINT64_MAX);
+		vkWaitForFences(m_Device->GetLogicalDevice(), 1, &m_InFlightFence[m_CurrentFrame], VK_TRUE, UINT64_MAX);
 
 		uint32_t imageIndex;
-		VkResult result = vkAcquireNextImageKHR(m_Device, m_Swapchain, UINT64_MAX /*disables timeout*/, m_ImageAvailableSemaphores[m_CurrentFrame], VK_NULL_HANDLE, &imageIndex);
+		VkResult result = vkAcquireNextImageKHR(m_Device->GetLogicalDevice(), m_Swapchain, UINT64_MAX /*disables timeout*/, m_ImageAvailableSemaphores[m_CurrentFrame], VK_NULL_HANDLE, &imageIndex);
 
 		if (result == VK_ERROR_OUT_OF_DATE_KHR)
 		{
@@ -176,7 +185,7 @@ namespace Povox {
 		// check if a previous frame is using this image (i.e. there is its fence to wait on)
 		if (m_ImagesInFlight[m_CurrentFrame] != VK_NULL_HANDLE)
 		{
-			vkWaitForFences(m_Device, 1, &m_InFlightFence[m_CurrentFrame], VK_TRUE, UINT64_MAX);
+			vkWaitForFences(m_Device->GetLogicalDevice(), 1, &m_InFlightFence[m_CurrentFrame], VK_TRUE, UINT64_MAX);
 		}
 		else // mark the image as now being used now by this frame
 		{
@@ -200,9 +209,9 @@ namespace Povox {
 		submitInfo.signalSemaphoreCount = 1;
 		submitInfo.pSignalSemaphores	= signalSemaphores;
 
-		vkResetFences(m_Device, 1, &m_InFlightFence[m_CurrentFrame]);
+		vkResetFences(m_Device->GetLogicalDevice(), 1, &m_InFlightFence[m_CurrentFrame]);
 
-		VkResult resultQueueSubmit = vkQueueSubmit(m_GraphicsQueue, 1, &submitInfo, m_InFlightFence[m_CurrentFrame]);
+		VkResult resultQueueSubmit = vkQueueSubmit(m_Device->GetQueueFamilies().GraphicsQueue, 1, &submitInfo, m_InFlightFence[m_CurrentFrame]);
 		PX_CORE_ASSERT(resultQueueSubmit == VK_SUCCESS, "Failed to submit draw render buffer!");
 
 		VkPresentInfoKHR presentInfo{};
@@ -216,7 +225,7 @@ namespace Povox {
 		presentInfo.pImageIndices		= &imageIndex;
 		presentInfo.pResults			= nullptr;		// optional
 
-		result = vkQueuePresentKHR(m_PresentQueue, &presentInfo);
+		result = vkQueuePresentKHR(m_Device->GetQueueFamilies().PresentQueue, &presentInfo);
 		if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || m_FramebufferResized)
 		{
 			m_FramebufferResized = false;
@@ -302,93 +311,11 @@ namespace Povox {
 	}
 
 
-// Physical Device
-	void VulkanContext::PickPhysicalDevice()
-	{
-		uint32_t deviceCount = 0;
-		vkEnumeratePhysicalDevices(m_Instance, &deviceCount, nullptr);
-		PX_CORE_ASSERT(deviceCount != 0, "Failed to find GPUs with Vulkan support!");
-
-		std::vector<VkPhysicalDevice> devices(deviceCount);
-		vkEnumeratePhysicalDevices(m_Instance, &deviceCount, devices.data());
-
-		std::multimap<int, VkPhysicalDevice> candidates;
-
-		for (const auto& device : devices)
-		{
-			int score = RateDeviceSuitability(device);
-			candidates.insert(std::make_pair(score, device));
-		}
-
-		//TODO: change to choose highest score instead of first over 0
-		if(candidates.rbegin()->first > 0)
-		{
-			m_PhysicalDevice = candidates.rbegin()->second;
-		}
-		PX_CORE_ASSERT(m_PhysicalDevice != VK_NULL_HANDLE, "Failed to find suitable GPU!");
-	}
-
-	
-
-// Logical Device
-	void VulkanContext::CreateLogicalDevice()
-	{
-		QueueFamilyIndices indices = FindQueueFamilies(m_PhysicalDevice);
-
-		std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
-		std::set<uint32_t> uniqueQueueFamilies = { 
-									indices.GraphicsFamily.value(), 
-									indices.PresentFamily.value(), 
-									indices.TransferFamily.value() };
-
-		float queuePriority = 1.0f;
-		for (uint32_t queueFamily : uniqueQueueFamilies)
-		{
-			VkDeviceQueueCreateInfo queueCreateInfo{};
-			queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-			queueCreateInfo.queueFamilyIndex = queueFamily;
-			queueCreateInfo.queueCount = 1;
-			queueCreateInfo.pQueuePriorities = &queuePriority;
-
-			queueCreateInfos.push_back(queueCreateInfo);
-		}
-
-		// Here we specify the features we queried to with vkGetPhysicalDeviseFeatures in RateDeviceSuitability
-		VkPhysicalDeviceFeatures deviceFeatures{};
-		deviceFeatures.fillModeNonSolid = VK_TRUE;
-		deviceFeatures.samplerAnisotropy = VK_TRUE;
-
-		VkDeviceCreateInfo createInfo{};
-		createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-		createInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
-		createInfo.pQueueCreateInfos = queueCreateInfos.data();
-		createInfo.pEnabledFeatures = &deviceFeatures;
-		createInfo.enabledExtensionCount = static_cast<uint32_t>(m_DeviceExtensions.size());
-		createInfo.ppEnabledExtensionNames = m_DeviceExtensions.data();
-
-		if (m_EnableValidationLayers)
-		{
-			createInfo.enabledLayerCount = static_cast<uint32_t>(m_ValidationLayers.size());
-			createInfo.ppEnabledLayerNames = m_ValidationLayers.data();
-		}
-		else
-		{
-			createInfo.enabledLayerCount = 0;
-		}
-
-		VkResult result = vkCreateDevice(m_PhysicalDevice, &createInfo, nullptr, &m_Device);
-		PX_CORE_ASSERT(result == VK_SUCCESS, "Failed to create logical device!");
-
-		vkGetDeviceQueue(m_Device, indices.GraphicsFamily.value(), 0, &m_GraphicsQueue);
-		vkGetDeviceQueue(m_Device, indices.PresentFamily.value(), 0, &m_PresentQueue);
-		vkGetDeviceQueue(m_Device, indices.TransferFamily.value(), 0, &m_TransferQueue);
-	}
-
 // Swapchain
 	// move to VulkanSwapchain
 	void VulkanContext::CreateSwapchain()
 	{
-		SwapchainSupportDetails swapchainSupportDetails = QuerySwapchainSupport(m_PhysicalDevice);
+		SwapchainSupportDetails swapchainSupportDetails = m_Device->QuerySwapchainSupport(m_Device->GetPhysicalDevice(), m_Surface);
 
 		VkSurfaceFormatKHR surfaceFormat = ChooseSwapSurfaceFormat(swapchainSupportDetails.Formats);
 		VkPresentModeKHR presentMode = ChooseSwapPresentMode(swapchainSupportDetails.PresentModes);
@@ -412,7 +339,7 @@ namespace Povox {
 		m_SwapchainImageFormat = surfaceFormat.format;
 		m_SwapchainExtent = extent;
 
-		QueueFamilyIndices indices = FindQueueFamilies(m_PhysicalDevice);
+		QueueFamilyIndices indices = m_Device->FindQueueFamilies(m_Device->GetPhysicalDevice(), m_Surface);
 		uint32_t queueFamilyIndices[] = { 
 						indices.GraphicsFamily.value(), 
 						indices.PresentFamily.value(), 
@@ -438,13 +365,13 @@ namespace Povox {
 		createInfo.clipped = VK_TRUE;
 		createInfo.oldSwapchain = VK_NULL_HANDLE;
 
-		VkResult result = vkCreateSwapchainKHR(m_Device, &createInfo, nullptr, &m_Swapchain);
+		VkResult result = vkCreateSwapchainKHR(m_Device->GetLogicalDevice(), &createInfo, nullptr, &m_Swapchain);
 		PX_CORE_ASSERT(result == VK_SUCCESS, "Failed to create swapchain!");
 
 
-		vkGetSwapchainImagesKHR(m_Device, m_Swapchain, &imageCount, nullptr);
+		vkGetSwapchainImagesKHR(m_Device->GetLogicalDevice(), m_Swapchain, &imageCount, nullptr);
 		m_SwapchainImages.resize(imageCount);
-		vkGetSwapchainImagesKHR(m_Device, m_Swapchain, &imageCount, m_SwapchainImages.data());
+		vkGetSwapchainImagesKHR(m_Device->GetLogicalDevice(), m_Swapchain, &imageCount, m_SwapchainImages.data());
 	}
 
 	
@@ -492,7 +419,7 @@ namespace Povox {
 
 // Image views
 
-	VkImageView VulkanContext::CreateImageView(VkImage image, VkFormat format)
+	VkImageView VulkanContext::CreateImageView(VkImage image, VkFormat format, VkImageAspectFlags aspects)
 	{
 		VkImageViewCreateInfo createInfo{};
 		createInfo.sType		= VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -505,14 +432,14 @@ namespace Povox {
 		createInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
 		createInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
 
-		createInfo.subresourceRange.aspectMask		= VK_IMAGE_ASPECT_COLOR_BIT;
+		createInfo.subresourceRange.aspectMask		= aspects;
 		createInfo.subresourceRange.baseMipLevel	= 0;
 		createInfo.subresourceRange.levelCount		= 1;
 		createInfo.subresourceRange.baseArrayLayer	= 0;
 		createInfo.subresourceRange.layerCount		= 1;
 
 		VkImageView imageView;
-		VkResult result = vkCreateImageView(m_Device, &createInfo, nullptr, &imageView);
+		VkResult result = vkCreateImageView(m_Device->GetLogicalDevice(), &createInfo, nullptr, &imageView);
 		PX_CORE_ASSERT(result == VK_SUCCESS, "Failed to create image view!");
 
 		return imageView;
@@ -525,7 +452,7 @@ namespace Povox {
 
 		for (size_t i = 0; i < m_SwapchainImageViews.size(); i++)
 		{
-			m_SwapchainImageViews[i] = CreateImageView(m_SwapchainImages[i], m_SwapchainImageFormat);
+			m_SwapchainImageViews[i] = CreateImageView(m_SwapchainImages[i], m_SwapchainImageFormat, VK_IMAGE_ASPECT_COLOR_BIT);
 		}
 	}
 
@@ -546,35 +473,51 @@ namespace Povox {
 		// Layout is importent to know, because the next operation the image is involved in needs that
 		// initial is before render pass, final is the layout the imiga is automatically transitioned to after the render pass finishes
 
+		VkAttachmentDescription depthAttachment{};
+		depthAttachment.format = FindDepthFormat();
+		depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+		depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+		depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+		depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+		depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+		depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+		depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
 		// Subpasses  -> usefull for example to create a sequence of post processing effects
 		VkAttachmentReference colorAttachmentRef{};
 		colorAttachmentRef.attachment	= 0;		// index in attachment description array
 		colorAttachmentRef.layout		= VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
+		VkAttachmentReference depthAttachmentRef{};
+		depthAttachmentRef.attachment = 1;		// index in attachment description array
+		depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
 		VkSubpassDescription subpass{};
 		subpass.pipelineBindPoint		= VK_PIPELINE_BIND_POINT_GRAPHICS;
 		subpass.colorAttachmentCount	= 1;
 		subpass.pColorAttachments		= &colorAttachmentRef;
+		subpass.pDepthStencilAttachment = &depthAttachmentRef;
 
 		VkSubpassDependency dependency{};
 		dependency.srcSubpass		= VK_SUBPASS_EXTERNAL;	// refers to before or after the render pass depending on it being specified on src or dst
 		dependency.dstSubpass		= 0;						// index of subpass, dstSubpass must always be higher then src subpass unless on of them is VK_SUBPASS_EXTERNAL
-		dependency.srcStageMask		= VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT; // operation to wait on
+		dependency.srcStageMask		= VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT; // operation to wait on
+		dependency.dstStageMask		= VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
 		dependency.srcAccessMask	= 0;
-		dependency.dstStageMask		= VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-		dependency.dstAccessMask	= VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+		dependency.dstAccessMask	= VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 
 
+		std::array<VkAttachmentDescription, 2> attachments = { colorAttachment, depthAttachment };
 		VkRenderPassCreateInfo renderPassInfo{};
 		renderPassInfo.sType			= VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-		renderPassInfo.attachmentCount	= 1;
-		renderPassInfo.pAttachments		= &colorAttachment;
+		renderPassInfo.attachmentCount	= static_cast<uint32_t>(attachments.size());
+		renderPassInfo.pAttachments		= attachments.data();
 		renderPassInfo.subpassCount		= 1;
 		renderPassInfo.pSubpasses		= &subpass;
 		renderPassInfo.dependencyCount	= 1;
 		renderPassInfo.pDependencies	= &dependency;
 
-		VkResult result = vkCreateRenderPass(m_Device, &renderPassInfo, nullptr, &m_RenderPass);
+		VkResult result = vkCreateRenderPass(m_Device->GetLogicalDevice(), &renderPassInfo, nullptr, &m_RenderPass);
 		PX_CORE_ASSERT(result == VK_SUCCESS, "Failed to create render pass!");
 	}
 
@@ -603,7 +546,7 @@ namespace Povox {
 		layoutInfo.bindingCount			= static_cast<uint32_t>(bindings.size());
 		layoutInfo.pBindings			= bindings.data();
 
-		VkResult result = vkCreateDescriptorSetLayout(m_Device, &layoutInfo, nullptr, &m_DescriptorSetLayout);
+		VkResult result = vkCreateDescriptorSetLayout(m_Device->GetLogicalDevice(), &layoutInfo, nullptr, &m_DescriptorSetLayout);
 		PX_CORE_ASSERT(result == VK_SUCCESS, "Failed to create descriptor set layout!");
 	}
 
@@ -697,7 +640,17 @@ namespace Povox {
 
 
 		// Depth buffer and stencil testing
-		//VkPipelineDepthStencilStateCreateInfo depthStencilInfo{};
+		VkPipelineDepthStencilStateCreateInfo depthStencilInfo{};
+		depthStencilInfo.sType					= VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+		depthStencilInfo.depthTestEnable		= VK_TRUE;
+		depthStencilInfo.depthWriteEnable		= VK_TRUE;
+		depthStencilInfo.depthCompareOp			= VK_COMPARE_OP_LESS;
+		depthStencilInfo.depthBoundsTestEnable	= VK_FALSE;
+		depthStencilInfo.minDepthBounds			= 0.0f;		// optional
+		depthStencilInfo.maxDepthBounds			= 1.0f;		// optional
+		depthStencilInfo.stencilTestEnable		= VK_FALSE;
+		depthStencilInfo.front					= {};
+		depthStencilInfo.back					= {};
 
 
 		//Color blending
@@ -753,7 +706,7 @@ namespace Povox {
 		layoutInfo.pushConstantRangeCount	= 0;		// optional
 		layoutInfo.pPushConstantRanges		= nullptr;	// optional
 
-		VkResult resultPipelineLayout = vkCreatePipelineLayout(m_Device, &layoutInfo, nullptr, &m_PipelineLayout);
+		VkResult resultPipelineLayout = vkCreatePipelineLayout(m_Device->GetLogicalDevice(), &layoutInfo, nullptr, &m_PipelineLayout);
 		PX_CORE_ASSERT(resultPipelineLayout == VK_SUCCESS, "Failed to create pipeline layout!");
 
 
@@ -767,7 +720,7 @@ namespace Povox {
 		pipelineInfo.pViewportState			= &viewportStateInfo;
 		pipelineInfo.pRasterizationState	= &rasterizationStateInfo;
 		pipelineInfo.pMultisampleState		= &multisampleInfo;
-		pipelineInfo.pDepthStencilState		= nullptr;
+		pipelineInfo.pDepthStencilState		= &depthStencilInfo;
 		pipelineInfo.pColorBlendState		= &colorBlendStateInfo;
 		pipelineInfo.pDynamicState			= nullptr;
 
@@ -778,11 +731,11 @@ namespace Povox {
 		pipelineInfo.basePipelineHandle		= VK_NULL_HANDLE;	// only used if VK_PIPELINE_CREATE_DERIVATIVE_BIT is specified under flags in VkGraphicsPipelineCreateInfo
 		pipelineInfo.basePipelineIndex		= -1;
 		
-		VkResult result = vkCreateGraphicsPipelines(m_Device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_GraphicsPipeline);
+		VkResult result = vkCreateGraphicsPipelines(m_Device->GetLogicalDevice(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_GraphicsPipeline);
 		PX_CORE_ASSERT(result == VK_SUCCESS, "Failed to create Graphics pipeline!");
 		
-		vkDestroyShaderModule(m_Device, vertexShaderModule, nullptr);
-		vkDestroyShaderModule(m_Device, fragmentShaderModule, nullptr);
+		vkDestroyShaderModule(m_Device->GetLogicalDevice(), vertexShaderModule, nullptr);
+		vkDestroyShaderModule(m_Device->GetLogicalDevice(), fragmentShaderModule, nullptr);
 	}
 
 	// move to VulkanGraphicsPipeline
@@ -795,7 +748,7 @@ namespace Povox {
 
 		VkShaderModule shaderModule;
 
-		VkResult result = vkCreateShaderModule(m_Device, &createInfo, nullptr, &shaderModule);
+		VkResult result = vkCreateShaderModule(m_Device->GetLogicalDevice(), &createInfo, nullptr, &shaderModule);
 		PX_CORE_ASSERT(result == VK_SUCCESS, "Failed to create shader module!");
 
 		return shaderModule;
@@ -825,18 +778,18 @@ namespace Povox {
 		m_SwapchainFramebuffers.resize(m_SwapchainImageViews.size());
 		for (size_t i = 0; i < m_SwapchainImageViews.size(); i++)
 		{
-			VkImageView attachments[] = { m_SwapchainImageViews[i] };
+			std::array<VkImageView, 2> attachments = { m_SwapchainImageViews[i], m_DepthImageView };
 
 			VkFramebufferCreateInfo framebufferInfo{};
 			framebufferInfo.sType			= VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
 			framebufferInfo.renderPass		= m_RenderPass;			// needs to be compatible (roughly, use the same number and type of attachments)
-			framebufferInfo.attachmentCount = 1;					// The attachmentCount and pAttachments parameters specify the VkImageView objects that should be bound to the respective attachment descriptions in the render pass pAttachment array.
-			framebufferInfo.pAttachments	= attachments;
+			framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());					// The attachmentCount and pAttachments parameters specify the VkImageView objects that should be bound to the respective attachment descriptions in the render pass pAttachment array.
+			framebufferInfo.pAttachments	= attachments.data();
 			framebufferInfo.width			= m_SwapchainExtent.width;
 			framebufferInfo.height			= m_SwapchainExtent.height;
 			framebufferInfo.layers			= 1;					// number of layers in image array
 
-			VkResult result = vkCreateFramebuffer(m_Device, &framebufferInfo, nullptr, &m_SwapchainFramebuffers[i]);
+			VkResult result = vkCreateFramebuffer(m_Device->GetLogicalDevice(), &framebufferInfo, nullptr, &m_SwapchainFramebuffers[i]);
 			PX_CORE_ASSERT(result == VK_SUCCESS, "Failed to create framebuffer!");
 		}
 	}
@@ -845,7 +798,7 @@ namespace Povox {
 	// move to VulkanCommandBuffer, but needs more research on what this exactlz does and how to use
 	void VulkanContext::CreateCommandPool()
 	{
-		QueueFamilyIndices queueFamilies = FindQueueFamilies(m_PhysicalDevice);
+		QueueFamilyIndices queueFamilies = m_Device->FindQueueFamilies(m_Device->GetPhysicalDevice(), m_Surface);
 
 		VkCommandPoolCreateInfo commandPoolGraphicsInfo{};
 		commandPoolGraphicsInfo.sType				= VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
@@ -857,11 +810,48 @@ namespace Povox {
 		commandPoolTransferInfo.queueFamilyIndex	= queueFamilies.TransferFamily.value();
 		commandPoolTransferInfo.flags				= VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
 
-		VkResult result = vkCreateCommandPool(m_Device, &commandPoolGraphicsInfo, nullptr, &m_CommandPoolGraphics);
+		VkResult result = vkCreateCommandPool(m_Device->GetLogicalDevice(), &commandPoolGraphicsInfo, nullptr, &m_CommandPoolGraphics);
 		PX_CORE_ASSERT(result == VK_SUCCESS, "Failed to create graphics command pool!");
 
-		result = vkCreateCommandPool(m_Device, &commandPoolTransferInfo, nullptr, &m_CommandPoolTransfer);
+		result = vkCreateCommandPool(m_Device->GetLogicalDevice(), &commandPoolTransferInfo, nullptr, &m_CommandPoolTransfer);
 		PX_CORE_ASSERT(result == VK_SUCCESS, "Failed to create transfer command pool!");
+	}
+
+	void VulkanContext::CreateDepthResources()
+	{
+		VkFormat depthFormat = FindDepthFormat();
+		CreateImage(m_SwapchainExtent.width, m_SwapchainExtent.height, depthFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_DepthImage, m_DepthImageMemory);
+		m_DepthImageView = CreateImageView(m_DepthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
+
+		TransitionImageLayout(m_DepthImage, depthFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL);
+	}
+
+	VkFormat VulkanContext::FindSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features)
+	{
+		for (VkFormat format : candidates)
+		{
+			VkFormatProperties props;
+			vkGetPhysicalDeviceFormatProperties(m_Device->GetPhysicalDevice(), format, &props);
+			if (tiling == VK_IMAGE_TILING_LINEAR && (props.linearTilingFeatures & features))
+			{
+				return format;
+			}
+			else if (tiling == VK_IMAGE_TILING_OPTIMAL && (props.optimalTilingFeatures & features))
+			{
+				return format;
+			}
+		}
+		PX_CORE_ASSERT(false, "Failed to find supported format!");
+	}
+
+	VkFormat VulkanContext::FindDepthFormat()
+	{
+		return FindSupportedFormat({ VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT }, VK_IMAGE_TILING_OPTIMAL, VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
+	}
+
+	bool VulkanContext::HasStencilComponent(VkFormat format)
+	{
+		return format == VK_FORMAT_D32_SFLOAT_S8_UINT || format == VK_FORMAT_D24_UNORM_S8_UINT;
 	}
 
 	void VulkanContext::CreateTextureImage()
@@ -879,9 +869,9 @@ namespace Povox {
 		CreateBuffer(imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
 
 		void* data;
-		vkMapMemory(m_Device, stagingBufferMemory, 0, imageSize, 0, &data);
+		vkMapMemory(m_Device->GetLogicalDevice(), stagingBufferMemory, 0, imageSize, 0, &data);
 		memcpy(data, pixels, static_cast<size_t>(imageSize));
-		vkUnmapMemory(m_Device, stagingBufferMemory);
+		vkUnmapMemory(m_Device->GetLogicalDevice(), stagingBufferMemory);
 
 		stbi_image_free(pixels);
 
@@ -891,14 +881,13 @@ namespace Povox {
 		CopyBufferToImage(stagingBuffer, m_TextureImage, static_cast<uint32_t>(width), static_cast<uint32_t>(height));
 		TransitionImageLayout(m_TextureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
-		vkDestroyBuffer(m_Device, stagingBuffer, nullptr);
-		vkFreeMemory(m_Device, stagingBufferMemory, nullptr);
+		vkDestroyBuffer(m_Device->GetLogicalDevice(), stagingBuffer, nullptr);
+		vkFreeMemory(m_Device->GetLogicalDevice(), stagingBufferMemory, nullptr);
 	}
 
 	void VulkanContext::CreateTextureImageView()
 	{
-		m_TextureImageView = CreateImageView(m_TextureImage, VK_FORMAT_R8G8B8A8_SRGB);
-
+		m_TextureImageView = CreateImageView(m_TextureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
 	}
 
 	void VulkanContext::CreateImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& memory)
@@ -919,21 +908,21 @@ namespace Povox {
 		imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;	// related to multi sampling -> in attachments
 		imageInfo.flags = 0;	// optional, can be used for sparse textures, in "D vfor examples for voxel terrain, to avoid using memory with AIR
 
-		VkResult result = vkCreateImage(m_Device, &imageInfo, nullptr, &image);
+		VkResult result = vkCreateImage(m_Device->GetLogicalDevice(), &imageInfo, nullptr, &image);
 		PX_CORE_ASSERT(result == VK_SUCCESS, "Failed to create Texture Image!");
 
 		VkMemoryRequirements memRequirements;
-		vkGetImageMemoryRequirements(m_Device, image, &memRequirements);
+		vkGetImageMemoryRequirements(m_Device->GetLogicalDevice(), image, &memRequirements);
 
 		VkMemoryAllocateInfo memoryInfo{};
 		memoryInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 		memoryInfo.allocationSize = memRequirements.size;
 		memoryInfo.memoryTypeIndex = FindMemoryType(memRequirements.memoryTypeBits, properties);
 
-		VkResult resultMemory = vkAllocateMemory(m_Device, &memoryInfo, nullptr, &memory);
+		VkResult resultMemory = vkAllocateMemory(m_Device->GetLogicalDevice(), &memoryInfo, nullptr, &memory);
 		PX_CORE_ASSERT(resultMemory == VK_SUCCESS, "Failed to allocate texture image memory!");
 
-		vkBindImageMemory(m_Device, image, memory, 0);
+		vkBindImageMemory(m_Device->GetLogicalDevice(), image, memory, 0);
 	}
 
 	void VulkanContext::CreateTextureSampler()
@@ -948,7 +937,7 @@ namespace Povox {
 		samplerInfo.anisotropyEnable		= VK_TRUE;
 
 		VkPhysicalDeviceProperties properties;
-		vkGetPhysicalDeviceProperties(m_PhysicalDevice, &properties);
+		vkGetPhysicalDeviceProperties(m_Device->GetPhysicalDevice(), &properties);
 		samplerInfo.maxAnisotropy			= properties.limits.maxSamplerAnisotropy;
 		samplerInfo.borderColor				= VK_BORDER_COLOR_INT_OPAQUE_BLACK;
 		samplerInfo.unnormalizedCoordinates = VK_FALSE;
@@ -959,7 +948,7 @@ namespace Povox {
 		samplerInfo.maxLod					= 0.0f;
 		samplerInfo.minLod					= 0.0f;
 
-		VkResult result = vkCreateSampler(m_Device, &samplerInfo, nullptr, &m_TextureSampler);
+		VkResult result = vkCreateSampler(m_Device->GetLogicalDevice(), &samplerInfo, nullptr, &m_TextureSampler);
 		PX_CORE_ASSERT(result == VK_SUCCESS, "Failed to create texture sampler!");
 	}
 
@@ -974,7 +963,16 @@ namespace Povox {
 		barrier.newLayout						= newLayout;
 		barrier.srcQueueFamilyIndex				= VK_QUEUE_FAMILY_IGNORED;
 		barrier.dstQueueFamilyIndex				= VK_QUEUE_FAMILY_IGNORED;
-		barrier.subresourceRange.aspectMask		= VK_IMAGE_ASPECT_COLOR_BIT;
+		if (newLayout == VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL)
+		{
+			barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+			if (HasStencilComponent(format))
+				barrier.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
+		}
+		else
+		{
+			barrier.subresourceRange.aspectMask		= VK_IMAGE_ASPECT_COLOR_BIT;
+		}
 		barrier.subresourceRange.baseMipLevel	= 0;
 		barrier.subresourceRange.levelCount		= 1;
 		barrier.subresourceRange.baseArrayLayer = 0;
@@ -999,6 +997,14 @@ namespace Povox {
 			srcStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
 			dstStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
 		}
+		else if(oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL)
+		{
+			barrier.srcAccessMask = 0;
+			barrier.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+
+			srcStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+			dstStage = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+		}
 		else
 		{
 			PX_CORE_ASSERT(false, "Unsupported layout transition!");
@@ -1006,7 +1012,7 @@ namespace Povox {
 			
 		vkCmdPipelineBarrier(commandBuffer, srcStage, dstStage, 0, 0, nullptr, 0, nullptr, 1, &barrier);
 
-		EndSingleTimeCommands(commandBuffer, m_GraphicsQueue, m_CommandPoolGraphics);
+		EndSingleTimeCommands(commandBuffer, m_Device->GetQueueFamilies().GraphicsQueue, m_CommandPoolGraphics);
 	}
 
 	void VulkanContext::CopyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height)
@@ -1026,12 +1032,12 @@ namespace Povox {
 
 		vkCmdCopyBufferToImage(commandBuffer, buffer, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 
-		EndSingleTimeCommands(commandBuffer, m_GraphicsQueue, m_CommandPoolGraphics);
+		EndSingleTimeCommands(commandBuffer, m_Device->GetQueueFamilies().GraphicsQueue, m_CommandPoolGraphics);
 	}
 
 	void VulkanContext::CreateVertexBuffer()
 	{
-		QueueFamilyIndices indices = FindQueueFamilies(m_PhysicalDevice);
+		QueueFamilyIndices indices = m_Device->FindQueueFamilies(m_Device->GetPhysicalDevice(), m_Surface);
 		uint32_t queueFamilyIndices[] = {
 			indices.GraphicsFamily.value(),
 			indices.TransferFamily.value()
@@ -1046,20 +1052,20 @@ namespace Povox {
 			stagingBufferMemory, indiceSize, queueFamilyIndices, VK_SHARING_MODE_CONCURRENT);
 
 		void* data;
-		vkMapMemory(m_Device, stagingBufferMemory, 0, bufferSize, 0, &data);
+		vkMapMemory(m_Device->GetLogicalDevice(), stagingBufferMemory, 0, bufferSize, 0, &data);
 		memcpy(data, m_Vertices.data(), (size_t)bufferSize);
-		vkUnmapMemory(m_Device, stagingBufferMemory);
+		vkUnmapMemory(m_Device->GetLogicalDevice(), stagingBufferMemory);
 		CreateBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_VertexBuffer,
 			m_VertexBufferMemory, indiceSize, queueFamilyIndices, VK_SHARING_MODE_CONCURRENT);
 
 		CopyBuffer(stagingBuffer, m_VertexBuffer, bufferSize);
-		vkDestroyBuffer(m_Device, stagingBuffer, nullptr);
-		vkFreeMemory(m_Device, stagingBufferMemory, nullptr);
+		vkDestroyBuffer(m_Device->GetLogicalDevice(), stagingBuffer, nullptr);
+		vkFreeMemory(m_Device->GetLogicalDevice(), stagingBufferMemory, nullptr);
 	}
 
 	void VulkanContext::CreateIndexBuffer()
 	{
-		QueueFamilyIndices indices = FindQueueFamilies(m_PhysicalDevice);
+		QueueFamilyIndices indices = m_Device->FindQueueFamilies(m_Device->GetPhysicalDevice(), m_Surface);
 		uint32_t queueFamilyIndices[] = {
 			indices.GraphicsFamily.value(),
 			indices.TransferFamily.value()
@@ -1074,17 +1080,17 @@ namespace Povox {
 			stagingBufferMemory, indiceSize, queueFamilyIndices, VK_SHARING_MODE_CONCURRENT);
 
 		void* data;
-		vkMapMemory(m_Device, stagingBufferMemory, 0, bufferSize, 0, &data);
+		vkMapMemory(m_Device->GetLogicalDevice(), stagingBufferMemory, 0, bufferSize, 0, &data);
 		memcpy(data, m_Indices.data(), (size_t)bufferSize);
-		vkUnmapMemory(m_Device, stagingBufferMemory);
+		vkUnmapMemory(m_Device->GetLogicalDevice(), stagingBufferMemory);
 
 		CreateBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_IndexBuffer,
 			m_IndexBufferMemory, indiceSize, queueFamilyIndices, VK_SHARING_MODE_CONCURRENT);
 
 		CopyBuffer(stagingBuffer, m_IndexBuffer, bufferSize);
 
-		vkDestroyBuffer(m_Device, stagingBuffer, nullptr);
-		vkFreeMemory(m_Device, stagingBufferMemory, nullptr);
+		vkDestroyBuffer(m_Device->GetLogicalDevice(), stagingBuffer, nullptr);
+		vkFreeMemory(m_Device->GetLogicalDevice(), stagingBufferMemory, nullptr);
 	}
 
 	void VulkanContext::CreateBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, 
@@ -1098,22 +1104,22 @@ namespace Povox {
 		vertexBufferInfo.queueFamilyIndexCount = familyIndexCount;
 		vertexBufferInfo.pQueueFamilyIndices = familyIndices;
 
-		VkResult resultBuffer = vkCreateBuffer(m_Device, &vertexBufferInfo, nullptr, &buffer);
+		VkResult resultBuffer = vkCreateBuffer(m_Device->GetLogicalDevice(), &vertexBufferInfo, nullptr, &buffer);
 		PX_CORE_ASSERT(resultBuffer == VK_SUCCESS, "Failed to create vertex buffer!");
 
 
 		VkMemoryRequirements requirements;
-		vkGetBufferMemoryRequirements(m_Device, buffer, &requirements);
+		vkGetBufferMemoryRequirements(m_Device->GetLogicalDevice(), buffer, &requirements);
 
 		VkMemoryAllocateInfo memoryInfo{};
 		memoryInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 		memoryInfo.allocationSize = requirements.size;
 		memoryInfo.memoryTypeIndex = FindMemoryType(requirements.memoryTypeBits, properties);
 
-		VkResult resultMemory = vkAllocateMemory(m_Device, &memoryInfo, nullptr, &memory);
+		VkResult resultMemory = vkAllocateMemory(m_Device->GetLogicalDevice(), &memoryInfo, nullptr, &memory);
 		PX_CORE_ASSERT(resultMemory == VK_SUCCESS, "Failed to allocate vertex buffer memory!");
 
-		vkBindBufferMemory(m_Device, buffer, memory, 0);
+		vkBindBufferMemory(m_Device->GetLogicalDevice(), buffer, memory, 0);
 	}
 
 	void VulkanContext::CreateUniformBuffers()
@@ -1138,13 +1144,13 @@ namespace Povox {
 
 		vkCmdCopyBuffer(commandBuffer, src, dst, 1, &copyRegion);
 
-		EndSingleTimeCommands(commandBuffer, m_TransferQueue, m_CommandPoolTransfer);
+		EndSingleTimeCommands(commandBuffer, m_Device->GetQueueFamilies().TransferQueue, m_CommandPoolTransfer);
 	}
 
 	uint32_t VulkanContext::FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags propertiyFlags)
 	{
 		VkPhysicalDeviceMemoryProperties memoryProperties;
-		vkGetPhysicalDeviceMemoryProperties(m_PhysicalDevice, &memoryProperties);
+		vkGetPhysicalDeviceMemoryProperties(m_Device->GetPhysicalDevice(), &memoryProperties);
 
 		for (uint32_t i = 0; i < memoryProperties.memoryTypeCount; i++)
 		{
@@ -1171,7 +1177,7 @@ namespace Povox {
 		poolInfo.pPoolSizes			= poolSizes.data();
 		poolInfo.maxSets			= static_cast<uint32_t>(m_SwapchainImages.size());
 
-		VkResult result = vkCreateDescriptorPool(m_Device, &poolInfo, nullptr, &m_DescriptorPool);
+		VkResult result = vkCreateDescriptorPool(m_Device->GetLogicalDevice(), &poolInfo, nullptr, &m_DescriptorPool);
 		PX_CORE_ASSERT(result == VK_SUCCESS, "Failed to create descriptor pool!");
 	}
 
@@ -1185,7 +1191,7 @@ namespace Povox {
 		allocInfo.pSetLayouts			= layouts.data();
 
 		m_DescriptorSets.resize(m_SwapchainImages.size());
-		VkResult result = vkAllocateDescriptorSets(m_Device, &allocInfo, m_DescriptorSets.data());
+		VkResult result = vkAllocateDescriptorSets(m_Device->GetLogicalDevice(), &allocInfo, m_DescriptorSets.data());
 		PX_CORE_ASSERT(result == VK_SUCCESS, "Failed to create descriptor sets!");
 
 		for (size_t i = 0; i < m_SwapchainImages.size(); i++)
@@ -1219,7 +1225,7 @@ namespace Povox {
 			descriptorWrites[1].pBufferInfo			= &bufferInfo;
 			descriptorWrites[1].pImageInfo			= &imageInfo;	// optional image data
 
-			vkUpdateDescriptorSets(m_Device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
+			vkUpdateDescriptorSets(m_Device->GetLogicalDevice(), static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
 		}
 	}
 
@@ -1234,7 +1240,7 @@ namespace Povox {
 		bufferAllocInfo.commandBufferCount = 1;
 
 		VkCommandBuffer commandBuffer;
-		vkAllocateCommandBuffers(m_Device, &bufferAllocInfo, &commandBuffer);
+		vkAllocateCommandBuffers(m_Device->GetLogicalDevice(), &bufferAllocInfo, &commandBuffer);
 
 		VkCommandBufferBeginInfo bufferBeginInfo{};
 		bufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -1261,7 +1267,7 @@ namespace Povox {
 		PX_CORE_ASSERT(result == VK_SUCCESS, "Failed to submit copy buffer!");
 		vkQueueWaitIdle(queue);
 
-		vkFreeCommandBuffers(m_Device, commandPool, 1, &commandBuffer);
+		vkFreeCommandBuffers(m_Device->GetLogicalDevice(), commandPool, 1, &commandBuffer);
 	}
 
 	void VulkanContext::CreateCommandBuffers()
@@ -1275,7 +1281,7 @@ namespace Povox {
 		allocInfoGraphics.level					= VK_COMMAND_BUFFER_LEVEL_PRIMARY;	// primary can be called for execution, secondary can be called from primaries		
 		allocInfoGraphics.commandBufferCount	= (uint32_t)m_CommandBuffersGraphics.size();
 
-		VkResult result = vkAllocateCommandBuffers(m_Device, &allocInfoGraphics, m_CommandBuffersGraphics.data());
+		VkResult result = vkAllocateCommandBuffers(m_Device->GetLogicalDevice(), &allocInfoGraphics, m_CommandBuffersGraphics.data());
 		PX_CORE_ASSERT(result == VK_SUCCESS, "Failed to create command buffers!");
 
 		for (size_t i = 0; i < m_CommandBuffersGraphics.size(); i++)
@@ -1294,9 +1300,11 @@ namespace Povox {
 			renderPassInfo.framebuffer = m_SwapchainFramebuffers[i];
 			renderPassInfo.renderArea.offset = { 0, 0 };
 			renderPassInfo.renderArea.extent = m_SwapchainExtent;
-			VkClearValue clearColor = { 0.0f, 0.0f, 0.0f, 1.0f };
-			renderPassInfo.clearValueCount = 1;
-			renderPassInfo.pClearValues = &clearColor;
+			std::array<VkClearValue, 2> clearColor = {};
+			clearColor[0].color = { 0.1f, 0.1f, 0.1f, 1.0f };
+			clearColor[1].depthStencil = { 1.0f, 0 };
+			renderPassInfo.clearValueCount = static_cast<uint32_t>(clearColor.size());
+			renderPassInfo.pClearValues = clearColor.data();
 
 			vkCmdBeginRenderPass(m_CommandBuffersGraphics[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 			vkCmdBindPipeline(m_CommandBuffersGraphics[i], VK_PIPELINE_BIND_POINT_GRAPHICS, m_GraphicsPipeline);
@@ -1336,9 +1344,9 @@ namespace Povox {
 		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
 		{
 			bool result = false;
-			if ((vkCreateSemaphore(m_Device, &createSemaphoreInfo, nullptr, &m_ImageAvailableSemaphores[i]) == VK_SUCCESS)
-				&& (vkCreateSemaphore(m_Device, &createSemaphoreInfo, nullptr, &m_RenderFinishedSemaphores[i]) == VK_SUCCESS)
-				&& (vkCreateFence(m_Device, &createFenceInfo, nullptr, &m_InFlightFence[i]) == VK_SUCCESS))
+			if ((vkCreateSemaphore(m_Device->GetLogicalDevice(), &createSemaphoreInfo, nullptr, &m_ImageAvailableSemaphores[i]) == VK_SUCCESS)
+				&& (vkCreateSemaphore(m_Device->GetLogicalDevice(), &createSemaphoreInfo, nullptr, &m_RenderFinishedSemaphores[i]) == VK_SUCCESS)
+				&& (vkCreateFence(m_Device->GetLogicalDevice(), &createFenceInfo, nullptr, &m_InFlightFence[i]) == VK_SUCCESS))
 				result = true;
 			PX_CORE_ASSERT(result, "Failed to create synchronization objects for a frame!");
 		}
@@ -1386,58 +1394,6 @@ namespace Povox {
 		return VK_FALSE;
 	}
 
-
-	int VulkanContext::RateDeviceSuitability(VkPhysicalDevice device)
-	{
-		VkPhysicalDeviceProperties deviceProperties;
-		VkPhysicalDeviceFeatures supportedFeatures;
-		vkGetPhysicalDeviceProperties(device, &deviceProperties);
-		vkGetPhysicalDeviceFeatures(device, &supportedFeatures);
-
-		PX_CORE_INFO("Device-Name: {0}", deviceProperties.deviceName);
-		if(deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
-			PX_CORE_INFO("Device-type: Discrete GPU");
-		PX_CORE_INFO("API-Version: {0}.{1}.{2}.{3}", VK_API_VERSION_VARIANT(deviceProperties.apiVersion), VK_API_VERSION_MAJOR(deviceProperties.apiVersion), VK_API_VERSION_MINOR(deviceProperties.apiVersion), VK_API_VERSION_PATCH(deviceProperties.apiVersion));
-
-
-		int score = 0;
-
-		if (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)		// Dedicated GPU
-			score = 1000;
-		score += deviceProperties.limits.maxImageDimension2D;							// Maximum Supported Textures
-		//if (!deviceFeatures.geometryShader)											// Geometry Shader (needed in this case)
-		//	return 0;
-
-		bool extensionSupported = CheckDeviceExtensionSupport(device);
-		bool swapchainAdequat = extensionSupported ? QuerySwapchainSupport(device).IsAdequat() : false;
-
-
-		if (!FindQueueFamilies(device).IsComplete() && extensionSupported && swapchainAdequat && supportedFeatures.samplerAnisotropy)
-		{
-			PX_CORE_WARN("There are features missing!");
-			return 0;
-		}
-		return score;
-	}
-
-	// move to VulkanUtils
-	bool VulkanContext::CheckDeviceExtensionSupport(VkPhysicalDevice device)
-	{
-		uint32_t extensionCount;
-		vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, nullptr);
-
-		std::vector<VkExtensionProperties> aExtensions(extensionCount);
-		vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, aExtensions.data());
-
-		std::set<std::string> requiredExtensions(m_DeviceExtensions.begin(), m_DeviceExtensions.end());
-
-		for (const auto& aExtension : aExtensions)
-		{
-			requiredExtensions.erase(aExtension.extensionName);
-		}
-
-		return requiredExtensions.empty();
-	}
 
 	bool VulkanContext::CheckValidationLayerSupport()
 	{
@@ -1513,72 +1469,8 @@ namespace Povox {
 		}
 	}
 
-	// QuerySwapchainSupport
-	SwapchainSupportDetails VulkanContext::QuerySwapchainSupport(VkPhysicalDevice device)
-	{
-		SwapchainSupportDetails details;
-
-		vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, m_Surface, &details.Capabilities);
-
-		uint32_t formatCount;
-		vkGetPhysicalDeviceSurfaceFormatsKHR(device, m_Surface, &formatCount, nullptr);
-		if (formatCount != 0)
-		{
-			details.Formats.resize(formatCount);
-			vkGetPhysicalDeviceSurfaceFormatsKHR(device, m_Surface, &formatCount, details.Formats.data());
-		}
-
-		uint32_t presentModeCount;
-		vkGetPhysicalDeviceSurfacePresentModesKHR(device, m_Surface, &presentModeCount, nullptr);
-		if (presentModeCount != 0)
-		{
-			details.PresentModes.resize(presentModeCount);
-			vkGetPhysicalDeviceSurfacePresentModesKHR(device, m_Surface, &presentModeCount, details.PresentModes.data());
-		}
-
-		return details;
-	}
-
 	// FindQueuFamilies
-	QueueFamilyIndices VulkanContext::FindQueueFamilies(VkPhysicalDevice device)
-	{
-		QueueFamilyIndices indices;
-
-		uint32_t queueFamilyCount;
-		vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
-		std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
-		vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, &queueFamilies[0]);
-
-		int i = 0;
-		bool presentFound = false;
-		for (const auto& queueFamily : queueFamilies)
-		{
-			if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT)
-				indices.GraphicsFamily = i;
-
-			VkBool32 presentSupport = false;
-			vkGetPhysicalDeviceSurfaceSupportKHR(device, i, m_Surface, &presentSupport);
-			if (presentSupport && !presentFound)
-			{
-				indices.PresentFamily = i;
-				presentFound = true;
-			}
-
-			if (queueFamily.queueFlags & VK_QUEUE_TRANSFER_BIT && !(queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) && !(queueFamily.queueFlags & VK_QUEUE_COMPUTE_BIT))
-			{
-				indices.TransferFamily = i;
-				PX_CORE_TRACE("transfer Queue Family index : '{0}'", indices.TransferFamily.value());
-			}
-
-			if (indices.IsComplete() && indices.HasTransfer())
-			{
-				PX_CORE_INFO("Present, Graphics and Transfer index set to: \n Present Family : '{0}' \n Graphics Family: '{1}' \n Transfer Family: '{2}'", indices.PresentFamily.value(), indices.GraphicsFamily.value(), indices.TransferFamily.value());
-				break;
-			}
-			i++;
-		}
-		return indices;
-	}
+	
 
 	void VulkanContext::UpdateUniformBuffer(uint32_t currentImage)
 	{
@@ -1594,9 +1486,9 @@ namespace Povox {
 		ubo.ProjectionMatrix[1][1] *= -1; //flips Y
 
 		void* data;
-		vkMapMemory(m_Device, m_UniformBuffersMemory[currentImage], 0, sizeof(ubo), 0, &data);
+		vkMapMemory(m_Device->GetLogicalDevice(), m_UniformBuffersMemory[currentImage], 0, sizeof(ubo), 0, &data);
 		memcpy(data, &ubo, sizeof(ubo));
-		vkUnmapMemory(m_Device, m_UniformBuffersMemory[currentImage]);
+		vkUnmapMemory(m_Device->GetLogicalDevice(), m_UniformBuffersMemory[currentImage]);
 
 		// pushconstants are more efficient for small packages of data;
 	}
