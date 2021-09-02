@@ -7,5 +7,5 @@
 namespace Povox {
 
 	// TODO: should be propagated to the right context upon startup
-	RendererAPI* RenderCommand::s_RendererAPI = new VulkanRendererAPI;
+	RendererAPI* RenderCommand::s_RendererAPI = new OpenGLRendererAPI;
 }

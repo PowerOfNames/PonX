@@ -9,17 +9,21 @@ layout(location = 4) in float a_TilingFactor;
 
 uniform mat4 u_ViewProjection;
 
-out vec4 v_Color;
-out vec2 v_TexCoord;
-out flat float v_TexID;
-out float v_TilingFactor;
+
+struct VertexOutput
+{
+vec4 Color;
+vec2 TexCoord;
+float TexID;
+float TilingFactor;
+} vx_Out;
 
 void main()
 {
-	v_Color = a_Color;
-	v_TexCoord = a_TexCoord;
-	v_TexID = a_TexID;
-	v_TilingFactor = a_TilingFactor;
+	vx_Out.Color = a_Color;
+	vx_Out.TexCoord = a_TexCoord;
+	vx_Out.TexID = a_TexID;
+	vx_Out.TilingFactor = a_TilingFactor;
 	gl_Position = u_ViewProjection * vec4(a_Position, 1.0f);
 
 }

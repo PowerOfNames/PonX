@@ -61,7 +61,8 @@ namespace Povox {
 		static void ResetStats();
 
 	private:
-		static void FlushAndReset();
+		static void NextBatch();
+		static void StartBatch();
 	};
 
 }

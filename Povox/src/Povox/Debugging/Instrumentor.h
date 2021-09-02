@@ -206,6 +206,12 @@ namespace Povox {
 #define PX_PROFILE_END_SESSION() ::Povox::Instrumentor::Get().EndSession()
 #define PX_PROFILE_SCOPE(name) ::Povox::InstrumentationTimer timer##__LINE__(name);
 #define PX_PROFILE_FUNCTION() PX_PROFILE_SCOPE(PX_FUNC_SIG)
+
+
+#define PX_PROFILE_BEGIN_SESSION(name, filepath) ::Povox::Instrumentor::Get().BeginSession(name, filepath)
+#define PX_PROFILE_END_SESSION() ::Povox::Instrumentor::Get().EndSession()
+#define PX_PROFILE_SCOPE(name) ::Povox::InstrumentationTimer timer##__LINE__(name);
+#define PX_PROFILE_FUNCTION() PX_PROFILE_SCOPE(PX_FUNC_SIG)
 #else
 #define PX_PROFILE_BEGIN_SESSION(name, filepath)
 #define PX_PROFILE_END_SESSION()

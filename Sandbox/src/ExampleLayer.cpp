@@ -23,8 +23,8 @@ void ExampleLayer::OnDetach()
 
 void ExampleLayer::OnUpdate(Povox::Timestep deltatime)
 {
-	//Povox::RenderCommand::SetClearColor({ 0.15f, 0.16f, 0.15f, 1.0f });
-	//Povox::RenderCommand::Clear();
+	Povox::RenderCommand::SetClearColor({ 0.15f, 0.16f, 0.15f, 1.0f });
+	Povox::RenderCommand::Clear();
 	
 }
 

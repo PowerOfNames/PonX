@@ -16,7 +16,7 @@ namespace Povox {
 
 	Application::Application()
 	{
-		PX_PROFILE_FUNCTION();
+		//PX_PROFILE_FUNCTION();
 
 
 		PX_CORE_ASSERT(!s_Instance, "Application already exists!");
@@ -24,16 +24,20 @@ namespace Povox {
 
 		//TODO: Implement OnStartup() -> sets up rendererCOntext, which renderer to use, creates window etc.
 		//Set Graphics API to Vulkan when available, else to OpenGL
-		RendererAPI::SetAPI(RendererAPI::API::Vulkan);
+		RendererAPI::SetAPI(RendererAPI::API::OpenGL);
 
 		m_Window = Window::Create();
 		m_Window->SetEventCallback(PX_BIND_EVENT_FN(Application::OnEvent));
 
 		Renderer::Init();
-		
+		//bool result = RendererAPI::GetAPI() == RendererAPI::API::OpenGL ? true : false;
+
 		//TODO set VulkanImGuiLayer if Vulkan is used
-		//m_ImGuiLayer = new ImGuiLayer();
-		//PushOverlay(m_ImGuiLayer);
+		if (RendererAPI::GetAPI() == RendererAPI::API::OpenGL)
+		{
+			m_ImGuiLayer = new ImGuiLayer();
+			PushOverlay(m_ImGuiLayer);
+		}
 	}
 
 	Application::~Application() 

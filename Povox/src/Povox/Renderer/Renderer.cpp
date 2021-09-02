@@ -15,8 +15,9 @@ namespace Povox {
 
 
 		RenderCommand::Init();
-		//Renderer2D::Init();
+		Renderer2D::Init();
 		//VoxelRenderer::Init();
+
 	}
 
 	void Renderer::BeginScene(OrthographicCamera& camera)

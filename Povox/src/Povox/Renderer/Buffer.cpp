@@ -28,15 +28,15 @@ namespace Povox {
 	{
 		switch (Renderer::GetAPI())
 		{
-		case RendererAPI::API::NONE:
-		{
-			PX_CORE_ASSERT(false, "RendererAPI::NONE is not supported!");
-			return nullptr;
-		}
-		case RendererAPI::API::OpenGL:
-		{
-			return CreateRef<OpenGLVertexBuffer>(vertices, size);
-		}
+			case RendererAPI::API::NONE:
+			{
+				PX_CORE_ASSERT(false, "RendererAPI::NONE is not supported!");
+				return nullptr;
+			}
+			case RendererAPI::API::OpenGL:
+			{
+				return CreateRef<OpenGLVertexBuffer>(vertices, size);
+			}
 		}
 		PX_CORE_ASSERT(false, "Unknown RendererAPI");
 		return nullptr;

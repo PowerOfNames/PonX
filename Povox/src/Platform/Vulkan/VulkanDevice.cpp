@@ -1,12 +1,12 @@
 #include "pxpch.h"
 #include "VulkanDevice.h"
 
+#include "VulkanDebug.h"
 
 namespace Povox {
 
 	VulkanDevice::~VulkanDevice()
 	{
-		Destroy();
 	}
 
 	void VulkanDevice::Destroy()
@@ -15,7 +15,7 @@ namespace Povox {
 		PX_CORE_INFO("Destroyed VK Logical device!");
 	}
 
-	void VulkanDevice::PickPhysicalDevice(const VkInstance& instance, const VkSurfaceKHR& surface)
+	void VulkanDevice::PickPhysicalDevice(VkInstance instance, VkSurfaceKHR surface)
 	{
 		uint32_t deviceCount = 0;
 		vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
@@ -40,7 +40,7 @@ namespace Povox {
 		PX_CORE_ASSERT(m_PhysicalDevice != VK_NULL_HANDLE, "Failed to find suitable GPU!");
 	}
 
-	int VulkanDevice::RatePhysicalDevice(const VkPhysicalDevice& physicalDevice, const VkSurfaceKHR& surface)
+	int VulkanDevice::RatePhysicalDevice(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface)
 	{
 		VkPhysicalDeviceProperties deviceProperties;
 		VkPhysicalDeviceFeatures supportedFeatures;
@@ -91,7 +91,7 @@ namespace Povox {
 		return requiredExtensions.empty();
 	}
 
-	SwapchainSupportDetails VulkanDevice::QuerySwapchainSupport(const VkPhysicalDevice& device, const VkSurfaceKHR& surface)
+	SwapchainSupportDetails VulkanDevice::QuerySwapchainSupport(VkPhysicalDevice device, VkSurfaceKHR surface)
 	{
 		SwapchainSupportDetails details;
 
@@ -116,7 +116,7 @@ namespace Povox {
 		return details;
 	}
 
-	QueueFamilyIndices VulkanDevice::FindQueueFamilies(const VkPhysicalDevice& physicalDevice, const VkSurfaceKHR& surface)
+	QueueFamilyIndices VulkanDevice::FindQueueFamilies(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface)
 	{
 		QueueFamilyIndices indices;
 
@@ -156,7 +156,7 @@ namespace Povox {
 		return indices;
 	}
 
-	void VulkanDevice::CreateLogicalDevice(const VkSurfaceKHR& surface, const std::vector<const char*> validationLayers, bool enableValidationLayer)
+	void VulkanDevice::CreateLogicalDevice(VkSurfaceKHR surface, const std::vector<const char*> validationLayers)
 	{
 		QueueFamilyIndices indices = FindQueueFamilies(m_PhysicalDevice, surface);
 
@@ -191,7 +191,7 @@ namespace Povox {
 		createInfo.enabledExtensionCount = static_cast<uint32_t>(m_DeviceExtensions.size());
 		createInfo.ppEnabledExtensionNames = m_DeviceExtensions.data();
 
-		if (enableValidationLayer)
+		if (PX_ENABLE_VK_VALIDATION_LAYERS)
 		{
 			createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
 			createInfo.ppEnabledLayerNames = validationLayers.data();
@@ -201,8 +201,7 @@ namespace Povox {
 			createInfo.enabledLayerCount = 0;
 		}
 
-		VkResult result = vkCreateDevice(m_PhysicalDevice, &createInfo, nullptr, &m_Device);
-		PX_CORE_ASSERT(result == VK_SUCCESS, "Failed to create logical device!");
+		PX_CORE_VK_ASSERT(vkCreateDevice(m_PhysicalDevice, &createInfo, nullptr, &m_Device), VK_SUCCESS, "Failed to create logical device!");
 
 		vkGetDeviceQueue(m_Device, indices.GraphicsFamily.value(), 0, &m_Queues.GraphicsQueue);
 		vkGetDeviceQueue(m_Device, indices.PresentFamily.value(), 0, &m_Queues.PresentQueue);
