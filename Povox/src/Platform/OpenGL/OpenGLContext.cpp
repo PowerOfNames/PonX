@@ -26,23 +26,19 @@ namespace Povox {
 		PX_CORE_INFO(" Renderer : {0}", glGetString(GL_RENDERER));
 		PX_CORE_INFO(" Version  : {0}", glGetString(GL_VERSION));
 
-		#ifdef PX_ENABLE_ASSERT
-				int versionMajor;
-				int versionMinor;
-				glGetIntegerv(GL_MAJOR_VERSION, &versionMajor);
-				glGetIntegerv(GL_MINOR_VERSION, &versionMinor);
 
-				PX_CORE_ASSERT(versionMajor > 4 || (versionMajor == 4 && versionMinor > 5), "Povox requires at least version 4.5!");
-		#endif
+		int versionMajor;
+		int versionMinor;
+		glGetIntegerv(GL_MAJOR_VERSION, &versionMajor);
+		glGetIntegerv(GL_MINOR_VERSION, &versionMinor);
+
+		PX_CORE_ASSERT(versionMajor > 4 || (versionMajor == 4 && versionMinor > 5), "Povox requires at least version 4.5!");
+
 	}
 
 	void OpenGLContext::Shutdown()
 	{
-		PX_PROFILE_FUNCTION();
 
-
-		glfwDestroyWindow(m_WindowHandle);
-		glfwTerminate();
 	}
 
 	void OpenGLContext::SwapBuffers()

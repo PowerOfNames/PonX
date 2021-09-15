@@ -170,8 +170,7 @@ namespace Povox {
 		vkDestroySurfaceKHR(m_Instance, m_Surface, nullptr);
 		vkDestroyInstance(m_Instance, nullptr);
 
-		glfwDestroyWindow(m_WindowHandle);
-		glfwTerminate();
+		//glfw termination and window deletion at last
 	}
 
 	void VulkanContext::SwapBuffers()
@@ -179,11 +178,6 @@ namespace Povox {
 		PX_PROFILE_FUNCTION();
 
 
-
-	}
-
-	void VulkanContext::DrawFrame()
-	{
 		vkWaitForFences(m_Device->GetLogicalDevice(), 1, &m_InFlightFence[m_CurrentFrame], VK_TRUE, UINT64_MAX);
 
 		uint32_t imageIndex;
@@ -212,34 +206,34 @@ namespace Povox {
 		UpdateUniformBuffer(imageIndex);			// Update function
 
 		VkSubmitInfo submitInfo{};
-		submitInfo.sType				= VK_STRUCTURE_TYPE_SUBMIT_INFO;
+		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
 		VkSemaphore waitSemaphores[] = { m_ImageAvailableSemaphores[m_CurrentFrame] };
 		VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
-		submitInfo.waitSemaphoreCount	= 1;
-		submitInfo.pWaitSemaphores		= waitSemaphores;
-		submitInfo.pWaitDstStageMask	= waitStages;
-		submitInfo.commandBufferCount	= 1;
-		submitInfo.pCommandBuffers		= &m_CommandBuffersGraphics[imageIndex];		// command buffer usage
+		submitInfo.waitSemaphoreCount = 1;
+		submitInfo.pWaitSemaphores = waitSemaphores;
+		submitInfo.pWaitDstStageMask = waitStages;
+		submitInfo.commandBufferCount = 1;
+		submitInfo.pCommandBuffers = &m_CommandBuffersGraphics[imageIndex];		// command buffer usage
 
 		VkSemaphore signalSemaphores[] = { m_RenderFinishedSemaphores[m_CurrentFrame] };
 		submitInfo.signalSemaphoreCount = 1;
-		submitInfo.pSignalSemaphores	= signalSemaphores;
+		submitInfo.pSignalSemaphores = signalSemaphores;
 
 		vkResetFences(m_Device->GetLogicalDevice(), 1, &m_InFlightFence[m_CurrentFrame]);
 
 		PX_CORE_VK_ASSERT(vkQueueSubmit(m_Device->GetQueueFamilies().GraphicsQueue, 1, &submitInfo, m_InFlightFence[m_CurrentFrame]), VK_SUCCESS, "Failed to submit draw render buffer!");
 
 		VkPresentInfoKHR presentInfo{};
-		presentInfo.sType				= VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-		presentInfo.waitSemaphoreCount	= 1;
-		presentInfo.pWaitSemaphores		= signalSemaphores;
+		presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+		presentInfo.waitSemaphoreCount = 1;
+		presentInfo.pWaitSemaphores = signalSemaphores;
 
 		VkSwapchainKHR swapchains[] = { m_Swapchain->Get() };
-		presentInfo.swapchainCount		= 1;
-		presentInfo.pSwapchains			= swapchains;
-		presentInfo.pImageIndices		= &imageIndex;
-		presentInfo.pResults			= nullptr;		// optional
+		presentInfo.swapchainCount = 1;
+		presentInfo.pSwapchains = swapchains;
+		presentInfo.pImageIndices = &imageIndex;
+		presentInfo.pResults = nullptr;		// optional
 
 		result = vkQueuePresentKHR(m_Device->GetQueueFamilies().PresentQueue, &presentInfo);
 		if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || m_FramebufferResized)
@@ -254,6 +248,8 @@ namespace Povox {
 
 		m_CurrentFrame = (m_CurrentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 	}
+
+
 // Instance
 	void VulkanContext::CreateInstance()
 	{

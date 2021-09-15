@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="..">
+      <UniqueIdentifier>{61705900-4DFC-870B-B6AA-880BA255880B}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\Povosom">
+      <UniqueIdentifier>{4312BC57-2FCA-FDA4-98D1-D60084A89895}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\Povox">
+      <UniqueIdentifier>{CC750738-B842-6243-E15B-50EBCD8797D1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\Povox\vendor">
+      <UniqueIdentifier>{A90E7BA1-159A-E865-1EAB-6B5A8AB54466}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\Povox\vendor\GLFW">
+      <UniqueIdentifier>{885B46FC-74EA-CFC5-1D09-E4C00977E06B}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\Povox\vendor\Glad">
+      <UniqueIdentifier>{30E746FC-1C76-D0C5-C594-E4C0B102E16B}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\Povox\vendor\ImGui">
+      <UniqueIdentifier>{931E4885-FF8A-0380-C87E-9BDD34AA25E8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\Povox\vendor\yaml-cpp">
+      <UniqueIdentifier>{7B038BF9-6728-DA79-9073-BF097CF7D897}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\Sandbox">
+      <UniqueIdentifier>{3F7B6B1D-2B33-AD6A-943A-86C68011485B}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\Povosom\premake5.lua">
+      <Filter>..\Povosom</Filter>
+    </None>
+    <None Include="..\..\Povox\premake5.lua">
+      <Filter>..\Povox</Filter>
+    </None>
+    <None Include="..\..\Povox\vendor\GLFW\premake5.lua">
+      <Filter>..\Povox\vendor\GLFW</Filter>
+    </None>
+    <None Include="..\..\Povox\vendor\Glad\premake5.lua">
+      <Filter>..\Povox\vendor\Glad</Filter>
+    </None>
+    <None Include="..\..\Povox\vendor\ImGui\premake5.lua">
+      <Filter>..\Povox\vendor\ImGui</Filter>
+    </None>
+    <None Include="..\..\Povox\vendor\yaml-cpp\premake5.lua">
+      <Filter>..\Povox\vendor\yaml-cpp</Filter>
+    </None>
+    <None Include="..\..\Sandbox\premake5.lua">
+      <Filter>..\Sandbox</Filter>
+    </None>
+    <None Include="..\..\premake5.lua">
+      <Filter>..</Filter>
+    </None>
+    <None Include="premake5.lua" />
+  </ItemGroup>
+</Project>

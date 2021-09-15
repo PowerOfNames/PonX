@@ -1,1 +1,0 @@
-{"otherData": {},"traceEvents":[{},{"cat":"function","dur":1,"name":"void __cdecl Povox::OpenGLRendererAPI::SetClearColor(const struct glm::vec<4,float,0> &)","ph":"X","pid":0,"tid":8488,"ts":286408743064.000},{"cat":"function","dur":425,"name":"void __cdecl Povox::OpenGLRendererAPI::Clear(void)","ph":"X","pid":0,"tid":8488,"ts":286408743175.700}

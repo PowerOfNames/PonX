@@ -33,7 +33,7 @@ namespace Povox {
 		Ref<Framebuffer> m_Framebuffer;
 
 		Ref<Scene> m_ActiveScene;
-		std::optional<std::string> m_CurrentScenePath;
+		std::string m_CurrentScenePath;
 
 		Entity m_HoveredEntity;
 

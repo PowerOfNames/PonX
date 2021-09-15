@@ -2,8 +2,9 @@
 .vs/
 bin/
 bin-int/
-Povox/vendor/Vulkan/Bin/
-
+Povox/vendor/VulkanSDK
+Povosom/assets/cache
+RenderDoc/
 profiling/
 
 # Files

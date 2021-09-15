@@ -14,7 +14,7 @@
 namespace Povox {
 
 	// static, because we may have more then one window, but want to initialize GLFW only once;
-	static bool s_GLFWinitialized = false;
+	static uint8_t s_GLFWwindowCount = 0;
 
 	static void GLFWErrorCallback(int error, const char* description)
 	{
@@ -40,59 +40,40 @@ namespace Povox {
 		m_Data.Width = props.Width;
 		m_Data.Height = props.Height;
 
-		PX_CORE_INFO("Creating window {0} ({1}, {2})", m_Data.Title, m_Data.Width, m_Data.Height);
+		PX_CORE_INFO("Creating window '{0}' ({1}, {2})", m_Data.Title, m_Data.Width, m_Data.Height);
 
-		if (!s_GLFWinitialized)
+		if (s_GLFWwindowCount == 0)
 		{
-			// TODO terminate GLFW when system shuts down
+			PX_PROFILE_SCOPE("GLFW init!");
 			int success = glfwInit();
 			PX_CORE_ASSERT(success, "Could not initialize GLFW!");
 			glfwSetErrorCallback(GLFWErrorCallback);
-
-			s_GLFWinitialized = true;
 		}
 
-		switch (Renderer::GetAPI())
-		{
-			case RendererAPI::API::NONE:
-			{
-				PX_CORE_ASSERT(false, "RendererAPI::NONE is not supported!");
-				break;
-			}
-			case RendererAPI::API::OpenGL:
-			{
-				m_Window = glfwCreateWindow((int)m_Data.Width, (int)m_Data.Height, m_Data.Title.c_str(), nullptr, nullptr);
-				m_Context = new OpenGLContext(m_Window);
-				PX_CORE_INFO("Created OpenGLContext");
-				break;
-			}	
-			case RendererAPI::API::Vulkan:
-			{
-				glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API); // we dont need a contzext for Vulkan
+		
+			//PX_PROFILE_SCOPE("GLFW create window!");
+		#if defined(PX_DEBUG)
+			if (Renderer::GetAPI() == RendererAPI::API::OpenGL)
+				glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GLFW_TRUE);
+		#endif
 
-				m_Window = glfwCreateWindow((int)m_Data.Width, (int)m_Data.Height, m_Data.Title.c_str(), nullptr, nullptr);
-				m_Context = new VulkanContext(m_Window);
-				PX_CORE_INFO("Created VulkanContext");
-				break;
-			}
-			default:
-			{
-				PX_CORE_ASSERT(false, "Unknown RendererAPI");
-			}
-		}
+		if (Renderer::GetAPI() == RendererAPI::API::Vulkan)
+			glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+
+		m_Window = glfwCreateWindow((int)props.Width, (int)props.Height, props.Title.c_str(), nullptr, nullptr);
+		++s_GLFWwindowCount;		
+		
+		m_Context = GraphicsContext::Create(m_Window);
 		m_Context->Init();
 
 		glfwSetWindowUserPointer(m_Window, &m_Data);
-		SetVSync(false);
+		SetVSync(true);
 
 		// Set GLFW callbacks
 	// --- Window
 		// Window resizing
 		glfwSetWindowSizeCallback(m_Window, [](GLFWwindow* window, int width, int height)
 			{
-				PX_PROFILE_FUNCTION();
-
-
 				WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
 				data.Width = width;
 				data.Height = height;
@@ -104,11 +85,7 @@ namespace Povox {
 		// Window closing
 		glfwSetWindowCloseCallback(m_Window, [](GLFWwindow* window)
 			{
-				PX_PROFILE_FUNCTION();
-
-
 				WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
-
 				WindowCloseEvent event;
 				data.EventCallback(event);
 			});
@@ -116,9 +93,6 @@ namespace Povox {
 	// --- Keys
 		glfwSetKeyCallback(m_Window, [](GLFWwindow* window, int key, int scancode, int action, int mods)
 			{
-				PX_PROFILE_FUNCTION();
-
-
 				WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
 
 				switch (action)
@@ -142,6 +116,14 @@ namespace Povox {
 						break;
 					}
 				}
+			});
+
+		glfwSetCharCallback(m_Window, [](GLFWwindow* window, unsigned int keycode)
+			{
+				WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
+
+				KeyTypedEvent event(keycode);
+				data.EventCallback(event);
 			});
 
 	// --- Mouse
@@ -200,7 +182,13 @@ namespace Povox {
 		PX_PROFILE_FUNCTION();
 
 
-		m_Context->Shutdown();
+		glfwDestroyWindow(m_Window);
+		--s_GLFWwindowCount;
+
+		if (s_GLFWwindowCount == 0)
+		{
+			m_Context->Shutdown();
+		}
 	}
 
 	void WindowsWindow::OnUpdate()
@@ -209,19 +197,19 @@ namespace Povox {
 
 
 		glfwPollEvents();
-		m_Context->DrawFrame();
+		m_Context->SwapBuffers();
 	}
 
 	void WindowsWindow::SetVSync(bool enabled)
 	{
 		PX_PROFILE_FUNCTION();
 
-		/*
+		
 		if (enabled)
 			glfwSwapInterval(1);
 		else
 			glfwSwapInterval(0);
-		*/
+		
 
 		m_Data.VSync = enabled;
 	}

@@ -21,6 +21,7 @@ namespace Povox {
 
 	Application* CreateApplication()
 	{
+		PX_TRACE("Start Povosom App!");
 		return new Povosom();
 	}
 

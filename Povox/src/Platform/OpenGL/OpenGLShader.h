@@ -47,10 +47,20 @@ namespace Povox
 	private:
 		std::string ReadFile(const std::string& filepath);
 		std::unordered_map<GLenum, std::string> PreProcess(const std::string& source);
-		void Compile(const std::unordered_map<GLenum, std::string>& shaderSources);
+
+		void CompileOrGetVulkanBinaries(std::unordered_map<GLenum, std::string> shaderSources);
+		void CompileOrGetOpenGLBinaries();
+		void CreateProgram();
+		void Reflect(GLenum stage, const std::vector<uint32_t>& shaderData);
 
 	private:
 		uint32_t m_RendererID;
 		std::string m_Name;
+		std::string m_FilePath;
+
+		std::unordered_map<GLenum, std::vector<uint32_t>> m_VulkanSpirV;
+		std::unordered_map<GLenum, std::vector<uint32_t>> m_OpenGLSpirV;
+
+		std::unordered_map<GLenum, std::string> m_OpenGLShaderSourceCode;
 	};
 }

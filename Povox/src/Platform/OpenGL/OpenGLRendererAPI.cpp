@@ -4,18 +4,38 @@
 #include <glad/glad.h>
 
 namespace Povox {
-	OpenGLRendererAPI::OpenGLRendererAPI()
-	{
-	}
 
-	OpenGLRendererAPI::~OpenGLRendererAPI()
+	void OpenGLMessageCallback(
+		unsigned source,
+		unsigned type,
+		unsigned id,
+		unsigned severity,
+		int length,
+		const char* message,
+		const void* userParam)
 	{
+		switch (severity)
+		{
+		case GL_DEBUG_SEVERITY_HIGH:         PX_CORE_CRITICAL(message); return;
+		case GL_DEBUG_SEVERITY_MEDIUM:       PX_CORE_ERROR(message); return;
+		case GL_DEBUG_SEVERITY_LOW:          PX_CORE_WARN(message); return;
+		case GL_DEBUG_SEVERITY_NOTIFICATION: PX_CORE_TRACE(message); return;
+		}
+
+		PX_CORE_ASSERT(false, "Unknown severity level!");
 	}
 
 	void OpenGLRendererAPI::Init()
 	{
 		PX_PROFILE_FUNCTION();
 
+#ifdef PX_DEBUG
+		glEnable(GL_DEBUG_OUTPUT);
+		glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+		glDebugMessageCallback(OpenGLMessageCallback, nullptr);
+
+		glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_NOTIFICATION, 0, NULL, GL_FALSE);
+#endif
 
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -25,25 +45,16 @@ namespace Povox {
 
 	void OpenGLRendererAPI::SetClearColor(const glm::vec4& clearColor)
 	{
-		PX_PROFILE_FUNCTION();
-
-
 		glClearColor(clearColor.r, clearColor.g, clearColor.b, clearColor.a);
 	}
 
 	void OpenGLRendererAPI::Clear()
 	{
-		PX_PROFILE_FUNCTION();
-
-
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	}
 
 	void OpenGLRendererAPI::SetViewport(uint32_t x, uint32_t y, uint32_t width, uint32_t height)
 	{
-		PX_PROFILE_FUNCTION();
-
-
 		glViewport(x, y, width, height);
 	}
 
@@ -52,7 +63,7 @@ namespace Povox {
 		PX_PROFILE_FUNCTION();
 
 
-		uint32_t count = indexCount ? vertexArray->GetIndexBuffer()->GetCount() : indexCount;
+		uint32_t count = indexCount ? indexCount : vertexArray->GetIndexBuffer()->GetCount();
 
 		glDrawElements(GL_TRIANGLES, count, GL_UNSIGNED_INT, nullptr);
 		glBindTexture(GL_TEXTURE_2D, 0);

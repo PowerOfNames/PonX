@@ -44,13 +44,14 @@ namespace Povox {
 
 		Renderer2D::Statistics Stats;
 
+		
 		struct CameraData
 		{
-			glm::mat4 ViewProjectionMatrix;
+			glm::mat4 ViewProjection;
 		};
 
 		CameraData CameraBuffer;
-		Ref<UniformBuffer> CameraUniformBuffer;
+		Ref<UniformBuffer> CameraUniformBuffer;		
 	};
 
 	static Renderer2DData s_QuadData;
@@ -60,7 +61,7 @@ namespace Povox {
 		PX_PROFILE_FUNCTION();
 
 
-		s_QuadData.QuadVertexArray = VertexArray::Create(); // only for openGL
+		s_QuadData.QuadVertexArray = VertexArray::Create(); // only for openGL -> create a VulkanRenderer anyway
 
 		s_QuadData.QuadVertexBuffer = VertexBuffer::Create(s_QuadData.MaxVertices * sizeof(QuadVertex));
 		s_QuadData.QuadVertexBuffer->SetLayout({
@@ -99,15 +100,14 @@ namespace Povox {
 		uint32_t whiteTextureData = 0xffffffff;
 		s_QuadData.WhiteTexture->SetData(&whiteTextureData, sizeof(uint32_t));
 
-
+		
 		int32_t samplers[s_QuadData.MaxTextureSlots];
 		for (uint32_t i = 0; i < s_QuadData.MaxTextureSlots; i++)
 			samplers[i] = i;
-
+		
 		s_QuadData.TextureShader = Shader::Create("assets/shaders/Texture.glsl");
-		s_QuadData.TextureShader->Bind();
-		s_QuadData.TextureShader->SetIntArray("u_Textures", samplers, s_QuadData.MaxTextureSlots);
-
+		
+		
 		s_QuadData.TextureSlots[0] = s_QuadData.WhiteTexture;
 
 		s_QuadData.QuadVertexPositions[0] = { -0.5f, -0.5f, 0.0f, 1.0f };
@@ -130,21 +130,19 @@ namespace Povox {
 	{
 		PX_PROFILE_FUNCTION();
 
-
-		s_QuadData.CameraBuffer.ViewProjectionMatrix = camera.GetViewProjectionMatrix();
+		
+		s_QuadData.CameraBuffer.ViewProjection = camera.GetViewProjectionMatrix();
 		s_QuadData.CameraUniformBuffer->SetData(&s_QuadData.CameraBuffer, sizeof(Renderer2DData::CameraData));
-
 		StartBatch();
 	}
 
 	void Renderer2D::BeginScene(const Camera& camera, const glm::mat4& transform)
 	{
 		PX_PROFILE_FUNCTION();
-
-
-		s_QuadData.CameraBuffer.ViewProjectionMatrix = camera.GetProjection() * glm::inverse(transform);
+		
+		s_QuadData.CameraBuffer.ViewProjection = camera.GetProjection() * glm::inverse(transform);
 		s_QuadData.CameraUniformBuffer->SetData(&s_QuadData.CameraBuffer, sizeof(Renderer2DData::CameraData));
-
+		
 		StartBatch();
 	}
 
@@ -153,9 +151,9 @@ namespace Povox {
 		PX_PROFILE_FUNCTION();
 
 
-		s_QuadData.CameraBuffer.ViewProjectionMatrix = camera.GetViewProjectionMatrix();
+		
+		s_QuadData.CameraBuffer.ViewProjection = camera.GetViewProjectionMatrix();
 		s_QuadData.CameraUniformBuffer->SetData(&s_QuadData.CameraBuffer, sizeof(Renderer2DData::CameraData));
-
 		StartBatch();
 	}
 
@@ -169,6 +167,9 @@ namespace Povox {
 
 	void Renderer2D::Flush()
 	{
+		if (s_QuadData.QuadIndexCount == 0)
+			return; // nothing to draw
+
 		uint32_t dataSize = (uint32_t)((uint8_t*)s_QuadData.QuadVertexBufferPtr - (uint8_t*)s_QuadData.QuadVertexBufferBase);
 		s_QuadData.QuadVertexBuffer->SetData(s_QuadData.QuadVertexBufferBase, dataSize);
 
@@ -176,6 +177,7 @@ namespace Povox {
 		for (uint32_t i = 0; i < s_QuadData.TextureSlotIndex; i++)
 			s_QuadData.TextureSlots[i]->Bind(i);
 
+		s_QuadData.TextureShader->Bind();
 		RenderCommand::DrawIndexed(s_QuadData.QuadVertexArray, s_QuadData.QuadIndexCount);
 		s_QuadData.Stats.DrawCalls++;
 	}
@@ -277,7 +279,7 @@ namespace Povox {
 		float textureIndex = 0.0f;
 		for (uint32_t i = 1; i < s_QuadData.TextureSlotIndex; i++)
 		{
-			if (*s_QuadData.TextureSlots[i].get() == *texture.get()) // s_QuadData.TextureSlots[i] == texture -> compares the shared ptr, so .get() gives the ptr and * dereferences is to the fnc uses the boolean == operator defined in the openGLTexture2D class
+			if (*s_QuadData.TextureSlots[i] == *texture) // s_QuadData.TextureSlots[i] == texture -> compares the shared ptr, so .get() gives the ptr and * dereferences is to the fnc uses the boolean == operator defined in the openGLTexture2D class
 			{
 				textureIndex = (float)i;
 				break;
@@ -294,8 +296,6 @@ namespace Povox {
 			s_QuadData.TextureSlots[s_QuadData.TextureSlotIndex] = texture;
 			s_QuadData.TextureSlotIndex++;
 		}
-
-
 
 		for (uint32_t i = 0; i < 4; i++)
 		{
@@ -326,7 +326,7 @@ namespace Povox {
 		float textureIndex = 0.0f;
 		for (uint32_t i = 1; i < s_QuadData.TextureSlotIndex; i++)
 		{
-			if (*s_QuadData.TextureSlots[i].get() == *texture.get()) // s_QuadData.TextureSlots[i] == texture -> compares the shared ptr, so .get() gives the ptr and * dereferences is to the fnc uses the boolean == operator defined in the openGLTexture2D class
+			if (*s_QuadData.TextureSlots[i] == *texture) // s_QuadData.TextureSlots[i] == texture -> compares the shared ptr, so .get() gives the ptr and * dereferences is to the fnc uses the boolean == operator defined in the openGLTexture2D class
 			{
 				textureIndex = (float)i;
 				break;

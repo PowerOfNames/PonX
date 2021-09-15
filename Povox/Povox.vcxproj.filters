@@ -90,10 +90,49 @@
     <ClInclude Include="src\Platform\OpenGL\OpenGLTexture.h">
       <Filter>src\Platform\OpenGL</Filter>
     </ClInclude>
+    <ClInclude Include="src\Platform\OpenGL\OpenGLUniformBuffer.h">
+      <Filter>src\Platform\OpenGL</Filter>
+    </ClInclude>
     <ClInclude Include="src\Platform\OpenGL\OpenGLVertexArray.h">
       <Filter>src\Platform\OpenGL</Filter>
     </ClInclude>
+    <ClInclude Include="src\Platform\Vulkan\VulkanBuffer.h">
+      <Filter>src\Platform\Vulkan</Filter>
+    </ClInclude>
     <ClInclude Include="src\Platform\Vulkan\VulkanContext.h">
+      <Filter>src\Platform\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Platform\Vulkan\VulkanDebug.h">
+      <Filter>src\Platform\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Platform\Vulkan\VulkanDevice.h">
+      <Filter>src\Platform\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Platform\Vulkan\VulkanFramebuffer.h">
+      <Filter>src\Platform\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Platform\Vulkan\VulkanImage.h">
+      <Filter>src\Platform\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Platform\Vulkan\VulkanLookups.h">
+      <Filter>src\Platform\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Platform\Vulkan\VulkanPipeline.h">
+      <Filter>src\Platform\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Platform\Vulkan\VulkanRendererAPI.h">
+      <Filter>src\Platform\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Platform\Vulkan\VulkanShader.h">
+      <Filter>src\Platform\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Platform\Vulkan\VulkanSwapchain.h">
+      <Filter>src\Platform\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Platform\Vulkan\VulkanUniformBuffer.h">
+      <Filter>src\Platform\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Platform\Vulkan\VulkanUtility.h">
       <Filter>src\Platform\Vulkan</Filter>
     </ClInclude>
     <ClInclude Include="src\Platform\Windows\WindowsWindow.h">
@@ -205,6 +244,9 @@
       <Filter>src\Povox\Renderer</Filter>
     </ClInclude>
     <ClInclude Include="src\Povox\Renderer\Texture.h">
+      <Filter>src\Povox\Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Povox\Renderer\UniformBuffer.h">
       <Filter>src\Povox\Renderer</Filter>
     </ClInclude>
     <ClInclude Include="src\Povox\Renderer\VertexArray.h">
@@ -1347,20 +1389,6 @@
     <ClInclude Include="vendor\stb_image\stb_image.h">
       <Filter>vendor\stb_image</Filter>
     </ClInclude>
-    <ClInclude Include="src\Platform\Vulkan\VulkanRendererAPI.h" />
-    <ClInclude Include="src\Platform\Vulkan\VulkanLookups.h" />
-    <ClInclude Include="src\Platform\Vulkan\VulkanFramebuffer.h" />
-    <ClInclude Include="src\Platform\Vulkan\VulkanDevice.h" />
-    <ClInclude Include="src\Platform\Vulkan\VulkanDebug.h" />
-    <ClInclude Include="src\Platform\Vulkan\VulkanSwapchain.h" />
-    <ClInclude Include="src\Platform\Vulkan\VulkanUtility.h" />
-    <ClInclude Include="src\Platform\Vulkan\VulkanImage.h" />
-    <ClInclude Include="src\Platform\Vulkan\VulkanPipeline.h" />
-    <ClInclude Include="src\Platform\Vulkan\VulkanShader.h" />
-    <ClInclude Include="src\Platform\Vulkan\VulkanBuffer.h" />
-    <ClInclude Include="src\Povox\Renderer\UniformBuffer.h" />
-    <ClInclude Include="src\Platform\Vulkan\VulkanUniformBuffer.h" />
-    <ClInclude Include="src\Platform\OpenGL\OpenGLUniformBuffer.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Platform\OpenGL\OpenGLBuffer.cpp">
@@ -1381,10 +1409,37 @@
     <ClCompile Include="src\Platform\OpenGL\OpenGLTexture.cpp">
       <Filter>src\Platform\OpenGL</Filter>
     </ClCompile>
+    <ClCompile Include="src\Platform\OpenGL\OpenGLUniformBuffer.cpp">
+      <Filter>src\Platform\OpenGL</Filter>
+    </ClCompile>
     <ClCompile Include="src\Platform\OpenGL\OpenGLVertexArray.cpp">
       <Filter>src\Platform\OpenGL</Filter>
     </ClCompile>
+    <ClCompile Include="src\Platform\Vulkan\VulkanBuffer.cpp">
+      <Filter>src\Platform\Vulkan</Filter>
+    </ClCompile>
     <ClCompile Include="src\Platform\Vulkan\VulkanContext.cpp">
+      <Filter>src\Platform\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Platform\Vulkan\VulkanDevice.cpp">
+      <Filter>src\Platform\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Platform\Vulkan\VulkanFramebuffer.cpp">
+      <Filter>src\Platform\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Platform\Vulkan\VulkanImage.cpp">
+      <Filter>src\Platform\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Platform\Vulkan\VulkanPipeline.cpp">
+      <Filter>src\Platform\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Platform\Vulkan\VulkanRendererAPI.cpp">
+      <Filter>src\Platform\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Platform\Vulkan\VulkanShader.cpp">
+      <Filter>src\Platform\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Platform\Vulkan\VulkanSwapchain.cpp">
       <Filter>src\Platform\Vulkan</Filter>
     </ClCompile>
     <ClCompile Include="src\Platform\Windows\WindowsInput.cpp">
@@ -1429,6 +1484,9 @@
     <ClCompile Include="src\Povox\Renderer\Framebuffer.cpp">
       <Filter>src\Povox\Renderer</Filter>
     </ClCompile>
+    <ClCompile Include="src\Povox\Renderer\GraphicsContext.cpp">
+      <Filter>src\Povox\Renderer</Filter>
+    </ClCompile>
     <ClCompile Include="src\Povox\Renderer\OrthographicCamera.cpp">
       <Filter>src\Povox\Renderer</Filter>
     </ClCompile>
@@ -1462,6 +1520,9 @@
     <ClCompile Include="src\Povox\Renderer\Texture.cpp">
       <Filter>src\Povox\Renderer</Filter>
     </ClCompile>
+    <ClCompile Include="src\Povox\Renderer\UniformBuffer.cpp">
+      <Filter>src\Povox\Renderer</Filter>
+    </ClCompile>
     <ClCompile Include="src\Povox\Renderer\VertexArray.cpp">
       <Filter>src\Povox\Renderer</Filter>
     </ClCompile>
@@ -1489,19 +1550,5 @@
     <ClCompile Include="vendor\stb_image\stb_image.cpp">
       <Filter>vendor\stb_image</Filter>
     </ClCompile>
-    <ClCompile Include="src\Platform\Vulkan\VulkanRendererAPI.cpp" />
-    <ClCompile Include="src\Platform\Vulkan\VulkanFramebuffer.cpp" />
-    <ClCompile Include="src\Platform\Vulkan\VulkanDevice.cpp" />
-    <ClCompile Include="src\Platform\Vulkan\VulkanSwapchain.cpp" />
-    <ClCompile Include="src\Platform\Vulkan\VulkanImage.cpp" />
-    <ClCompile Include="src\Platform\Vulkan\VulkanPipeline.cpp" />
-    <ClCompile Include="src\Platform\Vulkan\VulkanShader.cpp" />
-    <ClCompile Include="src\Platform\Vulkan\VulkanBuffer.cpp" />
-    <ClCompile Include="src\Povox\Renderer\UniformBuffer.cpp" />
-    <ClCompile Include="src\Platform\OpenGL\OpenGLUniformBuffer.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="src\Platform\Vulkan\shader.vert" />
-    <None Include="src\Platform\Vulkan\shader.frag" />
   </ItemGroup>
 </Project>

@@ -440,23 +440,23 @@ namespace Povox {
     void EditorLayer::OpenScene()
     {
         m_CurrentScenePath = FileDialog::OpenFile("Povox Scene (*.povox)\0*.povox\0");
-        if (m_CurrentScenePath)
+        if (!m_CurrentScenePath.empty())
         {
             m_ActiveScene = CreateRef<Scene>();
             m_ActiveScene->OnViewportResize((uint32_t)m_ViewportSize.x, (uint32_t)m_ViewportSize.y);
             m_SceneHierarchyPanel.SetContext(m_ActiveScene);
 
             SceneSerializer serializer(m_ActiveScene);
-            serializer.Deserialize(*m_CurrentScenePath);
+            serializer.Deserialize(m_CurrentScenePath);
         }
     }
 
     void EditorLayer::SaveScene()
     {
-        if (m_CurrentScenePath)
+        if (!m_CurrentScenePath.empty())
         {
             SceneSerializer serializer(m_ActiveScene);
-            serializer.Serialize(*m_CurrentScenePath);
+            serializer.Serialize(m_CurrentScenePath);
         }
         else
         {
@@ -467,7 +467,7 @@ namespace Povox {
     void EditorLayer::SaveSceneAs()
     {
         m_CurrentScenePath = FileDialog::SaveFile("Povox Scene (*.povox)\0*.povox\0");
-        if (m_CurrentScenePath)
+        if (!m_CurrentScenePath.empty())
         {
             SaveScene();
         }

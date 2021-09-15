@@ -16,7 +16,7 @@ namespace Povox {
 
 	Application::Application()
 	{
-		//PX_PROFILE_FUNCTION();
+		PX_PROFILE_FUNCTION();
 
 
 		PX_CORE_ASSERT(!s_Instance, "Application already exists!");
@@ -86,8 +86,7 @@ namespace Povox {
 
 		while (m_Running)
 		{
-			PX_PROFILE_SCOPE("Application Run-Loop")
-
+			PX_PROFILE_SCOPE("Application Run-Loop");
 
 			float time = (float)glfwGetTime();
 			Timestep timestep = time - m_DeltaTime;
@@ -97,18 +96,19 @@ namespace Povox {
 			{
 				for (Layer* layer : m_Layerstack)
 				{
+
 					layer->OnUpdate(timestep);
 				}
 			}
 			// To be executed on the Render thread
-			/* disabled while there is no VulkanImGuiLayer
+			//disabled while there is no VulkanImGuiLayer
 			m_ImGuiLayer->Begin();
 			for (Layer* layer : m_Layerstack)
 			{
 				layer->OnImGuiRender();
 			}
 			m_ImGuiLayer->End();
-			*/
+
 			m_Window->OnUpdate();
 		}
 	}
