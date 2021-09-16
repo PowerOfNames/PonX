@@ -107,7 +107,6 @@ namespace Povox {
 		
 		s_QuadData.TextureShader = Shader::Create("assets/shaders/Texture.glsl");
 		
-		
 		s_QuadData.TextureSlots[0] = s_QuadData.WhiteTexture;
 
 		s_QuadData.QuadVertexPositions[0] = { -0.5f, -0.5f, 0.0f, 1.0f };
@@ -279,7 +278,7 @@ namespace Povox {
 		float textureIndex = 0.0f;
 		for (uint32_t i = 1; i < s_QuadData.TextureSlotIndex; i++)
 		{
-			if (*s_QuadData.TextureSlots[i] == *texture) // s_QuadData.TextureSlots[i] == texture -> compares the shared ptr, so .get() gives the ptr and * dereferences is to the fnc uses the boolean == operator defined in the openGLTexture2D class
+			if (*s_QuadData.TextureSlots[i].get() == *texture.get()) // s_QuadData.TextureSlots[i] == texture -> compares the shared ptr, so .get() gives the ptr and * dereferences is to the fnc uses the boolean == operator defined in the openGLTexture2D class
 			{
 				textureIndex = (float)i;
 				break;
@@ -326,7 +325,7 @@ namespace Povox {
 		float textureIndex = 0.0f;
 		for (uint32_t i = 1; i < s_QuadData.TextureSlotIndex; i++)
 		{
-			if (*s_QuadData.TextureSlots[i] == *texture) // s_QuadData.TextureSlots[i] == texture -> compares the shared ptr, so .get() gives the ptr and * dereferences is to the fnc uses the boolean == operator defined in the openGLTexture2D class
+			if (*s_QuadData.TextureSlots[i].get() == *texture.get()) // s_QuadData.TextureSlots[i] == texture -> compares the shared ptr, so .get() gives the ptr and * dereferences is to the fnc uses the boolean == operator defined in the openGLTexture2D class
 			{
 				textureIndex = (float)i;
 				break;

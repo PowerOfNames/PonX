@@ -1,11 +1,16 @@
-# Directories
-.vs/
-bin/
+# binaries
+**/bin/
 bin-int/
+
+# Povox
 Povox/vendor/VulkanSDK
 Povosom/assets/cache
-RenderDoc/
-profiling/
+RenderDoc
+profiling
 
-# Files
-*.user
+# VS stuff
+.vs/
+**.sln
+**.vcxproj
+**.vcxproj.filters
+**.vcxproj.user

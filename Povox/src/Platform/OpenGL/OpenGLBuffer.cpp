@@ -14,7 +14,7 @@ namespace Povox {
 		PX_PROFILE_FUNCTION();
 
 
-		PX_CORE_INFO("VertexBuffer Size: {0}", size);
+		PX_CORE_WARN("VertexBuffer Size: {0}", size);
 
 		glCreateBuffers(1, &m_RendererID);
 		glBindBuffer(GL_ARRAY_BUFFER, m_RendererID);
@@ -73,8 +73,9 @@ namespace Povox {
 	{
 		PX_PROFILE_FUNCTION();
 		
-		//for (uint32_t i = 0; i < count; i++)
-		//	PX_CORE_INFO("Index: {0}", indices[i]);
+		PX_CORE_WARN("Indexbuffer Size: {0}", count);
+		for (uint32_t i = 0; i < 100; i++)
+			PX_CORE_INFO("Index: {0}", indices[i]);
 
 		glCreateBuffers(1, &m_RendererID);
 		glBindBuffer(GL_ARRAY_BUFFER, m_RendererID);
@@ -101,6 +102,6 @@ namespace Povox {
 		PX_PROFILE_FUNCTION();
 
 
-		glBindBuffer(GL_ARRAY_BUFFER, 0);
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 	}
 }
