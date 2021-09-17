@@ -92,7 +92,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <PostBuildEvent>
-      <Command>xcopy /Q /E /Y /I "$(SolutionDir)Povox\vendor\VulkanSDK\Bin" "..\bin\Debug-windows-x86_64\Povosom"</Command>
+      <Command>xcopy /Q /E /Y /I "$(SolutionDir)\Povox\vendor\VulkanSDK\Bin" "..\bin\Debug-windows-x86_64\Povosom"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">

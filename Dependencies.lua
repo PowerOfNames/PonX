@@ -3,7 +3,7 @@
 -- Povox dependencies
 
 
-Vulkan_SDK = "%{wks.location}Povox/vendor/VulkanSDK"
+Vulkan_SDK = "%{wks.location}/Povox/vendor/VulkanSDK"
 -- Vulkan_SDK = os.getenv("VulkanSDK_Povox")
 
 
@@ -23,7 +23,7 @@ IncludeDir["shaderc"]		= "%{wks.location}/Povox/vendor/shaderc"
 
 LibraryDir = {}
 LibraryDir["VulkanSDK"]				= "%{Vulkan_SDK}/Lib"
-LibraryDir["VulkanSDK_Debug"]		= "%Vulkan_SDK}/Lib"
+LibraryDir["VulkanSDK_Debug"]		= "%{Vulkan_SDK}/Lib"
 LibraryDir["VulkanSDK_DebugDLL"]	= "%{Vulkan_SDK}/Bin"
 
 
