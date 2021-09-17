@@ -112,9 +112,9 @@ namespace Povox {
         m_ActiveScene->OnUpdateEditor(deltatime, m_EditorCamera);
 
 		
-		//Renderer2D::BeginScene(m_EditorCamera);
-		//Renderer2D::DrawQuad({ 1.0f, 1.0f, 1.0f }, { 1.0f, 1.0f }, { 1.0f, 1.0f, 0.5f, 1.0f });
-		//Renderer2D::EndScene();
+		Renderer2D::BeginScene(m_EditorCamera);
+		Renderer2D::DrawQuad({ 1.0f, 1.0f, 1.0f }, { 1.0f, 1.0f }, { 1.0f, 1.0f, 0.5f, 1.0f });
+		Renderer2D::EndScene();
 
 
         auto [mx, my] = ImGui::GetMousePos();

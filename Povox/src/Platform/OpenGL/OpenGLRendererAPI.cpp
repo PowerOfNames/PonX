@@ -66,7 +66,8 @@ namespace Povox {
 
 		uint32_t count = indexCount ? indexCount : vertexArray->GetIndexBuffer()->GetCount();
 
-		
+		vertexArray->Bind();
+		vertexArray->GetIndexBuffer()->Bind();
 		glDrawElements(GL_TRIANGLES, count, GL_UNSIGNED_INT, nullptr);
 		glBindTexture(GL_TEXTURE_2D, 0);
 	}
