@@ -29,6 +29,7 @@ namespace Povox {
 	{
 		PX_PROFILE_FUNCTION();
 
+		PX_CORE_TRACE("OpenGLRenderer initialized!");
 #ifdef PX_DEBUG
 		glEnable(GL_DEBUG_OUTPUT);
 		glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
@@ -65,8 +66,7 @@ namespace Povox {
 
 		uint32_t count = indexCount ? indexCount : vertexArray->GetIndexBuffer()->GetCount();
 
-		//vertexArray->GetIndexBuffer()->Bind();
-
+		
 		glDrawElements(GL_TRIANGLES, count, GL_UNSIGNED_INT, nullptr);
 		glBindTexture(GL_TEXTURE_2D, 0);
 	}

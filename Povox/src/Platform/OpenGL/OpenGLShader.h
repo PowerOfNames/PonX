@@ -48,7 +48,7 @@ namespace Povox
 		std::string ReadFile(const std::string& filepath);
 		std::unordered_map<GLenum, std::string> PreProcess(const std::string& source);
 
-		void CompileOrGetVulkanBinaries(std::unordered_map<GLenum, std::string> shaderSources);
+		void CompileOrGetVulkanBinaries(std::unordered_map<GLenum, std::string>& shaderSources);
 		void CompileOrGetOpenGLBinaries();
 		void CreateProgram();
 		void Reflect(GLenum stage, const std::vector<uint32_t>& shaderData);

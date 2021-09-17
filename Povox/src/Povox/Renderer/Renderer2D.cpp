@@ -106,7 +106,6 @@ namespace Povox {
 			samplers[i] = i;
 		
 		s_QuadData.TextureShader = Shader::Create("assets/shaders/Texture.glsl");
-		
 		s_QuadData.TextureSlots[0] = s_QuadData.WhiteTexture;
 
 		s_QuadData.QuadVertexPositions[0] = { -0.5f, -0.5f, 0.0f, 1.0f };
@@ -114,6 +113,7 @@ namespace Povox {
 		s_QuadData.QuadVertexPositions[2] = { 0.5f, 0.5f, 0.0f, 1.0f };
 		s_QuadData.QuadVertexPositions[3] = { -0.5f, 0.5f, 0.0f, 1.0f };
 
+		s_QuadData.TextureShader->Bind();
 		s_QuadData.CameraUniformBuffer = UniformBuffer::Create(sizeof(Renderer2DData::CameraData), 0);
 	}
 
@@ -138,10 +138,10 @@ namespace Povox {
 	void Renderer2D::BeginScene(const Camera& camera, const glm::mat4& transform)
 	{
 		PX_PROFILE_FUNCTION();
+
 		
 		s_QuadData.CameraBuffer.ViewProjection = camera.GetProjection() * glm::inverse(transform);
-		s_QuadData.CameraUniformBuffer->SetData(&s_QuadData.CameraBuffer, sizeof(Renderer2DData::CameraData));
-		
+		s_QuadData.CameraUniformBuffer->SetData(&s_QuadData.CameraBuffer, sizeof(Renderer2DData::CameraData));		
 		StartBatch();
 	}
 

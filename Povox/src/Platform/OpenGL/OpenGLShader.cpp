@@ -142,8 +142,10 @@ namespace Povox {
 		glDeleteShader(m_RendererID);
 	}
 
-	void OpenGLShader::CompileOrGetVulkanBinaries(std::unordered_map<GLenum, std::string> shaderSources)
+	void OpenGLShader::CompileOrGetVulkanBinaries(std::unordered_map<GLenum, std::string>& shaderSources)
 	{
+		GLuint program = glCreateProgram();
+		
 		shaderc::Compiler compiler;
 		shaderc::CompileOptions options;
 
@@ -156,7 +158,6 @@ namespace Povox {
 
 		auto& shaderData = m_VulkanSpirV;
 		shaderData.clear();
-
 		for (auto&& [stage, code] : shaderSources)
 		{
 			std::filesystem::path shaderFilePath = m_FilePath;
@@ -178,6 +179,7 @@ namespace Povox {
 				shaderc::SpvCompilationResult module = compiler.CompileGlslToSpv(code, Utils::GLShaderStageToShaderC(stage), m_FilePath.c_str(), options);
 				if (module.GetCompilationStatus() != shaderc_compilation_status_success)
 				{
+					PX_CORE_ERROR(module.GetErrorMessage());
 					PX_CORE_ASSERT(false, module.GetErrorMessage());
 				}
 
@@ -194,7 +196,7 @@ namespace Povox {
 			}
 		}
 
-		for (auto& [stage, data] : shaderData)
+		for (auto&& [stage, data] : shaderData)
 		{
 			Reflect(stage, data);
 		}
@@ -202,8 +204,6 @@ namespace Povox {
 
 	void OpenGLShader::CompileOrGetOpenGLBinaries()
 	{
-		GLint program = glCreateProgram();
-
 		shaderc::Compiler compiler;
 		shaderc::CompileOptions options;
 
@@ -240,8 +240,12 @@ namespace Povox {
 				m_OpenGLShaderSourceCode[stage] = glslCompiler.compile();
 				auto& source = m_OpenGLShaderSourceCode[stage];
 
-				shaderc::SpvCompilationResult module = compiler.CompileGlslToSpv(source, Utils::GLShaderStageToShaderC(stage), m_FilePath.c_str(), options);
-				PX_CORE_ASSERT(module.GetCompilationStatus() == shaderc_compilation_status_success, module.GetErrorMessage());
+				shaderc::SpvCompilationResult module = compiler.CompileGlslToSpv(source, Utils::GLShaderStageToShaderC(stage), m_FilePath.c_str());
+				if (module.GetCompilationStatus() != shaderc_compilation_status_success)
+				{
+					PX_CORE_ERROR(module.GetErrorMessage());
+					PX_CORE_ASSERT(false, module.GetErrorMessage());
+				}
 
 				shaderData[stage] = std::vector<uint32_t>(module.cbegin(), module.cend());
 
@@ -333,11 +337,18 @@ namespace Povox {
 		std::ifstream in(filepath, std::ios::in | std::ios::binary);
 		if (in)
 		{
-			in.seekg(0, std::ios::end);					// places pointer to end of file
-			result.resize(in.tellg());					// position of pointer equals size
-			in.seekg(0, std::ios::beg);					// places pointer back to start
-			in.read(&result[0], result.size());			// reads in the content of the file 
-			in.close();									// close the stream
+			in.seekg(0, std::ios::end);	
+			size_t size = in.tellg();
+			if (size != -1)
+			{
+				result.resize(size);
+				in.seekg(0, std::ios::beg);
+				in.read(&result[0], size);
+			}
+			else
+			{
+				PX_CORE_ERROR("Could not read from file {0}", filepath);
+			}								// close the stream
 		}
 		else
 		{
@@ -377,7 +388,8 @@ namespace Povox {
 			size_t nextLine = source.find_first_not_of("\r\n", eol);
 			PX_CORE_ASSERT(nextLine != std::string::npos, "Syntax Error!");
 			pos = source.find(typeToken, nextLine);
-			shaderSources[Utils::ShaderTypeFromString(type)] = source.substr(nextLine, pos - (nextLine == std::string::npos ? source.size() - 1 : nextLine));
+
+			shaderSources[Utils::ShaderTypeFromString(type)] = (pos == std::string::npos) ? source.substr(nextLine) : source.substr(nextLine, pos - nextLine);
 		}
 		return shaderSources;
 	}
@@ -438,9 +450,6 @@ namespace Povox {
 
 	void OpenGLShader::UploadUniformInt(const std::string& name, int value)
 	{
-		PX_PROFILE_FUNCTION();
-
-
 		GLint location = glGetUniformLocation(m_RendererID, name.c_str());
 		if (location == -1)
 			PX_CORE_ASSERT(false, "Uniform '" + name + "' not in shader!")
@@ -449,9 +458,6 @@ namespace Povox {
 
 	void OpenGLShader::UploadUniformIntArray(const std::string& name, int* values, uint32_t count)
 	{
-		PX_PROFILE_FUNCTION();
-
-
 		GLint location = glGetUniformLocation(m_RendererID, name.c_str());
 		if (location == -1)
 			PX_CORE_ASSERT(false, "Uniform '" + name + "' not in shader!")
@@ -460,9 +466,6 @@ namespace Povox {
 
 	void OpenGLShader::UploadUniformFloat(const std::string& name, float value)
 	{
-		PX_PROFILE_FUNCTION();
-
-
 		GLint location = glGetUniformLocation(m_RendererID, name.c_str());
 		if (location == -1)
 			PX_CORE_ASSERT(false, "Uniform '" + name + "' not in shader!")
@@ -471,9 +474,6 @@ namespace Povox {
 
 	void OpenGLShader::UploadUniformFloat2(const std::string& name, const glm::vec2& vector)
 	{
-		PX_PROFILE_FUNCTION();
-
-
 		GLint location = glGetUniformLocation(m_RendererID, name.c_str());
 		if (location == -1)
 			PX_CORE_ASSERT(false, "Uniform '" + name + "' not in shader!")
@@ -482,9 +482,6 @@ namespace Povox {
 
 	void OpenGLShader::UploadUniformFloat3(const std::string& name, const glm::vec3& vector)
 	{
-		PX_PROFILE_FUNCTION();
-
-
 		GLint location = glGetUniformLocation(m_RendererID, name.c_str());
 		if (location == -1)
 			PX_CORE_WARN("Uniform '{0}' not in shader!", name);
@@ -493,9 +490,6 @@ namespace Povox {
 
 	void OpenGLShader::UploadUniformFloat4(const std::string& name, const glm::vec4& vector)
 	{
-		PX_PROFILE_FUNCTION();
-
-
 		GLint location = glGetUniformLocation(m_RendererID, name.c_str());
 		if (location == -1)
 			PX_CORE_ASSERT(false, "Uniform '" + name + "' not in shader!")
@@ -504,9 +498,6 @@ namespace Povox {
 
 	void OpenGLShader::UploadUniformMat3(const std::string& name, const glm::mat3& matrix)
 	{
-		PX_PROFILE_FUNCTION();
-
-
 		GLint location = glGetUniformLocation(m_RendererID, name.c_str());
 		if (location == -1)
 			PX_CORE_ASSERT(false, "Uniform '" + name + "' not in shader!")
@@ -515,9 +506,6 @@ namespace Povox {
 
 	void OpenGLShader::UploadUniformMat4(const std::string& name, const glm::mat4& matrix)
 	{
-		PX_PROFILE_FUNCTION();
-
-
 		GLint location = glGetUniformLocation(m_RendererID, name.c_str());
 		if (location == -1)
 			PX_CORE_ASSERT(false, "Uniform '" + name + "' not in shader!")
