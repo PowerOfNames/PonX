@@ -26,7 +26,7 @@ namespace Povox {
 		PX_CORE_INFO(" Renderer : {0}", glGetString(GL_RENDERER));
 		PX_CORE_INFO(" Version  : {0}", glGetString(GL_VERSION));
 
-
+		glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 		int versionMajor;
 		int versionMinor;
 		glGetIntegerv(GL_MAJOR_VERSION, &versionMajor);

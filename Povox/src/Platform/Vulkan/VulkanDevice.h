@@ -8,36 +8,21 @@ namespace Povox {
 	class VulkanDevice
 	{
 	public:
-		VulkanDevice() = default;
-		~VulkanDevice();
+		static void PickPhysicalDevice(VulkanCoreObjects& core, const std::vector<const char*>& deviceExtensions);
+		static void CreateLogicalDevice(VulkanCoreObjects& core, const std::vector<const char*>& deviceExtensions, const std::vector<const char*> validationLayers);
 
-		void Destroy();
+		static SwapchainSupportDetails QuerySwapchainSupport(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface);
+		static SwapchainSupportDetails QuerySwapchainSupport(const VulkanCoreObjects& core) { return QuerySwapchainSupport(core.PhysicalDevice, core.Surface); };
 
-		void PickPhysicalDevice(VkInstance instance,VkSurfaceKHR surface);
-		void CreateLogicalDevice(VkSurfaceKHR surface, const std::vector<const char*> validationLayers);
+		static QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface);
+		static QueueFamilyIndices FindQueueFamilies(const VulkanCoreObjects& core) { return FindQueueFamilies(core.PhysicalDevice, core.Surface); };
 
-		SwapchainSupportDetails QuerySwapchainSupport(VkPhysicalDevice device, VkSurfaceKHR surface);
-		QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface);
-
-
-		VkDevice GetLogicalDevice() { return m_Device; }
-		VkPhysicalDevice GetPhysicalDevice() const { return m_PhysicalDevice; }
-
-		const QueueFamilies& GetQueueFamilies() const { return m_Queues; }
-
-		void AddDeviceExtension(const char* extension) { m_DeviceExtensions.push_back(extension); }
+		static VkPhysicalDeviceProperties GetPhysicalDeviceProperties(VkPhysicalDevice physicalDevice);
 
 	private:
-		int RatePhysicalDevice(VkPhysicalDevice phgysicalDevice, VkSurfaceKHR surface);
-		bool CheckDeviceExtensionSupport(VkPhysicalDevice device);
-
-	private:
-		VkPhysicalDevice m_PhysicalDevice = VK_NULL_HANDLE;
-		VkDevice m_Device;
-
-		QueueFamilies m_Queues;
-
-		std::vector<const char*> m_DeviceExtensions = {};
+		static int RatePhysicalDevice(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, const std::vector<const char*>& deviceExtensions);
+		static bool CheckDeviceExtensionSupport(VkPhysicalDevice physicalDevice, const std::vector<const char*>& deviceExtensions);
+		
 	};
 
 }

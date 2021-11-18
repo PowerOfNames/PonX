@@ -4,40 +4,41 @@
 #include "VulkanSwapchain.h"
 #include "VulkanShader.h"
 
+#include "VulkanInitializers.h"
+
 namespace Povox {
+
+	
 
 	class VulkanRenderPass
 	{
 	public:
-		VulkanRenderPass() = default;
-		~VulkanRenderPass() = default;
+		struct Attachment
+		{
+			VkAttachmentDescription Description{};
+			VkAttachmentReference Reference{};
+		};
 
-		void Create(VkDevice logicalDevice, VkPhysicalDevice physicalDevice, VkFormat swapchainImageFormat);
-		void Destroy(VkDevice logicalDevice);
-
-		VkRenderPass Get() const { return m_RenderPass; }
-
-	private:
-		VkRenderPass m_RenderPass;
+		static VkRenderPass CreateColorAndDepth(VulkanCoreObjects& core, const std::vector<VulkanRenderPass::Attachment>& attachments, VkSubpassDependency dependency);
+		static VkRenderPass CreateColor(VulkanCoreObjects& core, const std::vector<VulkanRenderPass::Attachment>& attachments, VkSubpassDependency dependency);
 	};
 
 	class VulkanPipeline
 	{
 	public:
-		VulkanPipeline() = default;
-		~VulkanPipeline() = default;
-
-
-		void Create(VkDevice logicalDevice, VkExtent2D swapchainExtent, VkRenderPass renderPass, VkDescriptorSetLayout descriptorSetLayout);
-		void Destroy(VkDevice logicalDevice);
-		void DestroyLayout(VkDevice logicalDevice);
-
-		VkPipelineLayout GetLayout() const { return m_Layout; }
-		VkPipeline Get() const { return m_Pipeline; }
-
-	private:
-		VkPipelineLayout m_Layout;
-		VkPipeline m_Pipeline;
+		VkPipeline Create(VkDevice logicalDevice, VkRenderPass renderPass);
+	public:
+		std::vector<VkPipelineShaderStageCreateInfo> m_ShaderStageInfos;
+		VkPipelineVertexInputStateCreateInfo m_VertexInputStateInfo;
+		VkPipelineInputAssemblyStateCreateInfo m_AssemblyStateInfo;
+		VkViewport m_Viewport;
+		VkRect2D m_Scissor;
+		VkPipelineViewportStateCreateInfo m_ViewportStateInfo;
+		VkPipelineRasterizationStateCreateInfo m_RasterizationStateInfo;
+		VkPipelineMultisampleStateCreateInfo m_MultisampleStateInfo;
+		VkPipelineDepthStencilStateCreateInfo m_DepthStencilStateInfo;
+		VkPipelineColorBlendAttachmentState m_ColorBlendAttachmentStateInfo;
+		VkPipelineLayout m_PipelineLayout;
 	};
 
 }

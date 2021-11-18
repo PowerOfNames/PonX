@@ -20,6 +20,7 @@
 #include "Povox/Renderer/PerspectiveCameraController.h"
 
 #include "Povox/ImGui/ImGuiLayer.h"
+#include "Povox/ImGui/ImGuiVulkanLayer.h"
 
 // --- Scene
 #include "Povox/Scene/Scene.h"

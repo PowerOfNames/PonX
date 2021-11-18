@@ -5,10 +5,9 @@
 #include "Povox/Events/MouseEvent.h"
 #include "Povox/Events/KeyEvent.h"
 
-#include "Platform/OpenGL/OpenGLContext.h"
-#include "Platform/Vulkan/VulkanContext.h"
-
 #include "Povox/Renderer/Renderer.h"
+
+#include "Platform/Vulkan/VulkanRendererAPI.h"
 
 
 namespace Povox {
@@ -52,22 +51,27 @@ namespace Povox {
 
 		
 			//PX_PROFILE_SCOPE("GLFW create window!");
-		#if defined(PX_DEBUG)
+		#ifdef PX_DEBUG
 			if (Renderer::GetAPI() == RendererAPI::API::OpenGL)
 				glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GLFW_TRUE);
 		#endif
 
-		if (Renderer::GetAPI() == RendererAPI::API::Vulkan)
-			glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+			if (Renderer::GetAPI() == RendererAPI::API::Vulkan)
+			{
+				glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+				m_GLFW_NO_API = true;
+			}
 
 		m_Window = glfwCreateWindow((int)props.Width, (int)props.Height, props.Title.c_str(), nullptr, nullptr);
 		++s_GLFWwindowCount;		
 		
 		m_Context = GraphicsContext::Create(m_Window);
 		m_Context->Init();
+		VulkanRendererAPI::SetContext(std::dynamic_pointer_cast<VulkanContext>(m_Context));
 
 		glfwSetWindowUserPointer(m_Window, &m_Data);
-		SetVSync(true);
+		if(!m_GLFW_NO_API)
+			SetVSync(true);
 
 		// Set GLFW callbacks
 	// --- Window
@@ -195,7 +199,7 @@ namespace Povox {
 	{
 		PX_PROFILE_FUNCTION();
 
-
+		
 		glfwPollEvents();
 		m_Context->SwapBuffers();
 	}

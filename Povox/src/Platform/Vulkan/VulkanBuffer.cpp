@@ -1,131 +1,65 @@
 #include "pxpch.h"
 #include "VulkanBuffer.h"
-#include "VulkanUtility.h"
 #include "VulkanDebug.h"
+#include "VulkanCommands.h"
 
 namespace Povox {
 
 //General VulkanBuffer stuff
-	void VulkanBuffer::CreateBuffer(VkDevice logicalDevice, VkPhysicalDevice physicalDevice, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties,
-		VkBuffer& buffer, VkDeviceMemory& memory, uint32_t familyIndexCount, uint32_t* familyIndices, VkSharingMode sharingMode)
+	AllocatedBuffer VulkanBuffer::Create(const VulkanCoreObjects& core, size_t allocSize, VkBufferUsageFlags usage, VmaMemoryUsage memUsage)
 	{
 		VkBufferCreateInfo vertexBufferInfo{};
 		vertexBufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-		vertexBufferInfo.size = size;
+		vertexBufferInfo.pNext = nullptr;
+
+		vertexBufferInfo.size = allocSize;
 		vertexBufferInfo.usage = usage;
-		vertexBufferInfo.sharingMode = sharingMode;
-		vertexBufferInfo.queueFamilyIndexCount = familyIndexCount;
-		vertexBufferInfo.pQueueFamilyIndices = familyIndices;
 
-		PX_CORE_VK_ASSERT(vkCreateBuffer(logicalDevice, &vertexBufferInfo, nullptr, &buffer), VK_SUCCESS, "Failed to create vertex buffer!");
+		VmaAllocationCreateInfo vmaAllocInfo{};
+		vmaAllocInfo.usage = memUsage;
 
+		AllocatedBuffer newBuffer;
 
-		VkMemoryRequirements requirements;
-		vkGetBufferMemoryRequirements(logicalDevice, buffer, &requirements);
+		PX_CORE_VK_ASSERT(vmaCreateBuffer(core.Allocator, &vertexBufferInfo, &vmaAllocInfo, &newBuffer.Buffer, &newBuffer.Allocation, nullptr), VK_SUCCESS, "Failed to create Buffer!");
 
-		VkMemoryAllocateInfo memoryInfo{};
-		memoryInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-		memoryInfo.allocationSize = requirements.size;
-		memoryInfo.memoryTypeIndex = VulkanUtils::FindMemoryType(physicalDevice, requirements.memoryTypeBits, properties);
+		//TODO: add vmaDestroyBuffer to the deletion queue
 
-		PX_CORE_VK_ASSERT(vkAllocateMemory(logicalDevice, &memoryInfo, nullptr, &memory), VK_SUCCESS, "Failed to allocate vertex buffer memory!");
-
-		vkBindBufferMemory(logicalDevice, buffer, memory, 0);
+		return newBuffer;
 	}
 
 
 // --------------------- VertexBuffer ----------------------------
-	VulkanVertexBuffer::VulkanVertexBuffer(VkDevice logicalDevice, VkPhysicalDevice physicalDevice)
+	void VulkanVertexBuffer::Create(const VulkanCoreObjects& core, UploadContext& uploadContext, Mesh& mesh)
 	{
-		/*QueueFamilyIndices indices = m_Device->FindQueueFamilies(physicalDevice, m_Surface);
-		uint32_t queueFamilyIndices[] = {
-			indices.GraphicsFamily.value(),
-			indices.TransferFamily.value()
-		};
-		//uint32_t indiceSize = static_cast<uint32_t>(sizeof(queueFamilyIndices) / sizeof(queueFamilyIndices[0]));
-
-		VkBuffer stagingBuffer;
-		VkDeviceMemory stagingBufferMemory;
-
-		VkDeviceSize bufferSize = sizeof(m_Vertices[0]) * m_Vertices.size();
-		VulkanBuffer::CreateBuffer(logicalDevice, physicalDevice, bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer,
-			stagingBufferMemory, indiceSize, queueFamilyIndices, VK_SHARING_MODE_CONCURRENT);
+		const size_t bufferSize = mesh.Vertices.size() * sizeof(VertexData);
+		AllocatedBuffer stagingBuffer = VulkanBuffer::Create(core, bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_ONLY);
 
 		void* data;
-		vkMapMemory(logicalDevice, stagingBufferMemory, 0, bufferSize, 0, &data);
-		memcpy(data, m_Vertices.data(), (size_t)bufferSize);
-		vkUnmapMemory(logicalDevice, stagingBufferMemory);
-		VulkanBuffer::CreateBuffer(logicalDevice, physicalDevice, bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_Buffer,
-			m_Memory, indiceSize, queueFamilyIndices, VK_SHARING_MODE_CONCURRENT);
+		vmaMapMemory(core.Allocator, stagingBuffer.Allocation, &data);
+		memcpy(data, mesh.Vertices.data(), bufferSize);
+		vmaUnmapMemory(core.Allocator, stagingBuffer.Allocation);
 
-		//CopyBuffer(stagingBuffer, m_Buffer, bufferSize);
-		vkDestroyBuffer(logicalDevice, stagingBuffer, nullptr);
-		vkFreeMemory(logicalDevice, stagingBufferMemory, nullptr);*/
-	}
+		mesh.VertexBuffer = VulkanBuffer::Create(core, bufferSize, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 
-	void VulkanVertexBuffer::Destroy(VkDevice logicalDevice)
-	{
-		vkDestroyBuffer(logicalDevice, m_Buffer, nullptr);
-	}
+		VulkanCommands::CopyBuffer(core, uploadContext, stagingBuffer.Buffer, mesh.VertexBuffer.Buffer, bufferSize);
 
-	void VulkanVertexBuffer::Bind() const
-	{
-
-	}
-
-	void VulkanVertexBuffer::Unbind() const
-	{
-
-	}
-
-	void VulkanVertexBuffer::SetData(const void* data, uint32_t size)
-	{
-
-	}
-
-	const BufferLayout& VulkanVertexBuffer::GetLayout() const
-	{
-		BufferLayout bufferlayout;
-		return bufferlayout;
-	}
-	void VulkanVertexBuffer::SetLayout(const BufferLayout& layout)
-	{
-
+		vmaDestroyBuffer(core.Allocator, stagingBuffer.Buffer, stagingBuffer.Allocation);
 	}
 
 // --------------------- IndexBuffer ------------------------------
-	VulkanIndexBuffer::VulkanIndexBuffer(VkDevice logicalDevice, VkPhysicalDevice physicalDevice)
+	void VulkanIndexBuffer::Create(const VulkanCoreObjects& core, UploadContext& uploadContext, Mesh& mesh)
 	{
-		/*QueueFamilyIndices indices = m_Device->FindQueueFamilies(physicalDevice, m_Surface);
-		uint32_t queueFamilyIndices[] = {
-			indices.GraphicsFamily.value(),
-			indices.TransferFamily.value()
-		};
-		uint32_t indiceSize = static_cast<uint32_t>(sizeof(queueFamilyIndices) / sizeof(queueFamilyIndices[0]));
-
-		VkBuffer stagingBuffer;
-		VkDeviceMemory stagingBufferMemory;
-
-		VkDeviceSize bufferSize = sizeof(uint16_t) * m_Indices.size();
-		VulkanBuffer::CreateBuffer(logicalDevice, physicalDevice, bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer,
-			stagingBufferMemory, indiceSize, queueFamilyIndices, VK_SHARING_MODE_CONCURRENT);
+		const size_t bufferSize = mesh.Indices.size() * sizeof(mesh.Indices[0]);
+		AllocatedBuffer stagingBuffer = VulkanBuffer::Create(core, bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_ONLY);
 
 		void* data;
-		vkMapMemory(logicalDevice, stagingBufferMemory, 0, bufferSize, 0, &data);
-		memcpy(data, m_Indices.data(), (size_t)bufferSize);
-		vkUnmapMemory(logicalDevice, stagingBufferMemory);
+		vmaMapMemory(core.Allocator, stagingBuffer.Allocation, &data);
+		memcpy(data, mesh.Indices.data(), bufferSize);
+		vmaUnmapMemory(core.Allocator, stagingBuffer.Allocation);
 
-		VulkanBuffer::CreateBuffer(logicalDevice, physicalDevice, bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_Buffer,
-			m_Memory, indiceSize, queueFamilyIndices, VK_SHARING_MODE_CONCURRENT);
+		mesh.IndexBuffer = VulkanBuffer::Create(core, bufferSize, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
+		VulkanCommands::CopyBuffer(core, uploadContext, stagingBuffer.Buffer, mesh.IndexBuffer.Buffer, bufferSize);
 
-		CopyBuffer(stagingBuffer, m_Buffer, bufferSize);
-
-		vkDestroyBuffer(logicalDevice, stagingBuffer, nullptr);
-		vkFreeMemory(logicalDevice, stagingBufferMemory, nullptr);*/
-	}
-
-	void VulkanIndexBuffer::Destroy(VkDevice logicalDevice)
-	{
-		vkDestroyBuffer(logicalDevice, m_Buffer, nullptr);
+		vmaDestroyBuffer(core.Allocator, stagingBuffer.Buffer, stagingBuffer.Allocation);
 	}
 }

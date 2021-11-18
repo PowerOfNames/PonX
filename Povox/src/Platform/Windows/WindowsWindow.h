@@ -26,12 +26,13 @@ namespace Povox {
 
 		inline virtual void* GetNativeWindow() const override { return m_Window; }
 
+
 	private:
 		virtual void Init(const WindowProps& props);
 		virtual void Shutdown();
 	private:
 		GLFWwindow* m_Window;
-		Scope<GraphicsContext> m_Context;
+		Ref<GraphicsContext> m_Context;
 
 		struct WindowData
 		{
@@ -43,5 +44,6 @@ namespace Povox {
 		};
 
 		WindowData m_Data;
+		bool m_GLFW_NO_API = false;
 	};
 }

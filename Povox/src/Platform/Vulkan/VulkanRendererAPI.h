@@ -1,6 +1,10 @@
 #pragma once
 #include "Povox/Renderer/RendererAPI.h"
 
+#include "VulkanContext.h"
+
+#include "Povox/Core/Core.h"
+
 namespace Povox {
 
 	class VulkanRendererAPI : public RendererAPI
@@ -16,6 +20,14 @@ namespace Povox {
 		virtual void Clear() override;
 
 		virtual void DrawIndexed(const Ref<VertexArray>& vertexArray, uint32_t indexCount = 0) override;
+
+		static void SetContext(Ref<VulkanContext> context) { m_Context = context; }
+		static void InitImGui();
+		static void BeginImGuiFrame();
+		static void EndImGuiFrame();
+
+	private:
+		static Ref<VulkanContext> m_Context;
 	};
 
 }

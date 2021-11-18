@@ -11,6 +11,6 @@ namespace Povox {
 		virtual void SwapBuffers() = 0;
 		virtual void Shutdown() = 0;
 
-		static Scope<GraphicsContext> Create(void* window);
+		static Ref<GraphicsContext> Create(void* window);
 	};
 }

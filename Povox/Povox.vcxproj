@@ -77,7 +77,7 @@
       <PrecompiledHeaderFile>pxpch.h</PrecompiledHeaderFile>
       <WarningLevel>Level3</WarningLevel>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;GLFW_INCLUDE_NONE;PX_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>src;vendor\spdlog\include;vendor\GLFW\include;vendor\Glad\include;vendor\ImGui;vendor\glm;vendor\stb_image;vendor\entt\include;vendor\yaml-cpp\include;vendor\ImGuizmo;vendor\VulkanSDK\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>src;vendor\spdlog\include;vendor\GLFW\include;vendor\Glad\include;vendor\ImGui;vendor\glm;vendor\stb_image;vendor\entt\include;vendor\yaml-cpp\include;vendor\ImGuizmo;vendor\VulkanSDK\Include;vendor\VMA;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
       <Optimization>Disabled</Optimization>
       <MinimalRebuild>false</MinimalRebuild>
@@ -99,7 +99,7 @@
       <PrecompiledHeaderFile>pxpch.h</PrecompiledHeaderFile>
       <WarningLevel>Level3</WarningLevel>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;GLFW_INCLUDE_NONE;PX_RELEASE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>src;vendor\spdlog\include;vendor\GLFW\include;vendor\Glad\include;vendor\ImGui;vendor\glm;vendor\stb_image;vendor\entt\include;vendor\yaml-cpp\include;vendor\ImGuizmo;vendor\VulkanSDK\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>src;vendor\spdlog\include;vendor\GLFW\include;vendor\Glad\include;vendor\ImGui;vendor\glm;vendor\stb_image;vendor\entt\include;vendor\yaml-cpp\include;vendor\ImGuizmo;vendor\VulkanSDK\Include;vendor\VMA;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <Optimization>Full</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
@@ -124,7 +124,7 @@
       <PrecompiledHeaderFile>pxpch.h</PrecompiledHeaderFile>
       <WarningLevel>Level3</WarningLevel>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;GLFW_INCLUDE_NONE;PX_DIST;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>src;vendor\spdlog\include;vendor\GLFW\include;vendor\Glad\include;vendor\ImGui;vendor\glm;vendor\stb_image;vendor\entt\include;vendor\yaml-cpp\include;vendor\ImGuizmo;vendor\VulkanSDK\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>src;vendor\spdlog\include;vendor\GLFW\include;vendor\Glad\include;vendor\ImGui;vendor\glm;vendor\stb_image;vendor\entt\include;vendor\yaml-cpp\include;vendor\ImGuizmo;vendor\VulkanSDK\Include;vendor\VMA;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <Optimization>Full</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
@@ -150,20 +150,21 @@
     <ClInclude Include="src\Platform\OpenGL\OpenGLRendererAPI.h" />
     <ClInclude Include="src\Platform\OpenGL\OpenGLShader.h" />
     <ClInclude Include="src\Platform\OpenGL\OpenGLTexture.h" />
-    <ClInclude Include="src\Platform\OpenGL\OpenGLUniformBuffer.h" />
+    <ClInclude Include="src\Platform\OpenGL\OpenGLUniformbuffer.h" />
     <ClInclude Include="src\Platform\OpenGL\OpenGLVertexArray.h" />
     <ClInclude Include="src\Platform\Vulkan\VulkanBuffer.h" />
+    <ClInclude Include="src\Platform\Vulkan\VulkanCommands.h" />
     <ClInclude Include="src\Platform\Vulkan\VulkanContext.h" />
     <ClInclude Include="src\Platform\Vulkan\VulkanDebug.h" />
     <ClInclude Include="src\Platform\Vulkan\VulkanDevice.h" />
     <ClInclude Include="src\Platform\Vulkan\VulkanFramebuffer.h" />
+    <ClInclude Include="src\Platform\Vulkan\VulkanImGui.h" />
     <ClInclude Include="src\Platform\Vulkan\VulkanImage.h" />
-    <ClInclude Include="src\Platform\Vulkan\VulkanLookups.h" />
+    <ClInclude Include="src\Platform\Vulkan\VulkanInitializers.h" />
     <ClInclude Include="src\Platform\Vulkan\VulkanPipeline.h" />
     <ClInclude Include="src\Platform\Vulkan\VulkanRendererAPI.h" />
     <ClInclude Include="src\Platform\Vulkan\VulkanShader.h" />
     <ClInclude Include="src\Platform\Vulkan\VulkanSwapchain.h" />
-    <ClInclude Include="src\Platform\Vulkan\VulkanUniformBuffer.h" />
     <ClInclude Include="src\Platform\Vulkan\VulkanUtility.h" />
     <ClInclude Include="src\Platform\Windows\WindowsWindow.h" />
     <ClInclude Include="src\Povox.h" />
@@ -185,6 +186,7 @@
     <ClInclude Include="src\Povox\Events\KeyEvent.h" />
     <ClInclude Include="src\Povox\Events\MouseEvent.h" />
     <ClInclude Include="src\Povox\ImGui\ImGuiLayer.h" />
+    <ClInclude Include="src\Povox\ImGui\ImGuiVulkanLayer.h" />
     <ClInclude Include="src\Povox\Math\Math.h" />
     <ClInclude Include="src\Povox\Renderer\Buffer.h" />
     <ClInclude Include="src\Povox\Renderer\Camera.h" />
@@ -202,7 +204,7 @@
     <ClInclude Include="src\Povox\Renderer\Shader.h" />
     <ClInclude Include="src\Povox\Renderer\SubTexture2D.h" />
     <ClInclude Include="src\Povox\Renderer\Texture.h" />
-    <ClInclude Include="src\Povox\Renderer\UniformBuffer.h" />
+    <ClInclude Include="src\Povox\Renderer\Uniformbuffer.h" />
     <ClInclude Include="src\Povox\Renderer\VertexArray.h" />
     <ClInclude Include="src\Povox\Renderer\VoxelRenderer.h" />
     <ClInclude Include="src\Povox\Scene\Components.h" />
@@ -211,9 +213,11 @@
     <ClInclude Include="src\Povox\Scene\SceneCamera.h" />
     <ClInclude Include="src\Povox\Scene\SceneSerializer.h" />
     <ClInclude Include="src\Povox\Scene\ScriptableEntity.h" />
+    <ClInclude Include="src\Povox\Utils\FileUtility.h" />
     <ClInclude Include="src\Povox\Utils\PlatformsUtils.h" />
     <ClInclude Include="src\pxpch.h" />
     <ClInclude Include="vendor\ImGuizmo\ImGuizmo.h" />
+    <ClInclude Include="vendor\VMA\vk_mem_alloc.h" />
     <ClInclude Include="vendor\glm\glm\common.hpp" />
     <ClInclude Include="vendor\glm\glm\detail\_features.hpp" />
     <ClInclude Include="vendor\glm\glm\detail\_fixes.hpp" />
@@ -591,13 +595,16 @@
     <ClCompile Include="src\Platform\OpenGL\OpenGLRendererAPI.cpp" />
     <ClCompile Include="src\Platform\OpenGL\OpenGLShader.cpp" />
     <ClCompile Include="src\Platform\OpenGL\OpenGLTexture.cpp" />
-    <ClCompile Include="src\Platform\OpenGL\OpenGLUniformBuffer.cpp" />
+    <ClCompile Include="src\Platform\OpenGL\OpenGLUniformbuffer.cpp" />
     <ClCompile Include="src\Platform\OpenGL\OpenGLVertexArray.cpp" />
     <ClCompile Include="src\Platform\Vulkan\VulkanBuffer.cpp" />
+    <ClCompile Include="src\Platform\Vulkan\VulkanCommands.cpp" />
     <ClCompile Include="src\Platform\Vulkan\VulkanContext.cpp" />
     <ClCompile Include="src\Platform\Vulkan\VulkanDevice.cpp" />
     <ClCompile Include="src\Platform\Vulkan\VulkanFramebuffer.cpp" />
+    <ClCompile Include="src\Platform\Vulkan\VulkanImGui.cpp" />
     <ClCompile Include="src\Platform\Vulkan\VulkanImage.cpp" />
+    <ClCompile Include="src\Platform\Vulkan\VulkanInitializers.cpp" />
     <ClCompile Include="src\Platform\Vulkan\VulkanPipeline.cpp" />
     <ClCompile Include="src\Platform\Vulkan\VulkanRendererAPI.cpp" />
     <ClCompile Include="src\Platform\Vulkan\VulkanShader.cpp" />
@@ -612,6 +619,7 @@
     <ClCompile Include="src\Povox\Core\Window.cpp" />
     <ClCompile Include="src\Povox\ImGui\ImGuiBuild.cpp" />
     <ClCompile Include="src\Povox\ImGui\ImGuiLayer.cpp" />
+    <ClCompile Include="src\Povox\ImGui\ImGuiVulkanLayer.cpp" />
     <ClCompile Include="src\Povox\Math\Math.cpp" />
     <ClCompile Include="src\Povox\Renderer\Buffer.cpp" />
     <ClCompile Include="src\Povox\Renderer\EditorCamera.cpp" />
@@ -628,7 +636,7 @@
     <ClCompile Include="src\Povox\Renderer\Shader.cpp" />
     <ClCompile Include="src\Povox\Renderer\SubTexture2D.cpp" />
     <ClCompile Include="src\Povox\Renderer\Texture.cpp" />
-    <ClCompile Include="src\Povox\Renderer\UniformBuffer.cpp" />
+    <ClCompile Include="src\Povox\Renderer\Uniformbuffer.cpp" />
     <ClCompile Include="src\Povox\Renderer\VertexArray.cpp" />
     <ClCompile Include="src\Povox\Renderer\VoxelRenderer.cpp" />
     <ClCompile Include="src\Povox\Scene\Entity.cpp" />

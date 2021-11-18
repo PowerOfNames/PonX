@@ -51,7 +51,7 @@ namespace Povox {
 		};
 
 		CameraData CameraBuffer;
-		Ref<UniformBuffer> CameraUniformBuffer;		
+		Ref<Uniformbuffer> CameraUniformBuffer;		
 	};
 
 	static Renderer2DData s_QuadData;
@@ -114,7 +114,7 @@ namespace Povox {
 		s_QuadData.QuadVertexPositions[3] = { -0.5f, 0.5f, 0.0f, 1.0f };
 
 		s_QuadData.TextureShader->Bind();
-		s_QuadData.CameraUniformBuffer = UniformBuffer::Create(sizeof(Renderer2DData::CameraData), 0);
+		s_QuadData.CameraUniformBuffer = Uniformbuffer::Create(sizeof(Renderer2DData::CameraData), 0);
 	}
 
 	void Renderer2D::Shutdown()
@@ -129,7 +129,7 @@ namespace Povox {
 	{
 		PX_PROFILE_FUNCTION();
 
-		
+		s_QuadData.QuadVertexArray->Bind();
 		s_QuadData.CameraBuffer.ViewProjection = camera.GetViewProjectionMatrix();
 		s_QuadData.CameraUniformBuffer->SetData(&s_QuadData.CameraBuffer, sizeof(Renderer2DData::CameraData));
 		StartBatch();
@@ -139,7 +139,7 @@ namespace Povox {
 	{
 		PX_PROFILE_FUNCTION();
 
-		
+		s_QuadData.QuadVertexArray->Bind();
 		s_QuadData.CameraBuffer.ViewProjection = camera.GetProjection() * glm::inverse(transform);
 		s_QuadData.CameraUniformBuffer->SetData(&s_QuadData.CameraBuffer, sizeof(Renderer2DData::CameraData));		
 		StartBatch();
@@ -150,7 +150,7 @@ namespace Povox {
 		PX_PROFILE_FUNCTION();
 
 
-		
+		s_QuadData.QuadVertexArray->Bind();
 		s_QuadData.CameraBuffer.ViewProjection = camera.GetViewProjectionMatrix();
 		s_QuadData.CameraUniformBuffer->SetData(&s_QuadData.CameraBuffer, sizeof(Renderer2DData::CameraData));
 		StartBatch();

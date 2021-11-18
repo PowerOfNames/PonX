@@ -22,22 +22,34 @@ namespace Povox {
 		PX_CORE_ASSERT(!s_Instance, "Application already exists!");
 		s_Instance = this;
 
-		//TODO: Implement OnStartup() -> sets up rendererCOntext, which renderer to use, creates window etc.
+		//TODO: Implement OnStartup() -> sets up rendererContext, which renderer to use, creates window etc.
 		//Set Graphics API to Vulkan when available, else to OpenGL
-		RendererAPI::SetAPI(RendererAPI::API::OpenGL);
+		RendererAPI::SetAPI(RendererAPI::API::Vulkan);
 
+		// Window holds scope of the graphics context and initializes it upon window init (which happens in the constructor)
 		m_Window = Window::Create();
 		m_Window->SetEventCallback(PX_BIND_EVENT_FN(Application::OnEvent));
 
 		Renderer::Init();
-		//bool result = RendererAPI::GetAPI() == RendererAPI::API::OpenGL ? true : false;
 
-		//TODO set VulkanImGuiLayer if Vulkan is used
-		if (RendererAPI::GetAPI() == RendererAPI::API::OpenGL)
+		switch (RendererAPI::GetAPI())
 		{
-			m_ImGuiLayer = new ImGuiLayer();
-			PushOverlay(m_ImGuiLayer);
-		}
+			case RendererAPI::API::OpenGL:
+			{
+				m_ImGuiLayer = new ImGuiLayer();
+				break;
+			}
+			case RendererAPI::API::Vulkan:
+			{
+				m_ImGuiVulkanLayer = new ImGuiVulkanLayer();
+				break;
+			}
+			default:
+				PX_CORE_ASSERT(false, "This API is not supported!");
+		}			
+		//PushOverlay(m_ImGuiLayer);
+		PushOverlay(m_ImGuiVulkanLayer);
+		
 	}
 
 	Application::~Application() 
@@ -96,18 +108,29 @@ namespace Povox {
 			{
 				for (Layer* layer : m_Layerstack)
 				{
-
 					layer->OnUpdate(timestep);
 				}
 			}
-			// To be executed on the Render thread
-			//disabled while there is no VulkanImGuiLayer
-			m_ImGuiLayer->Begin();
-			for (Layer* layer : m_Layerstack)
+
+			if (RendererAPI::GetAPI() == RendererAPI::API::OpenGL)
 			{
-				layer->OnImGuiRender();
+				m_ImGuiLayer->Begin();
+				for (Layer* layer : m_Layerstack)
+				{
+					layer->OnImGuiRender();
+				}
+				m_ImGuiLayer->End();
 			}
-			m_ImGuiLayer->End();
+
+			if (RendererAPI::GetAPI() == RendererAPI::API::Vulkan)
+			{
+				m_ImGuiVulkanLayer->Begin();
+				for (Layer* layer : m_Layerstack)
+				{
+					layer->OnImGuiRender();
+				}
+				m_ImGuiVulkanLayer->End();
+			}
 
 			m_Window->OnUpdate();
 		}

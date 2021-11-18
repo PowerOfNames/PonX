@@ -10,15 +10,20 @@ layout(location = 1) out vec2 v_TexCoord;
 
 layout(binding = 0) uniform UniformBufferObject
 {
-	mat4 ModelMatrix;
 	mat4 ViewMatrix;
 	mat4 ProjectionMatrix;
+	mat4 ViewProjMatrix;
 } ubo;
+
+layout( push_constant ) uniform PushConstants
+{
+	mat4 RenderMatrix;
+} constant;
 
 
 void main()
 {
-	gl_Position = ubo.ProjectionMatrix * ubo.ViewMatrix * ubo.ModelMatrix * vec4(Position, 1.0);
+	gl_Position = ubo.ViewProjMatrix * constant.RenderMatrix * vec4(Position, 1.0);
 	v_FragColor = Color;
 	v_TexCoord = TexCoord;
 }

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vulkan/vulkan.h>
+#include <vk_mem_alloc.h>
 
 #include <vector>
 #include <optional>
@@ -33,6 +34,26 @@ namespace Povox {
 		VkQueue GraphicsQueue;
 		VkQueue PresentQueue;
 		VkQueue TransferQueue;
+	};
+
+	struct VulkanCoreObjects
+	{
+		VkInstance Instance = VK_NULL_HANDLE;
+		VkSurfaceKHR Surface = VK_NULL_HANDLE;
+		VkPhysicalDevice PhysicalDevice = VK_NULL_HANDLE;
+		VkDevice Device = VK_NULL_HANDLE;
+		QueueFamilies QueueFamily;
+		QueueFamilyIndices QueueFamilyIndices;
+
+		VmaAllocator Allocator;
+	};
+
+	struct UploadContext
+	{
+		VkCommandPool CmdPoolGfx;
+		VkCommandPool CmdPoolTrsf;
+
+		VkFence Fence;
 	};
 
 	namespace VulkanUtils {

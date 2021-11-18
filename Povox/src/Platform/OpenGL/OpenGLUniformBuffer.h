@@ -3,11 +3,11 @@
 
 namespace Povox {
 
-	class OpenGLUniformBuffer : public UniformBuffer
+	class OpenGLUniformbuffer : public Uniformbuffer
 	{
 	public:
-		OpenGLUniformBuffer(uint32_t size, uint32_t binding);
-		virtual ~OpenGLUniformBuffer();
+		OpenGLUniformbuffer(uint32_t size, uint32_t binding);
+		virtual ~OpenGLUniformbuffer();
 
 		virtual void SetData(const void* data, uint32_t size, uint32_t offset = 0) override;
 

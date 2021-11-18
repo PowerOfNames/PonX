@@ -2,6 +2,7 @@
 #include "Platform/OpenGL/OpenGLShader.h"
 
 #include "Povox/Core/Log.h"
+#include "Povox/Utils/FileUtility.h"
 
 #include <fstream>
 #include <filesystem>
@@ -18,74 +19,64 @@
 namespace Povox {
 
 	namespace Utils {
+		namespace Shader {
 
-		static GLenum ShaderTypeFromString(const std::string& name)
-		{
-			if (name == "vertex")
-				return GL_VERTEX_SHADER;
-			if (name == "fragment" || name == "pixel")
-				return GL_FRAGMENT_SHADER;
-
-			PX_CORE_ASSERT(false, "Shadertype not defined");
-			return 0;
-		}
-
-		static shaderc_shader_kind GLShaderStageToShaderC(GLenum stage)
-		{
-			switch(stage)
+			static GLenum GLShaderTypeFromString(const std::string& name)
 			{
+				if (name == "vertex")
+					return GL_VERTEX_SHADER;
+				if (name == "fragment" || name == "pixel")
+					return GL_FRAGMENT_SHADER;
+
+				PX_CORE_ASSERT(false, "Shadertype not defined");
+				return 0;
+			}
+
+			static shaderc_shader_kind GLShaderStageToShaderC(GLenum stage)
+			{
+				switch (stage)
+				{
 				case GL_VERTEX_SHADER: return shaderc_glsl_vertex_shader;
-				case GL_FRAGMENT_SHADER: return shaderc_glsl_fragment_shader;			
+				case GL_FRAGMENT_SHADER: return shaderc_glsl_fragment_shader;
+				}
+
+				PX_CORE_ASSERT(false, "Shaderstage not defined");
+				return (shaderc_shader_kind)0;
 			}
 
-			PX_CORE_ASSERT(false, "Shaderstage not defined");
-			return (shaderc_shader_kind)0;
-		}
-
-		static const char* GLShaderStageToString(GLenum stage)
-		{
-			switch (stage)
+			static const char* GLShaderStageToString(GLenum stage)
 			{
-			case GL_VERTEX_SHADER: return "GL_VERTEX_SHADER";
-			case GL_FRAGMENT_SHADER: return "GL_FRAGMENT_SHADER";
+				switch (stage)
+				{
+				case GL_VERTEX_SHADER: return "GL_VERTEX_SHADER";
+				case GL_FRAGMENT_SHADER: return "GL_FRAGMENT_SHADER";
+				}
+
+				PX_CORE_ASSERT(false, "Shaderstage not defined");
+				return nullptr;
 			}
 
-			PX_CORE_ASSERT(false, "Shaderstage not defined");
-			return nullptr;
-		}
-
-		static const char* GetChacheDirectory()
-		{
-			return "assets/chache/shader/opengl";
-		}
-
-		static void CreateCacheDirectoryIfNeeded()
-		{
-			std::string path = GetChacheDirectory();
-			if (!std::filesystem::exists(path))
-				std::filesystem::create_directories(path);
-		}
-
-		static const char* GLShaderStageCachedOpenGLFileExtension(GLenum stage)
-		{
-			switch (stage)
+			static const char* GLShaderStageCachedOpenGLFileExtension(GLenum stage)
 			{
-			case GL_VERTEX_SHADER: return ".chached_opengl.vert";
-			case GL_FRAGMENT_SHADER: return ".chached_opengl.frag";
+				switch (stage)
+				{
+				case GL_VERTEX_SHADER: return ".chached_opengl.vert";
+				case GL_FRAGMENT_SHADER: return ".chached_opengl.frag";
+				}
+				PX_CORE_ASSERT(false, "Shaderstage not defined");
+				return "";
 			}
-			PX_CORE_ASSERT(false, "Shaderstage not defined");
-			return "";
-		}
 
-		static const char* GLShaderStageCachedVulkanFileExtension(GLenum stage)
-		{
-			switch (stage)
+			static const char* GLShaderStageCachedVulkanFileExtension(GLenum stage)
 			{
-			case GL_VERTEX_SHADER: return ".chached_vulkan.vert";
-			case GL_FRAGMENT_SHADER: return ".chached_vulkan.frag";
+				switch (stage)
+				{
+				case GL_VERTEX_SHADER: return ".chached_vulkan.vert";
+				case GL_FRAGMENT_SHADER: return ".chached_vulkan.frag";
+				}
+				PX_CORE_ASSERT(false, "Shaderstage not defined");
+				return "";
 			}
-			PX_CORE_ASSERT(false, "Shaderstage not defined");
-			return "";
 		}
 	}
 	
@@ -95,10 +86,10 @@ namespace Povox {
 		PX_PROFILE_FUNCTION();
 
 
-		Utils::CreateCacheDirectoryIfNeeded();
+		Utils::Shader::CreateGLCacheDirectoryIfNeeded();
 
 		PX_CORE_WARN("Starting to load shader from '{0}'", filepath);
-		std::string sources = ReadFile(filepath);
+		std::string sources = Utils::Shader::ReadFile(filepath);
 		auto shaderSources = PreProcess(sources);
 
 		{
@@ -154,14 +145,14 @@ namespace Povox {
 		if (optimize)
 			options.SetOptimizationLevel(shaderc_optimization_level_performance);
 
-		std::filesystem::path cacheDirectory = Utils::GetChacheDirectory();
+		std::filesystem::path cacheDirectory = Utils::Shader::GetGLChacheDirectory();
 
 		auto& shaderData = m_VulkanSpirV;
 		shaderData.clear();
 		for (auto&& [stage, code] : shaderSources)
 		{
 			std::filesystem::path shaderFilePath = m_FilePath;
-			std::filesystem::path cachedPath = cacheDirectory / (shaderFilePath.filename().string() + Utils::GLShaderStageCachedVulkanFileExtension(stage));
+			std::filesystem::path cachedPath = cacheDirectory / (shaderFilePath.filename().string() + Utils::Shader::GLShaderStageCachedVulkanFileExtension(stage));
 
 			std::ifstream in(cachedPath, std::ios::in | std::ios::binary);
 			if (in.is_open()) // happens if chache path exists
@@ -176,7 +167,7 @@ namespace Povox {
 			}
 			else
 			{		
-				shaderc::SpvCompilationResult module = compiler.CompileGlslToSpv(code, Utils::GLShaderStageToShaderC(stage), m_FilePath.c_str(), options);
+				shaderc::SpvCompilationResult module = compiler.CompileGlslToSpv(code, Utils::Shader::GLShaderStageToShaderC(stage), m_FilePath.c_str(), options);
 				if (module.GetCompilationStatus() != shaderc_compilation_status_success)
 				{
 					PX_CORE_ERROR(module.GetErrorMessage());
@@ -212,7 +203,7 @@ namespace Povox {
 		if (optimize)
 			options.SetOptimizationLevel(shaderc_optimization_level_performance);
 
-		std::filesystem::path cacheDirectory = Utils::GetChacheDirectory();
+		std::filesystem::path cacheDirectory = Utils::Shader::GetGLChacheDirectory();
 
 		auto& shaderData = m_OpenGLSpirV;
 		shaderData.clear();
@@ -220,7 +211,7 @@ namespace Povox {
 		for (auto&& [stage, spirv] : m_VulkanSpirV)
 		{
 			std::filesystem::path shaderFilePath = m_FilePath;
-			std::filesystem::path cachedPath = cacheDirectory / (shaderFilePath.filename().string() + Utils::GLShaderStageCachedOpenGLFileExtension(stage));
+			std::filesystem::path cachedPath = cacheDirectory / (shaderFilePath.filename().string() + Utils::Shader::GLShaderStageCachedOpenGLFileExtension(stage));
 
 
 			std::ifstream in(cachedPath, std::ios::in | std::ios::binary);
@@ -240,7 +231,7 @@ namespace Povox {
 				m_OpenGLShaderSourceCode[stage] = glslCompiler.compile();
 				auto& source = m_OpenGLShaderSourceCode[stage];
 
-				shaderc::SpvCompilationResult module = compiler.CompileGlslToSpv(source, Utils::GLShaderStageToShaderC(stage), m_FilePath.c_str());
+				shaderc::SpvCompilationResult module = compiler.CompileGlslToSpv(source, Utils::Shader::GLShaderStageToShaderC(stage), m_FilePath.c_str());
 				if (module.GetCompilationStatus() != shaderc_compilation_status_success)
 				{
 					PX_CORE_ERROR(module.GetErrorMessage());
@@ -308,7 +299,7 @@ namespace Povox {
 		spirv_cross::Compiler compiler(shaderData);
 		spirv_cross::ShaderResources resources = compiler.get_shader_resources();
 
-		PX_CORE_TRACE("OpenGLShader::Reflect - {0} {1}", Utils::GLShaderStageToString(stage), m_FilePath);
+		PX_CORE_TRACE("OpenGLShader::Reflect - {0} {1}", Utils::Shader::GLShaderStageToString(stage), m_FilePath);
 		PX_CORE_TRACE("    {0} uniform buffers", resources.uniform_buffers.size());
 		PX_CORE_TRACE("    {0} resources", resources.sampled_images.size());
 
@@ -326,38 +317,6 @@ namespace Povox {
 			PX_CORE_TRACE("    Members = {0}", memberCount);
 		}
 	}
-
-	std::string OpenGLShader::ReadFile(const std::string& filepath)
-	{
-		PX_PROFILE_FUNCTION();
-
-
-		std::string result;
-		// input file stream, binary, cause we don't want to change something here. just load it
-		std::ifstream in(filepath, std::ios::in | std::ios::binary);
-		if (in)
-		{
-			in.seekg(0, std::ios::end);	
-			size_t size = in.tellg();
-			if (size != -1)
-			{
-				result.resize(size);
-				in.seekg(0, std::ios::beg);
-				in.read(&result[0], size);
-			}
-			else
-			{
-				PX_CORE_ERROR("Could not read from file {0}", filepath);
-			}								// close the stream
-		}
-		else
-		{
-			PX_CORE_ERROR("Could not open file '{0}' !", filepath);
-		}
-
-		return result;
-	}
-
 
 	// in addition to the current code, I should make sure, that additional 'spaces' in front of the type name or so get cut out
 	std::unordered_map<GLenum, std::string> OpenGLShader::PreProcess(const std::string& source)
@@ -380,7 +339,7 @@ namespace Povox {
 			PX_CORE_ASSERT(eol != std::string::npos, "Syntax Error!");
 			size_t begin = pos + typeTokenLength + 1;
 			std::string type = source.substr(begin, eol - begin);
-			PX_CORE_ASSERT(Utils::ShaderTypeFromString(type), "Invalid shader type specified!");
+			PX_CORE_ASSERT(Utils::Shader::GLShaderTypeFromString(type), "Invalid shader type specified!");
 
 			// finds the beginning of the shader string
 			// sets position of the next '#type' token
@@ -389,7 +348,7 @@ namespace Povox {
 			PX_CORE_ASSERT(nextLine != std::string::npos, "Syntax Error!");
 			pos = source.find(typeToken, nextLine);
 
-			shaderSources[Utils::ShaderTypeFromString(type)] = (pos == std::string::npos) ? source.substr(nextLine) : source.substr(nextLine, pos - nextLine);
+			shaderSources[Utils::Shader::GLShaderTypeFromString(type)] = (pos == std::string::npos) ? source.substr(nextLine) : source.substr(nextLine, pos - nextLine);
 		}
 		return shaderSources;
 	}

@@ -5,7 +5,9 @@
 #include "Povox/Events/Event.h"
 #include "Povox/Events/ApplicationEvent.h"
 #include "Povox/Core/LayerStack.h"
+
 #include "Povox/ImGui/ImGuiLayer.h"
+#include "Povox/ImGui/ImGuiVulkanLayer.h"
 
 #include "Povox/Renderer/Shader.h"
 #include "Povox/Renderer/Buffer.h"
@@ -15,7 +17,7 @@
 
 namespace Povox {
 
-	class POVOX_API Application
+	class Application
 	{
 	public:
 		Application();
@@ -31,6 +33,7 @@ namespace Povox {
 		void Close();
 
 		ImGuiLayer* GetImGuiLayer() { return m_ImGuiLayer; }
+		ImGuiVulkanLayer* GetImGuiVulkanLayer() { return m_ImGuiVulkanLayer; }
 
 		inline Window& GetWindow() const { return *m_Window; }
 		inline static Application& Get() {	return *s_Instance; }
@@ -41,6 +44,7 @@ namespace Povox {
 
 		Scope<Window> m_Window;
 		ImGuiLayer* m_ImGuiLayer;
+		ImGuiVulkanLayer* m_ImGuiVulkanLayer;
 		bool m_Running = true;
 		bool m_Minimized = false;
 		LayerStack m_Layerstack;

@@ -2,79 +2,61 @@
 #include "VulkanImage.h"
 
 #include "VulkanDebug.h"
-#include "VulkanUtility.h"
+#include "VulkanInitializers.h"
+
+#include "VulkanBuffer.h"
+#include "VulkanCommands.h"
+
+#include <stb_image.h>
+
 
 namespace Povox {
 
-	void VulkanImage::Create(VkDevice logicalDevice, VkPhysicalDevice physicalDevice, VkImage& image, uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkDeviceMemory& memory)
+	AllocatedImage VulkanImage::Create(VulkanCoreObjects& core, uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage)
 	{
-		VkImageCreateInfo imageInfo{};
-		imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-		imageInfo.imageType = VK_IMAGE_TYPE_2D;
-		imageInfo.extent.width = width;
-		imageInfo.extent.height = height;
-		imageInfo.extent.depth = 1;
-		imageInfo.arrayLayers = 1;
-		imageInfo.mipLevels = 1;
-		imageInfo.format = format;	// may not be supported by all hardware
-		imageInfo.tiling = tiling;
-		imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-		imageInfo.usage = usage;	// used as destination from the buffer to image, and the shader needs to sample from it
-		imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;	// exclusive means it will only be used by one queue family (graphics and thgerefore also transfer possible)
-		imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;	// related to multi sampling -> in attachments
-		imageInfo.flags = 0;	// optional, can be used for sparse textures, in "D vfor examples for voxel terrain, to avoid using memory with AIR
+		VkExtent3D extent;
+		extent.width = static_cast<uint32_t>(width);
+		extent.height = static_cast<uint32_t>(height);
+		extent.depth = 1;
 
+		VkImageCreateInfo imageInfo = VulkanInits::CreateImageInfo(format, tiling, usage, extent);
 
-		PX_CORE_VK_ASSERT(vkCreateImage(logicalDevice, &imageInfo, nullptr, &image), VK_SUCCESS, "Failed to create Texture Image!");
+		AllocatedImage newImage;
 
-		VkMemoryRequirements memRequirements;
-		vkGetImageMemoryRequirements(logicalDevice, image, &memRequirements);
+		VmaAllocationCreateInfo allocationInfo{};
+		allocationInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
 
-		VkMemoryAllocateInfo memoryInfo{};
-		memoryInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-		memoryInfo.allocationSize = memRequirements.size;
-		memoryInfo.memoryTypeIndex = VulkanUtils::FindMemoryType(physicalDevice, memRequirements.memoryTypeBits, properties);
+		PX_CORE_VK_ASSERT(vmaCreateImage(core.Allocator, &imageInfo, &allocationInfo, &newImage.Image, &newImage.Allocation, nullptr), VK_SUCCESS, "Failed to create Texture Image!");
 
-
-		PX_CORE_VK_ASSERT(vkAllocateMemory(logicalDevice, &memoryInfo, nullptr, &memory), VK_SUCCESS, "Failed to allocate image memory!");
-
-		vkBindImageMemory(logicalDevice, image, memory, 0);
+		return newImage;
 	}
 
-
-
-	void VulkanImage::Destroy(VkDevice logicalDevice, VkImage image)
+	AllocatedImage VulkanImage::LoadFromFile(VulkanCoreObjects& core, UploadContext& uploadContext, const char* path, VkFormat format)
 	{
-		vkDestroyImage(logicalDevice, image, nullptr);
-	}
+		int width, height, channels;
+		stbi_uc* pixels = stbi_load(path, &width, &height, &channels, STBI_rgb_alpha);
+		PX_CORE_ASSERT(pixels, "Failed to load texture!");
+		VkDeviceSize imageSize = width * height * 4;
 
-	
+		PX_CORE_TRACE("Image width : '{0}', height '{1}'", width, height);
 
-	void VulkanImageView::Create(VkDevice logicalDevice, VkImageView& imageView, VkImage image, VkFormat format, VkImageAspectFlags aspects)
-	{
-		VkImageViewCreateInfo createInfo{};
-		createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-		createInfo.image = image;
-		createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-		createInfo.format = format;
+		AllocatedBuffer stagingBuffer = VulkanBuffer::Create(core, imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_ONLY);
+		void* data;
+		vmaMapMemory(core.Allocator, stagingBuffer.Allocation, &data);
+		memcpy(data, pixels, static_cast<size_t>(imageSize));
+		vmaUnmapMemory(core.Allocator, stagingBuffer.Allocation);
 
-		createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
-		createInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
-		createInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
-		createInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+		stbi_image_free(pixels);
 
-		createInfo.subresourceRange.aspectMask = aspects;
-		createInfo.subresourceRange.baseMipLevel = 0;
-		createInfo.subresourceRange.levelCount = 1;
-		createInfo.subresourceRange.baseArrayLayer = 0;
-		createInfo.subresourceRange.layerCount = 1;
+		AllocatedImage output;
+		output = VulkanImage::Create(core, width, height, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);
 
+		VulkanCommands::TransitionImageLayout(core, uploadContext, output.Image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+		VulkanCommands::CopyBufferToImage(core, uploadContext, stagingBuffer.Buffer, output.Image, static_cast<uint32_t>(width), static_cast<uint32_t>(height));																		//-------- Command
+		VulkanCommands::TransitionImageLayout(core, uploadContext, output.Image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
-		PX_CORE_VK_ASSERT(vkCreateImageView(logicalDevice, &createInfo, nullptr, &imageView), VK_SUCCESS, "Failed to create image view!");
-	}
+		vmaDestroyBuffer(core.Allocator, stagingBuffer.Buffer, stagingBuffer.Allocation);
 
-	void VulkanImageView::Destroy(VkDevice logicalDevice, VkImageView imageView)
-	{
-		vkDestroyImageView(logicalDevice, imageView, nullptr);
+		return output;
 	}
 }

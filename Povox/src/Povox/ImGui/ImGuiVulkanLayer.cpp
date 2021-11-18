@@ -1,31 +1,30 @@
 #include "pxpch.h"
+#include "ImGuiVulkanLayer.h"
 
-#include "Povox/ImGui/ImGuiLayer.h"
+#include "Platform/Vulkan/VulkanRendererAPI.h"
 
 #include <imgui.h>
 #include <examples/imgui_impl_glfw.h>
-#include <examples/imgui_impl_opengl3.h>
 
 #include "Povox/Core/Application.h"
 
 //TEMPORARY
-#include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
 #include <ImGuizmo.h>
 
 namespace Povox {
 
-	ImGuiLayer::ImGuiLayer()
-		:Layer("ImGuiLayer")
+	ImGuiVulkanLayer::ImGuiVulkanLayer()
+		:Layer("ImGuiVulkanLayer")
 	{
 	}
 
-	ImGuiLayer::~ImGuiLayer()
+	ImGuiVulkanLayer::~ImGuiVulkanLayer()
 	{
 	}
 
-	void ImGuiLayer::OnAttach()
+	void ImGuiVulkanLayer::OnAttach()
 	{
 		// Setup Dear ImGui context
 		IMGUI_CHECKVERSION();
@@ -58,18 +57,17 @@ namespace Povox {
 		GLFWwindow* window = static_cast<GLFWwindow*>(app.GetWindow().GetNativeWindow());
 
 		// Setup Platform/Renderer bindings
-		ImGui_ImplGlfw_InitForOpenGL(window, true);
-		ImGui_ImplOpenGL3_Init("#version 410");
+		ImGui_ImplGlfw_InitForVulkan(window, true);
+		VulkanRendererAPI::InitImGui();		
 	}
 
-	void ImGuiLayer::OnDetach()
-	{
-		ImGui_ImplOpenGL3_Shutdown();
+	void ImGuiVulkanLayer::OnDetach()
+	{		
 		ImGui_ImplGlfw_Shutdown();
 		ImGui::DestroyContext();
 	}
 
-	void ImGuiLayer::OnEvent(Event& event)
+	void ImGuiVulkanLayer::OnEvent(Event& event)
 	{
 		if (m_BlockEvents)
 		{
@@ -79,23 +77,21 @@ namespace Povox {
 		}
 	}
 
-	void ImGuiLayer::Begin()
+	void ImGuiVulkanLayer::Begin()
 	{
-		ImGui_ImplOpenGL3_NewFrame();
 		ImGui_ImplGlfw_NewFrame();
-		ImGui::NewFrame();
+		VulkanRendererAPI::BeginImGuiFrame();
 		ImGuizmo::BeginFrame();
 	}
 
-	void ImGuiLayer::End()
+	void ImGuiVulkanLayer::End()
 	{
 		ImGuiIO& io = ImGui::GetIO();
 		Application& app = Application::Get();
 		io.DisplaySize = ImVec2((float)app.GetWindow().GetWidth(), (float)app.GetWindow().GetHeight());
 
 		// Rendering
-		ImGui::Render();
-		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+		VulkanRendererAPI::EndImGuiFrame();
 
 		if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
 		{
@@ -106,7 +102,7 @@ namespace Povox {
 		}
 	}
 
-	void ImGuiLayer::SetDarkThemeColors()
+	void ImGuiVulkanLayer::SetDarkThemeColors()
 	{
 		auto& colors = ImGui::GetStyle().Colors;
 		colors[ImGuiCol_WindowBg] = ImVec4{ 0.1f, 0.13f, 0.13f, 1.0f };
@@ -170,7 +166,7 @@ namespace Povox {
 		colors[ImGuiCol_TextDisabled] = ImVec4{ 0.35f, 0.35f, 0.35f, 1.0f };
 	}
 
-	void ImGuiLayer::OnImGuiRender()
+	void ImGuiVulkanLayer::OnImGuiRender()
 	{
 	}
 

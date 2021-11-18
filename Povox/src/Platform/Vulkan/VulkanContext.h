@@ -1,17 +1,19 @@
 #pragma once
-
 #include "Povox/Renderer/GraphicsContext.h"
 
 #include "Povox/Core/Core.h"
-#include "VulkanDevice.h"
+
 #include "VulkanSwapchain.h"
 #include "VulkanPipeline.h"
 #include "VulkanShader.h"
 #include "VulkanBuffer.h"
+#include "VulkanImGui.h"
 
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 #include <vulkan/vulkan.h>
+
+#include <vk_mem_alloc.h>
 
 #include <glm/glm.hpp>
 
@@ -19,21 +21,49 @@ struct GLFWwindow;
 
 namespace Povox {
 
+	constexpr uint32_t MAX_FRAMES_IN_FLIGHT = 2;
+
+	struct Texture
+	{
+		AllocatedImage Image;
+		VkImageView ImageView;
+	};
+
+	struct FrameData
+	{
+		VkSemaphore PresentSemaphore, RenderSemaphore;
+		VkFence RenderFence;
+
+		VkCommandPool CommandPoolGfx;
+		VkCommandPool CommandPoolTrsf;
+		VkCommandBuffer MainCommandBuffer;
+
+		AllocatedBuffer CamUniformBuffer;
+
+		VkDescriptorSet GlobalDescriptorSet;
+	};
+
 	class VulkanContext : public GraphicsContext
 	{
 	public:
+		VulkanContext();
 		VulkanContext(GLFWwindow* windowHandle);
 
 		virtual void Init() override;
 		virtual void SwapBuffers() override;
 		virtual void Shutdown() override;
 
-		void RecreateSwapchain();
 
 		//Framebuffer Callback
 		static void FramebufferResizeCallback(GLFWwindow* window, int width, int height);
 
+		void InitImGui();
+		void BeginImGuiFrame();
+		void EndImGuiFrame();
+
 	private:
+		void RecreateSwapchain();
+
 	// stays here!
 		// Instance
 		void CreateInstance();
@@ -52,88 +82,84 @@ namespace Povox {
 		void CreateFramebuffers();		
 
 		void CreateDepthResources();
-		bool HasStencilComponent(VkFormat format);
 
-		void CreateTextureImage();
-		void CreateTextureImageView();
+		void CreateMemAllocator();
+		void InitCommands();
+		void InitDescriptors();
+		void InitPipelines();
+
+		void InitDefaultRenderPasses();
 		void CreateTextureSampler();
-		void TransitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
-		void CopyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);
 
-		void CreateUniformBuffers();
-		void UpdateUniformBuffer(uint32_t currentImage);
+		void UpdateUniformBuffer();
 
-		// Commands
-		void CreateCommandPool();
-		void CreateCommandBuffers();
-		VkCommandBuffer BeginSingleTimeCommands(VkCommandPool commandPool);
-		void EndSingleTimeCommands(VkCommandBuffer commandBuffer, VkQueue queue, VkCommandPool commandPool);
-		void CopyBuffer(VkBuffer src, VkBuffer dst, VkDeviceSize size);
 
 		// Semaphores
 		void CreateSyncObjects();
 		
 		void CleanupSwapchain();
 
+		void LoadMeshes();
+		void UploadMeshes();
+
+		void LoadTextures();
+
+		size_t PadUniformBuffer(size_t inputSize, size_t minGPUBufferOffsetAlignment);
+
+		FrameData& GetCurrentFrame() { return m_Frames[m_CurrentFrame % MAX_FRAMES_IN_FLIGHT]; }
+
 	private:
 	// context specific
-		GLFWwindow* m_WindowHandle;
-		VkInstance m_Instance = VK_NULL_HANDLE;
-		VkSurfaceKHR m_Surface;			// may get refactored out when dealing with multiple windows
+		GLFWwindow* m_WindowHandle;				// may get refactored out when dealing with multiple windows
+		VulkanCoreObjects m_CoreObjects;
+
+		VkPhysicalDeviceProperties m_PhysicalDeviceProperties;
 
 		VkDebugUtilsMessengerEXT m_DebugMessenger;
-	// external vk stuff
-		Ref<VulkanDevice> m_Device;		// at the moment include both physical and logical device -> TODO: do seperate
 
-	// swapchain
 		Ref<VulkanSwapchain> m_Swapchain;
 
-	// framebuffer
+		FrameData m_Frames[MAX_FRAMES_IN_FLIGHT];
+		UploadContext m_UploadContext;
+
+		SceneUniformBufferD m_SceneParameter;
+		AllocatedBuffer m_SceneParameterBuffer;
+
+
 		std::vector<VkFramebuffer> m_SwapchainFramebuffers;
 
-	// renderpass
-		Ref<VulkanRenderPass> m_RenderPass;
+		VkRenderPass m_DefaultRenderPass;
 
-	//render pipelines
-		Ref<VulkanPipeline> m_GraphicsPipeline;
+		VkPipeline m_GraphicsPipeline;
+		VkPipeline m_LastPipeline;
+		VkPipelineLayout m_GraphicsPipelineLayout;
 
-	// Command buffer and pool
-		VkCommandPool m_CommandPoolGraphics;
-		VkCommandPool m_CommandPoolTransfer;
+		Mesh m_DoubleTriangleMesh;
 
-		std::vector<VkCommandBuffer> m_CommandBuffersGraphics;
-		//VkCommandBuffer m_CommandBufferTransfer;
+		Scope<VulkanImGui> m_ImGui;
 
 	// VK Buffer, memory and texture images + sampler
-		VkImage m_TextureImage;
-		VkImageView m_TextureImageView;
-		VkDeviceMemory m_TextureImageMemory;
+
+		std::unordered_map<std::string, Texture> m_Textures;
+
 		VkSampler m_TextureSampler;
 
-		VkImage m_DepthImage;
-		VkDeviceMemory m_DepthImageMemory;
+		AllocatedImage m_DepthImage;
 		VkImageView m_DepthImageView;
 
-		Ref<VulkanVertexBuffer> m_VertexBuffer;
-		Ref<VulkanIndexBuffer> m_IndexBuffer;
-
-		std::vector<VkBuffer> m_UniformBuffers;
-		std::vector<VkDeviceMemory> m_UniformBuffersMemory;
-
-		Ref<VulkanDescriptorPool> m_DescriptorPool;
+		VkDescriptorSetLayout m_GlobalDescriptorSetLayout;
+		VkDescriptorPool m_DescriptorPool;
 
 
 	// sync objects
-		std::vector<VkSemaphore> m_ImageAvailableSemaphores;
-		std::vector<VkSemaphore> m_RenderFinishedSemaphores;
-		std::vector<VkFence> m_InFlightFence;
-		std::vector<VkFence> m_ImagesInFlight;
+
+		//std::vector<VkFence> m_ImagesInFlight;
+
 		uint32_t m_CurrentFrame = 0;
 
 		bool m_FramebufferResized = false;
 
 		const std::vector<const char*> m_ValidationLayers = { "VK_LAYER_KHRONOS_validation" };
-		
-		const uint32_t MAX_FRAMES_IN_FLIGHT = 2;
+		std::vector<const char*> m_DeviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
 	};
 }

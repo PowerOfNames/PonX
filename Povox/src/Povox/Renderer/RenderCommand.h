@@ -7,7 +7,7 @@ namespace Povox {
 	class RenderCommand
 	{
 	public:
-		inline static void Init() { s_RendererAPI->Init(); }
+		static void Init();
 
 		inline static void SetClearColor(glm::vec4 clearColor) { s_RendererAPI->SetClearColor(clearColor); } // framebuffer property
 		inline static void Clear() { s_RendererAPI->Clear(); }

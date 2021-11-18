@@ -2,6 +2,7 @@
 #include "VulkanSwapchain.h"
 
 #include "VulkanDebug.h"
+#include "VulkanInitializers.h"
 
 namespace Povox {
 
@@ -10,7 +11,7 @@ namespace Povox {
 		vkDestroySwapchainKHR(logicalDevice, m_Swapchain, nullptr);
 	}
 
-	void VulkanSwapchain::Create(VkDevice logicalDevice, VkSurfaceKHR surface, SwapchainSupportDetails swapchainSupportDetails, QueueFamilyIndices indices, int width, int height)
+	void VulkanSwapchain::Create(VulkanCoreObjects& core, SwapchainSupportDetails swapchainSupportDetails, int width, int height)
 	{
 		ChooseSwapSurfaceFormat(swapchainSupportDetails.Formats);
 		ChooseSwapPresentMode(swapchainSupportDetails.PresentModes);
@@ -22,7 +23,7 @@ namespace Povox {
 
 		VkSwapchainCreateInfoKHR createInfo{};
 		createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-		createInfo.surface = surface;
+		createInfo.surface = core.Surface;
 		createInfo.minImageCount = imageCount;
 		createInfo.imageFormat = m_SurfaceFormat.format;
 		createInfo.imageColorSpace = m_SurfaceFormat.colorSpace;
@@ -36,12 +37,12 @@ namespace Povox {
 
 
 		uint32_t queueFamilyIndices[] = {
-						indices.GraphicsFamily.value(),
-						indices.PresentFamily.value(),
-						indices.TransferFamily.value()
+						core.QueueFamilyIndices.GraphicsFamily.value(),
+						core.QueueFamilyIndices.PresentFamily.value(),
+						core.QueueFamilyIndices.TransferFamily.value()
 		};
 
-		if (indices.GraphicsFamily != indices.PresentFamily)
+		if (core.QueueFamilyIndices.GraphicsFamily != core.QueueFamilyIndices.PresentFamily)
 		{
 			createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
 			createInfo.queueFamilyIndexCount = 2;
@@ -61,20 +62,23 @@ namespace Povox {
 		createInfo.oldSwapchain = VK_NULL_HANDLE;
 
 
-		PX_CORE_VK_ASSERT(vkCreateSwapchainKHR(logicalDevice, &createInfo, nullptr, &m_Swapchain), VK_SUCCESS, "Failed to create logical device!");
+		PX_CORE_VK_ASSERT(vkCreateSwapchainKHR(core.Device, &createInfo, nullptr, &m_Swapchain), VK_SUCCESS, "Failed to create logical device!");
 	}
 
 	void VulkanSwapchain::CreateImagesAndViews(VkDevice logicalDevice)
 	{
 		vkGetSwapchainImagesKHR(logicalDevice, m_Swapchain, &m_ImageCount, nullptr);
 		m_Images.resize(m_ImageCount);
+		PX_CORE_TRACE("Swapchain image cout: '{0}'", m_ImageCount);
 		vkGetSwapchainImagesKHR(logicalDevice, m_Swapchain, &m_ImageCount, m_Images.data());
 
 		m_ImageViews.resize(m_Images.size());
 
+		
 		for (size_t i = 0; i < m_ImageViews.size(); i++)
 		{
-			 VulkanImageView::Create(logicalDevice, m_ImageViews[i], m_Images[i], m_ImageFormat, VK_IMAGE_ASPECT_COLOR_BIT);
+			VkImageViewCreateInfo imageInfo = VulkanInits::CreateImageViewInfo(m_ImageFormat, m_Images[i], VK_IMAGE_ASPECT_COLOR_BIT);
+			PX_CORE_VK_ASSERT(vkCreateImageView(logicalDevice, &imageInfo, nullptr, &m_ImageViews[i]), VK_SUCCESS, "Failed to create image view!");
 		}
 	}
 
@@ -114,5 +118,6 @@ namespace Povox {
 
 			m_Extent = actualExtend;
 		}
+		PX_CORE_INFO("Swapchain extent: '[{0}|{1}]'", m_Extent.width, m_Extent.height);
 	}
 }

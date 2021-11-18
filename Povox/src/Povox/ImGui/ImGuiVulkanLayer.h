@@ -6,11 +6,11 @@
 
 namespace Povox {
 
-	class ImGuiLayer : public Layer
+	class ImGuiVulkanLayer : public Layer
 	{
 	public:
-		ImGuiLayer();
-		~ImGuiLayer();
+		ImGuiVulkanLayer();
+		~ImGuiVulkanLayer();
 
 		virtual void OnAttach() override;
 		virtual void OnDetach() override;

@@ -29,13 +29,14 @@ namespace Povox {
 	{
 		PX_PROFILE_FUNCTION();
 
+
 		PX_CORE_TRACE("OpenGLRenderer initialized!");
 #ifdef PX_DEBUG
 		glEnable(GL_DEBUG_OUTPUT);
 		glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
 		glDebugMessageCallback(OpenGLMessageCallback, nullptr);
 
-		glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_NOTIFICATION, 0, NULL, GL_FALSE);
+		glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, NULL, GL_TRUE);
 #endif
 
 		glEnable(GL_BLEND);
@@ -66,10 +67,10 @@ namespace Povox {
 
 		uint32_t count = indexCount ? indexCount : vertexArray->GetIndexBuffer()->GetCount();
 
-		vertexArray->Bind();
 		vertexArray->GetIndexBuffer()->Bind();
-		glDrawElements(GL_TRIANGLES, count, GL_UNSIGNED_INT, nullptr);
+
 		glBindTexture(GL_TEXTURE_2D, 0);
+		glDrawElements(GL_TRIANGLES, count, GL_UNSIGNED_SHORT, nullptr);
 	}
 
 }

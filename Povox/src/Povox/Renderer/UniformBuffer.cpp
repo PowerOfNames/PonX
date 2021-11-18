@@ -1,15 +1,14 @@
 #include "pxpch.h"
-#include "UniformBuffer.h"
+#include "Uniformbuffer.h"
 
-#include "Platform/OpenGL/OpenGLUniformBuffer.h"
-#include "Platform/Vulkan/VulkanUniformBuffer.h"
+#include "Platform/OpenGL/OpenGLUniformbuffer.h"
 
 #include "Povox/Renderer/Renderer.h"
 
 
 namespace Povox {
 
-	Ref<UniformBuffer> UniformBuffer::Create(uint32_t size, uint32_t binding)
+	Ref<Uniformbuffer> Uniformbuffer::Create(uint32_t size, uint32_t binding)
 	{
 		switch (Renderer::GetAPI())
 		{
@@ -20,7 +19,7 @@ namespace Povox {
 		}
 		case RendererAPI::API::OpenGL:
 		{
-			return CreateRef<OpenGLUniformBuffer>(size, binding);
+			return CreateRef<OpenGLUniformbuffer>(size, binding);
 		}
 		}
 		PX_CORE_ASSERT(false, "Unknown RendererAPI");

@@ -32,6 +32,7 @@ namespace Povox {
 
 
 		glCreateVertexArrays(1, &m_RendererID);
+		glBindVertexArray(m_RendererID);
 	}
 
 	OpenGLVertexArray::~OpenGLVertexArray()
@@ -64,7 +65,6 @@ namespace Povox {
 
 
 		PX_CORE_ASSERT(vertexBuffer->GetLayout().GetElements().size(), "Bound vertex buffer has no set layout!");
-		glBindVertexArray(m_RendererID);
 		vertexBuffer->Bind();
 
 		const auto& layout = vertexBuffer->GetLayout();
@@ -124,6 +124,7 @@ namespace Povox {
 			}
 		}
 		m_VertexBuffers.push_back(vertexBuffer);
+		vertexBuffer->Unbind();
 	}
 
 	void OpenGLVertexArray::SetIndexBuffer(const Ref<IndexBuffer>& indexBuffer)
@@ -131,9 +132,7 @@ namespace Povox {
 		PX_PROFILE_FUNCTION();
 
 
-		glBindVertexArray(m_RendererID);
 		indexBuffer->Bind();
-
 		m_IndexBuffer = indexBuffer;
 	}
 

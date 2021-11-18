@@ -27,7 +27,7 @@ namespace Povox {
 		unsigned int m_Width, m_Height;
 	};
 
-	class POVOX_API WindowCloseEvent : public Event
+	class WindowCloseEvent : public Event
 	{
 	public:
 		WindowCloseEvent() {}
@@ -38,7 +38,7 @@ namespace Povox {
 
 
 	// the following three events may not be used
-	class POVOX_API AppTickEvent : public Event
+	class AppTickEvent : public Event
 	{
 	public:
 		AppTickEvent() {}
@@ -47,7 +47,7 @@ namespace Povox {
 		EVENT_CLASS_CATEGORY(EventCategoryApplication)
 	};
 
-	class POVOX_API AppUpdateEvent : public Event
+	class AppUpdateEvent : public Event
 	{
 	public:
 		AppUpdateEvent() {}
@@ -56,7 +56,7 @@ namespace Povox {
 		EVENT_CLASS_CATEGORY(EventCategoryApplication)
 	};
 
-	class POVOX_API AppRenderEvent : public Event
+	class AppRenderEvent : public Event
 	{
 	public:
 		AppRenderEvent() {}

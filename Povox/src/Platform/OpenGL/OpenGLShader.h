@@ -45,7 +45,6 @@ namespace Povox
 		virtual void UploadUniformMat4(const std::string& name, const glm::mat4& matrix);
 
 	private:
-		std::string ReadFile(const std::string& filepath);
 		std::unordered_map<GLenum, std::string> PreProcess(const std::string& source);
 
 		void CompileOrGetVulkanBinaries(std::unordered_map<GLenum, std::string>& shaderSources);

@@ -49,6 +49,9 @@
     <Filter Include="vendor\ImGuizmo">
       <UniqueIdentifier>{73BF7F4C-DF4A-ED10-E85B-700554664911}</UniqueIdentifier>
     </Filter>
+    <Filter Include="vendor\VMA">
+      <UniqueIdentifier>{0653C5A8-F20A-07F6-5B12-E05147E9A1E6}</UniqueIdentifier>
+    </Filter>
     <Filter Include="vendor\glm">
       <UniqueIdentifier>{829FC5A8-6E57-07F6-D75E-E051C335A2E6}</UniqueIdentifier>
     </Filter>
@@ -90,13 +93,16 @@
     <ClInclude Include="src\Platform\OpenGL\OpenGLTexture.h">
       <Filter>src\Platform\OpenGL</Filter>
     </ClInclude>
-    <ClInclude Include="src\Platform\OpenGL\OpenGLUniformBuffer.h">
+    <ClInclude Include="src\Platform\OpenGL\OpenGLUniformbuffer.h">
       <Filter>src\Platform\OpenGL</Filter>
     </ClInclude>
     <ClInclude Include="src\Platform\OpenGL\OpenGLVertexArray.h">
       <Filter>src\Platform\OpenGL</Filter>
     </ClInclude>
     <ClInclude Include="src\Platform\Vulkan\VulkanBuffer.h">
+      <Filter>src\Platform\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Platform\Vulkan\VulkanCommands.h">
       <Filter>src\Platform\Vulkan</Filter>
     </ClInclude>
     <ClInclude Include="src\Platform\Vulkan\VulkanContext.h">
@@ -111,10 +117,13 @@
     <ClInclude Include="src\Platform\Vulkan\VulkanFramebuffer.h">
       <Filter>src\Platform\Vulkan</Filter>
     </ClInclude>
+    <ClInclude Include="src\Platform\Vulkan\VulkanImGui.h">
+      <Filter>src\Platform\Vulkan</Filter>
+    </ClInclude>
     <ClInclude Include="src\Platform\Vulkan\VulkanImage.h">
       <Filter>src\Platform\Vulkan</Filter>
     </ClInclude>
-    <ClInclude Include="src\Platform\Vulkan\VulkanLookups.h">
+    <ClInclude Include="src\Platform\Vulkan\VulkanInitializers.h">
       <Filter>src\Platform\Vulkan</Filter>
     </ClInclude>
     <ClInclude Include="src\Platform\Vulkan\VulkanPipeline.h">
@@ -127,9 +136,6 @@
       <Filter>src\Platform\Vulkan</Filter>
     </ClInclude>
     <ClInclude Include="src\Platform\Vulkan\VulkanSwapchain.h">
-      <Filter>src\Platform\Vulkan</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Platform\Vulkan\VulkanUniformBuffer.h">
       <Filter>src\Platform\Vulkan</Filter>
     </ClInclude>
     <ClInclude Include="src\Platform\Vulkan\VulkanUtility.h">
@@ -195,6 +201,9 @@
     <ClInclude Include="src\Povox\ImGui\ImGuiLayer.h">
       <Filter>src\Povox\ImGui</Filter>
     </ClInclude>
+    <ClInclude Include="src\Povox\ImGui\ImGuiVulkanLayer.h">
+      <Filter>src\Povox\ImGui</Filter>
+    </ClInclude>
     <ClInclude Include="src\Povox\Math\Math.h">
       <Filter>src\Povox\Math</Filter>
     </ClInclude>
@@ -246,7 +255,7 @@
     <ClInclude Include="src\Povox\Renderer\Texture.h">
       <Filter>src\Povox\Renderer</Filter>
     </ClInclude>
-    <ClInclude Include="src\Povox\Renderer\UniformBuffer.h">
+    <ClInclude Include="src\Povox\Renderer\Uniformbuffer.h">
       <Filter>src\Povox\Renderer</Filter>
     </ClInclude>
     <ClInclude Include="src\Povox\Renderer\VertexArray.h">
@@ -273,6 +282,9 @@
     <ClInclude Include="src\Povox\Scene\ScriptableEntity.h">
       <Filter>src\Povox\Scene</Filter>
     </ClInclude>
+    <ClInclude Include="src\Povox\Utils\FileUtility.h">
+      <Filter>src\Povox\Utils</Filter>
+    </ClInclude>
     <ClInclude Include="src\Povox\Utils\PlatformsUtils.h">
       <Filter>src\Povox\Utils</Filter>
     </ClInclude>
@@ -281,6 +293,9 @@
     </ClInclude>
     <ClInclude Include="vendor\ImGuizmo\ImGuizmo.h">
       <Filter>vendor\ImGuizmo</Filter>
+    </ClInclude>
+    <ClInclude Include="vendor\VMA\vk_mem_alloc.h">
+      <Filter>vendor\VMA</Filter>
     </ClInclude>
     <ClInclude Include="vendor\glm\glm\common.hpp">
       <Filter>vendor\glm\glm</Filter>
@@ -1409,13 +1424,16 @@
     <ClCompile Include="src\Platform\OpenGL\OpenGLTexture.cpp">
       <Filter>src\Platform\OpenGL</Filter>
     </ClCompile>
-    <ClCompile Include="src\Platform\OpenGL\OpenGLUniformBuffer.cpp">
+    <ClCompile Include="src\Platform\OpenGL\OpenGLUniformbuffer.cpp">
       <Filter>src\Platform\OpenGL</Filter>
     </ClCompile>
     <ClCompile Include="src\Platform\OpenGL\OpenGLVertexArray.cpp">
       <Filter>src\Platform\OpenGL</Filter>
     </ClCompile>
     <ClCompile Include="src\Platform\Vulkan\VulkanBuffer.cpp">
+      <Filter>src\Platform\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Platform\Vulkan\VulkanCommands.cpp">
       <Filter>src\Platform\Vulkan</Filter>
     </ClCompile>
     <ClCompile Include="src\Platform\Vulkan\VulkanContext.cpp">
@@ -1427,7 +1445,13 @@
     <ClCompile Include="src\Platform\Vulkan\VulkanFramebuffer.cpp">
       <Filter>src\Platform\Vulkan</Filter>
     </ClCompile>
+    <ClCompile Include="src\Platform\Vulkan\VulkanImGui.cpp">
+      <Filter>src\Platform\Vulkan</Filter>
+    </ClCompile>
     <ClCompile Include="src\Platform\Vulkan\VulkanImage.cpp">
+      <Filter>src\Platform\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Platform\Vulkan\VulkanInitializers.cpp">
       <Filter>src\Platform\Vulkan</Filter>
     </ClCompile>
     <ClCompile Include="src\Platform\Vulkan\VulkanPipeline.cpp">
@@ -1470,6 +1494,9 @@
       <Filter>src\Povox\ImGui</Filter>
     </ClCompile>
     <ClCompile Include="src\Povox\ImGui\ImGuiLayer.cpp">
+      <Filter>src\Povox\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Povox\ImGui\ImGuiVulkanLayer.cpp">
       <Filter>src\Povox\ImGui</Filter>
     </ClCompile>
     <ClCompile Include="src\Povox\Math\Math.cpp">
@@ -1520,7 +1547,7 @@
     <ClCompile Include="src\Povox\Renderer\Texture.cpp">
       <Filter>src\Povox\Renderer</Filter>
     </ClCompile>
-    <ClCompile Include="src\Povox\Renderer\UniformBuffer.cpp">
+    <ClCompile Include="src\Povox\Renderer\Uniformbuffer.cpp">
       <Filter>src\Povox\Renderer</Filter>
     </ClCompile>
     <ClCompile Include="src\Povox\Renderer\VertexArray.cpp">

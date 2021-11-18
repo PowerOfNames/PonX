@@ -1,113 +1,95 @@
 #pragma once
 #include "Povox/Renderer/Buffer.h"
+#include "VulkanUtility.h"
+#include "VulkanDevice.h"
+
 
 #include <vulkan/vulkan.h>
+#include <vk_mem_alloc.h>
 
 namespace Povox {
 
+	struct VertexInputDescription
+	{
+		std::vector< VkVertexInputBindingDescription> Bindings;
+		std::vector< VkVertexInputAttributeDescription> Attributes;
+
+		VkPipelineVertexInputStateCreateFlags Flags = 0;
+	};
 	struct VertexData
 	{
 		glm::vec3 Position;
 		glm::vec3 Color;
 		glm::vec2 TexCoord;
 
-		static VkVertexInputBindingDescription GetBindingDescription()
+		static VertexInputDescription GetVertexDescription()
 		{
+			VertexInputDescription output;
+
 			VkVertexInputBindingDescription vertexBindingDescription{};
 			vertexBindingDescription.binding = 0;
 			vertexBindingDescription.stride = sizeof(VertexData);
 			vertexBindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 
-			return vertexBindingDescription;
+			output.Bindings.push_back(vertexBindingDescription);
+		
+			VkVertexInputAttributeDescription positionAttribute{};
+			positionAttribute.binding = 0;
+			positionAttribute.location = 0;
+			positionAttribute.format = VK_FORMAT_R32G32B32_SFLOAT;
+			positionAttribute.offset = offsetof(VertexData, Position);
+
+			VkVertexInputAttributeDescription colorAttribute{};
+			colorAttribute.binding = 0;
+			colorAttribute.location = 1;
+			colorAttribute.format = VK_FORMAT_R32G32B32_SFLOAT;
+			colorAttribute.offset = offsetof(VertexData, Color);
+			
+			VkVertexInputAttributeDescription uvAttributes{};
+			uvAttributes.binding = 0;
+			uvAttributes.location = 2;
+			uvAttributes.format = VK_FORMAT_R32G32_SFLOAT;
+			uvAttributes.offset = offsetof(VertexData, TexCoord);
+
+			output.Attributes.push_back(positionAttribute);
+			output.Attributes.push_back(colorAttribute);
+			output.Attributes.push_back(uvAttributes);
+
+			return output;
 		}
+	};
 
-		static std::array<VkVertexInputAttributeDescription, 3> GetAttributeDescriptions()
-		{
-			std::array<VkVertexInputAttributeDescription, 3> vertexAttributeDescriptions{};
-			vertexAttributeDescriptions[0].binding = 0;
-			vertexAttributeDescriptions[0].location = 0;
-			vertexAttributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
-			vertexAttributeDescriptions[0].offset = offsetof(VertexData, Position);
+	struct AllocatedBuffer
+	{
+		VkBuffer Buffer;
+		VmaAllocation Allocation;
+	};
 
-			vertexAttributeDescriptions[1].binding = 0;
-			vertexAttributeDescriptions[1].location = 1;
-			vertexAttributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-			vertexAttributeDescriptions[1].offset = offsetof(VertexData, Color);
+	struct Mesh
+	{
+		std::vector<VertexData> Vertices;
+		AllocatedBuffer VertexBuffer;
 
-			vertexAttributeDescriptions[2].binding = 0;
-			vertexAttributeDescriptions[2].location = 2;
-			vertexAttributeDescriptions[2].format = VK_FORMAT_R32G32_SFLOAT;
-			vertexAttributeDescriptions[2].offset = offsetof(VertexData, TexCoord);
-
-			return vertexAttributeDescriptions;
-		}
+		std::vector<uint16_t> Indices;
+		AllocatedBuffer IndexBuffer;
 	};
 
 	class VulkanBuffer
 	{
 	public:
-
-		static void CreateBuffer(VkDevice logicalDevice, VkPhysicalDevice physicalDevice, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties,
-			VkBuffer& buffer, VkDeviceMemory& memory, uint32_t familyIndexCount = 0, uint32_t* familyIndices = nullptr, VkSharingMode sharingMode = VK_SHARING_MODE_EXCLUSIVE);
-
+		static AllocatedBuffer Create(const VulkanCoreObjects& core, size_t allocSize, VkBufferUsageFlags usage, VmaMemoryUsage memUsage);
 	};
 
-	class VulkanVertexBuffer : public VertexBuffer
+	class VulkanVertexBuffer
 	{
 	public:
-		VulkanVertexBuffer(VkDevice logicalDevice, VkPhysicalDevice physicalDevice);
-		virtual ~VulkanVertexBuffer() = default;
-
-		virtual void Bind() const override;
-		virtual void Unbind() const override;
-
-		virtual void SetData(const void* data, uint32_t size) override;
-
-		virtual const BufferLayout& GetLayout() const override;
-		virtual void SetLayout(const BufferLayout& layout) override;
-
-		void Destroy(VkDevice logicalDevice);
-
-		VkBuffer Get() const { return m_Buffer; }
-		VkDeviceMemory GetMemory() const { return m_Memory; }
-	private:
-		VkBuffer m_Buffer;
-		VkDeviceMemory m_Memory;
-		BufferLayout m_Layout;
-
-		const std::vector<VertexData> m_Vertices = {
-			{{-0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
-			{{0.5f, -0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}},
-			{{0.5f, 0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},
-			{{-0.5f, 0.5f, 0.0f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}},
-
-			{{-0.5f, -0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
-			{{0.5f, -0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}},
-			{{0.5f, 0.5f, -0.5f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},
-			{{-0.5f, 0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}}
-		};
+		static void Create(const VulkanCoreObjects& core, UploadContext& uploadContext, Mesh& mesh);
 	};
 
-	class VulkanIndexBuffer : public IndexBuffer
+	class VulkanIndexBuffer
 	{
 	public:
-		VulkanIndexBuffer(VkDevice logicalDevice, VkPhysicalDevice physicalDevice);
-		virtual ~VulkanIndexBuffer() = default;
-
-		void Destroy(VkDevice logicalDevice);
-
-		VkBuffer Get() const { return m_Buffer; }
-		VkDeviceMemory GetMemory() const { return m_Memory; }
-		const std::vector<uint16_t>& GetIndices() const { return m_Indices; }
-	private:
-		VkBuffer m_Buffer;
-		VkDeviceMemory m_Memory;
-		uint32_t m_Count;
-
-		const std::vector<uint16_t> m_Indices = {
-			 0, 1, 2, 2, 3, 0,
-			 4, 5, 6, 6, 7, 4
-		};
+		static void Create(const VulkanCoreObjects& core, UploadContext& uploadContext, Mesh& mesh);
 	};
 
 	class VulkanUniformBuffer

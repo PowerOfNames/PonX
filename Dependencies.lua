@@ -19,6 +19,7 @@ IncludeDir["ImGuizmo"]		= "%{wks.location}/Povox/vendor/ImGuizmo"
 IncludeDir["VulkanSDK"]		= "%{Vulkan_SDK}/Include"
 IncludeDir["SPIRV-cross"]	= "%{wks.location}/Povox/vendor/SPIRV-cross"
 IncludeDir["shaderc"]		= "%{wks.location}/Povox/vendor/shaderc"
+IncludeDir["VMA"]			= "%{wks.location}/Povox/vendor/VMA"
 
 
 LibraryDir = {}
