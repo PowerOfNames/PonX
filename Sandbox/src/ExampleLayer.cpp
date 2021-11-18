@@ -36,7 +36,7 @@ void ExampleLayer::OnUpdate(Povox::Timestep deltatime)
 
 void ExampleLayer::OnImGuiRender()
 {
-	PX_CORE_WARN("Begin ExampleLayewr On ImGui render");
+	PX_CORE_WARN("Begin ExampleLayer On ImGui render");
 
 	static bool dockspaceOpen = true;
 	static bool opt_fullscreen_persistant = true;
@@ -88,7 +88,7 @@ void ExampleLayer::OnImGuiRender()
 	}
 	style.WindowMinSize.x = miWinDockspace;
 
- //// Viewport
+ // Viewport
 	{
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{ 0, 0 });
 		ImGui::Begin(" Viewport ");
@@ -108,8 +108,8 @@ void ExampleLayer::OnImGuiRender()
 
 		//uint32_t textureID = m_Framebuffer->GetColorAttachmentRendererID(0);
 		//ImGui::Image(reinterpret_cast<void*>(textureID), ImVec2(m_ViewportSize.x, m_ViewportSize.y), ImVec2{ 0, 1 }, ImVec2{ 1, 0 });
-		ImGui::PopStyleVar(ImGuiStyleVar_WindowPadding);
 		ImGui::End();
+		ImGui::PopStyleVar();
 	}
 
 	ImGui::Begin("Test Tab");

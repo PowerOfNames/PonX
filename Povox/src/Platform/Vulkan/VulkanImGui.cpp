@@ -129,9 +129,7 @@ namespace Povox {
 	void VulkanImGui::RenderDrawData(VkCommandBuffer& cmd)
 	{
 		//vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_GraphicsPipelineLayout, 0, 1, &GetCurrentFrame().GlobalDescriptorSet, 1, &uniformOffset);
-		PX_CORE_WARN("Start vulkan draw data!");
 		ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmd);
-		PX_CORE_WARN("End vulkan draw data!");
 	}
 
 	void VulkanImGui::EndRender(VkCommandBuffer& cmd)

@@ -4,7 +4,7 @@
 #include "Platform/Vulkan/VulkanRendererAPI.h"
 
 #include <imgui.h>
-#include <examples/imgui_impl_glfw.h>
+#include <backends/imgui_impl_glfw.h>
 
 #include "Povox/Core/Application.h"
 

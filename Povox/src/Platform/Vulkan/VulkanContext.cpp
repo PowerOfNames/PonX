@@ -252,7 +252,6 @@ namespace Povox {
 		
 		VkBuffer vertexBuffers[] = { m_DoubleTriangleMesh.VertexBuffer.Buffer };																			// VertexBuffer needed
 		VkDeviceSize offsets[] = { 0 };
-		PX_CORE_WARN("Indexbuffer 0: '{0}'", m_DoubleTriangleMesh.Indices[4]);
 		vkCmdBindVertexBuffers(cmd, 0, 1, vertexBuffers, offsets);																							// Bind command for vertex buffer	|needs (first binding, binding count), buffer array and offset
 		vkCmdBindIndexBuffer(cmd, m_DoubleTriangleMesh.IndexBuffer.Buffer, 0, VK_INDEX_TYPE_UINT16);																			// Bind command for index buffer	|needs indexbuffer, offset, type		
 
