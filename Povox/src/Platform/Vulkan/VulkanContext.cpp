@@ -14,6 +14,10 @@
 #include <vk_mem_alloc.h>
 #pragma warning(pop)
 
+#include <imgui.h>
+#include <backends/imgui_impl_vulkan.h>
+
+
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -41,13 +45,13 @@ namespace Povox {
 		CreateInstance();
 		SetupDebugMessenger();
 		CreateSurface();
-	// Device picking and creation -> happens automatically
+		// Device picking and creation -> happens automatically
 		VulkanDevice::PickPhysicalDevice(m_CoreObjects, m_DeviceExtensions);
 		m_PhysicalDeviceProperties = VulkanDevice::GetPhysicalDeviceProperties(m_CoreObjects.PhysicalDevice);
 		VulkanDevice::CreateLogicalDevice(m_CoreObjects, m_DeviceExtensions, m_ValidationLayers);
 		PX_CORE_WARN("Finished Core!");
 
-	// Swapchain creation -> needs window size either automatically or maybe by setting values inside the vulkan renderer
+		// Swapchain creation -> needs window size either automatically or maybe by setting values inside the vulkan renderer
 		m_Swapchain = CreateRef<VulkanSwapchain>();
 		int width = 0, height = 0;
 		glfwGetFramebufferSize(m_WindowHandle, &width, &height);
@@ -57,7 +61,7 @@ namespace Povox {
 
 		CreateSyncObjects();
 		PX_CORE_WARN("Finished sync!");
-		
+
 		// descriptorpools and sets are dependent on the set layout which will be dynamic dependend on the use case of the vulkan renderer (atm its just the ubo and texture sampler)
 		CreateMemAllocator();
 		PX_CORE_WARN("Finished MemAllocator!");
@@ -66,8 +70,11 @@ namespace Povox {
 		PX_CORE_WARN("Finished Commands!");
 
 		// Renderpass creation -> automatically after swapchain creation
-		InitDefaultRenderPasses();
+		InitDefaultRenderPass();
+		InitOffscreenRenderPass();
 		PX_CORE_WARN("Finished Renderpass!");
+
+		CreateViewportImagesAndViews();
 
 		CreateTextureSampler();
 		PX_CORE_WARN("Finished Sampler!");
@@ -81,10 +88,11 @@ namespace Povox {
 		// default pipeline automatic, need to further look up when the pipeline changes inside the app during runtime
 		InitPipelines();
 		PX_CORE_WARN("Finished pipeline!");
-				
+
 		CreateDepthResources();
 		// default initially, but can change, framebuffer main bridge to after effects stuff
-		CreateFramebuffers();
+		CreatePresentFramebuffers();
+		CreateOffscreenFramebuffers();
 		PX_CORE_WARN("Finished fbs!");
 
 		LoadMeshes();
@@ -110,9 +118,18 @@ namespace Povox {
 		CleanupSwapchain();
 		m_Swapchain->Create(m_CoreObjects, VulkanDevice::QuerySwapchainSupport(m_CoreObjects), width, height);
 		m_Swapchain->CreateImagesAndViews(m_CoreObjects.Device);
-		InitDefaultRenderPasses();
+		
+		InitDefaultRenderPass();
 		CreateDepthResources();
-		CreateFramebuffers();
+		CreatePresentFramebuffers();
+
+		CreateViewportImagesAndViews();
+
+		InitOffscreenRenderPass();
+		for (auto& framebuffer : m_OffscreenFramebuffers)
+		{
+			framebuffer.Resize(m_OffscreenRenderPass, width, height);
+		}
 		m_ImGui->OnSwapchainRecreate(m_Swapchain->GetImageViews(), m_Swapchain->GetExtent2D());
 
 		InitPipelines();
@@ -125,13 +142,16 @@ namespace Povox {
 	void VulkanContext::CleanupSwapchain()
 	{
 		vkDeviceWaitIdle(m_CoreObjects.Device);
-
+		PX_CORE_TRACE("Cleanup swapchain begin!");
 
 		vkDestroyImageView(m_CoreObjects.Device, m_DepthImageView, nullptr);
 		vmaDestroyImage(m_CoreObjects.Allocator, m_DepthImage.Image, m_DepthImage.Allocation);
+		
+		vkDestroyImageView(m_CoreObjects.Device, m_ViewportImageView, nullptr);
+		vmaDestroyImage(m_CoreObjects.Allocator, m_ViewportImage.Image, m_ViewportImage.Allocation);
 
 
-		for (auto framebuffer : m_SwapchainFramebuffers)
+		for (auto& framebuffer : m_SwapchainFramebuffers)
 		{
 			vkDestroyFramebuffer(m_CoreObjects.Device, framebuffer, nullptr);
 		}
@@ -144,19 +164,26 @@ namespace Povox {
 		vkDestroyPipelineLayout(m_CoreObjects.Device, m_GraphicsPipelineLayout, nullptr);
 		m_ImGui->DestroyRenderPass();
 		vkDestroyRenderPass(m_CoreObjects.Device, m_DefaultRenderPass, nullptr);
+		vkDestroyRenderPass(m_CoreObjects.Device, m_OffscreenRenderPass, nullptr);
 
-		for (auto imageView : m_Swapchain->GetImageViews())
+		for (auto& imageView : m_Swapchain->GetImageViews())
 		{
 			vkDestroyImageView(m_CoreObjects.Device, imageView, nullptr);
 		}
+		for (auto& framebuffer : m_OffscreenFramebuffers)
+		{
+			framebuffer.Destroy();
+		}
+
 		m_Swapchain->Destroy(m_CoreObjects.Device);
+		PX_CORE_TRACE("Cleanup swapchain finshed!");
 	}
 
 	void VulkanContext::Shutdown()
 	{
 		PX_PROFILE_FUNCTION();
 
-		
+
 		CleanupSwapchain();
 		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
 		{
@@ -173,7 +200,7 @@ namespace Povox {
 			vkDestroyImageView(m_CoreObjects.Device, texture.ImageView, nullptr);
 			vmaDestroyImage(m_CoreObjects.Allocator, texture.Image.Image, texture.Image.Allocation);
 		}
-		
+
 		vkDestroyDescriptorSetLayout(m_CoreObjects.Device, m_GlobalDescriptorSetLayout, nullptr);
 		vkDestroyFence(m_CoreObjects.Device, m_UploadContext.Fence, nullptr);
 
@@ -237,19 +264,24 @@ namespace Povox {
 		clearColor[0].color = { 0.25f, 0.25f, 0.25f, 1.0f };																			// clearcolor (framebuffer)
 		clearColor[1].depthStencil = { 1.0f, 0 };
 
-		VkRenderPassBeginInfo renderPassBegin = VulkanInits::BeginRenderPass(m_DefaultRenderPass, m_Swapchain->GetExtent2D(), m_SwapchainFramebuffers[imageIndex]);
-		renderPassBegin.clearValueCount = static_cast<uint32_t>(clearColor.size());
-		renderPassBegin.pClearValues = clearColor.data();
-
-		vkCmdBeginRenderPass(cmd, &renderPassBegin, VK_SUBPASS_CONTENTS_INLINE);
-		
+		if (m_GuiPipelineEnabled)
+		{
+			VkRenderPassBeginInfo renderPassBegin = VulkanInits::BeginRenderPass(m_OffscreenRenderPass, m_Swapchain->GetExtent2D(), m_OffscreenFramebuffers[imageIndex].Get());
+			renderPassBegin.clearValueCount = static_cast<uint32_t>(clearColor.size());
+			renderPassBegin.pClearValues = clearColor.data();
+			vkCmdBeginRenderPass(cmd, &renderPassBegin, VK_SUBPASS_CONTENTS_INLINE);
+		}
+		else
+		{
+			
+		}
 
 		vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_GraphicsPipeline);																	// Bind command for pipeline		|needs (bind point (graphisc here)), pipeline
 
 		int frameIndex = m_CurrentFrame % MAX_FRAMES_IN_FLIGHT;
 		uint32_t uniformOffset = PadUniformBuffer(sizeof(SceneUniformBufferD), m_PhysicalDeviceProperties.limits.minUniformBufferOffsetAlignment) * frameIndex;
 		vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_GraphicsPipelineLayout, 0, 1, &GetCurrentFrame().GlobalDescriptorSet, 1, &uniformOffset);	// Bind command for descriptor-sets |needs (bindpoint), pipeline-layout, firstSet, setCount, setArray, dynOffsetCount, dynOffsets 		
-		
+
 		VkBuffer vertexBuffers[] = { m_DoubleTriangleMesh.VertexBuffer.Buffer };																			// VertexBuffer needed
 		VkDeviceSize offsets[] = { 0 };
 		vkCmdBindVertexBuffers(cmd, 0, 1, vertexBuffers, offsets);																							// Bind command for vertex buffer	|needs (first binding, binding count), buffer array and offset
@@ -266,20 +298,31 @@ namespace Povox {
 
 		vkCmdDrawIndexed(cmd, static_cast<uint32_t>(m_DoubleTriangleMesh.Indices.size()), 1, 0, 0, 0);				// Draw indexed command		|needs index count, instance count, firstIndex, vertex offset, first instance 
 
+		vkCmdEndRenderPass(cmd); // End Render Pass
 
-		vkCmdEndRenderPass(cmd);																					// End Render Pass
+		VkRenderPassBeginInfo renderPassBegin = VulkanInits::BeginRenderPass(m_DefaultRenderPass, m_Swapchain->GetExtent2D(), m_SwapchainFramebuffers[imageIndex]);
+		renderPassBegin.clearValueCount = static_cast<uint32_t>(clearColor.size());
+		renderPassBegin.pClearValues = clearColor.data();
+		vkCmdBeginRenderPass(cmd, &renderPassBegin, VK_SUBPASS_CONTENTS_INLINE);
+		vkCmdEndRenderPass(cmd); // End Render Pass
+
+		CreateViewportImage(m_OffscreenFramebuffers[frameIndex].GetColorAttachments()[0].Image.Image);
+
+
 		PX_CORE_VK_ASSERT(vkEndCommandBuffer(cmd), VK_SUCCESS, "Failed to record graphics command buffer!");
 
 		//ImGui
+		PX_CORE_WARN("Begin ImGUi");
 		VkCommandBuffer imGuicmd = m_ImGui->BeginRender(imageIndex, m_Swapchain->GetExtent2D());
 		m_ImGui->RenderDrawData(imGuicmd);
 		m_ImGui->EndRender(imGuicmd);
+		PX_CORE_WARN("End ImGUi");
 
 
 		VkSubmitInfo submitInfo{};
 		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
-		std::array<VkCommandBuffer, 2> cmds{cmd, imGuicmd};
+		std::array<VkCommandBuffer, 2> cmds{ cmd, imGuicmd };
 		VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
 		submitInfo.waitSemaphoreCount = 1;
 		submitInfo.pWaitDstStageMask = waitStages;
@@ -290,7 +333,9 @@ namespace Povox {
 		submitInfo.signalSemaphoreCount = 1;
 		submitInfo.pSignalSemaphores = &GetCurrentFrame().RenderSemaphore;
 
+		PX_CORE_WARN("Starte Begin Submit");
 		PX_CORE_VK_ASSERT(vkQueueSubmit(m_CoreObjects.QueueFamily.GraphicsQueue, 1, &submitInfo, GetCurrentFrame().RenderFence), VK_SUCCESS, "Failed to submit draw render buffer!");
+		PX_CORE_WARN("Starte End Submit");
 
 		VkPresentInfoKHR presentInfo{};
 		presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
@@ -300,7 +345,7 @@ namespace Povox {
 
 		presentInfo.pWaitSemaphores = &GetCurrentFrame().RenderSemaphore;
 		presentInfo.waitSemaphoreCount = 1;
-		
+
 		presentInfo.pImageIndices = &imageIndex;
 		presentInfo.pResults = nullptr;		// optional
 
@@ -320,6 +365,39 @@ namespace Povox {
 		PX_CORE_WARN("Current Frame: '{0}'", m_CurrentFrame);
 		PX_CORE_WARN("Current Frame: '{0}'", m_CurrentFrame % MAX_FRAMES_IN_FLIGHT);
 		PX_CORE_WARN("Finished swap buffers!");
+	}
+
+	void VulkanContext::AddImGuiImage(float width, float height)
+	{
+		if (m_CurrentFrame > 0)
+		{
+			int frameIndex = m_CurrentFrame % MAX_FRAMES_IN_FLIGHT;
+			
+			ImTextureID texture = ImGui_VulkanImpl_AddTexture(m_TextureSampler, m_ViewportImageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+			PX_CORE_WARN("got texture id from imgui!");
+			ImGui::Image(texture, { width, height });
+		}
+	}
+
+	//TODO: what does this?
+	void VulkanContext::CreateViewportImagesAndViews()
+	{
+		m_ViewportImage = VulkanImage::Create(m_CoreObjects, m_Swapchain->GetExtent2D().width, m_Swapchain->GetExtent2D().height, m_Swapchain->GetImageFormat(), VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VMA_MEMORY_USAGE_CPU_ONLY);
+
+		VkImageViewCreateInfo ivInfo = VulkanInits::CreateImageViewInfo(m_Swapchain->GetImageFormat(), m_ViewportImage.Image, VK_IMAGE_ASPECT_COLOR_BIT);
+		PX_CORE_WARN("Created present image view info!");
+		vkCreateImageView(m_CoreObjects.Device, &ivInfo, nullptr, &m_ViewportImageView);
+		PX_CORE_WARN("Created present image view!");
+	}
+
+	void VulkanContext::CreateViewportImage(VkImage& src)
+	{
+		VulkanCommands::TransitionImageLayout(m_CoreObjects, m_UploadContext, m_ViewportImage.Image, m_Swapchain->GetImageFormat(), VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+		VulkanCommands::TransitionImageLayout(m_CoreObjects, m_UploadContext, src, m_Swapchain->GetImageFormat(), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
+
+		VulkanCommands::CopyImage(m_CoreObjects, m_UploadContext, src, m_ViewportImage.Image, m_Swapchain->GetExtent2D().width, m_Swapchain->GetExtent2D().height);
+
+		VulkanCommands::TransitionImageLayout(m_CoreObjects, m_UploadContext, m_ViewportImage.Image, m_Swapchain->GetImageFormat(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 	}
 
 	void VulkanContext::UpdateUniformBuffer()
@@ -349,8 +427,17 @@ namespace Povox {
 		memcpy(sceneData, &m_SceneParameter, sizeof(SceneUniformBufferD));
 		vmaUnmapMemory(m_CoreObjects.Allocator, m_SceneParameterBuffer.Allocation);
 	}
+	size_t VulkanContext::PadUniformBuffer(size_t inputSize, size_t minGPUBufferOffsetAlignment)
+	{
+		size_t alignedSize = inputSize;
+		if (minGPUBufferOffsetAlignment > 0)
+		{
+			alignedSize = (alignedSize + minGPUBufferOffsetAlignment - 1) & ~(minGPUBufferOffsetAlignment - 1);
+		}
+		return alignedSize;
+	}
 
-// ImGui
+	// ImGui
 	void VulkanContext::InitImGui()
 	{
 		m_ImGui->Init(m_Swapchain->GetImageViews(), m_Swapchain->GetExtent2D().width, m_Swapchain->GetExtent2D().height);
@@ -364,7 +451,7 @@ namespace Povox {
 		m_ImGui->EndFrame();
 	}
 
-// Instance
+	// Instance
 	void VulkanContext::CreateInstance()
 	{
 		if (PX_ENABLE_VK_VALIDATION_LAYERS && !CheckValidationLayerSupport())
@@ -373,45 +460,45 @@ namespace Povox {
 		}
 
 		VkApplicationInfo appInfo{};
-		appInfo.sType				= VK_STRUCTURE_TYPE_APPLICATION_INFO;
-		appInfo.pApplicationName	= "Povox Vulkan Renderer";
-		appInfo.applicationVersion	= VK_MAKE_VERSION(1, 0, 0);
-		appInfo.pEngineName			= "Povox";
-		appInfo.engineVersion		= VK_MAKE_VERSION(1, 0, 0);
-		appInfo.apiVersion			= VK_API_VERSION_1_2;
+		appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
+		appInfo.pApplicationName = "Povox Vulkan Renderer";
+		appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
+		appInfo.pEngineName = "Povox";
+		appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
+		appInfo.apiVersion = VK_API_VERSION_1_2;
 
 		VkInstanceCreateInfo createInfo{};
-		createInfo.sType			= VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+		createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
 		createInfo.pApplicationInfo = &appInfo;
 
 		VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo;
 		if (PX_ENABLE_VK_VALIDATION_LAYERS)
 		{
-			createInfo.enabledLayerCount	= static_cast<uint32_t>(m_ValidationLayers.size());
-			createInfo.ppEnabledLayerNames	= m_ValidationLayers.data();
+			createInfo.enabledLayerCount = static_cast<uint32_t>(m_ValidationLayers.size());
+			createInfo.ppEnabledLayerNames = m_ValidationLayers.data();
 
 			PopulateDebugMessengerCreateInfo(debugCreateInfo);
-			createInfo.pNext				= static_cast<VkDebugUtilsMessengerCreateInfoEXT*>(&debugCreateInfo);
+			createInfo.pNext = static_cast<VkDebugUtilsMessengerCreateInfoEXT*>(&debugCreateInfo);
 		}
 		else
 		{
-			createInfo.enabledLayerCount	= 0;
+			createInfo.enabledLayerCount = 0;
 
-			createInfo.pNext				= nullptr;
+			createInfo.pNext = nullptr;
 		}
 
 		auto extensions = GetRequiredExtensions();
-		createInfo.enabledExtensionCount	= extensions.size();
-		createInfo.ppEnabledExtensionNames	= extensions.data();
+		createInfo.enabledExtensionCount = extensions.size();
+		createInfo.ppEnabledExtensionNames = extensions.data();
 
 		PX_CORE_VK_ASSERT(vkCreateInstance(&createInfo, nullptr, &m_CoreObjects.Instance), VK_SUCCESS, "Failed to create Vulkan Instance");
 	}
-// Surface
+	// Surface
 	void VulkanContext::CreateSurface()
 	{
 		PX_CORE_VK_ASSERT(glfwCreateWindowSurface(m_CoreObjects.Instance, m_WindowHandle, nullptr, &m_CoreObjects.Surface), VK_SUCCESS, "Failed to create window surface!");
 	}
-// Memory Allocator
+	// Memory Allocator
 	void VulkanContext::CreateMemAllocator()
 	{
 		VmaAllocatorCreateInfo vmaAllocatorInfo = {};
@@ -421,7 +508,7 @@ namespace Povox {
 		vmaCreateAllocator(&vmaAllocatorInfo, &m_CoreObjects.Allocator);
 	}
 
-	void VulkanContext::InitDefaultRenderPasses()
+	void VulkanContext::InitDefaultRenderPass()
 	{
 		VkAttachmentDescription colorAttachment{};
 		colorAttachment.format = m_Swapchain->GetImageFormat();
@@ -470,7 +557,64 @@ namespace Povox {
 		dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 
 		std::vector<VulkanRenderPass::Attachment> attachments{ color, depth };
-		m_DefaultRenderPass = VulkanRenderPass::CreateColorAndDepth(m_CoreObjects, attachments, dependency);
+		std::vector<VkSubpassDependency> dependiencies{ dependency };
+		m_DefaultRenderPass = VulkanRenderPass::CreateColorAndDepth(m_CoreObjects, attachments, dependiencies);
+	}
+
+	void VulkanContext::InitOffscreenRenderPass()
+	{
+		VulkanRenderPassBuilder builder = VulkanRenderPassBuilder::Begin(&m_CoreObjects);
+		VkAttachmentDescription colorAttachment{};
+		colorAttachment.format = m_Swapchain->GetImageFormat();
+		colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;		// format of swapchain images
+		colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;	// load and store ops determine what to do with the data before rendering (apply to depth data)
+		colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+		colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+		colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+		colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+		colorAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;		// we want the image to be ready for presentation in the swapchain, so final is present layout
+		builder.AddAttachment(colorAttachment);
+		// Layout is importent to know, because the next operation the image is involved in needs that
+		// initial is before render pass, final is the layout the imiga is automatically transitioned to after the render pass finishes
+
+		VkAttachmentDescription depthAttachment{};
+		depthAttachment.format = VulkanUtils::FindDepthFormat(m_CoreObjects.PhysicalDevice);
+		depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+		depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+		depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+		depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+		depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+		depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+		depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+		builder.AddAttachment(depthAttachment);
+
+		VkAttachmentReference colorRef{};
+		colorRef.attachment = 0;
+		colorRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+		VulkanRenderPass::Attachment color{};
+		color.Description = colorAttachment;
+		color.Reference = colorRef;
+
+		VkAttachmentReference depthRef{};
+		depthRef.attachment = 1;
+		depthRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+		VulkanRenderPass::Attachment depth{};
+		depth.Description = depthAttachment;
+		depth.Reference = depthRef;
+
+		VkSubpassDependency dependency{}; // dependencies between subpasses
+		dependency.srcSubpass = 0;	// refers to before or after the render pass depending on it being specified on src or dst
+		dependency.dstSubpass = VK_SUBPASS_EXTERNAL;						// index of subpass, dstSubpass must always be higher then src subpass unless one of them is VK_SUBPASS_EXTERNAL
+		dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT; // operation to wait on
+		dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+		dependency.srcAccessMask = 0;
+		dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+
+		std::vector<VulkanRenderPass::Attachment> attachments{ color, depth };
+		std::vector<VkSubpassDependency> dependiencies{ dependency };
+		m_OffscreenRenderPass = VulkanRenderPass::CreateColorAndDepth(m_CoreObjects, attachments, dependiencies);
 	}
 
 	void VulkanContext::LoadMeshes()
@@ -540,17 +684,14 @@ namespace Povox {
 
 		VulkanPipeline pipelineBuilder;
 
-		pipelineBuilder.m_VertexInputStateInfo = VulkanInits::CreateVertexInputStateInfo();		
+		pipelineBuilder.m_VertexInputStateInfo = VulkanInits::CreateVertexInputStateInfo();
 		VertexInputDescription description = VertexData::GetVertexDescription();
 		pipelineBuilder.m_VertexInputStateInfo.vertexBindingDescriptionCount = description.Bindings.size();
 		pipelineBuilder.m_VertexInputStateInfo.pVertexBindingDescriptions = description.Bindings.data();
 		pipelineBuilder.m_VertexInputStateInfo.vertexAttributeDescriptionCount = description.Attributes.size();
 		pipelineBuilder.m_VertexInputStateInfo.pVertexAttributeDescriptions = description.Attributes.data();
 
-		//VkShaderModule vertexShaderModule = VulkanShader::Create(m_CoreObjects.Device, "assets/shaders/vert.spv");
 		VkShaderModule vertexShaderModule = VulkanShader::Create(m_CoreObjects.Device, "assets/shaders/defaultVS.vert");
-
-		//VkShaderModule fragmentShaderModule = VulkanShader::Create(m_CoreObjects.Device, "assets/shaders/frag.spv");
 		VkShaderModule fragmentShaderModule = VulkanShader::Create(m_CoreObjects.Device, "assets/shaders/DefaultLit.frag");
 		VulkanInits::CreateShaderStageInfo(VK_SHADER_STAGE_VERTEX_BIT, vertexShaderModule);
 		VulkanInits::CreateShaderStageInfo(VK_SHADER_STAGE_VERTEX_BIT, vertexShaderModule);
@@ -580,16 +721,6 @@ namespace Povox {
 
 		vkDestroyShaderModule(m_CoreObjects.Device, vertexShaderModule, nullptr);
 		vkDestroyShaderModule(m_CoreObjects.Device, fragmentShaderModule, nullptr);
-	}
-
-	size_t VulkanContext::PadUniformBuffer(size_t inputSize, size_t minGPUBufferOffsetAlignment)
-	{
-		size_t alignedSize = inputSize;
-		if (minGPUBufferOffsetAlignment > 0)
-		{
-			alignedSize = (alignedSize + minGPUBufferOffsetAlignment - 1) & ~(minGPUBufferOffsetAlignment - 1);
-		}
-		return alignedSize;
 	}
 
 	void VulkanContext::InitDescriptors()
@@ -640,18 +771,19 @@ namespace Povox {
 			};
 
 			vkUpdateDescriptorSets(m_CoreObjects.Device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
-		}			
-		
+		}
+
 	}
-// Framebuffers
-	// move to VulkanFramebuffer
-	void VulkanContext::CreateFramebuffers()
+
+	// Framebuffers
+		// move to VulkanFramebuffer
+	void VulkanContext::CreatePresentFramebuffers()
 	{
 		m_SwapchainFramebuffers.resize(m_Swapchain->GetImageViews().size());
 
 		VkFramebufferCreateInfo framebufferInfo = VulkanInits::CreateFramebufferInfo(m_DefaultRenderPass, m_Swapchain->GetExtent2D().width, m_Swapchain->GetExtent2D().height);
 
-		for (size_t i = 0; i < m_Swapchain->GetImages().size(); i++)
+		for (size_t i = 0; i < m_Swapchain->GetImageViews().size(); i++)
 		{
 			std::array<VkImageView, 2> attachments = { m_Swapchain->GetImageViews()[i], m_DepthImageView };
 			framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());					// The attachmentCount and pAttachments parameters specify the VkImageView objects that should be bound to the respective attachment descriptions in the render pass pAttachment array.
@@ -660,45 +792,63 @@ namespace Povox {
 		}
 	}
 
+	void VulkanContext::CreateOffscreenFramebuffers()
+	{
+		m_OffscreenFramebuffers.resize(m_Swapchain->GetImageViews().size());
+		for (size_t i = 0; i < m_Swapchain->GetImageViews().size(); i++)
+		{
+			VulkanFramebuffer framebuffer(&m_CoreObjects, m_Swapchain->GetExtent2D().width, m_Swapchain->GetExtent2D().height);
+			FramebufferAttachmentCreateInfo info{ m_Swapchain->GetExtent2D().width, m_Swapchain->GetExtent2D().height, m_Swapchain->GetImageFormat(), VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT };
+			framebuffer.AddAttachment(info);
+
+			info.Format = VulkanUtils::FindDepthFormat(m_CoreObjects.PhysicalDevice);
+			info.ImageUsage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+			framebuffer.AddAttachment(info);
+
+			framebuffer.Create(m_OffscreenRenderPass);
+			m_OffscreenFramebuffers[i] = std::move(framebuffer);
+		}
+	}
+
 	void VulkanContext::CreateDepthResources()
 	{
 		VkFormat depthFormat = VulkanUtils::FindDepthFormat(m_CoreObjects.PhysicalDevice);
 		m_DepthImage = VulkanImage::Create(m_CoreObjects, m_Swapchain->GetExtent2D().width, m_Swapchain->GetExtent2D().height, depthFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT);
-		
+
 		VkImageViewCreateInfo viewInfo = VulkanInits::CreateImageViewInfo(depthFormat, m_DepthImage.Image, VK_IMAGE_ASPECT_DEPTH_BIT);
 		PX_CORE_VK_ASSERT(vkCreateImageView(m_CoreObjects.Device, &viewInfo, nullptr, &m_DepthImageView), VK_SUCCESS, "Failed to create ImageView!");
 
 		VulkanCommands::TransitionImageLayout(m_CoreObjects, m_UploadContext, m_DepthImage.Image, depthFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL);												// ---------- Command
 	}
-	
+
 	void VulkanContext::CreateTextureSampler()
 	{
 		VkSamplerCreateInfo samplerInfo{};
-		samplerInfo.sType					= VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-		samplerInfo.magFilter				= VK_FILTER_LINEAR;
-		samplerInfo.minFilter				= VK_FILTER_LINEAR;
-		samplerInfo.addressModeU			= VK_SAMPLER_ADDRESS_MODE_REPEAT;
-		samplerInfo.addressModeV			= VK_SAMPLER_ADDRESS_MODE_REPEAT;
-		samplerInfo.addressModeW			= VK_SAMPLER_ADDRESS_MODE_REPEAT;
-		samplerInfo.anisotropyEnable		= VK_TRUE;
+		samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+		samplerInfo.magFilter = VK_FILTER_LINEAR;
+		samplerInfo.minFilter = VK_FILTER_LINEAR;
+		samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+		samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+		samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+		samplerInfo.anisotropyEnable = VK_TRUE;
 
 		VkPhysicalDeviceProperties properties;
 		vkGetPhysicalDeviceProperties(m_CoreObjects.PhysicalDevice, &properties);
-		samplerInfo.maxAnisotropy			= properties.limits.maxSamplerAnisotropy;
-		samplerInfo.borderColor				= VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+		samplerInfo.maxAnisotropy = properties.limits.maxSamplerAnisotropy;
+		samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
 		samplerInfo.unnormalizedCoordinates = VK_FALSE;
-		samplerInfo.compareEnable			= VK_TRUE ;
-		samplerInfo.compareOp				= VK_COMPARE_OP_ALWAYS;
-		samplerInfo.mipmapMode				= VK_SAMPLER_MIPMAP_MODE_LINEAR;
-		samplerInfo.mipLodBias				= 0.0f;
-		samplerInfo.maxLod					= 0.0f;
-		samplerInfo.minLod					= 0.0f;
+		samplerInfo.compareEnable = VK_TRUE;
+		samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
+		samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+		samplerInfo.mipLodBias = 0.0f;
+		samplerInfo.maxLod = 0.0f;
+		samplerInfo.minLod = 0.0f;
 
 		PX_CORE_VK_ASSERT(vkCreateSampler(m_CoreObjects.Device, &samplerInfo, nullptr, &m_TextureSampler), VK_SUCCESS, "Failed to create texture sampler!");
 	}
 
-// Semaphores
-	// move to VulkanUtils or VulkanSyncObjects
+	// Semaphores
+		// move to VulkanUtils or VulkanSyncObjects
 	void VulkanContext::CreateSyncObjects()
 	{
 		//m_ImagesInFlight.resize(m_Swapchain->GetImages().size(), VK_NULL_HANDLE);
@@ -731,7 +881,7 @@ namespace Povox {
 		app->m_FramebufferResized = true;
 	}
 
-// Extensions and layers
+	// Extensions and layers
 	bool VulkanContext::CheckValidationLayerSupport()
 	{
 		uint32_t layerCount;
@@ -802,7 +952,7 @@ namespace Povox {
 				PX_CORE_WARN("Extension requested but not included: {0}", glfwExtensions[i]);
 		}
 	}
-// Debug
+	// Debug
 	void VulkanContext::SetupDebugMessenger()
 	{
 		VkDebugUtilsMessengerCreateInfoEXT createInfo;

@@ -114,27 +114,24 @@ namespace Povox {
 		PX_CORE_VK_ASSERT(vkBeginCommandBuffer(cmd, &cmdBegin), VK_SUCCESS, "Failed to begin command buffer!");
 
 		std::array<VkClearValue, 2> clearColor = {};
-		clearColor[0].color = { 0.25f, 0.25f, 0.25f, 1.0f };																			// clearcolor (framebuffer)
+		clearColor[0].color = { 0.25f, 0.25f, 0.25f, 1.0f };
 		clearColor[1].depthStencil = { 1.0f, 0 };
-
 		VkRenderPassBeginInfo renderPassBegin = VulkanInits::BeginRenderPass(m_RenderPass, swapchainExtent, m_Framebuffers[imageIndex]);
 		renderPassBegin.clearValueCount = static_cast<uint32_t>(clearColor.size());
 		renderPassBegin.pClearValues = clearColor.data();
 
-		vkCmdBeginRenderPass(cmd, &renderPassBegin, VK_SUBPASS_CONTENTS_INLINE);														// Bind command for pipeline		|needs (bind point (graphisc here)), pipeline
-
+		vkCmdBeginRenderPass(cmd, &renderPassBegin, VK_SUBPASS_CONTENTS_INLINE);
 		return cmd;
 	}
 
 	void VulkanImGui::RenderDrawData(VkCommandBuffer& cmd)
 	{
-		//vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_GraphicsPipelineLayout, 0, 1, &GetCurrentFrame().GlobalDescriptorSet, 1, &uniformOffset);
 		ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmd);
 	}
 
 	void VulkanImGui::EndRender(VkCommandBuffer& cmd)
 	{
-		vkCmdEndRenderPass(cmd);																					// End Render Pass
+		vkCmdEndRenderPass(cmd);
 		PX_CORE_VK_ASSERT(vkEndCommandBuffer(cmd), VK_SUCCESS, "Failed to record graphics command buffer!");
 	}	
 
@@ -151,9 +148,9 @@ namespace Povox {
 	{
 		VkAttachmentDescription colorAttachment{};
 		colorAttachment.format = m_SwapchainImageFormat;
-		colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;		// format of swapchain images
-		colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
-		colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+		colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+		colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+		colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 		colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 		colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 		colorAttachment.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
@@ -169,15 +166,16 @@ namespace Povox {
 
 		std::vector<VulkanRenderPass::Attachment> attachments{ color };
 
-		VkSubpassDependency dependency{}; // dependencies between subpasses
-		dependency.srcSubpass = VK_SUBPASS_EXTERNAL;	// refers to before or after the render pass depending on it being specified on src or dst
-		dependency.dstSubpass = 0;						// index of subpass, dstSubpass must always be higher then src subpass unless one of them is VK_SUBPASS_EXTERNAL
-		dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT; // operation to wait on
+		VkSubpassDependency dependency{};
+		dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+		dependency.dstSubpass = 0;
+		dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 		dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 		dependency.srcAccessMask = 0;
 		dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 
-		m_RenderPass = VulkanRenderPass::CreateColor(*m_Core, attachments, dependency);
+		std::vector<VkSubpassDependency> dependencies{ dependency };
+		m_RenderPass = VulkanRenderPass::CreateColor(*m_Core, attachments, dependencies);
 	}
 	void VulkanImGui::InitCommandBuffers()
 	{

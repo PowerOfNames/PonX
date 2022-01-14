@@ -17,6 +17,6 @@ namespace Povox {
 	{
 	public:
 		static AllocatedImage LoadFromFile(VulkanCoreObjects& core, UploadContext& uploadContext, const char* path, VkFormat format);
-		static AllocatedImage Create(VulkanCoreObjects& core, uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage);
+		static AllocatedImage Create(VulkanCoreObjects& core, uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VmaMemoryUsage memoryUsage = VMA_MEMORY_USAGE_GPU_ONLY);
 	};
 }

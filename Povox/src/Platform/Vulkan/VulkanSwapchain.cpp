@@ -21,6 +21,13 @@ namespace Povox {
 		if (swapchainSupportDetails.Capabilities.maxImageCount > 0 && imageCount > swapchainSupportDetails.Capabilities.maxImageCount)
 			imageCount = swapchainSupportDetails.Capabilities.maxImageCount;
 
+		VkSurfaceCapabilitiesKHR caps{};
+		vkGetPhysicalDeviceSurfaceCapabilitiesKHR(core.PhysicalDevice, core.Surface, &caps);
+		if (caps.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_SRC_BIT)
+			m_Capabilities.ImageUsageTransferSrc = true;
+		if (caps.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_DST_BIT)
+			m_Capabilities.ImageUsageTransferDst = true;
+
 		VkSwapchainCreateInfoKHR createInfo{};
 		createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
 		createInfo.surface = core.Surface;
@@ -52,7 +59,7 @@ namespace Povox {
 		{
 			createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
 			createInfo.queueFamilyIndexCount = 0;		// optional
-			createInfo.pQueueFamilyIndices = nullptr;	// optianal
+			createInfo.pQueueFamilyIndices = nullptr;	// optional
 		}
 
 		createInfo.preTransform = swapchainSupportDetails.Capabilities.currentTransform;
@@ -73,7 +80,6 @@ namespace Povox {
 		vkGetSwapchainImagesKHR(logicalDevice, m_Swapchain, &m_ImageCount, m_Images.data());
 
 		m_ImageViews.resize(m_Images.size());
-
 		
 		for (size_t i = 0; i < m_ImageViews.size(); i++)
 		{

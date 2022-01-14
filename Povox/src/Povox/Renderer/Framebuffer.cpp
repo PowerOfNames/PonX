@@ -24,7 +24,7 @@ namespace Povox {
 			}
 			case RendererAPI::API::Vulkan:
 			{
-				return CreateRef<VulkanFramebuffer>(spec);
+				//return CreateRef<VulkanFramebuffer>(spec);
 			}
 		}
 		PX_CORE_ASSERT(false, "Unknown RendererAPI");

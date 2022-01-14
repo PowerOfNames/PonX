@@ -15,6 +15,7 @@ void ExampleLayer::OnAttach()
 {
 	// Create the main framebuffer
 
+
 }
 
 void ExampleLayer::OnDetach()
@@ -108,6 +109,7 @@ void ExampleLayer::OnImGuiRender()
 
 		//uint32_t textureID = m_Framebuffer->GetColorAttachmentRendererID(0);
 		//ImGui::Image(reinterpret_cast<void*>(textureID), ImVec2(m_ViewportSize.x, m_ViewportSize.y), ImVec2{ 0, 1 }, ImVec2{ 1, 0 });
+		Povox::RenderCommand::AddImGuiImage(m_ViewportSize.x, m_ViewportSize.y);
 		ImGui::End();
 		ImGui::PopStyleVar();
 	}

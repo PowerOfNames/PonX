@@ -19,8 +19,8 @@ namespace Povox {
 			VkAttachmentReference Reference{};
 		};
 
-		static VkRenderPass CreateColorAndDepth(VulkanCoreObjects& core, const std::vector<VulkanRenderPass::Attachment>& attachments, VkSubpassDependency dependency);
-		static VkRenderPass CreateColor(VulkanCoreObjects& core, const std::vector<VulkanRenderPass::Attachment>& attachments, VkSubpassDependency dependency);
+		static VkRenderPass CreateColorAndDepth(VulkanCoreObjects& core, const std::vector<VulkanRenderPass::Attachment>& attachments, const std::vector<VkSubpassDependency>& dependencies);
+		static VkRenderPass CreateColor(VulkanCoreObjects& core, const std::vector<VulkanRenderPass::Attachment>& attachments, const std::vector<VkSubpassDependency>& dependencies);
 	};
 
 	class VulkanPipeline

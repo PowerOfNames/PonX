@@ -22,7 +22,13 @@ namespace Povox {
 			s_RendererAPI->DrawIndexed(vertexArray, indexCount);
 		}
 
+		inline static void AddImGuiImage(float width, float height)
+		{
+			s_RendererAPI->AddImGuiImage(width, height);
+		}
+
 	private:
 		static RendererAPI* s_RendererAPI;
 	};
+
 }

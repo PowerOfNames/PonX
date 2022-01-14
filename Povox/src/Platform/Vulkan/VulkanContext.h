@@ -4,6 +4,7 @@
 #include "Povox/Core/Core.h"
 
 #include "VulkanSwapchain.h"
+#include "VulkanFramebuffer.h"
 #include "VulkanPipeline.h"
 #include "VulkanShader.h"
 #include "VulkanBuffer.h"
@@ -60,6 +61,10 @@ namespace Povox {
 		void InitImGui();
 		void BeginImGuiFrame();
 		void EndImGuiFrame();
+		void AddImGuiImage(float width, float height);
+
+
+		void CreateViewportImage(VkImage& swapchainImage);
 
 	private:
 		void RecreateSwapchain();
@@ -79,7 +84,8 @@ namespace Povox {
 		void CreateSurface();
 
 	// Framebuffers
-		void CreateFramebuffers();		
+		void CreatePresentFramebuffers();		
+		void CreateOffscreenFramebuffers();
 
 		void CreateDepthResources();
 
@@ -88,7 +94,9 @@ namespace Povox {
 		void InitDescriptors();
 		void InitPipelines();
 
-		void InitDefaultRenderPasses();
+		void InitDefaultRenderPass();
+		void InitOffscreenRenderPass();
+		void CreateViewportImagesAndViews();
 		void CreateTextureSampler();
 
 		void UpdateUniformBuffer();
@@ -126,9 +134,11 @@ namespace Povox {
 		AllocatedBuffer m_SceneParameterBuffer;
 
 
-		std::vector<VkFramebuffer> m_SwapchainFramebuffers;
+		std::vector<VulkanFramebuffer> m_OffscreenFramebuffers{};
+		std::vector<VkFramebuffer> m_SwapchainFramebuffers{};
 
 		VkRenderPass m_DefaultRenderPass;
+		VkRenderPass m_OffscreenRenderPass;
 
 		VkPipeline m_GraphicsPipeline;
 		VkPipeline m_LastPipeline;
@@ -150,6 +160,10 @@ namespace Povox {
 		VkDescriptorSetLayout m_GlobalDescriptorSetLayout;
 		VkDescriptorPool m_DescriptorPool;
 
+		
+		AllocatedImage m_ViewportImage;
+		VkImageView m_ViewportImageView;
+
 
 	// sync objects
 
@@ -158,6 +172,7 @@ namespace Povox {
 		uint32_t m_CurrentFrame = 0;
 
 		bool m_FramebufferResized = false;
+		bool m_GuiPipelineEnabled = true;
 
 		const std::vector<const char*> m_ValidationLayers = { "VK_LAYER_KHRONOS_validation" };
 		std::vector<const char*> m_DeviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };

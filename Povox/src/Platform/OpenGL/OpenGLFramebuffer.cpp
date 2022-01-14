@@ -69,15 +69,6 @@ namespace Povox {
 			glFramebufferTexture2D(GL_FRAMEBUFFER, attachmentType, TextureTarget(multisampled), outID, 0);
 		}
 
-		static bool IsDepthFormat(FramebufferTextureFormat format)
-		{
-			switch (format)
-			{
-				case FramebufferTextureFormat::DEPTH24STENCIL8: return true;
-			}
-			return false;
-		}
-
 		static GLenum PovoxFbTextureFormatToGL(FramebufferTextureFormat format)
 		{
 			switch (format)

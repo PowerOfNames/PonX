@@ -25,6 +25,7 @@ namespace Povox {
 		static void InitImGui();
 		static void BeginImGuiFrame();
 		static void EndImGuiFrame();
+		virtual void AddImGuiImage(float width, float height) override;
 
 	private:
 		static Ref<VulkanContext> m_Context;

@@ -51,4 +51,9 @@ namespace Povox {
 		m_Context->EndImGuiFrame();
 	}
 
+	void VulkanRendererAPI::AddImGuiImage(float width, float height)
+	{
+		m_Context->AddImGuiImage(width, height);
+	}
+
 }

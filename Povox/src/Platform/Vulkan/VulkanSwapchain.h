@@ -11,6 +11,12 @@ namespace Povox {
 	class VulkanSwapchain
 	{
 	public:
+		struct Capabilities
+		{
+			bool ImageUsageTransferSrc = false;
+			bool ImageUsageTransferDst = false;
+		};
+
 		VulkanSwapchain() = default;
 		~VulkanSwapchain() = default;
 
@@ -26,6 +32,7 @@ namespace Povox {
 
 		VkFormat GetImageFormat() const { return m_ImageFormat; }
 		VkExtent2D GetExtent2D() const { return m_Extent; }
+		const VulkanSwapchain::Capabilities& GetCapabilities() { return m_Capabilities; }
 
 	private:
 		void ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities, int width, int height);
@@ -35,6 +42,7 @@ namespace Povox {
 	private:
 		VkSwapchainKHR m_Swapchain;
 		VkFormat m_ImageFormat;
+		VulkanSwapchain::Capabilities m_Capabilities{};
 
 		VkExtent2D m_Extent;
 		VkSurfaceFormatKHR m_SurfaceFormat;

@@ -9,7 +9,7 @@
 namespace Povox {
 
 //------------------RenderPass----------------------
-	VkRenderPass VulkanRenderPass::CreateColorAndDepth(VulkanCoreObjects& core, const std::vector<VulkanRenderPass::Attachment>& attachments, VkSubpassDependency dependency)
+	VkRenderPass VulkanRenderPass::CreateColorAndDepth(VulkanCoreObjects& core, const std::vector<VulkanRenderPass::Attachment>& attachments, const std::vector<VkSubpassDependency>& dependencies)
 	{
 		std::vector<VkAttachmentReference> colorReferences;
 		VkAttachmentReference depthAttachmentRef{};
@@ -45,15 +45,15 @@ namespace Povox {
 		renderPassInfo.pAttachments = attachmentDescs.data();
 		renderPassInfo.subpassCount = 1;
 		renderPassInfo.pSubpasses = &subpass;
-		renderPassInfo.dependencyCount = 1;
-		renderPassInfo.pDependencies = &dependency;
+		renderPassInfo.dependencyCount = dependencies.size();
+		renderPassInfo.pDependencies = dependencies.data();
 
 		VkRenderPass renderPass;
 		PX_CORE_VK_ASSERT(vkCreateRenderPass(core.Device, &renderPassInfo, nullptr, &renderPass), VK_SUCCESS, "Failed to create render pass!");
 		return renderPass;
 	}
 
-	VkRenderPass VulkanRenderPass::CreateColor(VulkanCoreObjects& core, const std::vector<VulkanRenderPass::Attachment>& attachments, VkSubpassDependency dependency)
+	VkRenderPass VulkanRenderPass::CreateColor(VulkanCoreObjects& core, const std::vector<VulkanRenderPass::Attachment>& attachments, const std::vector<VkSubpassDependency>& dependencies)
 	{
 		std::vector<VkAttachmentReference> colorReferences;
 		for (auto& a : attachments)
@@ -87,8 +87,8 @@ namespace Povox {
 		renderPassInfo.pAttachments = attachmentDescs.data();
 		renderPassInfo.subpassCount = 1;
 		renderPassInfo.pSubpasses = &subpass;
-		renderPassInfo.dependencyCount = 1;
-		renderPassInfo.pDependencies = &dependency;
+		renderPassInfo.dependencyCount = dependencies.size();
+		renderPassInfo.pDependencies = dependencies.data();
 
 		VkRenderPass renderPass;
 		PX_CORE_VK_ASSERT(vkCreateRenderPass(core.Device, &renderPassInfo, nullptr, &renderPass), VK_SUCCESS, "Failed to create render pass!");

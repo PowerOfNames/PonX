@@ -192,14 +192,14 @@ namespace Povox { namespace VulkanInits {
 		info.tiling = tiling;
 		info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 		info.usage = usage;	// used as destination from the buffer to image, and the shader needs to sample from it
-		info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;	// exclusive means it will only be used by one queue family (graphics and thgerefore also transfer possible)
+		info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;	// exclusive means it will only be used by one queue family (graphics and therefore also transfer possible)
 		info.samples = VK_SAMPLE_COUNT_1_BIT;	// related to multi sampling -> in attachments
-		info.flags = 0;	// optional, can be used for sparse textures, in "D vfor examples for voxel terrain, to avoid using memory with AIR
+		info.flags = 0;	// optional, can be used for sparse textures, in for examples for voxel terrain, to avoid using memory with AIR
 
 		return info;
 	}
 
-	VkImageViewCreateInfo CreateImageViewInfo(VkFormat format, VkImage image, VkImageAspectFlagBits aspects)
+	VkImageViewCreateInfo CreateImageViewInfo(VkFormat format, VkImage image, VkImageAspectFlags aspects)
 	{
 		VkImageViewCreateInfo info{};
 		info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;

@@ -12,7 +12,7 @@
 
 namespace Povox {
 
-	AllocatedImage VulkanImage::Create(VulkanCoreObjects& core, uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage)
+	AllocatedImage VulkanImage::Create(VulkanCoreObjects& core, uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VmaMemoryUsage memoryUsage)
 	{
 		VkExtent3D extent;
 		extent.width = static_cast<uint32_t>(width);
@@ -24,9 +24,9 @@ namespace Povox {
 		AllocatedImage newImage;
 
 		VmaAllocationCreateInfo allocationInfo{};
-		allocationInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+		allocationInfo.usage = memoryUsage;
 
-		PX_CORE_VK_ASSERT(vmaCreateImage(core.Allocator, &imageInfo, &allocationInfo, &newImage.Image, &newImage.Allocation, nullptr), VK_SUCCESS, "Failed to create Texture Image!");
+		PX_CORE_VK_ASSERT(vmaCreateImage(core.Allocator, &imageInfo, &allocationInfo, &newImage.Image, &newImage.Allocation, nullptr), VK_SUCCESS, "Failed to create Image!");
 
 		return newImage;
 	}

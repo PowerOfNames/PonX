@@ -3,6 +3,8 @@
 
 namespace Povox {
 
+	
+
 	enum class FramebufferTextureFormat
 	{
 		None = 0,
@@ -17,6 +19,18 @@ namespace Povox {
 		//Defaults
 		Depth = DEPTH24STENCIL8
 	};
+
+	namespace Utils {
+
+		static bool IsDepthFormat(FramebufferTextureFormat format)
+		{
+			switch (format)
+			{
+			case FramebufferTextureFormat::DEPTH24STENCIL8: return true;
+			}
+			return false;
+		}
+	}
 
 	struct FramebufferTextureSpecification
 	{

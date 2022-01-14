@@ -1,6 +1,9 @@
 #pragma once
 
+#pragma warning(push, 0)
 #include <vulkan/vulkan.h>
+#pragma warning(pop)
+
 #include <vk_mem_alloc.h>
 
 #include <vector>
