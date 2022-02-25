@@ -6,14 +6,12 @@
 
 namespace Povox {
 
-	Ref<VulkanContext> VulkanRendererAPI::m_Context = CreateRef<VulkanContext>();
-
-	VulkanRendererAPI::VulkanRendererAPI()
-	{
-	}
+	VulkanContext* VulkanRendererAPI::m_Context = nullptr;
 
 	VulkanRendererAPI::~VulkanRendererAPI()
 	{
+		delete m_Context;
+		PX_CORE_TRACE("Vulkan Renderer API delete!");
 	}
 
 	void VulkanRendererAPI::Init()
@@ -30,6 +28,7 @@ namespace Povox {
 
 	void VulkanRendererAPI::SetViewport(uint32_t x, uint32_t y, uint32_t width, uint32_t height)
 	{
+		m_Context->OnFramebufferResize(width, height);
 	}
 
 	void VulkanRendererAPI::DrawIndexed(const Ref<VertexArray>& vertexArray, uint32_t indexCount)

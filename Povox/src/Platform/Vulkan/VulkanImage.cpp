@@ -12,15 +12,8 @@
 
 namespace Povox {
 
-	AllocatedImage VulkanImage::Create(VulkanCoreObjects& core, uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VmaMemoryUsage memoryUsage)
+	AllocatedImage VulkanImage::Create(VulkanCoreObjects& core, VkImageCreateInfo imageInfo, VmaMemoryUsage memoryUsage)
 	{
-		VkExtent3D extent;
-		extent.width = static_cast<uint32_t>(width);
-		extent.height = static_cast<uint32_t>(height);
-		extent.depth = 1;
-
-		VkImageCreateInfo imageInfo = VulkanInits::CreateImageInfo(format, tiling, usage, extent);
-
 		AllocatedImage newImage;
 
 		VmaAllocationCreateInfo allocationInfo{};
@@ -48,13 +41,82 @@ namespace Povox {
 
 		stbi_image_free(pixels);
 
+		VkExtent3D extent;
+		extent.width = static_cast<uint32_t>(width);
+		extent.height = static_cast<uint32_t>(height);
+		extent.depth = 1;
+
+		VkImageCreateInfo imageInfo = VulkanInits::CreateImageInfo(VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, extent);
+
 		AllocatedImage output;
-		output = VulkanImage::Create(core, width, height, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);
+		output = VulkanImage::Create(core, imageInfo);
 
-		VulkanCommands::TransitionImageLayout(core, uploadContext, output.Image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-		VulkanCommands::CopyBufferToImage(core, uploadContext, stagingBuffer.Buffer, output.Image, static_cast<uint32_t>(width), static_cast<uint32_t>(height));																		//-------- Command
-		VulkanCommands::TransitionImageLayout(core, uploadContext, output.Image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+		VulkanCommands::ImmidiateSubmitGfx(core, uploadContext, [=](VkCommandBuffer cmd)
+			{
+				VkImageMemoryBarrier barrier{};
+				barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+				barrier.image = output.Image;
+				barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+				barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+				barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+				barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+				barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+				barrier.subresourceRange.baseMipLevel = 0;
+				barrier.subresourceRange.levelCount = 1;
+				barrier.subresourceRange.baseArrayLayer = 0;
+				barrier.subresourceRange.layerCount = 1;
 
+				VkPipelineStageFlags srcStage;
+				VkPipelineStageFlags dstStage;
+				barrier.srcAccessMask = 0;
+				barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+
+				srcStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+				dstStage = VK_PIPELINE_STAGE_TRANSFER_BIT;				
+
+				vkCmdPipelineBarrier(cmd, srcStage, dstStage, 0, 0, nullptr, 0, nullptr, 1, &barrier);
+			});
+		VulkanCommands::ImmidiateSubmitTrsf(core, uploadContext, [=](VkCommandBuffer cmd)
+			{
+				VkBufferImageCopy region{};
+				region.bufferOffset = 0;
+				region.bufferImageHeight = 0;
+				region.bufferRowLength = 0;
+				region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+				region.imageSubresource.mipLevel = 0;
+				region.imageSubresource.baseArrayLayer = 0;
+				region.imageSubresource.layerCount = 1;
+				region.imageOffset = { 0, 0, 0 };
+				region.imageExtent = { static_cast<uint32_t>(width), static_cast<uint32_t>(height), 1 };
+
+				vkCmdCopyBufferToImage(cmd, stagingBuffer.Buffer, output.Image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+			});
+		VulkanCommands::ImmidiateSubmitGfx(core, uploadContext, [=](VkCommandBuffer cmd)
+			{
+				VkImageMemoryBarrier barrier{};
+				barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+				barrier.image = output.Image;
+				barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+				barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+				barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+				barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+				barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+				barrier.subresourceRange.baseMipLevel = 0;
+				barrier.subresourceRange.levelCount = 1;
+				barrier.subresourceRange.baseArrayLayer = 0;
+				barrier.subresourceRange.layerCount = 1;
+
+				VkPipelineStageFlags srcStage;
+				VkPipelineStageFlags dstStage;
+				barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+				barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+				srcStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+				dstStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+
+				vkCmdPipelineBarrier(cmd, srcStage, dstStage, 0, 0, nullptr, 0, nullptr, 1, &barrier);
+			});
+		
 		vmaDestroyBuffer(core.Allocator, stagingBuffer.Buffer, stagingBuffer.Allocation);
 
 		return output;

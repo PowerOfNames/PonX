@@ -10,7 +10,7 @@ namespace Povox {
 	class VulkanRendererAPI : public RendererAPI
 	{
 	public:
-		VulkanRendererAPI();
+		VulkanRendererAPI() = default;
 		~VulkanRendererAPI();
 
 		virtual void Init() override;
@@ -21,14 +21,14 @@ namespace Povox {
 
 		virtual void DrawIndexed(const Ref<VertexArray>& vertexArray, uint32_t indexCount = 0) override;
 
-		static void SetContext(Ref<VulkanContext> context) { m_Context = context; }
+		static void SetContext(VulkanContext* context) { m_Context = context; }
 		static void InitImGui();
 		static void BeginImGuiFrame();
 		static void EndImGuiFrame();
 		virtual void AddImGuiImage(float width, float height) override;
 
 	private:
-		static Ref<VulkanContext> m_Context;
+		static VulkanContext* m_Context;
 	};
 
 }

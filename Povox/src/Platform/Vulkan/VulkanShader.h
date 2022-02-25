@@ -5,7 +5,7 @@
 
 namespace Povox {
 
-	struct CameraUniformBufferS
+	struct CameraUniformBuffer
 	{
 		alignas(16) glm::mat4 ViewMatrix;
 		alignas(16) glm::mat4 ProjectionMatrix;

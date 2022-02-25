@@ -39,6 +39,14 @@ namespace Povox {
 		PX_PROFILE_FUNCTION();
 
 
+		//RenderCommand::SetViewport(0, 0, width, height);
+	}
+
+	void Renderer::OnFramebufferResize(uint32_t width, uint32_t height)
+	{
+		PX_PROFILE_FUNCTION();
+
+
 		RenderCommand::SetViewport(0, 0, width, height);
 	}
 

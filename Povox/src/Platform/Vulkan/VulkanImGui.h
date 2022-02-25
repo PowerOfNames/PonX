@@ -35,10 +35,11 @@ namespace Povox {
 		void EndFrame();
 
 		VkCommandBuffer BeginRender(uint32_t imageIndex, VkExtent2D swapchainExtent);
-		void RenderDrawData(VkCommandBuffer& cmd);
-		void EndRender(VkCommandBuffer& cmd);
+		void RenderDrawData(VkCommandBuffer cmd);
+		void EndRender(VkCommandBuffer cmd);
 
 		FrameData& GetFrame(uint32_t index);
+		inline VkDescriptorPool GetDescriptorPool() { return m_DescriptorPool; }
 
 	private:
 		void InitRenderPass();

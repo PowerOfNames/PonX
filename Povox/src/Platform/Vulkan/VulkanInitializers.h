@@ -4,10 +4,11 @@
 #include <vulkan/vulkan.h>
 
 namespace Povox {	namespace VulkanInits {
-//Command pool
+//Command pool && buffer
 	VkCommandPoolCreateInfo CreateCommandPoolInfo(uint32_t familyIndex, VkCommandPoolCreateFlags flags = 0);
-	VkCommandBufferAllocateInfo CreateCommandBufferInfo(VkCommandPool commandPool, uint32_t size);
+	VkCommandBufferAllocateInfo CreateCommandBufferAllocInfo(VkCommandPool commandPool, uint32_t size);
 	VkCommandBufferBeginInfo BeginCommandBuffer(VkCommandBufferUsageFlags flags = 0);
+	VkSubmitInfo SubmitInfo(VkCommandBuffer* cmd);
 
 //Render pass
 	VkRenderPassBeginInfo BeginRenderPass(VkRenderPass renderPass, VkExtent2D extent, VkFramebuffer framebuffer);
@@ -23,7 +24,7 @@ namespace Povox {	namespace VulkanInits {
 	VkPipelineLayoutCreateInfo CreatePipelineLayoutInfo();
 
 //Images
-	VkImageCreateInfo CreateImageInfo(VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkExtent3D extent);
+	VkImageCreateInfo CreateImageInfo(VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkExtent3D extent, VkImageLayout initialLayout = VK_IMAGE_LAYOUT_UNDEFINED);
 	VkImageViewCreateInfo CreateImageViewInfo(VkFormat format, VkImage image, VkImageAspectFlags aspects);
 
 // Descriptors

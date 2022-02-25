@@ -19,7 +19,34 @@ layout(set = 0, binding = 1) uniform SceneData
 	vec4 SunlightColor;
 } sceneData;
 
+float toSRGB(float x)
+{
+	if(x <= 0.0031308)
+	{
+		return x*12.92f;
+	}
+	else
+	{
+		return pow(1.055f*x, 1/2.4f) - 0.055f;
+	}
+}
+
+float toLinear(float x)
+{
+	if(x <= 0.04045)
+	{
+		return x/12.92f;
+	}
+	else
+	{
+		return pow((x+0.055)/1.055, 2.4f);
+	}
+}
+
+
 void main()
 {
-	outColor = vec4(v_FragColor + sceneData.AmbientColor.xyz, 1.0) * texture(t_Texture, v_TexCoord);
+	vec4 texColor = texture(t_Texture, v_TexCoord);
+	outColor = vec4(toSRGB(texColor.x), toSRGB(texColor.y), toSRGB(texColor.z), texColor.a);
+	//outColor = texColor;
 }

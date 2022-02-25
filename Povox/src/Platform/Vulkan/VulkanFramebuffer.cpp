@@ -77,7 +77,13 @@ namespace Povox {
 		attachment.Height = info.Height;
 		attachment.Format = info.Format;
 
-		attachment.Image = VulkanImage::Create(*m_Core, attachment.Width, attachment.Height, attachment.Format, VK_IMAGE_TILING_OPTIMAL, info.ImageUsage, info.MemoryUsage);
+		VkExtent3D extent;
+		extent.width = static_cast<uint32_t>(info.Width);
+		extent.height = static_cast<uint32_t>(info.Height);
+		extent.depth = 1;
+		VkImageCreateInfo imageInfo = VulkanInits::CreateImageInfo(attachment.Format, VK_IMAGE_TILING_OPTIMAL, info.ImageUsage, extent);
+
+		attachment.Image = VulkanImage::Create(*m_Core, imageInfo, info.MemoryUsage);
 
 		VkImageAspectFlags aspect = VulkanUtils::IsDepthAttachment(attachment.Format) ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
 		VkImageViewCreateInfo ivInfo = VulkanInits::CreateImageViewInfo(attachment.Format, attachment.Image.Image, aspect);
@@ -114,6 +120,13 @@ namespace Povox {
 		else
 			builder.CreateAndAddSubpass(VK_PIPELINE_BIND_POINT_GRAPHICS, colorRefLayouts);
 		return builder.Build();
+	}
+
+	FramebufferAttachment& VulkanFramebuffer::GetColorAttachment(size_t attachmentIndex)
+	{
+		PX_CORE_ASSERT(attachmentIndex < m_ColorAttachments.size(), "VKFramebuffer::GetColorAttachment - Index out of scope!");
+
+		return m_ColorAttachments[attachmentIndex];
 	}
 
 // --------------- RenderPass ---------------
@@ -158,7 +171,7 @@ namespace Povox {
 		return *this;
 	}
 
-	VulkanRenderPassBuilder& VulkanRenderPassBuilder::CreateAndAddDependency(VkSubpassDependency dependency)
+	VulkanRenderPassBuilder& VulkanRenderPassBuilder::AddDependency(VkSubpassDependency dependency)
 	{
 		m_Dependencies.push_back(std::move(dependency));
 		return *this;
@@ -181,4 +194,92 @@ namespace Povox {
 		PX_CORE_VK_ASSERT(vkCreateRenderPass(m_Core->Device, &renderPassInfo, nullptr, &renderPass), VK_SUCCESS, "Failed to create renderpass!");
 		return renderPass;
 	}
+
+	//------------------RenderPass----------------------
+	VkRenderPass VulkanRenderPass::CreateColorAndDepth(VulkanCoreObjects& core, const std::vector<VulkanRenderPass::Attachment>& attachments, const std::vector<VkSubpassDependency>& dependencies)
+	{
+		std::vector<VkAttachmentReference> colorReferences;
+		VkAttachmentReference depthAttachmentRef{};
+		for (auto& a : attachments)
+		{
+			if (a.Reference.layout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL)
+			{
+				depthAttachmentRef = a.Reference;
+			}
+			else if (a.Reference.layout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)
+			{
+				colorReferences.push_back(a.Reference);
+			}
+		}
+
+		// Subpasses  -> usefull for example to create a sequence of post processing effects, always one subpass needed
+		VkSubpassDescription subpass{};
+		subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+		subpass.colorAttachmentCount = colorReferences.size();
+		subpass.pColorAttachments = colorReferences.data();
+		subpass.pDepthStencilAttachment = &depthAttachmentRef;
+
+		std::vector<VkAttachmentDescription> attachmentDescs;
+		attachmentDescs.resize(attachments.size());
+		for (size_t i = 0; i < attachments.size(); i++)
+		{
+			attachmentDescs[i] = attachments[i].Description;
+		}
+
+		VkRenderPassCreateInfo renderPassInfo{};
+		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+		renderPassInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
+		renderPassInfo.pAttachments = attachmentDescs.data();
+		renderPassInfo.subpassCount = 1;
+		renderPassInfo.pSubpasses = &subpass;
+		renderPassInfo.dependencyCount = dependencies.size();
+		renderPassInfo.pDependencies = dependencies.data();
+
+		VkRenderPass renderPass;
+		PX_CORE_VK_ASSERT(vkCreateRenderPass(core.Device, &renderPassInfo, nullptr, &renderPass), VK_SUCCESS, "Failed to create render pass!");
+		return renderPass;
+	}
+
+	VkRenderPass VulkanRenderPass::CreateColor(VulkanCoreObjects& core, const std::vector<VulkanRenderPass::Attachment>& attachments, const std::vector<VkSubpassDependency>& dependencies)
+	{
+		std::vector<VkAttachmentReference> colorReferences;
+		for (auto& a : attachments)
+		{
+			if (a.Reference.layout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)
+			{
+				colorReferences.push_back(a.Reference);
+			}
+			else
+			{
+				PX_CORE_WARN("Wrong attachment layout!");
+			}
+		}
+
+		// Subpasses  -> usefull for example to create a sequence of post processing effects, always one subpass needed
+		VkSubpassDescription subpass{};
+		subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+		subpass.colorAttachmentCount = colorReferences.size();
+		subpass.pColorAttachments = colorReferences.data();
+
+		std::vector<VkAttachmentDescription> attachmentDescs;
+		attachmentDescs.resize(attachments.size());
+		for (size_t i = 0; i < attachments.size(); i++)
+		{
+			attachmentDescs[i] = attachments[i].Description;
+		}
+
+		VkRenderPassCreateInfo renderPassInfo{};
+		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+		renderPassInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
+		renderPassInfo.pAttachments = attachmentDescs.data();
+		renderPassInfo.subpassCount = 1;
+		renderPassInfo.pSubpasses = &subpass;
+		renderPassInfo.dependencyCount = dependencies.size();
+		renderPassInfo.pDependencies = dependencies.data();
+
+		VkRenderPass renderPass;
+		PX_CORE_VK_ASSERT(vkCreateRenderPass(core.Device, &renderPassInfo, nullptr, &renderPass), VK_SUCCESS, "Failed to create render pass!");
+		return renderPass;
+	}
+
 }

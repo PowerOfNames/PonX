@@ -14,7 +14,13 @@ ExampleLayer::ExampleLayer()
 void ExampleLayer::OnAttach()
 {
 	// Create the main framebuffer
+	/*Povox::FramebufferSpecification fbspec;
+	fbspec.Attachements = { Povox::FramebufferTextureFormat::RGBA8, Povox::FramebufferTextureFormat::RED_INTEGER, Povox::FramebufferTextureFormat::Depth };
+	fbspec.Width = 1280.0f;
+	fbspec.Height = 720.0f;
+	m_Framebuffer = Povox::Framebuffer::Create(fbspec);*/
 
+	m_EditorCamera = Povox::EditorCamera(30.0f, 1.778f, 0.1f, 1000.0f);
 
 }
 

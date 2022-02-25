@@ -54,7 +54,10 @@ namespace Povox {
 	struct UploadContext
 	{
 		VkCommandPool CmdPoolGfx;
+		VkCommandBuffer CmdBufferGfx;
+
 		VkCommandPool CmdPoolTrsf;
+		VkCommandBuffer CmdBufferTrsf;
 
 		VkFence Fence;
 	};

@@ -161,6 +161,23 @@ namespace Povox {
 		return false;
 	}
 
+	bool Application::OnFramebufferResize(FramebufferResizeEvent& e)
+	{
+		PX_PROFILE_FUNCTION();
+
+
+		if (e.GetWidth() == 0 || e.GetHeight() == 0)
+		{
+			m_Minimized = true;
+			return false;
+		}
+
+		m_Minimized = false;
+		Renderer::OnFramebufferResize(e.GetWidth(), e.GetHeight());
+
+		return false;
+	}
+
 	void Application::Close()
 	{
 		m_Running = false;

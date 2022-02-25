@@ -3,10 +3,48 @@
 
 #include "VulkanDebug.h"
 #include "VulkanUtility.h"
+#include "VulkanInitializers.h"
 
 namespace Povox {
 
 // ========== Commands ==========
+	void VulkanCommands::ImmidiateSubmitGfx(const VulkanCoreObjects& core, UploadContext& uploadContext, std::function<void(VkCommandBuffer cmd)>&& function)
+	{
+		VkCommandBuffer cmd = uploadContext.CmdBufferGfx;
+		VkCommandBufferBeginInfo cmdBeginInfo = VulkanInits::BeginCommandBuffer(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
+		
+		PX_CORE_VK_ASSERT(vkBeginCommandBuffer(cmd, &cmdBeginInfo), VK_SUCCESS, "Failed to begin immidite submit cmd buffer!");
+
+		function(cmd);
+
+		PX_CORE_VK_ASSERT(vkEndCommandBuffer(cmd), VK_SUCCESS, "Failed to end cmd buffer!");
+		VkSubmitInfo submitInfo = VulkanInits::SubmitInfo(&cmd);
+
+		PX_CORE_VK_ASSERT(vkQueueSubmit(core.QueueFamily.GraphicsQueue, 1, &submitInfo, uploadContext.Fence), VK_SUCCESS, "Failed to submit cmd buffer!");
+		vkWaitForFences(core.Device, 1, &uploadContext.Fence, VK_TRUE, UINT64_MAX);
+		vkResetFences(core.Device, 1, &uploadContext.Fence);
+
+		PX_CORE_VK_ASSERT(vkResetCommandPool(core.Device, uploadContext.CmdPoolGfx, 0), VK_SUCCESS, "Failed to reset command pool!");
+	}
+
+	void VulkanCommands::ImmidiateSubmitTrsf(const VulkanCoreObjects& core, UploadContext& uploadContext, std::function<void(VkCommandBuffer cmd)>&& function)
+	{
+		VkCommandBuffer cmd = uploadContext.CmdBufferTrsf;
+		VkCommandBufferBeginInfo cmdBeginInfo = VulkanInits::BeginCommandBuffer(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
+		vkBeginCommandBuffer(cmd, &cmdBeginInfo);
+
+		function(cmd);
+
+		PX_CORE_VK_ASSERT(vkEndCommandBuffer(cmd), VK_SUCCESS, "Failed to end cmd buffer!");
+		VkSubmitInfo submitInfo = VulkanInits::SubmitInfo(&cmd);
+
+		PX_CORE_VK_ASSERT(vkQueueSubmit(core.QueueFamily.TransferQueue, 1, &submitInfo, uploadContext.Fence), VK_SUCCESS, "Failed to submit cmd buffer!");
+		vkWaitForFences(core.Device, 1, &uploadContext.Fence, VK_TRUE, UINT64_MAX);
+		vkResetFences(core.Device, 1, &uploadContext.Fence);
+
+		PX_CORE_VK_ASSERT(vkResetCommandPool(core.Device, uploadContext.CmdPoolTrsf, 0), VK_SUCCESS, "Failed to reset command pool!");
+	}
+	/*
 	void VulkanCommands::CopyBuffer(const VulkanCoreObjects& core, UploadContext& uploadContext, VkBuffer src, VkBuffer dst, VkDeviceSize size)
 	{
 		VkCommandBuffer commandBuffer = VulkanCommandBuffer::BeginSingleTimeCommands(core.Device, uploadContext.CmdPoolTrsf);
@@ -37,7 +75,7 @@ namespace Povox {
 		VulkanCommandBuffer::EndSingleTimeCommands(core.Device, commandBuffer, core.QueueFamily.TransferQueue, uploadContext.CmdPoolTrsf, uploadContext.Fence);
 	}
 
-	void VulkanCommands::TransitionImageLayout(const VulkanCoreObjects& core, UploadContext& uploadContext, VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout)
+	void VulkanCommands::TransitionImageLayout(const VulkanCoreObjects& core, UploadContext& uploadContext, VkImage& image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout)
 	{
 		VkCommandBuffer commandBuffer = VulkanCommandBuffer::BeginSingleTimeCommands(core.Device, uploadContext.CmdPoolGfx);
 
@@ -170,7 +208,7 @@ namespace Povox {
 		
 		vkCmdCopyImageToBuffer(commandBuffer, image, imageLayout, buffer, 1, &region);
 		VulkanCommandBuffer::EndSingleTimeCommands(core.Device, commandBuffer, core.QueueFamily.TransferQueue, uploadContext.CmdPoolTrsf, uploadContext.Fence);
-	}
+	}*/
 
 
 // ========== CommanPool ==========
@@ -194,8 +232,8 @@ namespace Povox {
 		PX_CORE_VK_ASSERT(vkAllocateCommandBuffers(device, &bufferInfo, &buffer), VK_SUCCESS, "Failed to create CommandBuffer!");
 		return buffer;
 	}
-
-	VkCommandBuffer VulkanCommandBuffer::BeginSingleTimeCommands(VkDevice device, VkCommandPool& commandPool)
+	/*
+	VkCommandBuffer& VulkanCommandBuffer::BeginSingleTimeCommands(VkDevice device, VkCommandPool& commandPool)
 	{
 		VkCommandBufferAllocateInfo bufferAllocInfo{};
 		bufferAllocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -231,7 +269,7 @@ namespace Povox {
 		vkWaitForFences(device, 1, &fence, VK_TRUE, UINT64_MAX);
 		vkResetFences(device, 1, &fence);
 
-		vkResetCommandPool(device, commandPool, 0);
-	}
+		PX_CORE_VK_ASSERT(vkResetCommandPool(device, commandPool, 0), VK_SUCCESS, "Failed to reset command pool!");
+	}*/
 
 }

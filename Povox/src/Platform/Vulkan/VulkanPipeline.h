@@ -7,21 +7,7 @@
 #include "VulkanInitializers.h"
 
 namespace Povox {
-
 	
-
-	class VulkanRenderPass
-	{
-	public:
-		struct Attachment
-		{
-			VkAttachmentDescription Description{};
-			VkAttachmentReference Reference{};
-		};
-
-		static VkRenderPass CreateColorAndDepth(VulkanCoreObjects& core, const std::vector<VulkanRenderPass::Attachment>& attachments, const std::vector<VkSubpassDependency>& dependencies);
-		static VkRenderPass CreateColor(VulkanCoreObjects& core, const std::vector<VulkanRenderPass::Attachment>& attachments, const std::vector<VkSubpassDependency>& dependencies);
-	};
 
 	class VulkanPipeline
 	{

@@ -18,7 +18,7 @@ namespace Povox { namespace VulkanInits {
 		return info;
 	}
 
-	VkCommandBufferAllocateInfo CreateCommandBufferInfo(VkCommandPool commandPool, uint32_t size)
+	VkCommandBufferAllocateInfo CreateCommandBufferAllocInfo(VkCommandPool commandPool, uint32_t size)
 	{
 		VkCommandBufferAllocateInfo info{};
 		info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -37,6 +37,23 @@ namespace Povox { namespace VulkanInits {
 		beginInfo.pInheritanceInfo = nullptr;	// optional, only used if buffer is secondary
 
 		return beginInfo;
+	}
+
+	VkSubmitInfo SubmitInfo(VkCommandBuffer* cmd)
+	{
+		VkSubmitInfo submitInfo{};
+		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+		submitInfo.pNext = nullptr;
+
+		submitInfo.waitSemaphoreCount = 0;
+		submitInfo.pWaitSemaphores = nullptr;
+		submitInfo.pWaitDstStageMask = nullptr;
+		submitInfo.commandBufferCount = 1;
+		submitInfo.signalSemaphoreCount = 0;
+		submitInfo.pCommandBuffers = cmd;
+		submitInfo.pSignalSemaphores = nullptr;
+
+		return submitInfo;
 	}
 
 //Render pass
@@ -130,14 +147,15 @@ namespace Povox { namespace VulkanInits {
 	{
 		VkPipelineColorBlendAttachmentState info{};
 		info.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-		info.blendEnable = VK_FALSE;
-		info.srcColorBlendFactor = VK_BLEND_FACTOR_ONE;		// optional
-		info.dstColorBlendFactor = VK_BLEND_FACTOR_ZERO;		// optional
-		info.colorBlendOp = VK_BLEND_OP_ADD;			// optional
-		info.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;		// optional
-		info.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;		// optional
+		info.blendEnable = VK_TRUE;
+		info.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+		info.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+		info.colorBlendOp = VK_BLEND_OP_ADD;
+		info.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+		info.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
 		info.alphaBlendOp = VK_BLEND_OP_ADD;
 
+		//check http://andersriggelsen.dk/glblendfunc.php for testing and understanding more!
 		return info;
 	}
 
@@ -176,7 +194,7 @@ namespace Povox { namespace VulkanInits {
 	}
 
 //Images
-	VkImageCreateInfo CreateImageInfo(VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkExtent3D extent)
+	VkImageCreateInfo CreateImageInfo(VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkExtent3D extent, VkImageLayout initialLayout)
 	{
 		VkImageCreateInfo info{};
 		info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -190,7 +208,7 @@ namespace Povox { namespace VulkanInits {
 		info.arrayLayers = 1;
 		info.mipLevels = 1;
 		info.tiling = tiling;
-		info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+		info.initialLayout = initialLayout;
 		info.usage = usage;	// used as destination from the buffer to image, and the shader needs to sample from it
 		info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;	// exclusive means it will only be used by one queue family (graphics and therefore also transfer possible)
 		info.samples = VK_SAMPLE_COUNT_1_BIT;	// related to multi sampling -> in attachments

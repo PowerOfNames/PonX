@@ -40,8 +40,13 @@ namespace Povox {
 		vmaUnmapMemory(core.Allocator, stagingBuffer.Allocation);
 
 		mesh.VertexBuffer = VulkanBuffer::Create(core, bufferSize, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
+		VulkanCommands::ImmidiateSubmitTrsf(core, uploadContext, [=](VkCommandBuffer cmd)
+			{
+				VkBufferCopy copyRegion{};
+				copyRegion.size = bufferSize;
 
-		VulkanCommands::CopyBuffer(core, uploadContext, stagingBuffer.Buffer, mesh.VertexBuffer.Buffer, bufferSize);
+				vkCmdCopyBuffer(cmd, stagingBuffer.Buffer, mesh.VertexBuffer.Buffer, 1, &copyRegion);
+			});
 
 		vmaDestroyBuffer(core.Allocator, stagingBuffer.Buffer, stagingBuffer.Allocation);
 	}
@@ -58,7 +63,13 @@ namespace Povox {
 		vmaUnmapMemory(core.Allocator, stagingBuffer.Allocation);
 
 		mesh.IndexBuffer = VulkanBuffer::Create(core, bufferSize, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
-		VulkanCommands::CopyBuffer(core, uploadContext, stagingBuffer.Buffer, mesh.IndexBuffer.Buffer, bufferSize);
+		VulkanCommands::ImmidiateSubmitTrsf(core, uploadContext, [=](VkCommandBuffer cmd)
+			{
+				VkBufferCopy copyRegion{};
+				copyRegion.size = bufferSize;
+
+				vkCmdCopyBuffer(cmd, stagingBuffer.Buffer, mesh.IndexBuffer.Buffer, 1, &copyRegion);
+			});
 
 		vmaDestroyBuffer(core.Allocator, stagingBuffer.Buffer, stagingBuffer.Allocation);
 	}

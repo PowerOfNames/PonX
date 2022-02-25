@@ -18,6 +18,9 @@
 
 #include <glm/glm.hpp>
 
+#include <imgui.h>
+#include <backends/imgui_impl_vulkan.h>
+
 struct GLFWwindow;
 
 namespace Povox {
@@ -36,8 +39,8 @@ namespace Povox {
 		VkFence RenderFence;
 
 		VkCommandPool CommandPoolGfx;
-		VkCommandPool CommandPoolTrsf;
 		VkCommandBuffer MainCommandBuffer;
+		//VkCommandPool CommandPoolTrsf;
 
 		AllocatedBuffer CamUniformBuffer;
 
@@ -55,19 +58,18 @@ namespace Povox {
 		virtual void Shutdown() override;
 
 
-		//Framebuffer Callback
-		static void FramebufferResizeCallback(GLFWwindow* window, int width, int height);
+		void OnFramebufferResize(uint32_t width, uint32_t height);
 
 		void InitImGui();
 		void BeginImGuiFrame();
 		void EndImGuiFrame();
 		void AddImGuiImage(float width, float height);
 
+		void RecreateSwapchain();
 
-		void CreateViewportImage(VkImage& swapchainImage);
 
 	private:
-		void RecreateSwapchain();
+		void CopyOffscreenToViewportImage(VkImage& swapchainImage);
 
 	// stays here!
 		// Instance
@@ -133,6 +135,12 @@ namespace Povox {
 		SceneUniformBufferD m_SceneParameter;
 		AllocatedBuffer m_SceneParameterBuffer;
 
+		VkDescriptorSet m_PresentImGuiSet{ VK_NULL_HANDLE };
+		ImTextureID m_PresentImGui = nullptr;
+		bool m_PresentImGuiAlive = false;
+
+		bool m_NeedsResize = false;
+		bool m_Resized = false;
 
 		std::vector<VulkanFramebuffer> m_OffscreenFramebuffers{};
 		std::vector<VkFramebuffer> m_SwapchainFramebuffers{};
@@ -144,11 +152,11 @@ namespace Povox {
 		VkPipeline m_LastPipeline;
 		VkPipelineLayout m_GraphicsPipelineLayout;
 
-		Mesh m_DoubleTriangleMesh;
 
 		Scope<VulkanImGui> m_ImGui;
 
 	// VK Buffer, memory and texture images + sampler
+		Mesh m_DoubleTriangleMesh;
 
 		std::unordered_map<std::string, Texture> m_Textures;
 
@@ -165,13 +173,14 @@ namespace Povox {
 		VkImageView m_ViewportImageView;
 
 
-	// sync objects
+		bool m_FramebufferResized = false;
+		int m_WindowWidth, m_WindowHeight;
 
-		//std::vector<VkFence> m_ImagesInFlight;
+
+	// sync objects
 
 		uint32_t m_CurrentFrame = 0;
 
-		bool m_FramebufferResized = false;
 		bool m_GuiPipelineEnabled = true;
 
 		const std::vector<const char*> m_ValidationLayers = { "VK_LAYER_KHRONOS_validation" };

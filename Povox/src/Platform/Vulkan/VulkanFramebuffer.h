@@ -78,10 +78,11 @@ namespace Povox {
 		void AddAttachment(FramebufferAttachmentCreateInfo& attachmentCreateInfo);
 		VkRenderPass CreateDefaultRenderpass();
 
-		inline VkFramebuffer& Get() { return m_Framebuffer; }
+		FramebufferAttachment& GetColorAttachment(size_t attachmentIndex);
+		
+		inline VkFramebuffer Get() { return m_Framebuffer; }
 		inline uint32_t GetWidth() { return m_Width; }
 		inline uint32_t GetHeight() { return m_Height; }
-		inline std::vector<FramebufferAttachment>& GetColorAttachments() { return m_ColorAttachments; }
 		inline FramebufferAttachment& GetDepthAttachment() { return m_DepthStencilAttachment; }
 
 
@@ -107,7 +108,7 @@ namespace Povox {
 
 		VulkanRenderPassBuilder& AddAttachment(VkAttachmentDescription attachment);
 		VulkanRenderPassBuilder& CreateAndAddSubpass(VkPipelineBindPoint pipelineBindpoint, const std::vector<VkImageLayout>& colorLayouts, VkImageLayout depthLayout = VK_IMAGE_LAYOUT_UNDEFINED);
-		VulkanRenderPassBuilder& CreateAndAddDependency(VkSubpassDependency dependency);
+		VulkanRenderPassBuilder& AddDependency(VkSubpassDependency dependency);
 
 		VkRenderPass Build();
 
@@ -116,5 +117,19 @@ namespace Povox {
 		std::vector<VkAttachmentDescription> m_Attachments;
 		std::vector<VkSubpassDescription> m_Subpasses;
 		std::vector<VkSubpassDependency> m_Dependencies;
+	};
+
+
+	class VulkanRenderPass
+	{
+	public:
+		struct Attachment
+		{
+			VkAttachmentDescription Description{};
+			VkAttachmentReference Reference{};
+		};
+
+		static VkRenderPass CreateColorAndDepth(VulkanCoreObjects& core, const std::vector<VulkanRenderPass::Attachment>& attachments, const std::vector<VkSubpassDependency>& dependencies);
+		static VkRenderPass CreateColor(VulkanCoreObjects& core, const std::vector<VulkanRenderPass::Attachment>& attachments, const std::vector<VkSubpassDependency>& dependencies);
 	};
 }

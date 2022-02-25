@@ -4,8 +4,7 @@
 #include "VulkanDebug.h"
 #include "VulkanCommands.h"
 
-#include "VulkanPipeline.h"
-#include "VulkanCommands.h"
+#include "VulkanFramebuffer.h"
 
 #include <imgui.h>
 
@@ -59,10 +58,12 @@ namespace Povox {
 		init_info.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
 		ImGui_ImplVulkan_Init(&init_info, m_RenderPass);
 		
-
-		VkCommandBuffer cmd = VulkanCommandBuffer::BeginSingleTimeCommands(m_Core->Device, m_UploadContext->CmdPoolGfx);
-		ImGui_ImplVulkan_CreateFontsTexture(cmd);
-		VulkanCommandBuffer::EndSingleTimeCommands(m_Core->Device, cmd, m_Core->QueueFamily.GraphicsQueue, m_UploadContext->CmdPoolGfx, m_UploadContext->Fence);
+		VulkanCommands::ImmidiateSubmitGfx(*m_Core, *m_UploadContext, [=](VkCommandBuffer cmd)
+			{
+				ImGui_ImplVulkan_CreateFontsTexture(cmd);
+			});
+		//VkCommandBuffer cmd = VulkanCommandBuffer::BeginSingleTimeCommands(m_Core->Device, m_UploadContext->CmdPoolGfx);
+		//VulkanCommandBuffer::EndSingleTimeCommands(m_Core->Device, cmd, m_Core->QueueFamily.GraphicsQueue, m_UploadContext->CmdPoolGfx, m_UploadContext->Fence);
 
 		ImGui_ImplVulkan_DestroyFontUploadObjects();
 	}
@@ -124,12 +125,12 @@ namespace Povox {
 		return cmd;
 	}
 
-	void VulkanImGui::RenderDrawData(VkCommandBuffer& cmd)
+	void VulkanImGui::RenderDrawData(VkCommandBuffer cmd)
 	{
 		ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmd);
 	}
 
-	void VulkanImGui::EndRender(VkCommandBuffer& cmd)
+	void VulkanImGui::EndRender(VkCommandBuffer cmd)
 	{
 		vkCmdEndRenderPass(cmd);
 		PX_CORE_VK_ASSERT(vkEndCommandBuffer(cmd), VK_SUCCESS, "Failed to record graphics command buffer!");
@@ -184,7 +185,7 @@ namespace Povox {
 		for (uint8_t i = 0; i < m_MaxFramesInFlight; i++)
 		{
 			m_FrameData[i].CommandPool = VulkanCommandPool::Create(*m_Core, poolInfo);
-			m_FrameData[i].CommandBuffer = VulkanCommandBuffer::Create(m_Core->Device, m_FrameData[i].CommandPool, VulkanInits::CreateCommandBufferInfo(m_FrameData[i].CommandPool, 1));
+			m_FrameData[i].CommandBuffer = VulkanCommandBuffer::Create(m_Core->Device, m_FrameData[i].CommandPool, VulkanInits::CreateCommandBufferAllocInfo(m_FrameData[i].CommandPool, 1));
 		}
 	}
 	void VulkanImGui::InitFrameBuffers(const std::vector<VkImageView>& swapchainViews, uint32_t width, uint32_t height)

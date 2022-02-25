@@ -67,7 +67,7 @@ namespace Povox {
 		
 		m_Context = GraphicsContext::Create(m_Window);
 		m_Context->Init();
-		VulkanRendererAPI::SetContext(std::dynamic_pointer_cast<VulkanContext>(m_Context));
+		//VulkanRendererAPI::SetContext(std::dynamic_pointer_cast<VulkanContext>(m_Context));
 
 		glfwSetWindowUserPointer(m_Window, &m_Data);
 		if(!m_GLFW_NO_API)
@@ -76,6 +76,7 @@ namespace Povox {
 		// Set GLFW callbacks
 	// --- Window
 		// Window resizing
+		//return window size in screen cordinates
 		glfwSetWindowSizeCallback(m_Window, [](GLFWwindow* window, int width, int height)
 			{
 				WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
@@ -83,6 +84,17 @@ namespace Povox {
 				data.Height = height;
 
 				WindowResizeEvent event(width, height);
+				data.EventCallback(event);
+			});
+
+		//returns window size in pixels
+		glfwSetFramebufferSizeCallback(m_Window, [](GLFWwindow* window, int width, int height)
+			{
+				WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
+				data.Width = width;
+				data.Height = height;
+
+				FramebufferResizeEvent event(width, height);
 				data.EventCallback(event);
 			});
 

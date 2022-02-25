@@ -15,6 +15,9 @@ public:
 	virtual void OnEvent(Povox::Event& e) override;
 
 private:
+	Povox::EditorCamera m_EditorCamera;
+	Povox::Ref<Povox::Framebuffer> m_Framebuffer;
+
 	bool m_DemoActive = false;
 
 	glm::vec2 m_ViewportSize = { 0.0f, 0.0f };

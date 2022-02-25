@@ -1,15 +1,20 @@
 #pragma once
 
 #include <vulkan/vulkan.h>
-
+#define PX_VK_VALIDATION_ALLOWED true
 #ifdef PX_DEBUG
-	#define PX_ENABLE_VK_VALIDATION_LAYERS true
+	#if PX_VK_VALIDATION_ALLOWED
+		#define PX_ENABLE_VK_VALIDATION_LAYERS true
+	#else
+		#define PX_ENABLE_VK_VALIDATION_LAYERS false
+	#endif //PX_VK_VALIDATION_ALLOWED
 	#ifdef PX_ENABLE_ASSERT
 		#define PX_ENABLE_VK_ASSERT
-	#endif
-#else
-	#define PX_ENABLE_VK_VALIDATION_LAYERS false
-#endif
+	#endif //PX_ENABLE_ASSERT
+#endif //PX_DEBUG
+
+	
+
 
 #ifdef PX_ENABLE_VK_ASSERT
 	#define	PX_CORE_VK_ASSERT(x, y, ...) {if(!(x == y)) {PX_CORE_ERROR("Assertion fails: {0}", __VA_ARGS__); __debugbreak(); } }
