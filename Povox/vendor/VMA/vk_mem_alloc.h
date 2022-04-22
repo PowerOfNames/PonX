@@ -3166,7 +3166,7 @@ public:
 	typedef T value_type;
 
 	VmaVector(const AllocatorT& allocator) :
-		m_Allocator(allocator),
+		s_Allocator(allocator),
 		m_pArray(VMA_NULL),
 		m_Count(0),
 		m_Capacity(0)
@@ -3174,7 +3174,7 @@ public:
 	}
 
 	VmaVector(size_t count, const AllocatorT& allocator) :
-		m_Allocator(allocator),
+		s_Allocator(allocator),
 		m_pArray(count ? (T*)VmaAllocateArray<T>(allocator.m_pCallbacks, count) : VMA_NULL),
 		m_Count(count),
 		m_Capacity(count)
@@ -3187,8 +3187,8 @@ public:
 		: VmaVector(count, allocator) {}
 
 	VmaVector(const VmaVector<T, AllocatorT>& src) :
-		m_Allocator(src.m_Allocator),
-		m_pArray(src.m_Count ? (T*)VmaAllocateArray<T>(src.m_Allocator.m_pCallbacks, src.m_Count) : VMA_NULL),
+		s_Allocator(src.s_Allocator),
+		m_pArray(src.m_Count ? (T*)VmaAllocateArray<T>(src.s_Allocator.m_pCallbacks, src.m_Count) : VMA_NULL),
 		m_Count(src.m_Count),
 		m_Capacity(src.m_Count)
 	{
@@ -3200,7 +3200,7 @@ public:
 
 	~VmaVector()
 	{
-		VmaFree(m_Allocator.m_pCallbacks, m_pArray);
+		VmaFree(s_Allocator.m_pCallbacks, m_pArray);
 	}
 
 	VmaVector& operator=(const VmaVector<T, AllocatorT>& rhs)
@@ -3264,12 +3264,12 @@ public:
 
 		if (newCapacity != m_Capacity)
 		{
-			T* const newArray = newCapacity ? VmaAllocateArray<T>(m_Allocator, newCapacity) : VMA_NULL;
+			T* const newArray = newCapacity ? VmaAllocateArray<T>(s_Allocator, newCapacity) : VMA_NULL;
 			if (m_Count != 0)
 			{
 				memcpy(newArray, m_pArray, m_Count * sizeof(T));
 			}
-			VmaFree(m_Allocator.m_pCallbacks, m_pArray);
+			VmaFree(s_Allocator.m_pCallbacks, m_pArray);
 			m_Capacity = newCapacity;
 			m_pArray = newArray;
 		}
@@ -3285,13 +3285,13 @@ public:
 
 		if (newCapacity != m_Capacity)
 		{
-			T* const newArray = newCapacity ? VmaAllocateArray<T>(m_Allocator.m_pCallbacks, newCapacity) : VMA_NULL;
+			T* const newArray = newCapacity ? VmaAllocateArray<T>(s_Allocator.m_pCallbacks, newCapacity) : VMA_NULL;
 			const size_t elementsToCopy = VMA_MIN(m_Count, newCount);
 			if (elementsToCopy != 0)
 			{
 				memcpy(newArray, m_pArray, elementsToCopy * sizeof(T));
 			}
-			VmaFree(m_Allocator.m_pCallbacks, m_pArray);
+			VmaFree(s_Allocator.m_pCallbacks, m_pArray);
 			m_Capacity = newCapacity;
 			m_pArray = newArray;
 		}
@@ -3311,10 +3311,10 @@ public:
 			T* newArray = VMA_NULL;
 			if (m_Count > 0)
 			{
-				newArray = VmaAllocateArray<T>(m_Allocator.m_pCallbacks, m_Count);
+				newArray = VmaAllocateArray<T>(s_Allocator.m_pCallbacks, m_Count);
 				memcpy(newArray, m_pArray, m_Count * sizeof(T));
 			}
-			VmaFree(m_Allocator.m_pCallbacks, m_pArray);
+			VmaFree(s_Allocator.m_pCallbacks, m_pArray);
 			m_Capacity = m_Count;
 			m_pArray = newArray;
 		}
@@ -3378,7 +3378,7 @@ public:
 	const_iterator end() const { return cend(); }
 
 private:
-	AllocatorT m_Allocator;
+	AllocatorT s_Allocator;
 	T* m_pArray;
 	size_t m_Count;
 	size_t m_Capacity;
@@ -6285,7 +6285,7 @@ public:
 
 private:
 	VMA_MUTEX m_Mutex;
-	VmaPoolAllocator<VmaAllocation_T> m_Allocator;
+	VmaPoolAllocator<VmaAllocation_T> s_Allocator;
 };
 
 struct VmaCurrentBudgetData
@@ -14162,20 +14162,20 @@ void VmaRecorder::Flush()
 // VmaAllocationObjectAllocator
 
 VmaAllocationObjectAllocator::VmaAllocationObjectAllocator(const VkAllocationCallbacks* pAllocationCallbacks) :
-	m_Allocator(pAllocationCallbacks, 1024)
+	s_Allocator(pAllocationCallbacks, 1024)
 {
 }
 
 template<typename... Types> VmaAllocation VmaAllocationObjectAllocator::Allocate(Types&&... args)
 {
 	VmaMutexLock mutexLock(m_Mutex);
-	return m_Allocator.Alloc<Types...>(std::forward<Types>(args)...);
+	return s_Allocator.Alloc<Types...>(std::forward<Types>(args)...);
 }
 
 void VmaAllocationObjectAllocator::Free(VmaAllocation hAlloc)
 {
 	VmaMutexLock mutexLock(m_Mutex);
-	m_Allocator.Free(hAlloc);
+	s_Allocator.Free(hAlloc);
 }
 
 ////////////////////////////////////////////////////////////////////////////////

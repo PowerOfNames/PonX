@@ -22,35 +22,6 @@ namespace Povox {
 		bool IsAdequat() { return !Formats.empty() && !PresentModes.empty(); }
 	};
 
-	struct QueueFamilyIndices
-	{
-		std::optional<uint32_t> GraphicsFamily;
-		std::optional<uint32_t> PresentFamily;					// Does support windows
-		std::optional<uint32_t> TransferFamily;					// not supported by all GPUs
-
-		bool IsComplete() { return GraphicsFamily.has_value() && PresentFamily.has_value(); }
-		bool HasTransfer() { return TransferFamily.has_value(); }
-	};
-
-	struct QueueFamilies
-	{
-		VkQueue GraphicsQueue;
-		VkQueue PresentQueue;
-		VkQueue TransferQueue;
-	};
-
-	struct VulkanCoreObjects
-	{
-		VkInstance Instance = VK_NULL_HANDLE;
-		VkSurfaceKHR Surface = VK_NULL_HANDLE;
-		VkPhysicalDevice PhysicalDevice = VK_NULL_HANDLE;
-		VkDevice Device = VK_NULL_HANDLE;
-		QueueFamilies QueueFamily;
-		QueueFamilyIndices QueueFamilyIndices;
-
-		VmaAllocator Allocator;
-	};
-
 	struct UploadContext
 	{
 		VkCommandPool CmdPoolGfx;

@@ -5,6 +5,8 @@
 #include "Povox/Core/Core.h"
 #include "Povox/Events/Event.h"
 
+#include "Platform/Vulkan/VulkanSwapchain.h"
+
 
 namespace Povox {
 
@@ -31,9 +33,12 @@ namespace Povox {
 		virtual ~Window() = default;
 
 		virtual void OnUpdate() = 0;
+		virtual void OnResize(uint32_t width, uint32_t height) = 0;
 
 		virtual unsigned int GetWidth() const = 0;
 		virtual unsigned int GetHeight() const = 0;
+
+		virtual VulkanSwapchain& GetSwapchain() = 0;
 
 		// Window attributes
 		virtual void SetEventCallback(const EventCallbackFn& eventcallback) = 0;

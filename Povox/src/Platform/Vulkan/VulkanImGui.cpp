@@ -147,6 +147,7 @@ namespace Povox {
 
 	void VulkanImGui::InitRenderPass()
 	{
+		VulkanRenderPassBuilder builder = VulkanRenderPassBuilder::Begin();
 		VkAttachmentDescription colorAttachment{};
 		colorAttachment.format = m_SwapchainImageFormat;
 		colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
@@ -157,15 +158,17 @@ namespace Povox {
 		colorAttachment.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 		colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
-		VkAttachmentReference reference{};
-		reference.attachment = 0;
-		reference.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+		builder.AddAttachment(colorAttachment);
 
-		VulkanRenderPass::Attachment color{};
-		color.Description = colorAttachment;
-		color.Reference = reference;
 
-		std::vector<VulkanRenderPass::Attachment> attachments{ color };
+		VkAttachmentReference colorRef{};
+		colorRef.attachment = 0;
+		colorRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+		std::vector<VkAttachmentReference> colorRefs{ colorRef };
+
+		builder.CreateAndAddSubpass(VK_PIPELINE_BIND_POINT_GRAPHICS, colorRefs);
+
 
 		VkSubpassDependency dependency{};
 		dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
@@ -175,8 +178,9 @@ namespace Povox {
 		dependency.srcAccessMask = 0;
 		dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 
-		std::vector<VkSubpassDependency> dependencies{ dependency };
-		m_RenderPass = VulkanRenderPass::CreateColor(*m_Core, attachments, dependencies);
+		builder.AddDependency(dependency);
+
+		m_RenderPass = builder.Build();
 	}
 	void VulkanImGui::InitCommandBuffers()
 	{

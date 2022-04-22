@@ -26,7 +26,7 @@ namespace Povox {
 
         
         FramebufferSpecification fbspec;
-        fbspec.Attachements = {FramebufferTextureFormat::RGBA8, FramebufferTextureFormat::RED_INTEGER, FramebufferTextureFormat::Depth};
+		fbspec.Attachements = { {FramebufferTextureFormat::RGBA8}, {FramebufferTextureFormat::RED_INTEGER}, {FramebufferTextureFormat::Depth} };
         fbspec.Width = 1280.0f;
         fbspec.Height = 720.0f;
         m_Framebuffer = Framebuffer::Create(fbspec);

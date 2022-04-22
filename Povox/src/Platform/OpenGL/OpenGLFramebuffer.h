@@ -28,8 +28,8 @@ namespace Povox {
 		uint32_t m_RendererID = 0;
 		FramebufferSpecification m_Specification;
 
-		std::vector<FramebufferTextureSpecification> m_ColorAttachmentSpecifications;
-		FramebufferTextureSpecification m_DepthAttachmentSpecification;
+		std::vector<FramebufferImageSpecification> m_ColorAttachmentSpecifications;
+		FramebufferImageSpecification m_DepthAttachmentSpecification;
 
 		std::vector<uint32_t> m_ColorAttachments;
 		uint32_t m_DepthAttachment;

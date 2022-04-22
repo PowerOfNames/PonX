@@ -9,7 +9,8 @@ namespace Povox {
 	class Povosom : public Application
 	{
 	public:
-		Povosom()
+		Povosom(const ApplicationSpecification& specs)
+			: Application(specs)
 		{
 			PushLayer(new EditorLayer());
 		}
@@ -22,7 +23,14 @@ namespace Povox {
 	Application* CreateApplication()
 	{
 		PX_TRACE("Start Povosom App!");
-		return new Povosom();
+
+		ApplicationSpecification specs;
+
+
+
+		specs.RendererProps.MaxFramesInFlight = 1;
+
+		return new Povosom(specs);
 	}
 
 }

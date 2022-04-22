@@ -17,6 +17,7 @@ public:
 private:
 	Povox::EditorCamera m_EditorCamera;
 	Povox::Ref<Povox::Framebuffer> m_Framebuffer;
+	Povox::Ref<Povox::RenderPass> m_RenderPass;
 
 	bool m_DemoActive = false;
 

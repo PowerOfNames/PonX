@@ -5,24 +5,52 @@
 
 namespace Povox {
 
+	struct QueueFamilyIndices
+	{
+		std::optional<uint32_t> GraphicsFamily;
+		std::optional<uint32_t> PresentFamily;					// Does support windows
+		std::optional<uint32_t> TransferFamily;					// not supported by all GPUs
+
+		bool IsComplete() { return GraphicsFamily.has_value() && PresentFamily.has_value(); }
+		bool HasTransfer() { return TransferFamily.has_value(); }
+	};
+
+	struct QueueFamilies
+	{
+		VkQueue GraphicsQueue;
+		VkQueue PresentQueue;
+		VkQueue TransferQueue;
+	};
+
 	class VulkanDevice
 	{
 	public:
-		static void PickPhysicalDevice(VulkanCoreObjects& core, const std::vector<const char*>& deviceExtensions);
-		static void CreateLogicalDevice(VulkanCoreObjects& core, const std::vector<const char*>& deviceExtensions, const std::vector<const char*> validationLayers);
+		VulkanDevice() = default;
+		~VulkanDevice();
 
-		static SwapchainSupportDetails QuerySwapchainSupport(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface);
-		static SwapchainSupportDetails QuerySwapchainSupport(const VulkanCoreObjects& core) { return QuerySwapchainSupport(core.PhysicalDevice, core.Surface); };
+		SwapchainSupportDetails QuerySwapchainSupport();
+		
+		void PickPhysicalDevice(const std::vector<const char*>& deviceExtensions);
+		void CreateLogicalDevice(const std::vector<const char*>& deviceExtensions, const std::vector<const char*> validationLayers);
 
-		static QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface);
-		static QueueFamilyIndices FindQueueFamilies(const VulkanCoreObjects& core) { return FindQueueFamilies(core.PhysicalDevice, core.Surface); };
+		QueueFamilyIndices FindQueueFamilies();
+		inline const QueueFamilies& GetQueueFamilies() { return m_QueueFamilies; }
 
-		static VkPhysicalDeviceProperties GetPhysicalDeviceProperties(VkPhysicalDevice physicalDevice);
+		VkPhysicalDeviceProperties GetPhysicalDeviceProperties(VkPhysicalDevice physicalDevice);
+
+		inline VkDevice GetVulkanDevice() const { return m_Device; }
+		inline VkPhysicalDevice GetPhysicalDevice() const { return m_PhysicalDevice; }
 
 	private:
-		static int RatePhysicalDevice(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, const std::vector<const char*>& deviceExtensions);
-		static bool CheckDeviceExtensionSupport(VkPhysicalDevice physicalDevice, const std::vector<const char*>& deviceExtensions);
-		
+		int RatePhysicalDevice(const std::vector<const char*>& deviceExtensions);
+		bool CheckDeviceExtensionSupport(const std::vector<const char*>& deviceExtensions);
+
+	private:
+		VkDevice m_Device = VK_NULL_HANDLE;
+		VkPhysicalDevice m_PhysicalDevice = VK_NULL_HANDLE;
+		VkSurfaceKHR m_Surface = VK_NULL_HANDLE;
+
+		QueueFamilies m_QueueFamilies;
 	};
 
 }

@@ -37,9 +37,14 @@
 #include "Povox/Renderer/VertexArray.h"
 #include "Povox/Renderer/Buffer.h"
 #include "Povox/Renderer/Framebuffer.h"
+#include "Povox/Renderer/RenderPass.h"
 #include "Povox/Renderer/Shader.h"
 #include "Povox/Renderer/Texture.h"
+#include "Povox/Renderer/Image2D.h"
 #include "Povox/Renderer/SubTexture2D.h"
+
+// --- Temp
+#include "Platform/Vulkan/VulkanSwapchain.h"
 
 
 #include "Povox/Renderer/Camera.h"

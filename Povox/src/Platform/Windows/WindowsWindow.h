@@ -2,6 +2,7 @@
 
 #include "Povox/Core/Window.h"
 #include "Povox/Renderer/GraphicsContext.h"
+#include "Platform/Vulkan/VulkanSwapchain.h"
 
 #include <GLFW/glfw3.h>
 
@@ -16,8 +17,12 @@ namespace Povox {
 		// Gets called every frame
 		void OnUpdate() override;
 
+		void OnResize(uint32_t width, uint32_t height) override;
+
 		inline unsigned int GetWidth() const override { return m_Data.Width; }
 		inline unsigned int GetHeight() const override { return m_Data.Width; }
+
+		inline VulkanSwapchain& GetSwapchain() override { return *m_Swapchain; } //investigate, if this creates any leaks
 
 		// Window attibutes
 		inline void SetEventCallback(const EventCallbackFn& callback) override { m_Data.EventCallback = callback; }
@@ -31,14 +36,15 @@ namespace Povox {
 		virtual void Init(const WindowProps& props);
 		virtual void Shutdown();
 	private:
-		GLFWwindow* m_Window;
-		Ref<GraphicsContext> m_Context;
+		GLFWwindow* m_Window = nullptr;
+		Ref<GraphicsContext> m_Context = nullptr; // move into renderer?
+		Ref<VulkanSwapchain> m_Swapchain = nullptr;
 
 		struct WindowData
 		{
-			std::string Title;
-			unsigned int Width, Height;
-			bool VSync;
+			std::string Title = "No Title";
+			int Width = 0, Height = 0;
+			bool VSync = true;
 
 			EventCallbackFn EventCallback;
 		};

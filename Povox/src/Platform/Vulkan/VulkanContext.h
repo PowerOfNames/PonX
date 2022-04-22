@@ -21,29 +21,20 @@
 #include <imgui.h>
 #include <backends/imgui_impl_vulkan.h>
 
-struct GLFWwindow;
+
 
 namespace Povox {
 
 	constexpr uint32_t MAX_FRAMES_IN_FLIGHT = 2;
-
 	struct Texture
 	{
-		AllocatedImage Image;
+		AllocatedImage Image2D;
 		VkImageView ImageView;
 	};
 
 	struct FrameData
 	{
-		VkSemaphore PresentSemaphore, RenderSemaphore;
-		VkFence RenderFence;
-
-		VkCommandPool CommandPoolGfx;
-		VkCommandBuffer MainCommandBuffer;
-		//VkCommandPool CommandPoolTrsf;
-
 		AllocatedBuffer CamUniformBuffer;
-
 		VkDescriptorSet GlobalDescriptorSet;
 	};
 
@@ -51,14 +42,12 @@ namespace Povox {
 	{
 	public:
 		VulkanContext();
-		VulkanContext(GLFWwindow* windowHandle);
 
 		virtual void Init() override;
-		virtual void SwapBuffers() override;
 		virtual void Shutdown() override;
 
 
-		void OnFramebufferResize(uint32_t width, uint32_t height);
+		void OnFramebufferResize(uint32_t width, uint32_t height); // wont be necesarry here
 
 		void InitImGui();
 		void BeginImGuiFrame();
@@ -67,6 +56,9 @@ namespace Povox {
 
 		void RecreateSwapchain();
 
+		static const Ref<VulkanDevice> GetDevice() { return s_Device; }
+		static const VkInstance GetInstance() { return s_Instance; }
+		static const VmaAllocator GetAlocator() { return s_Allocator; }
 
 	private:
 		void CopyOffscreenToViewportImage(VkImage& swapchainImage);
@@ -82,11 +74,7 @@ namespace Povox {
 		void SetupDebugMessenger();
 		void PopulateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
 
-		// Surface
-		void CreateSurface();
-
-	// Framebuffers
-		void CreatePresentFramebuffers();		
+	// Framebuffers	
 		void CreateOffscreenFramebuffers();
 
 		void CreateDepthResources();
@@ -96,10 +84,8 @@ namespace Povox {
 		void InitDescriptors();
 		void InitPipelines();
 
-		void InitDefaultRenderPass();
 		void InitOffscreenRenderPass();
 		void CreateViewportImagesAndViews();
-		void CreateTextureSampler();
 
 		void UpdateUniformBuffer();
 
@@ -116,72 +102,59 @@ namespace Povox {
 
 		size_t PadUniformBuffer(size_t inputSize, size_t minGPUBufferOffsetAlignment);
 
-		FrameData& GetCurrentFrame() { return m_Frames[m_CurrentFrame % MAX_FRAMES_IN_FLIGHT]; }
+		FrameData& GetCurrentFrameIndex() { return m_Frames[m_CurrentFrame % MAX_FRAMES_IN_FLIGHT]; }
 
 	private:
 	// context specific
-		GLFWwindow* m_WindowHandle;				// may get refactored out when dealing with multiple windows
-		VulkanCoreObjects m_CoreObjects;
+		//static ContextSpecification? s_Specs -> GetSepc()->Device->GetLogic... or something
+		//	|
+		//	-->Context static, globally available. no more use for statioc CoreObjects and inits everywhere
+		static Ref<VulkanDevice> s_Device;
+		static VkInstance s_Instance;
+		static VmaAllocator s_Allocator;
+		VkPhysicalDeviceProperties m_PhysicalDeviceProperties;										//			| ContextSpec			
+			
+		UploadContext m_UploadContext;																//			| (maybe) ContextSpec
+		uint32_t m_CurrentFrame = 0;
+		FrameData m_Frames[MAX_FRAMES_IN_FLIGHT];	//Swapchain
 
-		VkPhysicalDeviceProperties m_PhysicalDeviceProperties;
 
-		VkDebugUtilsMessengerEXT m_DebugMessenger;
+		SceneUniformBufferD m_SceneParameter;		// external
+		AllocatedBuffer m_SceneParameterBuffer;		// external
 
-		Ref<VulkanSwapchain> m_Swapchain;
-
-		FrameData m_Frames[MAX_FRAMES_IN_FLIGHT];
-		UploadContext m_UploadContext;
-
-		SceneUniformBufferD m_SceneParameter;
-		AllocatedBuffer m_SceneParameterBuffer;
-
+		// all imgui will evantually be refactored out to use the normal engine render code instead of bein inside the context
+		Scope<VulkanImGui> m_ImGui;
 		VkDescriptorSet m_PresentImGuiSet{ VK_NULL_HANDLE };
 		ImTextureID m_PresentImGui = nullptr;
 		bool m_PresentImGuiAlive = false;
 
-		bool m_NeedsResize = false;
-		bool m_Resized = false;
 
-		std::vector<VulkanFramebuffer> m_OffscreenFramebuffers{};
-		std::vector<VkFramebuffer> m_SwapchainFramebuffers{};
+		VulkanFramebufferPool m_FramebufferPool;		// maybe not needed -> why useful, if I pass the framebuffer via the renderpass needed to do a renderpass
+		std::vector<VulkanFramebuffer> m_OffscreenFramebuffers{};	// external
 
-		VkRenderPass m_DefaultRenderPass;
-		VkRenderPass m_OffscreenRenderPass;
-
-		VkPipeline m_GraphicsPipeline;
-		VkPipeline m_LastPipeline;
-		VkPipelineLayout m_GraphicsPipelineLayout;
+		//FramebufferPool?
+		VulkanRenderPassPool m_RenderPassPool;			// maybe not useful, if renderpass are held where created (and in pipeline)
 
 
-		Scope<VulkanImGui> m_ImGui;
+		AllocatedImage m_DepthImage;					// external
+		VkImageView m_DepthImageView;					// external
+
+		AllocatedImage m_ViewportImage;					// external
+		VkImageView m_ViewportImageView;				// external
+
+		VkPipeline m_GraphicsPipeline;					// external
+		VkPipeline m_LastPipeline;						// external or where the renderorder logic happens (VulkanRenderer???)
+		VkPipelineLayout m_GraphicsPipelineLayout;		// Pipeline
+
+		VkDebugUtilsMessengerEXT m_DebugMessenger;
 
 	// VK Buffer, memory and texture images + sampler
-		Mesh m_DoubleTriangleMesh;
+		Mesh m_DoubleTriangleMesh;						// external refactor
 
-		std::unordered_map<std::string, Texture> m_Textures;
-
-		VkSampler m_TextureSampler;
-
-		AllocatedImage m_DepthImage;
-		VkImageView m_DepthImageView;
+		std::unordered_map<std::string, Texture> m_Textures;	// external
 
 		VkDescriptorSetLayout m_GlobalDescriptorSetLayout;
 		VkDescriptorPool m_DescriptorPool;
-
-		
-		AllocatedImage m_ViewportImage;
-		VkImageView m_ViewportImageView;
-
-
-		bool m_FramebufferResized = false;
-		int m_WindowWidth, m_WindowHeight;
-
-
-	// sync objects
-
-		uint32_t m_CurrentFrame = 0;
-
-		bool m_GuiPipelineEnabled = true;
 
 		const std::vector<const char*> m_ValidationLayers = { "VK_LAYER_KHRONOS_validation" };
 		std::vector<const char*> m_DeviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };

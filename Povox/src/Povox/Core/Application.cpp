@@ -14,10 +14,11 @@ namespace Povox {
 
 	Application* Application::s_Instance = nullptr;
 
-	Application::Application()
+	Application::Application(const ApplicationSpecification& specs)
 	{
 		PX_PROFILE_FUNCTION();
 
+		s_Specification = specs;
 
 		PX_CORE_ASSERT(!s_Instance, "Application already exists!");
 		s_Instance = this;
@@ -37,19 +38,18 @@ namespace Povox {
 			case RendererAPI::API::OpenGL:
 			{
 				m_ImGuiLayer = new ImGuiLayer();
+				PushOverlay(m_ImGuiLayer);
 				break;
 			}
 			case RendererAPI::API::Vulkan:
 			{
 				m_ImGuiVulkanLayer = new ImGuiVulkanLayer();
+				PushOverlay(m_ImGuiVulkanLayer);
 				break;
 			}
 			default:
-				PX_CORE_ASSERT(false, "This API is not supported!");
-		}			
-		//PushOverlay(m_ImGuiLayer);
-		PushOverlay(m_ImGuiVulkanLayer);
-		
+			PX_CORE_ASSERT(false, "This API is not supported!");
+		}		
 	}
 
 	Application::~Application() 
@@ -157,6 +157,7 @@ namespace Povox {
 
 		m_Minimized = false;
 		Renderer::OnWindowResize(e.GetWidth(), e.GetHeight());
+		m_Window->OnResize(e.GetWidth(), e.GetHeight());
 
 		return false;
 	}

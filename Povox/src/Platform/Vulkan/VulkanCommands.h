@@ -1,3 +1,4 @@
+
 #pragma once
 
 #include "VulkanDevice.h"
@@ -11,8 +12,8 @@ namespace Povox {
 	class VulkanCommands
 	{
 	public:
-		static void ImmidiateSubmitGfx(const VulkanCoreObjects& core, UploadContext& uploadContext, std::function<void(VkCommandBuffer cmd)>&& function);
-		static void ImmidiateSubmitTrsf(const VulkanCoreObjects& core, UploadContext& uploadContext, std::function<void(VkCommandBuffer cmd)>&& function);
+		static void ImmidiateSubmitGfx(UploadContext& uploadContext, std::function<void(VkCommandBuffer cmd)>&& function);
+		static void ImmidiateSubmitTrsf(UploadContext& uploadContext, std::function<void(VkCommandBuffer cmd)>&& function);
 		//static void CopyBuffer(const VulkanCoreObjects& core, UploadContext& uploadContext, VkBuffer src, VkBuffer dst, VkDeviceSize size);
 		//static void CopyImage(const VulkanCoreObjects& core, UploadContext& uploadContext, VkImage src , VkImage dst, uint32_t width, uint32_t height);
 		//static void TransitionImageLayout(const VulkanCoreObjects& core, UploadContext& uploadContext, VkImage& image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
@@ -29,7 +30,7 @@ namespace Povox {
 	class VulkanCommandPool
 	{
 	public:
-		static VkCommandPool Create(const VulkanCoreObjects& core, VkCommandPoolCreateInfo commandPoolInfo);
+		static VkCommandPool Create(VkCommandPoolCreateInfo commandPoolInfo);
 		static void Destroy(VkDevice device, VkCommandPool& pool);
 	};
 

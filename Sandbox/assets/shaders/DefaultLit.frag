@@ -47,6 +47,6 @@ float toLinear(float x)
 void main()
 {
 	vec4 texColor = texture(t_Texture, v_TexCoord);
-	outColor = vec4(toSRGB(texColor.x), toSRGB(texColor.y), toSRGB(texColor.z), texColor.a);
-	//outColor = texColor;
+	//outColor = vec4(toSRGB(texColor.x), toSRGB(texColor.y), toSRGB(texColor.z), texColor.a);
+	outColor = texColor;
 }

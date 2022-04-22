@@ -4,7 +4,7 @@
 
 namespace Povox {
 
-	class POVOX_API LayerStack
+	class LayerStack
 	{
 	public:
 		LayerStack();

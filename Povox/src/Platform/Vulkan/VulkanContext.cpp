@@ -3,11 +3,12 @@
 
 #include "VulkanDebug.h"
 #include "VulkanDevice.h"
-#include "VulkanImage.h"
+#include "VulkanImage2D.h"
 #include "VulkanCommands.h"
 #include "VulkanInitializers.h"
 #include "VulkanRendererAPI.h"
 
+#include "Povox/Core/Application.h"
 
 #include "vulkan/vulkan.h"
 #pragma warning(push, 0)
@@ -23,65 +24,51 @@
 
 namespace Povox {
 
+	Ref<VulkanDevice> VulkanContext::s_Device = nullptr;
+	VkInstance VulkanContext::s_Instance = nullptr;
+	VmaAllocator VulkanContext::s_Allocator = nullptr;
 
 	VulkanContext::VulkanContext()
 	{
 		PX_CORE_TRACE("VulkanContext created!");
 	}
 
-	VulkanContext::VulkanContext(GLFWwindow* windowHandle)
-		: m_WindowHandle(windowHandle)
-	{
-		PX_CORE_TRACE("VulkanContext created with window!");
-		PX_CORE_ASSERT(windowHandle, "Window handle is null");
-
-		//glfwSetWindowUserPointer(windowHandle, this);
-		//glfwSetFramebufferSizeCallback(windowHandle, FramebufferResizeCallback);
-	}
-
 	void VulkanContext::Init()
 	{
 		PX_PROFILE_FUNCTION();
 
-		VulkanRendererAPI::SetContext(this);
+		VulkanRendererAPI::SetContext(this); //make context static in the future
 
 		CreateInstance();
-		if(PX_ENABLE_VK_VALIDATION_LAYERS)
+#ifdef PX_ENABLE_VK_VALIDATION_LAYERS
 			SetupDebugMessenger();
-		CreateSurface();
+#endif
 		// Device picking and creation -> happens automatically
-		VulkanDevice::PickPhysicalDevice(m_CoreObjects, m_DeviceExtensions);
-		m_PhysicalDeviceProperties = VulkanDevice::GetPhysicalDeviceProperties(m_CoreObjects.PhysicalDevice);
-		VulkanDevice::CreateLogicalDevice(m_CoreObjects, m_DeviceExtensions, m_ValidationLayers);
+		s_Device = CreateRef<VulkanDevice>();
+		s_Device->PickPhysicalDevice(m_DeviceExtensions);
+		m_PhysicalDeviceProperties = s_Device->GetPhysicalDeviceProperties(s_Device->GetPhysicalDevice());
+		s_Device->CreateLogicalDevice(m_DeviceExtensions, m_ValidationLayers);
 		PX_CORE_WARN("Finished Core!");
 
-		// Swapchain creation -> needs window size either automatically or maybe by setting values inside the vulkan renderer
-		//TODO: refactor
-		m_Swapchain = CreateRef<VulkanSwapchain>();
-		glfwGetFramebufferSize(m_WindowHandle, &m_WindowWidth, &m_WindowHeight);
-		m_Swapchain->Create(m_CoreObjects, VulkanDevice::QuerySwapchainSupport(m_CoreObjects), m_WindowWidth, m_WindowHeight);
-		m_Swapchain->CreateImagesAndViews(m_CoreObjects.Device);
-		PX_CORE_WARN("Finished Swapchain!");
-
-		CreateSyncObjects();
-		PX_CORE_WARN("Finished sync!");
-
-		// descriptorpools and sets are dependent on the set layout which will be dynamic dependend on the use case of the vulkan renderer (atm its just the ubo and texture sampler)
+		// descriptorpools and sets are dependent on the set layout which will be dynamic dependent on the use case of the vulkan renderer (atm its just the ubo and texture sampler)
 		CreateMemAllocator();
 		PX_CORE_WARN("Finished MemAllocator!");
+
+		m_RenderPassPool = VulkanRenderPassPool();
+
+		//set the coreObjects for all vulkan object abstractions and helper classes
+		VulkanFramebuffer::Init(&m_FramebufferPool);
+		//VulkanIndexBuffer::Init(&m_CoreObjects);
+		//VulkanVertexBuffer::Init(&m_CoreObjects);
 
 		InitCommands();
 		PX_CORE_WARN("Finished Commands!");
 
 		// Renderpass creation -> automatically after swapchain creation
-		InitDefaultRenderPass();
 		InitOffscreenRenderPass();
 		PX_CORE_WARN("Finished Renderpass!");
 
 		CreateViewportImagesAndViews();
-
-		CreateTextureSampler();
-		PX_CORE_WARN("Finished Sampler!");
 
 		LoadTextures();
 		PX_CORE_WARN("Finished loading textures!");
@@ -95,17 +82,16 @@ namespace Povox {
 
 		CreateDepthResources();
 		// default initially, but can change, framebuffer main bridge to after effects stuff
-		CreatePresentFramebuffers();
-		CreateOffscreenFramebuffers();
+		//CreatePresentFramebuffers();
+		//CreateOffscreenFramebuffers();
 		PX_CORE_WARN("Finished fbs!");
 
 		LoadMeshes();
 		PX_CORE_WARN("Finished loading meshes!");
 
-		m_ImGui = CreateScope<VulkanImGui>(&m_CoreObjects, &m_UploadContext, m_Swapchain->GetImageFormat(), (uint8_t)MAX_FRAMES_IN_FLIGHT);
+		m_ImGui = CreateScope<VulkanImGui>(&m_UploadContext, Application::Get().GetWindow().GetSwapchain().GetImageFormat(), (uint8_t)Application::GetSpecification().RendererProps.MaxFramesInFlight);
 		
-		
-		
+
 		PX_CORE_TRACE("VulkanContext initialization finished!");
 	}
 
@@ -121,24 +107,19 @@ namespace Povox {
 			glfwWaitEvents();
 		}
 
-		vkDeviceWaitIdle(m_CoreObjects.Device);
-
-		CleanupSwapchain();
-		m_Swapchain->Create(m_CoreObjects, VulkanDevice::QuerySwapchainSupport(m_CoreObjects), width, height);
-		m_Swapchain->CreateImagesAndViews(m_CoreObjects.Device);
-		
-		InitDefaultRenderPass();
+		vkDeviceWaitIdle(s_Device->GetVulkanDevice());
+				
 		CreateDepthResources();
-		CreatePresentFramebuffers();
 
 		CreateViewportImagesAndViews();
 
 		InitOffscreenRenderPass();
 		for (auto& framebuffer : m_OffscreenFramebuffers)
 		{
-			framebuffer.Resize(m_OffscreenRenderPass, width, height);
+			framebuffer.Resize(width, height);
 		}
-		m_ImGui->OnSwapchainRecreate(m_Swapchain->GetImageViews(), m_Swapchain->GetExtent2D());
+		VkExtent2D extent{ Application::Get().GetWindow().GetSwapchain().GetProperties().Width, Application::Get().GetWindow().GetSwapchain().GetProperties().Height };
+		m_ImGui->OnSwapchainRecreate(Application::Get().GetWindow().GetSwapchain().GetImageViews(), extent);
 
 		InitPipelines();
 		CreateDepthResources();
@@ -148,42 +129,25 @@ namespace Povox {
 
 	void VulkanContext::CleanupSwapchain()
 	{
-		vkDeviceWaitIdle(m_CoreObjects.Device);
+		vkDeviceWaitIdle(s_Device->GetVulkanDevice());
 		PX_CORE_TRACE("Cleanup swapchain begin!");
 
-		vkDestroyImageView(m_CoreObjects.Device, m_DepthImageView, nullptr);
-		vmaDestroyImage(m_CoreObjects.Allocator, m_DepthImage.Image, m_DepthImage.Allocation);
+		vkDestroyImageView(s_Device->GetVulkanDevice(), m_DepthImageView, nullptr);
+		vmaDestroyImage(s_Allocator, m_DepthImage.Image, m_DepthImage.Allocation);
 		
-		vkDestroyImageView(m_CoreObjects.Device, m_ViewportImageView, nullptr);
-		vmaDestroyImage(m_CoreObjects.Allocator, m_ViewportImage.Image, m_ViewportImage.Allocation);
+		vkDestroyImageView(s_Device->GetVulkanDevice(), m_ViewportImageView, nullptr);
+		vmaDestroyImage(s_Allocator, m_ViewportImage.Image, m_ViewportImage.Allocation);
 
-
-		for (auto& framebuffer : m_SwapchainFramebuffers)
-		{
-			vkDestroyFramebuffer(m_CoreObjects.Device, framebuffer, nullptr);
-		}
 		m_ImGui->DestroyFramebuffers();
-		/*for (int i = 0; i <= MAX_FRAMES_IN_FLIGHT; i++)
-		{
-			vkFreeCommandBuffers(m_CoreObjects.Device, m_Frames[i].CommandPoolGfx, 1, &m_Frames[i].MainCommandBuffer);
-		}*/
-		vkDestroyPipeline(m_CoreObjects.Device, m_GraphicsPipeline, nullptr);
-		vkDestroyPipelineLayout(m_CoreObjects.Device, m_GraphicsPipelineLayout, nullptr);
+		vkDestroyPipeline(s_Device->GetVulkanDevice(), m_GraphicsPipeline, nullptr);
+		vkDestroyPipelineLayout(s_Device->GetVulkanDevice(), m_GraphicsPipelineLayout, nullptr);
 		m_ImGui->DestroyRenderPass();
-		vkDestroyRenderPass(m_CoreObjects.Device, m_DefaultRenderPass, nullptr);
-		vkDestroyRenderPass(m_CoreObjects.Device, m_OffscreenRenderPass, nullptr);
+		vkDestroyRenderPass(s_Device->GetVulkanDevice(), m_RenderPassPool.RemoveRenderPass("OffscreenPass"), nullptr);
 
-		for (auto& imageView : m_Swapchain->GetImageViews())
-		{
-			vkDestroyImageView(m_CoreObjects.Device, imageView, nullptr);
-		}
 		for (auto& framebuffer : m_OffscreenFramebuffers)
 		{
 			framebuffer.Destroy();
 		}
-
-		m_Swapchain->Destroy(m_CoreObjects.Device);
-		PX_CORE_TRACE("Cleanup swapchain finshed!");
 	}
 
 	void VulkanContext::Shutdown()
@@ -194,100 +158,83 @@ namespace Povox {
 		CleanupSwapchain();
 		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
 		{
-			vmaDestroyBuffer(m_CoreObjects.Allocator, m_Frames[i].CamUniformBuffer.Buffer, m_Frames[i].CamUniformBuffer.Allocation);
+			vmaDestroyBuffer(s_Allocator, m_Frames[i].CamUniformBuffer.Buffer, m_Frames[i].CamUniformBuffer.Allocation);
 		}
-		vmaDestroyBuffer(m_CoreObjects.Allocator, m_SceneParameterBuffer.Buffer, m_SceneParameterBuffer.Allocation);
-		vkDestroyDescriptorPool(m_CoreObjects.Device, m_DescriptorPool, nullptr);
+		vmaDestroyBuffer(s_Allocator, m_SceneParameterBuffer.Buffer, m_SceneParameterBuffer.Allocation);
+		vkDestroyDescriptorPool(s_Device->GetVulkanDevice(), m_DescriptorPool, nullptr);
 		m_ImGui->Destroy();
 
-		vkDestroySampler(m_CoreObjects.Device, m_TextureSampler, nullptr);
+		vkDestroySampler(s_Device->GetVulkanDevice(), m_TextureSampler, nullptr);
 
 		for (auto& [name, texture] : m_Textures)
 		{
-			vkDestroyImageView(m_CoreObjects.Device, texture.ImageView, nullptr);
-			vmaDestroyImage(m_CoreObjects.Allocator, texture.Image.Image, texture.Image.Allocation);
+			vkDestroyImageView(s_Device->GetVulkanDevice(), texture.ImageView, nullptr);
+			vmaDestroyImage(s_Allocator, texture.Image2D.Image, texture.Image2D.Allocation);
 		}
 
-		vkDestroyDescriptorSetLayout(m_CoreObjects.Device, m_GlobalDescriptorSetLayout, nullptr);
-		vkDestroyFence(m_CoreObjects.Device, m_UploadContext.Fence, nullptr);
-
-		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
-		{
-			vkDestroySemaphore(m_CoreObjects.Device, m_Frames[i].PresentSemaphore, nullptr);
-			vkDestroySemaphore(m_CoreObjects.Device, m_Frames[i].RenderSemaphore, nullptr);
-			vkDestroyFence(m_CoreObjects.Device, m_Frames[i].RenderFence, nullptr);
-
-			//vkDestroyCommandPool(m_CoreObjects.Device, m_Frames[i].CommandPoolTrsf, nullptr);
-			vkDestroyCommandPool(m_CoreObjects.Device, m_Frames[i].CommandPoolGfx, nullptr);
-		}
-		vkDestroyCommandPool(m_CoreObjects.Device, m_UploadContext.CmdPoolGfx, nullptr);
-		vkDestroyCommandPool(m_CoreObjects.Device, m_UploadContext.CmdPoolTrsf, nullptr);
+		vkDestroyDescriptorSetLayout(s_Device->GetVulkanDevice(), m_GlobalDescriptorSetLayout, nullptr);
+		vkDestroyFence(s_Device->GetVulkanDevice(), m_UploadContext.Fence, nullptr);
+		
+		vkDestroyCommandPool(s_Device->GetVulkanDevice(), m_UploadContext.CmdPoolGfx, nullptr);
+		vkDestroyCommandPool(s_Device->GetVulkanDevice(), m_UploadContext.CmdPoolTrsf, nullptr);
 		m_ImGui->DestroyCommands();
 
-		vkDestroyDevice(m_CoreObjects.Device, nullptr);
-
 		if (PX_ENABLE_VK_VALIDATION_LAYERS)
-			DestroyDebugUtilsMessengerEXT(m_CoreObjects.Instance, m_DebugMessenger, nullptr);
-		vkDestroySurfaceKHR(m_CoreObjects.Instance, m_CoreObjects.Surface, nullptr);
-		vkDestroyInstance(m_CoreObjects.Instance, nullptr);
-
-		//glfw termination and window deletion at last
+			DestroyDebugUtilsMessengerEXT(s_Instance, m_DebugMessenger, nullptr);
+		vkDestroyInstance(s_Instance, nullptr);
 	}
 
-	void VulkanContext::SwapBuffers()
+
+	//Swap buffers can be called by a swapchain. Same goes for:
+	// AcquireNextImage -> return image index
+	// QueueSubmit stuff -> needs to be researched, if I ned to collect every command buffer before and put them here. THen, It may be managed by the CommandBUfferQueue upon Execute?
+	// Present -> sets up the QueuePresent stuff
+	// 
+	//It should exclude everything that is CommanBuffer recoding, renderpass management and material/pipeline managment, but they need to happen in th right order in the App.Run loop
+	//Uniformbuffer related stuff, swapchain recreation, I will have to see if I can manage that via the layers and window
+	// also, GUI (ImgUi) management
+	void VulkanContext::SwapBuffers() //technically this function just does the presenting. The command recording and frame prep needs to be separated
 	{
 		PX_PROFILE_FUNCTION();
 
-
-		PX_CORE_WARN("Start swap buffers!");
-		vkWaitForFences(m_CoreObjects.Device, 1, &GetCurrentFrame().RenderFence, VK_TRUE, UINT64_MAX);
-		vkResetFences(m_CoreObjects.Device, 1, &GetCurrentFrame().RenderFence);
-
-		vkResetCommandBuffer(GetCurrentFrame().MainCommandBuffer, 0);
-
-		uint32_t imageIndex;
-		VkResult result = vkAcquireNextImageKHR(m_CoreObjects.Device, m_Swapchain->Get(), UINT64_MAX /*disables timeout*/, GetCurrentFrame().PresentSemaphore, VK_NULL_HANDLE, &imageIndex);
-
-		if (result == VK_ERROR_OUT_OF_DATE_KHR)
-		{
-			RecreateSwapchain();
-			return;
-		}
-		else
-		{
-			PX_CORE_ASSERT(!((result != VK_SUCCESS) && (result != VK_SUBOPTIMAL_KHR)), "Failed to acquire swap chain image!");
-		}
 
 		PX_CORE_WARN("Start update uniform buffer!");
 		UpdateUniformBuffer();			// Update function
 		PX_CORE_WARN("Finished update uniform buffer!");
 
 
-		VkCommandBuffer cmd = GetCurrentFrame().MainCommandBuffer;
+		//combine the beginRender with a renderpass. Renderpass holds the framebuffer it is targeted to. this way I dont need a framebuffer pool in particular
+
+
+		VkCommandBuffer cmd = GetCurrentFrameIndex().MainCommandBuffer;
 		VkCommandBufferBeginInfo cmdBegin = VulkanInits::BeginCommandBuffer(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
 		PX_CORE_VK_ASSERT(vkBeginCommandBuffer(cmd, &cmdBegin), VK_SUCCESS, "Failed to begin command buffer!");
 
 		std::array<VkClearValue, 2> clearColor = {};
-		clearColor[0].color = { 0.25f, 0.25f, 0.25f, 1.0f };																			// clearcolor (framebuffer)
+		clearColor[0].color = { 0.25f, 0.25f, 0.25f, 1.0f };			// clearcolor (framebuffer)
 		clearColor[1].depthStencil = { 1.0f, 0 };
 
-		if (m_GuiPipelineEnabled)
+		if (Application::GetSpecification().ImGuiEnabled)
 		{
-			VkRenderPassBeginInfo renderPassBegin = VulkanInits::BeginRenderPass(m_OffscreenRenderPass, m_Swapchain->GetExtent2D(), m_OffscreenFramebuffers[imageIndex].Get());
+			VkRenderPassBeginInfo renderPassBegin = VulkanInits::BeginRenderPass(	m_RenderPassPool.GetRenderPass("OffscreenPass"), 
+																					m_Swapchain->GetExtent2D(), 
+																					m_FramebufferPool.GetFramebuffer("OffscreenFB")->GetCurrent(imageIndex));
+			//Framebuffer clear colors!
 			renderPassBegin.clearValueCount = static_cast<uint32_t>(clearColor.size());
 			renderPassBegin.pClearValues = clearColor.data();
 			vkCmdBeginRenderPass(cmd, &renderPassBegin, VK_SUBPASS_CONTENTS_INLINE);
 		}
 		else
-		{
-			
+		{		
+			//Render without GUI to default framebuffer
+
 		}
 
 		vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_GraphicsPipeline);																	// Bind command for pipeline		|needs (bind point (graphisc here)), pipeline
 
 		int frameIndex = m_CurrentFrame % MAX_FRAMES_IN_FLIGHT;
 		uint32_t uniformOffset = PadUniformBuffer(sizeof(SceneUniformBufferD), m_PhysicalDeviceProperties.limits.minUniformBufferOffsetAlignment) * frameIndex;
-		vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_GraphicsPipelineLayout, 0, 1, &GetCurrentFrame().GlobalDescriptorSet, 1, &uniformOffset);	// Bind command for descriptor-sets |needs (bindpoint), pipeline-layout, firstSet, setCount, setArray, dynOffsetCount, dynOffsets 		
+		vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_GraphicsPipelineLayout, 0, 1, &GetCurrentFrameIndex().GlobalDescriptorSet, 1, &uniformOffset);	// Bind command for descriptor-sets |needs (bindpoint), pipeline-layout, firstSet, setCount, setArray, dynOffsetCount, dynOffsets 		
 
 		VkBuffer vertexBuffers[] = { m_DoubleTriangleMesh.VertexBuffer.Buffer };																			// VertexBuffer needed
 		VkDeviceSize offsets[] = { 0 };
@@ -306,11 +253,11 @@ namespace Povox {
 		vkCmdDrawIndexed(cmd, static_cast<uint32_t>(m_DoubleTriangleMesh.Indices.size()), 1, 0, 0, 0);				// Draw indexed command		|needs index count, instance count, firstIndex, vertex offset, first instance 
 		vkCmdEndRenderPass(cmd); // End Render Pass
 		
-		VkRenderPassBeginInfo renderPassBegin = VulkanInits::BeginRenderPass(m_DefaultRenderPass, m_Swapchain->GetExtent2D(), m_SwapchainFramebuffers[imageIndex]);
+		/*VkRenderPassBeginInfo renderPassBegin = VulkanInits::BeginRenderPass(m_RenderPassPool.GetRenderPass("DefaultPass"), m_Swapchain->GetExtent2D(), m_SwapchainFramebuffers[imageIndex]);
 		renderPassBegin.clearValueCount = static_cast<uint32_t>(clearColor.size());
 		renderPassBegin.pClearValues = clearColor.data();
 		vkCmdBeginRenderPass(cmd, &renderPassBegin, VK_SUBPASS_CONTENTS_INLINE);
-		vkCmdEndRenderPass(cmd); // End Render Pass
+		vkCmdEndRenderPass(cmd);*/ // End Render Pass
 
 		PX_CORE_VK_ASSERT(vkEndCommandBuffer(cmd), VK_SUCCESS, "Failed to record graphics command buffer!");
 
@@ -321,74 +268,11 @@ namespace Povox {
 		VkCommandBuffer imGuicmd = m_ImGui->BeginRender(imageIndex, m_Swapchain->GetExtent2D());
 		m_ImGui->RenderDrawData(imGuicmd);
 		m_ImGui->EndRender(imGuicmd);
-		PX_CORE_WARN("End ImGUi");
-
-
-		VkSubmitInfo submitInfo{};
-		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-
-		std::array<VkCommandBuffer, 2> cmds{ cmd, imGuicmd };
-		VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
-		submitInfo.waitSemaphoreCount = 1;
-		submitInfo.pWaitDstStageMask = waitStages;
-		submitInfo.pWaitSemaphores = &GetCurrentFrame().PresentSemaphore;
-		submitInfo.commandBufferCount = cmds.size();
-		submitInfo.pCommandBuffers = cmds.data();		// command buffer usage
-
-		submitInfo.signalSemaphoreCount = 1;
-		submitInfo.pSignalSemaphores = &GetCurrentFrame().RenderSemaphore;
-
-		PX_CORE_WARN("Start Begin Submit");
-		PX_CORE_VK_ASSERT(vkQueueSubmit(m_CoreObjects.QueueFamily.GraphicsQueue, 1, &submitInfo, GetCurrentFrame().RenderFence), VK_SUCCESS, "Failed to submit draw render buffer!");
-		PX_CORE_WARN("Start End Submit");
-
-		VkPresentInfoKHR presentInfo{};
-		presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-		presentInfo.swapchainCount = 1;
-		VkSwapchainKHR swapchains[] = { m_Swapchain->Get() };
-		presentInfo.pSwapchains = swapchains;
-
-		presentInfo.pWaitSemaphores = &GetCurrentFrame().RenderSemaphore;
-		presentInfo.waitSemaphoreCount = 1;
-
-		presentInfo.pImageIndices = &imageIndex;
-		presentInfo.pResults = nullptr;		// optional
-
-		result = vkQueuePresentKHR(m_CoreObjects.QueueFamily.PresentQueue, &presentInfo);
-
-		if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || m_FramebufferResized)
-		{
-			m_FramebufferResized = false;
-			RecreateSwapchain();
-		}
-		else
-		{
-			PX_CORE_ASSERT(result == VK_SUCCESS, "Failed to present swap chain image!");
-		}
-
-		m_CurrentFrame++;
-		PX_CORE_WARN("Current Frame: '{0}'", m_CurrentFrame);
-		PX_CORE_WARN("Current Frame: '{0}'", m_CurrentFrame % MAX_FRAMES_IN_FLIGHT);
-		PX_CORE_WARN("Finished swap buffers!");
-	}
-
-	void VulkanContext::AddImGuiImage(float width, float height)
-	{
-		//later change to "First frame presented, or something"
-		//ImGui is dependend on the first frame being rendered (cause of viewport)
-		if (m_CurrentFrame > 0)
-		{
-			if (m_PresentImGui == nullptr || m_FramebufferResized)
-			{
-				vkFreeDescriptorSets(m_CoreObjects.Device, m_ImGui->GetDescriptorPool(), 1, &m_PresentImGuiSet);
-				m_PresentImGuiSet = ImGui_VulkanImpl_AddTexture(m_TextureSampler, m_ViewportImageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-			}
-			ImGui::Image((ImTextureID)m_PresentImGuiSet, { width, height }); //TODO: -> move to Example
-		}
-		PX_CORE_TRACE("Current frame: {0}", m_CurrentFrame);
+		PX_CORE_WARN("End ImGUi");		
 	}
 
 
+	// this is only used in the next function!
 	void VulkanContext::CreateViewportImagesAndViews()
 	{
 		VkExtent3D extent;
@@ -397,12 +281,14 @@ namespace Povox {
 		extent.depth = 1;
 
 		VkImageCreateInfo imageInfo = VulkanInits::CreateImageInfo(m_Swapchain->GetImageFormat(), VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, extent);
-		m_ViewportImage = VulkanImage::Create(m_CoreObjects, imageInfo, VMA_MEMORY_USAGE_CPU_ONLY);
+		m_ViewportImage = VulkanImageDepr::Create(imageInfo, VMA_MEMORY_USAGE_CPU_ONLY);
 
 		VkImageViewCreateInfo ivInfo = VulkanInits::CreateImageViewInfo(m_Swapchain->GetImageFormat(), m_ViewportImage.Image, VK_IMAGE_ASPECT_COLOR_BIT);
-		vkCreateImageView(m_CoreObjects.Device, &ivInfo, nullptr, &m_ViewportImageView);
+		vkCreateImageView(s_Device->GetVulkanDevice(), &ivInfo, nullptr, &m_ViewportImageView);
 	}
 
+	//maybe refactor this in a ways, that I can call a function in the layer, which results to me the image as Image2D or Texture2D, so I can use it. Need to make sure
+	// I reuse the resource, and not create a new one every time I call this
 	void VulkanContext::CopyOffscreenToViewportImage(VkImage& srcImage)
 	{
 		//Transitioning
@@ -498,6 +384,7 @@ namespace Povox {
 			});
 	}
 
+	// will have to see what happens with this stuff
 	void VulkanContext::UpdateUniformBuffer()
 	{
 		static auto startTime = std::chrono::high_resolution_clock::now();
@@ -512,9 +399,9 @@ namespace Povox {
 		ubo.ViewProjMatrix = ubo.ProjectionMatrix * ubo.ViewMatrix;
 
 		void* data;
-		vmaMapMemory(m_CoreObjects.Allocator, GetCurrentFrame().CamUniformBuffer.Allocation, &data);
+		vmaMapMemory(m_CoreObjects.Allocator, GetCurrentFrameIndex().CamUniformBuffer.Allocation, &data);
 		memcpy(data, &ubo, sizeof(CameraUniformBuffer));
-		vmaUnmapMemory(m_CoreObjects.Allocator, GetCurrentFrame().CamUniformBuffer.Allocation);
+		vmaUnmapMemory(m_CoreObjects.Allocator, GetCurrentFrameIndex().CamUniformBuffer.Allocation);
 
 		m_SceneParameter.AmbientColor = glm::vec4(0.2f, 0.5f, 1.0f, 1.0f);
 
@@ -535,10 +422,10 @@ namespace Povox {
 		return alignedSize;
 	}
 
-	// ImGui
+	// ImGui -> questionable where this should go
 	void VulkanContext::InitImGui()
 	{
-		m_ImGui->Init(m_Swapchain->GetImageViews(), m_Swapchain->GetExtent2D().width, m_Swapchain->GetExtent2D().height);
+		m_ImGui->Init(Application::Get().GetWindow().GetSwapchain().GetImageViews(), m_Swapchain->GetExtent2D().width, m_Swapchain->GetExtent2D().height);
 	}
 	void VulkanContext::BeginImGuiFrame()
 	{
@@ -548,8 +435,24 @@ namespace Povox {
 	{
 		m_ImGui->EndFrame();
 	}
+	void VulkanContext::AddImGuiImage(float width, float height)
+	{
+		//later change to "First frame presented, or something"
+		//ImGui is dependend on the first frame being rendered (cause of viewport)
+		if (m_CurrentFrame > 0)
+		{
+			if (m_PresentImGui == nullptr || m_FramebufferResized)
+			{
+				vkFreeDescriptorSets(s_Device->GetVulkanDevice(), m_ImGui->GetDescriptorPool(), 1, &m_PresentImGuiSet);
+				m_PresentImGuiSet = ImGui_VulkanImpl_AddTexture(m_TextureSampler, m_ViewportImageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+			}
+			ImGui::Image((ImTextureID)m_PresentImGuiSet, { width, height }); //TODO: -> move to Example
+		}
+		PX_CORE_TRACE("Current frame: {0}", m_CurrentFrame);
+	}
 
-	// Instance
+
+	//Core stuff -> those will get called upon init, and stored as statics, so I can call the statically from where I need them (mostly vulkan specific files)
 	void VulkanContext::CreateInstance()
 	{
 		if (PX_ENABLE_VK_VALIDATION_LAYERS && !CheckValidationLayerSupport())
@@ -589,78 +492,23 @@ namespace Povox {
 		createInfo.enabledExtensionCount = extensions.size();
 		createInfo.ppEnabledExtensionNames = extensions.data();
 
-		PX_CORE_VK_ASSERT(vkCreateInstance(&createInfo, nullptr, &m_CoreObjects.Instance), VK_SUCCESS, "Failed to create Vulkan Instance");
-	}
-	// Surface
-	void VulkanContext::CreateSurface()
-	{
-		PX_CORE_VK_ASSERT(glfwCreateWindowSurface(m_CoreObjects.Instance, m_WindowHandle, nullptr, &m_CoreObjects.Surface), VK_SUCCESS, "Failed to create window surface!");
-	}
-	// Memory Allocator
+		PX_CORE_VK_ASSERT(vkCreateInstance(&createInfo, nullptr, &s_Instance), VK_SUCCESS, "Failed to create Vulkan Instance");
+	}	
+		
 	void VulkanContext::CreateMemAllocator()
 	{
 		VmaAllocatorCreateInfo vmaAllocatorInfo = {};
-		vmaAllocatorInfo.physicalDevice = m_CoreObjects.PhysicalDevice;
-		vmaAllocatorInfo.device = m_CoreObjects.Device;
-		vmaAllocatorInfo.instance = m_CoreObjects.Instance;
-		vmaCreateAllocator(&vmaAllocatorInfo, &m_CoreObjects.Allocator);
+		vmaAllocatorInfo.physicalDevice = s_Device->GetPhysicalDevice();
+		vmaAllocatorInfo.device = s_Device->GetVulkanDevice();
+		vmaAllocatorInfo.instance = s_Instance;
+		vmaCreateAllocator(&vmaAllocatorInfo, &s_Allocator);
 	}
 
-	void VulkanContext::InitDefaultRenderPass()
-	{
-		VkAttachmentDescription colorAttachment{};
-		colorAttachment.format = m_Swapchain->GetImageFormat();
-		colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;		// format of swapchain images
-		colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;	// load and store ops determine what to do with the data before rendering (apply to depth data)
-		colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-		colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-		colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-		colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-		colorAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;		// we want the image to be ready for presentation in the swapchain, so final is present layout
-		// Layout is importent to know, because the next operation the image is involved in needs that
-		// initial is before render pass, final is the layout the imiga is automatically transitioned to after the render pass finishes
-
-		VkAttachmentReference colorRef{};
-		colorRef.attachment = 0;
-		colorRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-		VulkanRenderPass::Attachment color{};
-		color.Description = colorAttachment;
-		color.Reference = colorRef;
-
-		VkAttachmentDescription depthAttachment{};
-		depthAttachment.format = VulkanUtils::FindDepthFormat(m_CoreObjects.PhysicalDevice);
-		depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-		depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-		depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-		depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-		depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-		depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-		depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-		VkAttachmentReference depthRef{};
-		depthRef.attachment = 1;
-		depthRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-		VulkanRenderPass::Attachment depth{};
-		depth.Description = depthAttachment;
-		depth.Reference = depthRef;
-
-		VkSubpassDependency dependency{}; // dependencies between subpasses
-		dependency.srcSubpass = VK_SUBPASS_EXTERNAL;	// refers to before or after the render pass depending on it being specified on src or dst
-		dependency.dstSubpass = 0;						// index of subpass, dstSubpass must always be higher then src subpass unless one of them is VK_SUBPASS_EXTERNAL
-		dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT; // operation to wait on
-		dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-		dependency.srcAccessMask = 0;
-		dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-
-		std::vector<VulkanRenderPass::Attachment> attachments{ color, depth };
-		std::vector<VkSubpassDependency> dependiencies{ dependency };
-		m_DefaultRenderPass = VulkanRenderPass::CreateColorAndDepth(m_CoreObjects, attachments, dependiencies);
-	}
-
+	//layer managed
 	void VulkanContext::InitOffscreenRenderPass()
 	{
+		VulkanRenderPassBuilder builder = VulkanRenderPassBuilder::Begin();
+
 		VkAttachmentDescription colorAttachment{};
 		colorAttachment.format = m_Swapchain->GetImageFormat();
 		colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
@@ -671,8 +519,11 @@ namespace Povox {
 		colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 		colorAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
+		builder.AddAttachment(colorAttachment);
+
+
 		VkAttachmentDescription depthAttachment{};
-		depthAttachment.format = VulkanUtils::FindDepthFormat(m_CoreObjects.PhysicalDevice);
+		depthAttachment.format = VulkanUtils::FindDepthFormat(s_Device->GetPhysicalDevice());
 		depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
 		depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 		depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
@@ -681,21 +532,19 @@ namespace Povox {
 		depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 		depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
+		builder.AddAttachment(depthAttachment);
+
+		
 		VkAttachmentReference colorRef{};
 		colorRef.attachment = 0;
 		colorRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-		VulkanRenderPass::Attachment color{};
-		color.Description = colorAttachment;
-		color.Reference = colorRef;
 
 		VkAttachmentReference depthRef{};
 		depthRef.attachment = 1;
 		depthRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
-		VulkanRenderPass::Attachment depth{};
-		depth.Description = depthAttachment;
-		depth.Reference = depthRef;
+		std::vector<VkAttachmentReference> colorRefs{ colorRef };
+		builder.CreateAndAddSubpass(VK_PIPELINE_BIND_POINT_GRAPHICS, colorRefs, depthRef);
 
 		VkSubpassDependency dependency{};
 		dependency.srcSubpass = 0;
@@ -705,12 +554,11 @@ namespace Povox {
 		dependency.srcAccessMask = 0;
 		dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 
-
-		std::vector<VulkanRenderPass::Attachment> attachments{ color, depth };
-		std::vector<VkSubpassDependency> dependiencies{ dependency };
-		m_OffscreenRenderPass = VulkanRenderPass::CreateColorAndDepth(m_CoreObjects, attachments, dependiencies);
+		builder.AddDependency(dependency);
+		m_RenderPassPool.AddRenderPass("OffscreenPass", builder.Build());		 
 	}
 
+	//external stuff, all managed by the layers via the different renderers
 	void VulkanContext::LoadMeshes()
 	{
 		const std::vector<VertexData> vertices = {
@@ -733,39 +581,36 @@ namespace Povox {
 		VulkanVertexBuffer::Create(m_CoreObjects, m_UploadContext, m_DoubleTriangleMesh);
 		VulkanIndexBuffer::Create(m_CoreObjects, m_UploadContext, m_DoubleTriangleMesh);
 	}
-
+	// same as shaders, get created an stored inside the layers, and then linked via a game object or material?
 	void VulkanContext::LoadTextures()
 	{
 		Texture logo;
-		logo.Image = VulkanImage::LoadFromFile(m_CoreObjects, m_UploadContext, "assets/textures/newLogo.png", VK_FORMAT_R8G8B8A8_SRGB);
+		logo.Image2D = VulkanImageDepr::LoadFromFile(m_CoreObjects, m_UploadContext, "assets/textures/newLogo.png", VK_FORMAT_R8G8B8A8_SRGB);
 
-		VkImageViewCreateInfo imageInfo = VulkanInits::CreateImageViewInfo(VK_FORMAT_R8G8B8A8_SRGB, logo.Image.Image, VK_IMAGE_ASPECT_COLOR_BIT);
-		PX_CORE_VK_ASSERT(vkCreateImageView(m_CoreObjects.Device, &imageInfo, nullptr, &logo.ImageView), VK_SUCCESS, "Failed to create image view!");
+		VkImageViewCreateInfo imageInfo = VulkanInits::CreateImageViewInfo(VK_FORMAT_R8G8B8A8_SRGB, logo.Image2D.Image, VK_IMAGE_ASPECT_COLOR_BIT);
+		PX_CORE_VK_ASSERT(vkCreateImageView(s_Device->GetVulkanDevice(), &imageInfo, nullptr, &logo.ImageView), VK_SUCCESS, "Failed to create image view!");
 
 		m_Textures["Logo"] = logo;
 	}
 
+	// one of the more tricky ones -> create CommandBuffers and RenderCommandBuffer? RenderCommandqueue which then gets executed from the rendered
+	// commands get collected inside the queue
+	// create pools for specific tasks? Geometry, Shading...? Or keep it as is...
 	void VulkanContext::InitCommands()
 	{
-		VkCommandPoolCreateInfo commandPoolInfoGfx = VulkanInits::CreateCommandPoolInfo(m_CoreObjects.QueueFamilyIndices.GraphicsFamily.value(), VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
-		VkCommandPoolCreateInfo commandPoolInfoTrsf = VulkanInits::CreateCommandPoolInfo(m_CoreObjects.QueueFamilyIndices.TransferFamily.value(), VK_COMMAND_POOL_CREATE_TRANSIENT_BIT);
-		for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
-		{
-			m_Frames[i].CommandPoolGfx = VulkanCommandPool::Create(m_CoreObjects, commandPoolInfoGfx);
-			//m_Frames[i].CommandPoolTrsf = VulkanCommandPool::Create(m_CoreObjects, commandPoolInfoTrsf);
-
-			m_Frames[i].MainCommandBuffer = VulkanCommandBuffer::Create(m_CoreObjects.Device, m_Frames[i].CommandPoolGfx, VulkanInits::CreateCommandBufferAllocInfo(m_Frames[i].CommandPoolGfx, 1));
-		}
-		VkCommandPoolCreateInfo uploadPoolInfo = VulkanInits::CreateCommandPoolInfo(m_CoreObjects.QueueFamilyIndices.GraphicsFamily.value());
+		VkCommandPoolCreateInfo commandPoolInfoTrsf = VulkanInits::CreateCommandPoolInfo(s_Device->FindQueueFamilies().TransferFamily.value(), VK_COMMAND_POOL_CREATE_TRANSIENT_BIT);
+		
+		VkCommandPoolCreateInfo uploadPoolInfo = VulkanInits::CreateCommandPoolInfo(s_Device->FindQueueFamilies().GraphicsFamily.value());
 		m_UploadContext.CmdPoolGfx = VulkanCommandPool::Create(m_CoreObjects, uploadPoolInfo);
 		VkCommandBufferAllocateInfo uploadCmdBufferGfxInfo = VulkanInits::CreateCommandBufferAllocInfo(m_UploadContext.CmdPoolGfx, 1);
-		m_UploadContext.CmdBufferGfx = VulkanCommandBuffer::Create(m_CoreObjects.Device, m_UploadContext.CmdPoolGfx, uploadCmdBufferGfxInfo);
+		m_UploadContext.CmdBufferGfx = VulkanCommandBuffer::Create(s_Device->GetVulkanDevice(), m_UploadContext.CmdPoolGfx, uploadCmdBufferGfxInfo);
 
 		m_UploadContext.CmdPoolTrsf = VulkanCommandPool::Create(m_CoreObjects, commandPoolInfoTrsf);
 		VkCommandBufferAllocateInfo uploadCmdBufferTrsfInfo = VulkanInits::CreateCommandBufferAllocInfo(m_UploadContext.CmdPoolTrsf, 1);
-		m_UploadContext.CmdBufferTrsf = VulkanCommandBuffer::Create(m_CoreObjects.Device, m_UploadContext.CmdPoolTrsf, uploadCmdBufferTrsfInfo);
+		m_UploadContext.CmdBufferTrsf = VulkanCommandBuffer::Create(s_Device->GetVulkanDevice(), m_UploadContext.CmdPoolTrsf, uploadCmdBufferTrsfInfo);
 	}
 
+	// Pipeline creation also called from the layers. References a renderpass and shaders
 	void VulkanContext::InitPipelines()
 	{
 		VkPipelineLayoutCreateInfo layoutInfo = VulkanInits::CreatePipelineLayoutInfo();
@@ -779,7 +624,7 @@ namespace Povox {
 
 		layoutInfo.pushConstantRangeCount = 1;
 		layoutInfo.pPushConstantRanges = &pushConstant;
-		PX_CORE_VK_ASSERT(vkCreatePipelineLayout(m_CoreObjects.Device, &layoutInfo, nullptr, &m_GraphicsPipelineLayout), VK_SUCCESS, "Failed to create GraphicsPipelineLayout!");
+		PX_CORE_VK_ASSERT(vkCreatePipelineLayout(s_Device->GetVulkanDevice(), &layoutInfo, nullptr, &m_GraphicsPipelineLayout), VK_SUCCESS, "Failed to create GraphicsPipelineLayout!");
 
 		VulkanPipeline pipelineBuilder;
 
@@ -790,8 +635,8 @@ namespace Povox {
 		pipelineBuilder.m_VertexInputStateInfo.vertexAttributeDescriptionCount = description.Attributes.size();
 		pipelineBuilder.m_VertexInputStateInfo.pVertexAttributeDescriptions = description.Attributes.data();
 
-		VkShaderModule vertexShaderModule = VulkanShader::Create(m_CoreObjects.Device, "assets/shaders/defaultVS.vert");
-		VkShaderModule fragmentShaderModule = VulkanShader::Create(m_CoreObjects.Device, "assets/shaders/defaultLit.frag");
+		VkShaderModule vertexShaderModule = VulkanShader::Create(s_Device->GetVulkanDevice(), "assets/shaders/defaultVS.vert");
+		VkShaderModule fragmentShaderModule = VulkanShader::Create(s_Device->GetVulkanDevice(), "assets/shaders/defaultLit.frag");
 		VulkanInits::CreateShaderStageInfo(VK_SHADER_STAGE_VERTEX_BIT, vertexShaderModule);
 		VulkanInits::CreateShaderStageInfo(VK_SHADER_STAGE_VERTEX_BIT, vertexShaderModule);
 		pipelineBuilder.m_ShaderStageInfos.push_back(VulkanInits::CreateShaderStageInfo(VK_SHADER_STAGE_VERTEX_BIT, vertexShaderModule));
@@ -816,15 +661,17 @@ namespace Povox {
 		pipelineBuilder.m_ColorBlendAttachmentStateInfo = VulkanInits::CreateColorBlendAttachment();
 		pipelineBuilder.m_PipelineLayout = m_GraphicsPipelineLayout;
 
-		m_GraphicsPipeline = pipelineBuilder.Create(m_CoreObjects.Device, m_DefaultRenderPass);
+		m_GraphicsPipeline = pipelineBuilder.Create(s_Device->GetVulkanDevice(), m_RenderPassPool.GetRenderPass("OffscreenPass"));
 
-		vkDestroyShaderModule(m_CoreObjects.Device, vertexShaderModule, nullptr);
-		vkDestroyShaderModule(m_CoreObjects.Device, fragmentShaderModule, nullptr);
+		vkDestroyShaderModule(s_Device->GetVulkanDevice(), vertexShaderModule, nullptr);
+		vkDestroyShaderModule(s_Device->GetVulkanDevice(), fragmentShaderModule, nullptr);
 	}
 
+	// might be completely dependent on shaders. Upon startup, I run through the shader lib, and compile every shader, which should also reflect on them and then create 
+	// descriptors -> ideally chache them and check if descriptors are the same and can be reused or not
 	void VulkanContext::InitDescriptors()
 	{
-		m_DescriptorPool = VulkanDescriptor::CreatePool(m_CoreObjects.Device);
+		m_DescriptorPool = VulkanDescriptor::CreatePool(s_Device->GetVulkanDevice());
 		PX_CORE_WARN("Created Descriptor pool!");
 
 		VkDescriptorSetLayoutBinding camUBOBinding = VulkanInits::CreateDescriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, 0);
@@ -832,7 +679,7 @@ namespace Povox {
 		VkDescriptorSetLayoutBinding samplerLayoutBinding = VulkanInits::CreateDescriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 2);
 
 		std::vector<VkDescriptorSetLayoutBinding> bindings = { camUBOBinding , sceneBinding, samplerLayoutBinding };
-		m_GlobalDescriptorSetLayout = VulkanDescriptor::CreateLayout(m_CoreObjects.Device, bindings);
+		m_GlobalDescriptorSetLayout = VulkanDescriptor::CreateLayout(s_Device->GetVulkanDevice(), bindings);
 		PX_CORE_WARN("Created Descriptor set layout!");
 
 		size_t sceneParameterBuffersize = PadUniformBuffer(sizeof(SceneUniformBufferD), m_PhysicalDeviceProperties.limits.minUniformBufferOffsetAlignment) * MAX_FRAMES_IN_FLIGHT;
@@ -843,7 +690,7 @@ namespace Povox {
 			m_Frames[i].CamUniformBuffer = VulkanBuffer::Create(m_CoreObjects, sizeof(CameraUniformBuffer), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 			PX_CORE_WARN("Created Descriptor uniform buffer!");
 
-			m_Frames[i].GlobalDescriptorSet = VulkanDescriptor::CreateSet(m_CoreObjects.Device, m_DescriptorPool, &m_GlobalDescriptorSetLayout);
+			m_Frames[i].GlobalDescriptorSet = VulkanDescriptor::CreateSet(s_Device->GetVulkanDevice(), m_DescriptorPool, &m_GlobalDescriptorSetLayout);
 			PX_CORE_WARN("Created Descriptor set!");
 
 			VkDescriptorBufferInfo camInfo{};
@@ -869,59 +716,48 @@ namespace Povox {
 				VulkanInits::CreateDescriptorWrites(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, m_Frames[i].GlobalDescriptorSet, nullptr, &imageInfo, 2)
 			};
 
-			vkUpdateDescriptorSets(m_CoreObjects.Device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
+			vkUpdateDescriptorSets(s_Device->GetVulkanDevice(), static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
 		}
 
 	}
 
-	// Framebuffers
-		// move to VulkanFramebuffer
-	void VulkanContext::CreatePresentFramebuffers()
-	{
-		m_SwapchainFramebuffers.resize(m_Swapchain->GetImageViews().size());
-
-		VkFramebufferCreateInfo framebufferInfo = VulkanInits::CreateFramebufferInfo(m_DefaultRenderPass, m_Swapchain->GetExtent2D().width, m_Swapchain->GetExtent2D().height);
-
-		for (size_t i = 0; i < m_Swapchain->GetImageViews().size(); i++)
-		{
-			std::array<VkImageView, 2> attachments = { m_Swapchain->GetImageViews()[i], m_DepthImageView };
-			framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());					// The attachmentCount and pAttachments parameters specify the VkImageView objects that should be bound to the respective attachment descriptions in the render pass pAttachment array.
-			framebufferInfo.pAttachments = attachments.data();
-			PX_CORE_VK_ASSERT(vkCreateFramebuffer(m_CoreObjects.Device, &framebufferInfo, nullptr, &m_SwapchainFramebuffers[i]), VK_SUCCESS, "Failed to create framebuffer!");
-		}
-	}
-
+	//still need to figure out a way, when to determine the count of framebuffers -> dependent on the swapchain images, frames in flight or singe FBs?
 	void VulkanContext::CreateOffscreenFramebuffers()
 	{
+		/*FramebufferSpecification specs;
+		specs.Attachements = { {FramebufferTextureFormat::RGBA8, {FramebufferTextureUsage::COLOR, FramebufferTextureUsage::TRANSFER_SRC} }, {FramebufferTextureFormat::Depth, {FramebufferTextureUsage::DEPTH_STENCIL}} };
+		specs.Width = m_Swapchain->GetExtent2D().width;
+		specs.Height = m_Swapchain->GetExtent2D().height;
+		specs.RenderPass = "OffscreenPass";
 		m_OffscreenFramebuffers.resize(m_Swapchain->GetImageViews().size());
 		for (size_t i = 0; i < m_Swapchain->GetImageViews().size(); i++)
-		{
-			VulkanFramebuffer framebuffer(&m_CoreObjects, m_Swapchain->GetExtent2D().width, m_Swapchain->GetExtent2D().height);
+		{			
+			VulkanFramebuffer framebuffer(specs);
 			FramebufferAttachmentCreateInfo info{ m_Swapchain->GetExtent2D().width, m_Swapchain->GetExtent2D().height, m_Swapchain->GetImageFormat(), VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT };
 			framebuffer.AddAttachment(info);
 
-			info.Format = VulkanUtils::FindDepthFormat(m_CoreObjects.PhysicalDevice);
+			info.Format = VulkanUtils::FindDepthFormat(s_Device->GetPhysicalDevice());
 			info.ImageUsage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
 			framebuffer.AddAttachment(info);
 
-			framebuffer.Create(m_OffscreenRenderPass);
+			framebuffer.Create();
 			m_OffscreenFramebuffers[i] = std::move(framebuffer);
-		}
+		}*/
 	}
 
 	void VulkanContext::CreateDepthResources()
 	{
-		VkFormat depthFormat = VulkanUtils::FindDepthFormat(m_CoreObjects.PhysicalDevice);
+		VkFormat depthFormat = VulkanUtils::FindDepthFormat(s_Device->GetPhysicalDevice());
 		VkExtent3D extent;
 		extent.width = static_cast<uint32_t>(m_Swapchain->GetExtent2D().width);
 		extent.height = static_cast<uint32_t>(m_Swapchain->GetExtent2D().height);
 		extent.depth = 1;
 
 		VkImageCreateInfo imageInfo = VulkanInits::CreateImageInfo(depthFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, extent);
-		m_DepthImage = VulkanImage::Create(m_CoreObjects, imageInfo);
+		m_DepthImage = VulkanImageDepr::Create(imageInfo);
 
 		VkImageViewCreateInfo viewInfo = VulkanInits::CreateImageViewInfo(depthFormat, m_DepthImage.Image, VK_IMAGE_ASPECT_DEPTH_BIT);
-		PX_CORE_VK_ASSERT(vkCreateImageView(m_CoreObjects.Device, &viewInfo, nullptr, &m_DepthImageView), VK_SUCCESS, "Failed to create ImageView!");
+		PX_CORE_VK_ASSERT(vkCreateImageView(s_Device->GetVulkanDevice(), &viewInfo, nullptr, &m_DepthImageView), VK_SUCCESS, "Failed to create ImageView!");
 
 		VulkanCommands::ImmidiateSubmitGfx(m_CoreObjects, m_UploadContext, [=](VkCommandBuffer cmd)
 			{
@@ -953,68 +789,13 @@ namespace Povox {
 			});
 	}
 
-	void VulkanContext::CreateTextureSampler()
-	{
-		VkSamplerCreateInfo samplerInfo{};
-		samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-		samplerInfo.magFilter = VK_FILTER_LINEAR;
-		samplerInfo.minFilter = VK_FILTER_LINEAR;
-		samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-		samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-		samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-		samplerInfo.anisotropyEnable = VK_TRUE;
-
-		VkPhysicalDeviceProperties properties;
-		vkGetPhysicalDeviceProperties(m_CoreObjects.PhysicalDevice, &properties);
-		samplerInfo.maxAnisotropy = properties.limits.maxSamplerAnisotropy;
-		samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
-		samplerInfo.unnormalizedCoordinates = VK_FALSE;
-		samplerInfo.compareEnable = VK_TRUE;
-		samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
-		samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-		samplerInfo.mipLodBias = 0.0f;
-		samplerInfo.maxLod = 0.0f;
-		samplerInfo.minLod = 0.0f;
-
-		PX_CORE_VK_ASSERT(vkCreateSampler(m_CoreObjects.Device, &samplerInfo, nullptr, &m_TextureSampler), VK_SUCCESS, "Failed to create texture sampler!");
-	}
-
-	// Semaphores
-		// move to VulkanUtils or VulkanSyncObjects
+	// Upload context stuff -> should only be available and used if an exclusive TransferQueue is available
 	void VulkanContext::CreateSyncObjects()
 	{
-		//m_ImagesInFlight.resize(m_Swapchain->GetImages().size(), VK_NULL_HANDLE);
-
-		VkSemaphoreCreateInfo createSemaphoreInfo{};
-		createSemaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-
 		VkFenceCreateInfo createFenceInfo{};
 		createFenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-		createFenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-
-		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
-		{
-			bool result = false;
-			if ((vkCreateSemaphore(m_CoreObjects.Device, &createSemaphoreInfo, nullptr, &m_Frames[i].PresentSemaphore) == VK_SUCCESS)
-				&& (vkCreateSemaphore(m_CoreObjects.Device, &createSemaphoreInfo, nullptr, &m_Frames[i].RenderSemaphore) == VK_SUCCESS)
-				&& (vkCreateFence(m_CoreObjects.Device, &createFenceInfo, nullptr, &m_Frames[i].RenderFence) == VK_SUCCESS))
-				result = true;
-			PX_CORE_ASSERT(result, "Failed to create synchronization objects for a frame!");
-		}
 		createFenceInfo.flags = 0;
-		PX_CORE_VK_ASSERT(vkCreateFence(m_CoreObjects.Device, &createFenceInfo, nullptr, &m_UploadContext.Fence), VK_SUCCESS, "Failed to create upload fence!");
-	}
-
-	//TODO: move outside and create an event?
-//Framebuffer resize callback
-	void VulkanContext::OnFramebufferResize(uint32_t width, uint32_t height)
-	{
-		//auto app = reinterpret_cast<VulkanContext*>(glfwGetWindowUserPointer(window));
-		//app->m_FramebufferResized = true;
-
-		m_FramebufferResized = true;
-		m_WindowWidth = (uint32_t)width;
-		m_WindowHeight = (uint32_t)height;
+		PX_CORE_VK_ASSERT(vkCreateFence(s_Device->GetVulkanDevice(), &createFenceInfo, nullptr, &m_UploadContext.Fence), VK_SUCCESS, "Failed to create upload fence!");
 	}
 
 	// Extensions and layers
@@ -1094,7 +875,7 @@ namespace Povox {
 		VkDebugUtilsMessengerCreateInfoEXT createInfo;
 		PopulateDebugMessengerCreateInfo(createInfo);
 
-		VkResult result = CreateDebugUtilsMessengerEXT(m_CoreObjects.Instance, &createInfo, nullptr, &m_DebugMessenger);
+		VkResult result = CreateDebugUtilsMessengerEXT(s_Instance, &createInfo, nullptr, &m_DebugMessenger);
 		PX_CORE_ASSERT(result == VK_SUCCESS, "Failed to set up debug messenger!");
 	}
 	void VulkanContext::PopulateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo)

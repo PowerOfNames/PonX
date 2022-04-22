@@ -1,63 +1,45 @@
 #pragma once
-
+#include "Image2D.h"
 
 namespace Povox {
 
-	
-
-	enum class FramebufferTextureFormat
+	struct FramebufferImageSpecification
 	{
-		None = 0,
+		FramebufferImageSpecification() = default;
+		FramebufferImageSpecification(ImageFormat format)
+			: Format(format) {}
 
-		//Color
-		RGBA8,
-		RED_INTEGER,
-
-		//Depth
-		DEPTH24STENCIL8,
-
-		//Defaults
-		Depth = DEPTH24STENCIL8
-	};
-
-	namespace Utils {
-
-		static bool IsDepthFormat(FramebufferTextureFormat format)
-		{
-			switch (format)
-			{
-			case FramebufferTextureFormat::DEPTH24STENCIL8: return true;
-			}
-			return false;
-		}
-	}
-
-	struct FramebufferTextureSpecification
-	{
-		FramebufferTextureSpecification() = default;
-		FramebufferTextureSpecification(FramebufferTextureFormat format)
-			: TextureFormat(format) {}
-
-		FramebufferTextureFormat TextureFormat = FramebufferTextureFormat::None;
+		ImageFormat Format = ImageFormat::None;
 		// TODO: Filtering/wrapping
 	};
 
 	struct FramebufferAttachmentSpecification
 	{
 		FramebufferAttachmentSpecification() = default;
-		FramebufferAttachmentSpecification(std::initializer_list<FramebufferTextureSpecification> attachments)
+		FramebufferAttachmentSpecification(std::initializer_list<FramebufferImageSpecification> attachments)
 			: Attachments(attachments) {}
 		
-		std::vector<FramebufferTextureSpecification> Attachments;
+		std::vector<FramebufferImageSpecification> Attachments;
 	};
 
 	struct FramebufferSpecification
 	{
 		uint32_t Width = 0, Height = 0;
+		struct
+		{
+			uint32_t X = 1.0f;
+			uint32_t Y = 1.0f;
+		} Scale;
 		FramebufferAttachmentSpecification Attachements;
+		std::vector<Ref<Image2D>> OriginalImages;
+
 		uint32_t Samples = 1;
 
+		std::string Name = "None";
+
+		bool Resizable = true;
 		bool SwapChainTarget = false;
+		Ref<Framebuffer> OriginalFramebuffer = nullptr;
 	};
 
 	class Framebuffer

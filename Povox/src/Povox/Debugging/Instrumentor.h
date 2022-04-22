@@ -205,7 +205,7 @@ namespace Povox {
 	}
 }
 
-// from Hazel engine by The Cherno!!!
+// from Hazel engine by TheCherno!!!
 #define PX_PROFILE 0
 #if PX_PROFILE
 // Resolve which function signature macro will be used. Note that this only

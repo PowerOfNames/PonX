@@ -14,11 +14,19 @@ ExampleLayer::ExampleLayer()
 void ExampleLayer::OnAttach()
 {
 	// Create the main framebuffer
-	/*Povox::FramebufferSpecification fbspec;
-	fbspec.Attachements = { Povox::FramebufferTextureFormat::RGBA8, Povox::FramebufferTextureFormat::RED_INTEGER, Povox::FramebufferTextureFormat::Depth };
+	Povox::FramebufferSpecification fbspec;
+	fbspec.Attachements = { Povox::ImageFormat::RGBA8, Povox::ImageFormat::Depth };	
 	fbspec.Width = 1280.0f;
 	fbspec.Height = 720.0f;
-	m_Framebuffer = Povox::Framebuffer::Create(fbspec);*/
+	fbspec.Name = "OffscreenFB";
+	fbspec.SwapChainTarget = true;
+
+	m_Framebuffer = Povox::Framebuffer::Create(fbspec);
+
+	Povox::RenderPassSpecification rpspec;
+	rpspec.TargetFramebuffer = m_Framebuffer; //this actually creates the vkframebuffer inside Frambuffer, as this requires a renderpass upon creation
+
+	m_RenderPass = Povox::RenderPass::Create(rpspec);
 
 	m_EditorCamera = Povox::EditorCamera(30.0f, 1.778f, 0.1f, 1000.0f);
 

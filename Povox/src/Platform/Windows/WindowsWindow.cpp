@@ -62,11 +62,15 @@ namespace Povox {
 				m_GLFW_NO_API = true;
 			}
 
-		m_Window = glfwCreateWindow((int)props.Width, (int)props.Height, props.Title.c_str(), nullptr, nullptr);
+		m_Window = glfwCreateWindow(static_cast<int>(props.Width), static_cast<int>(props.Height), props.Title.c_str(), nullptr, nullptr);
 		++s_GLFWwindowCount;		
 		
 		m_Context = GraphicsContext::Create(m_Window);
 		m_Context->Init();
+
+		m_Swapchain = CreateRef<VulkanSwapchain>(m_Window);
+		m_Swapchain->Create(static_cast<uint32_t>(m_Data.Width), static_cast<uint32_t>(m_Data.Height));
+
 		//VulkanRendererAPI::SetContext(std::dynamic_pointer_cast<VulkanContext>(m_Context));
 
 		glfwSetWindowUserPointer(m_Window, &m_Data);
@@ -197,7 +201,8 @@ namespace Povox {
 	{
 		PX_PROFILE_FUNCTION();
 
-
+		if(m_Swapchain)
+			m_Swapchain->Destroy(); // check if this should happen after windowCountCheck -> mutliple swapchains for multiple windows possibly?
 		glfwDestroyWindow(m_Window);
 		--s_GLFWwindowCount;
 
@@ -213,7 +218,13 @@ namespace Povox {
 
 		
 		glfwPollEvents();
-		m_Context->SwapBuffers();
+		m_Swapchain->SwapBuffers();
+	}
+
+	void WindowsWindow::OnResize(uint32_t width, uint32_t height)
+	{
+		m_Swapchain->Recreate((uint32_t)width, (uint32_t)height);
+		//m_Context->OnResize();
 	}
 
 	void WindowsWindow::SetVSync(bool enabled)

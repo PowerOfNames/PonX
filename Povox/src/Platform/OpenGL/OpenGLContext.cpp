@@ -40,12 +40,4 @@ namespace Povox {
 	{
 
 	}
-
-	void OpenGLContext::SwapBuffers()
-	{
-		PX_PROFILE_FUNCTION();
-
-
-		glfwSwapBuffers(m_WindowHandle);
-	}
 }

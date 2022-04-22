@@ -17,10 +17,23 @@
 
 namespace Povox {
 
+	struct RendererProperties
+	{
+		uint8_t MaxFramesInFlight = 1;
+	};
+
+	struct ApplicationSpecification
+	{
+		RendererProperties RendererProps;
+
+		bool ImGuiEnabled = true;
+	};
+
 	class Application
 	{
 	public:
-		Application();
+		//Application();
+		Application(const ApplicationSpecification& specs);
 		virtual ~Application();
 
 		void Run();
@@ -37,6 +50,7 @@ namespace Povox {
 
 		inline Window& GetWindow() const { return *m_Window; }
 		inline static Application& Get() {	return *s_Instance; }
+		inline static const ApplicationSpecification& GetSpecification() { return s_Specification; }
 
 	private:
 		bool OnWindowClose(WindowCloseEvent& e);
@@ -51,8 +65,8 @@ namespace Povox {
 		LayerStack m_Layerstack;
 		float m_DeltaTime = 0.0f;
 
-	private:
 		static Application* s_Instance;
+		static ApplicationSpecification s_Specification;
 	};
 
 	// To be defined in CLIENT	
