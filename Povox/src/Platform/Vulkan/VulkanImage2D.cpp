@@ -157,7 +157,7 @@ namespace Povox {
 		if(m_View)
 			vkDestroyImageView(device, m_View, nullptr);
 		if (m_Allocation.Image)
-			vmaDestroyImage(VulkanContext::GetAlocator(), m_Allocation.Image, m_Allocation.Allocation);
+			vmaDestroyImage(VulkanContext::GetAllocator(), m_Allocation.Image, m_Allocation.Allocation);
 	}
 
 	void VulkanImage2D::CreateImageView()

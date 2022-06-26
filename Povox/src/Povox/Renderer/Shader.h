@@ -12,6 +12,14 @@ namespace Povox {
 		None = 0, Float, Float2, Float3, Float4, Mat3, Mat4, Int, Int2, Int3, Int4, Bool
 	};
 
+	struct ShaderInfo
+	{
+		std::string Path = "Unknown";
+		uint8_t StageCount = 0;
+
+		std::string DebugName = "Shader";
+	};
+
 	static uint32_t ShaderDataTypeSize(ShaderDataType type)
 	{
 		switch (type)

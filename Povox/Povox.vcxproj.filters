@@ -129,7 +129,7 @@
     <ClInclude Include="src\Platform\Vulkan\VulkanPipeline.h">
       <Filter>src\Platform\Vulkan</Filter>
     </ClInclude>
-    <ClInclude Include="src\Platform\Vulkan\VulkanRendererAPI.h">
+    <ClInclude Include="src\Platform\Vulkan\VulkanRenderer.h">
       <Filter>src\Platform\Vulkan</Filter>
     </ClInclude>
     <ClInclude Include="src\Platform\Vulkan\VulkanShader.h">
@@ -1407,6 +1407,8 @@
     <ClInclude Include="src\Platform\Vulkan\VulkanRenderPass.h" />
     <ClInclude Include="src\Povox\Renderer\RenderPass.h" />
     <ClInclude Include="src\Povox\Renderer\Image2D.h" />
+    <ClInclude Include="src\Povox\Renderer\Pipeline.h" />
+    <ClInclude Include="src\Platform\Vulkan\VulkanDescriptor.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Platform\OpenGL\OpenGLBuffer.cpp">
@@ -1460,7 +1462,7 @@
     <ClCompile Include="src\Platform\Vulkan\VulkanPipeline.cpp">
       <Filter>src\Platform\Vulkan</Filter>
     </ClCompile>
-    <ClCompile Include="src\Platform\Vulkan\VulkanRendererAPI.cpp">
+    <ClCompile Include="src\Platform\Vulkan\VulkanRenderer.cpp">
       <Filter>src\Platform\Vulkan</Filter>
     </ClCompile>
     <ClCompile Include="src\Platform\Vulkan\VulkanShader.cpp">
@@ -1583,5 +1585,7 @@
     <ClCompile Include="src\Platform\Vulkan\VulkanRenderPass.cpp" />
     <ClCompile Include="src\Povox\Renderer\RenderPass.cpp" />
     <ClCompile Include="src\Povox\Renderer\Image2D.cpp" />
+    <ClCompile Include="src\Povox\Renderer\Pipeline.cpp" />
+    <ClCompile Include="src\Platform\Vulkan\VulkanDescriptor.cpp" />
   </ItemGroup>
 </Project>

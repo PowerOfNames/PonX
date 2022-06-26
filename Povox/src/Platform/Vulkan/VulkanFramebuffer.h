@@ -80,9 +80,10 @@ namespace Povox {
 
 		virtual inline const FramebufferSpecification& GetSpecification() const override { return m_Specification; };
 
-		Ref<Image2D> GetColorImage(size_t index = 0);
-		inline std::vector<Ref<Image2D>>& GetColorImages() { return m_ColorAttachments; }
-		inline Ref<Image2D> GetDepthImage() { return m_DepthAttachment; };
+		virtual const Ref<Image2D> GetColorAttachment(size_t index = 0) const override;
+		inline std::vector<Ref<Image2D>>& GetColorAttachments() { return m_ColorAttachments; }
+		inline Ref<Image2D> GetDepthAttachment() { return m_DepthAttachment; };
+		
 		inline uint32_t GetWidth() { return m_Specification.Width; }
 		inline uint32_t GetHeight() { return m_Specification.Height; }
 
@@ -90,8 +91,10 @@ namespace Povox {
 
 		inline VkFramebuffer GetFramebuffer() { return m_Framebuffer; }
 		inline VkRenderPass GetRenderPass() { return m_RenderPass; }
+		inline VkRenderPass SetRenderPass(VkRenderPass renderPass) { m_RenderPass = renderPass; Construct(); }
 	private:
 		void CreateAttachments();
+		void Construct();
 	private:
 		uint32_t m_ID;
 		FramebufferSpecification m_Specification;

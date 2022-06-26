@@ -134,6 +134,7 @@ namespace Povox {
 
 			m_Window->OnUpdate();
 		}
+		//Shutdown?
 	}
 
 	bool Application::OnWindowClose(WindowCloseEvent& e)
@@ -156,8 +157,8 @@ namespace Povox {
 		}
 
 		m_Minimized = false;
-		Renderer::OnWindowResize(e.GetWidth(), e.GetHeight());
 		m_Window->OnResize(e.GetWidth(), e.GetHeight());
+		Renderer::OnWindowResize(e.GetWidth(), e.GetHeight());
 
 		return false;
 	}

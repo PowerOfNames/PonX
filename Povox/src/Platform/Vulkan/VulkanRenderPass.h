@@ -5,24 +5,6 @@
 
 namespace Povox {
 
-	//Refactor the pools out
-	class VulkanRenderPassPool
-	{
-	public:
-		VulkanRenderPassPool();
-		~VulkanRenderPassPool();
-
-		void Clear();
-
-		void AddRenderPass(const std::string& name, VkRenderPass pass);
-		VkRenderPass GetRenderPass(const std::string& name);
-		VkRenderPass RemoveRenderPass(const std::string& name);
-		bool HasRenderPass(const std::string& name);
-	private:
-		std::unordered_map<std::string, VkRenderPass> m_Pool;
-	};
-
-
 	class VulkanRenderPass : public RenderPass
 	{
 	public:
@@ -31,6 +13,7 @@ namespace Povox {
 
 		virtual inline const RenderPassSpecification& GetSpecification() const override { return m_Specification; }
 
+		inline VkRenderPass GetVulkanRenderPass() const { return m_RenderPass; }
 	private:
 		RenderPassSpecification m_Specification;
 		VkRenderPass m_RenderPass = VK_NULL_HANDLE;
@@ -41,8 +24,6 @@ namespace Povox {
 	class VulkanRenderPassBuilder
 	{
 	public:
-		inline static void Init(const VulkanCoreObjects* coreObjects) { s_Core = coreObjects; }
-
 		static VulkanRenderPassBuilder Begin();
 
 		VulkanRenderPassBuilder& AddAttachment(VkAttachmentDescription attachment);
@@ -53,7 +34,6 @@ namespace Povox {
 		VkRenderPass Build();
 
 	private:
-		static const VulkanCoreObjects* s_Core;
 		std::vector<VkAttachmentDescription> m_Attachments;
 		std::vector<VkSubpassDescription> m_Subpasses;
 		std::vector<VkSubpassDependency> m_Dependencies;

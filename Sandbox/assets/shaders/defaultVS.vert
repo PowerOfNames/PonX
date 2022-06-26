@@ -1,4 +1,4 @@
-#version 450
+#version 460
 #extension GL_ARB_separate_shader_objects : enable
 
 layout (location = 0) in vec3 Position;
@@ -15,6 +15,16 @@ layout(binding = 0) uniform UniformBufferObject
 	mat4 ViewProjMatrix;
 } ubo;
 
+struct ObjectData
+{
+	mat4 ModelMatrix;
+}
+
+layout(std140, set = 1, binding = 0) readonly buffer ObjectBuffer
+{
+	ObjectData objects[];
+} objectBuffer;
+
 layout( push_constant ) uniform PushConstants
 {
 	mat4 RenderMatrix;
@@ -23,7 +33,7 @@ layout( push_constant ) uniform PushConstants
 
 void main()
 {
-	gl_Position = ubo.ViewProjMatrix * constant.RenderMatrix * vec4(Position, 1.0);
+	gl_Position = ubo.ViewProjMatrix * objectBuffer.objects[gl_BaseInstance].ModelMatrix * vec4(Position, 1.0);
 	v_FragColor = Color;
 	v_TexCoord = TexCoord;
 }

@@ -12,7 +12,7 @@
 
 namespace Povox {
 
-	VulkanImGui::VulkanImGui(VulkanCoreObjects* core, UploadContext* uploadContext, VkFormat swapchainImageFormat, uint8_t maxFrames)
+	VulkanImGui::VulkanImGui(UploadContext* uploadContext, VkFormat swapchainImageFormat, uint8_t maxFrames)
 		: m_Core(core), m_UploadContext(uploadContext), m_SwapchainImageFormat(swapchainImageFormat), m_MaxFramesInFlight(maxFrames)
 	{
 		m_FrameData.resize(maxFrames);
@@ -58,7 +58,7 @@ namespace Povox {
 		init_info.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
 		ImGui_ImplVulkan_Init(&init_info, m_RenderPass);
 		
-		VulkanCommands::ImmidiateSubmitGfx(*m_Core, *m_UploadContext, [=](VkCommandBuffer cmd)
+		VulkanCommands::ImmidiateSubmitGfx(*m_UploadContext, [=](VkCommandBuffer cmd)
 			{
 				ImGui_ImplVulkan_CreateFontsTexture(cmd);
 			});
@@ -188,7 +188,7 @@ namespace Povox {
 
 		for (uint8_t i = 0; i < m_MaxFramesInFlight; i++)
 		{
-			m_FrameData[i].CommandPool = VulkanCommandPool::Create(*m_Core, poolInfo);
+			m_FrameData[i].CommandPool = VulkanCommandPool::Create(poolInfo);
 			m_FrameData[i].CommandBuffer = VulkanCommandBuffer::Create(m_Core->Device, m_FrameData[i].CommandPool, VulkanInits::CreateCommandBufferAllocInfo(m_FrameData[i].CommandPool, 1));
 		}
 	}

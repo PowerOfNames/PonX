@@ -7,7 +7,7 @@
 
 #include "Povox/Renderer/Renderer.h"
 
-#include "Platform/Vulkan/VulkanRendererAPI.h"
+#include "Platform/Vulkan/VulkanRenderer.h"
 
 
 namespace Povox {
@@ -224,7 +224,6 @@ namespace Povox {
 	void WindowsWindow::OnResize(uint32_t width, uint32_t height)
 	{
 		m_Swapchain->Recreate((uint32_t)width, (uint32_t)height);
-		//m_Context->OnResize();
 	}
 
 	void WindowsWindow::SetVSync(bool enabled)

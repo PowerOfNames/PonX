@@ -2,7 +2,7 @@
 #include "Povox/Renderer/RenderCommand.h"
 
 #include "Platform/OpenGL/OpenGLRendererAPI.h"
-#include "Platform/Vulkan/VulkanRendererAPI.h"
+#include "Platform/Vulkan/VulkanRenderer.h"
 
 namespace Povox {
 
@@ -12,8 +12,7 @@ namespace Povox {
 	{
 		switch (RendererAPI::GetAPI())
 		{
-			case RendererAPI::API::OpenGL: s_RendererAPI = new OpenGLRendererAPI; break;
-			case RendererAPI::API::Vulkan : s_RendererAPI = new VulkanRendererAPI; break;
+			case RendererAPI::API::Vulkan : s_RendererAPI = new VulkanRenderer; break;
 			case RendererAPI::API::NONE : PX_CORE_ASSERT(false, "Api 'None' not supported by Povox");
 		}
 	}

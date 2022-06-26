@@ -38,6 +38,7 @@
 #include "Povox/Renderer/Buffer.h"
 #include "Povox/Renderer/Framebuffer.h"
 #include "Povox/Renderer/RenderPass.h"
+#include "Povox/Renderer/Pipeline.h"
 #include "Povox/Renderer/Shader.h"
 #include "Povox/Renderer/Texture.h"
 #include "Povox/Renderer/Image2D.h"

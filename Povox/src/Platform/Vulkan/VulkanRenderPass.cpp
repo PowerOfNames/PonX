@@ -7,9 +7,6 @@
 #include "Povox/Core/Log.h"
 
 namespace Povox {
-	namespace VulkanUtils {
-
-	}
 
 	VulkanRenderPassBuilder VulkanRenderPassBuilder::Begin()
 	{
@@ -67,9 +64,11 @@ namespace Povox {
 		renderPassInfo.pDependencies = m_Dependencies.data();
 
 		VkRenderPass renderPass;
-		PX_CORE_VK_ASSERT(vkCreateRenderPass(s_Core->Device, &renderPassInfo, nullptr, &renderPass), VK_SUCCESS, "Failed to create renderpass!");
+		PX_CORE_VK_ASSERT(vkCreateRenderPass(VulkanContext::GetDevice()->GetVulkanDevice(), &renderPassInfo, nullptr, &renderPass), VK_SUCCESS, "Failed to create renderpass!");
 		return renderPass;
 	}
+
+
 
 	VulkanRenderPass::VulkanRenderPass(const RenderPassSpecification& spec)
 		: m_Specification(std::move(spec))
@@ -154,6 +153,7 @@ namespace Povox {
 
 		PX_CORE_VK_ASSERT(vkCreateRenderPass(device, &renderPassInfo, nullptr, &m_RenderPass), VK_SUCCESS, "Failed to create renderpass!");
 		//Now create the actual framebuffer with this render pass
+		framebuffer->SetRenderPass(m_RenderPass);
 	}
 
 

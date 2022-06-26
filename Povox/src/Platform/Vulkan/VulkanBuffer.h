@@ -77,19 +77,19 @@ namespace Povox {
 	class VulkanBuffer
 	{
 	public:
-		static AllocatedBuffer Create(const VulkanCoreObjects& core, size_t allocSize, VkBufferUsageFlags usage, VmaMemoryUsage memUsage);
+		static AllocatedBuffer Create(size_t allocSize, VkBufferUsageFlags usage, VmaMemoryUsage memUsage);
 	};
 
 	class VulkanVertexBuffer
 	{
 	public:
-		static void Create(const VulkanCoreObjects& core, UploadContext& uploadContext, Mesh& mesh);
+		static void Create(UploadContext& uploadContext, Mesh& mesh);
 	};
 
 	class VulkanIndexBuffer
 	{
 	public:
-		static void Create(const VulkanCoreObjects& core, UploadContext& uploadContext, Mesh& mesh);
+		static void Create(UploadContext& uploadContext, Mesh& mesh);
 	};
 
 	class VulkanUniformBuffer

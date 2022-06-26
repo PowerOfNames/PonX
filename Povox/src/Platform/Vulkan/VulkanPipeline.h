@@ -1,19 +1,28 @@
 #pragma once
-#include <vulkan/vulkan.h>
+#include "Povox/Renderer/Pipeline.h"
 
+#include "VulkanInitializers.h"
 #include "VulkanSwapchain.h"
 #include "VulkanShader.h"
 
-#include "VulkanInitializers.h"
 
+#include <vulkan/vulkan.h>
 namespace Povox {
 	
 
-	class VulkanPipeline
+	class VulkanPipeline : public Pipeline
 	{
 	public:
-		VkPipeline Create(VkDevice logicalDevice, VkRenderPass renderPass);
-	public:
+		VulkanPipeline(const PipelineSpecification& specs);
+		virtual ~VulkanPipeline();
+		
+		virtual inline  PipelineSpecification& GetSpecification() override { return m_Specs; }
+
+	private:
+		VkPipeline m_Pipeline = VK_NULL_HANDLE;
+		VkPipelineLayout m_Layout = VK_NULL_HANDLE;
+		PipelineSpecification m_Specs{};
+
 		std::vector<VkPipelineShaderStageCreateInfo> m_ShaderStageInfos;
 		VkPipelineVertexInputStateCreateInfo m_VertexInputStateInfo;
 		VkPipelineInputAssemblyStateCreateInfo m_AssemblyStateInfo;
@@ -24,7 +33,6 @@ namespace Povox {
 		VkPipelineMultisampleStateCreateInfo m_MultisampleStateInfo;
 		VkPipelineDepthStencilStateCreateInfo m_DepthStencilStateInfo;
 		VkPipelineColorBlendAttachmentState m_ColorBlendAttachmentStateInfo;
-		VkPipelineLayout m_PipelineLayout;
 	};
 
 }

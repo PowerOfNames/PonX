@@ -58,7 +58,7 @@ namespace Povox {
 
 		// Setup Platform/Renderer bindings
 		ImGui_ImplGlfw_InitForVulkan(window, true);
-		VulkanRendererAPI::InitImGui();		
+		VulkanRenderer::InitImGui();		
 	}
 
 	void ImGuiVulkanLayer::OnDetach()
@@ -80,7 +80,7 @@ namespace Povox {
 	void ImGuiVulkanLayer::Begin()
 	{
 		ImGui_ImplGlfw_NewFrame();
-		VulkanRendererAPI::BeginImGuiFrame();
+		VulkanRenderer::BeginImGuiFrame();
 		ImGuizmo::BeginFrame();
 	}
 
@@ -91,7 +91,7 @@ namespace Povox {
 		io.DisplaySize = ImVec2((float)app.GetWindow().GetWidth(), (float)app.GetWindow().GetHeight());
 
 		// Rendering
-		VulkanRendererAPI::EndImGuiFrame();
+		VulkanRenderer::EndImGuiFrame();
 
 		if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
 		{

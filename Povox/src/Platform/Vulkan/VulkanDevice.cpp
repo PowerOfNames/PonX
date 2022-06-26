@@ -38,6 +38,11 @@ namespace Povox {
 		deviceFeatures.fillModeNonSolid = VK_TRUE;
 		deviceFeatures.samplerAnisotropy = VK_TRUE;
 
+		VkPhysicalDeviceShaderDrawParametersFeatures shaderDrawParametersFeatures{};
+		shaderDrawParametersFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_DRAW_PARAMETERS_FEATURES;
+		shaderDrawParametersFeatures.pNext = nullptr;
+		shaderDrawParametersFeatures.shaderDrawParameters = VK_TRUE;
+
 		VkDeviceCreateInfo createInfo{};
 		createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
 		createInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
@@ -45,6 +50,7 @@ namespace Povox {
 		createInfo.pEnabledFeatures = &deviceFeatures;
 		createInfo.enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size());
 		createInfo.ppEnabledExtensionNames = deviceExtensions.data();
+		createInfo.pNext = &shaderDrawParametersFeatures;
 
 		if (PX_ENABLE_VK_VALIDATION_LAYERS)
 		{
@@ -62,10 +68,12 @@ namespace Povox {
 		vkGetDeviceQueue(m_Device, indices.TransferFamily.value(), 0, &m_QueueFamilies.TransferQueue);
 	}
 
-	VkPhysicalDeviceProperties VulkanDevice::GetPhysicalDeviceProperties(VkPhysicalDevice physicalDevice)
+	VkPhysicalDeviceProperties VulkanDevice::GetPhysicalDeviceProperties()
 	{
 		VkPhysicalDeviceProperties properties;
 		vkGetPhysicalDeviceProperties(physicalDevice, &properties);
+
+		
 		return properties;
 	}
 

@@ -48,7 +48,11 @@ namespace Povox {
 		PX_CORE_TRACE("Choosen SwapchainImageCount: '{0}'", imageCount);
 
 		if (m_Swapchain)
+		{
 			vkDestroySwapchainKHR(device, m_Swapchain, nullptr);
+			m_Swapchain = VK_NULL_HANDLE;
+		}
+
 		VkSurfaceCapabilitiesKHR caps{};
 		vkGetPhysicalDeviceSurfaceCapabilitiesKHR(m_Device->GetPhysicalDevice(), m_Surface, &caps);
 

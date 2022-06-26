@@ -102,8 +102,8 @@ namespace Povox {
         Renderer2D::ResetStats();
 
         m_Framebuffer->Bind();
-        RenderCommand::SetClearColor({ 0.1f, 0.1f, 0.2f, 1.0f });
-        RenderCommand::Clear();
+        //RenderCommand::SetClearColor({ 0.1f, 0.1f, 0.2f, 1.0f });
+        //RenderCommand::Clear();
 
         // Clear entityID attachment to -1
         m_Framebuffer->ClearColorAttachment(1, -1);

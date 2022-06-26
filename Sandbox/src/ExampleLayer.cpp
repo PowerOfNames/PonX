@@ -13,23 +13,53 @@ ExampleLayer::ExampleLayer()
 
 void ExampleLayer::OnAttach()
 {
-	// Create the main framebuffer
-	Povox::FramebufferSpecification fbspec;
-	fbspec.Attachements = { Povox::ImageFormat::RGBA8, Povox::ImageFormat::Depth };	
-	fbspec.Width = 1280.0f;
-	fbspec.Height = 720.0f;
-	fbspec.Name = "OffscreenFB";
-	fbspec.SwapChainTarget = true;
+	//Geometry Pass ?? -> should make the depth buffer, right?
+	{
+		Povox::FramebufferSpecification fbspec;
+		fbspec.Attachements = { Povox::ImageFormat::Depth };	
+		fbspec.Width = 1280.0f;
+		fbspec.Height = 720.0f;
+		fbspec.Name = "Geometry";
 
-	m_Framebuffer = Povox::Framebuffer::Create(fbspec);
+		Povox::RenderPassSpecification geometryPass;
+		geometryPass.TargetFramebuffer = Povox::Framebuffer::Create(fbspec); //this actually creates the vkframebuffer inside Frambuffer, as this requires a renderpass upon creation
+		Povox::PipelineSpecification geometryPipeline;
+		geometryPipeline.TargetRenderPass = Povox::RenderPass::Create(geometryPass);
+		geometryPipeline.Shader = Povox::Renderer::GetShaderLibrary()->Get("GeometryShader"); //or something like that
+		m_GeometryPipeline = Povox::Pipeline::Create(geometryPipeline);
+	}
+	{
+		Povox::FramebufferSpecification fbSpec;
+		fbSpec.Attachements = { Povox::ImageFormat::RGBA8 };
+		fbSpec.Width = 1280.0f;
+		fbSpec.Height = 720.0f;
+		fbSpec.Name = "Color";
 
-	Povox::RenderPassSpecification rpspec;
-	rpspec.TargetFramebuffer = m_Framebuffer; //this actually creates the vkframebuffer inside Frambuffer, as this requires a renderpass upon creation
+		Povox::RenderPassSpecification colorPass;
+		colorPass.TargetFramebuffer = Povox::Framebuffer::Create(fbSpec);
+		Povox::PipelineSpecification colorSpecs;
+		colorSpecs.TargetRenderPass = Povox::RenderPass::Create(colorPass);
+		colorSpecs.Shader = Povox::Renderer::GetShaderLibrary()->Get("ColorShader");
+		m_ColorPipeline = Povox::Pipeline::Create(colorSpecs);
+	}
+	{
+		Povox::FramebufferSpecification fbSpec;
+		fbSpec.Attachements = { Povox::ImageFormat::RGBA8 };
+		fbSpec.Width = 1280.0f;
+		fbSpec.Height = 720.0f;
+		fbSpec.Name = "Composite";
+		fbSpec.SwapChainTarget = true;
+		fbSpec.OriginalImages = { m_GeometryPipeline->GetSpecification().TargetRenderPass->GetSpecification().TargetFramebuffer->GetDepthAttachment(), 
+									m_ColorPipeline->GetSpecification().TargetRenderPass->GetSpecification().TargetFramebuffer->GetColorAttachment()};
 
-	m_RenderPass = Povox::RenderPass::Create(rpspec);
+		Povox::RenderPassSpecification compositePass;
+		compositePass.TargetFramebuffer = Povox::Framebuffer::Create(fbSpec);
+		Povox::PipelineSpecification compositeSpecs;
+		compositeSpecs.TargetRenderPass = Povox::RenderPass::Create(compositePass);
+		m_CompositePipeline = Povox::Pipeline::Create(compositeSpecs);
+	}
 
 	m_EditorCamera = Povox::EditorCamera(30.0f, 1.778f, 0.1f, 1000.0f);
-
 }
 
 void ExampleLayer::OnDetach()
@@ -41,8 +71,8 @@ void ExampleLayer::OnUpdate(Povox::Timestep deltatime)
 {
 
 	//Set framebuffer size
-	Povox::RenderCommand::SetClearColor({ 0.15f, 0.16f, 0.15f, 1.0f });
-	Povox::RenderCommand::Clear();
+	//Povox::RenderCommand::SetClearColor({ 0.15f, 0.16f, 0.15f, 1.0f });
+	//Povox::RenderCommand::Clear();
 
 	//BeginBatch(Scene)
 	//add stuff

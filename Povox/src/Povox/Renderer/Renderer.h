@@ -8,11 +8,21 @@
 #include <glm/glm.hpp>
 
 namespace Povox {
+	struct RendererSpecification
+	{
+
+	};
+
+	struct RendererData
+	{
+		Ref<ShaderLibrary> ShaderLibrary;
+	};
 
 	class Renderer
 	{
 	public:
 		static void Init();
+		static void Shutdown();
 
 		static void BeginScene(OrthographicCamera& camera); // TODO: Needs to be filled with environment (e.g. lighting), camera...
 		static void EndScene();
@@ -23,7 +33,9 @@ namespace Povox {
 		static void Submit(const Ref<Shader>& shader, const Ref<VertexArray>& vertexArray, const glm::mat4& transform = glm::mat4(1.0f));
 
 		inline static RendererAPI::API GetAPI() { return RendererAPI::GetAPI(); }
+		inline static Ref<ShaderLibrary>& GetShaderLibrary() { return s_Data->ShaderLibrary; }
 
+		static void CreateAPI(const RendererSpecification& specs);
 	private:
 		struct SceneData
 		{
@@ -31,5 +43,7 @@ namespace Povox {
 		};
 
 		static Scope<SceneData> s_SceneData;
+		static Scope<RendererAPI> s_RendererAPI;
+		static RendererData* s_Data;
 	};
 }

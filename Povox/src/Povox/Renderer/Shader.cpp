@@ -3,6 +3,7 @@
 
 #include "Povox/Renderer/Renderer.h"
 #include "Platform/OpenGL/OpenGLShader.h"
+#include "Platform/Vulkan/VulkanShader.h"
 
 
 
@@ -20,6 +21,10 @@ namespace Povox {
 			case RendererAPI::API::OpenGL:
 			{
 				return CreateRef<OpenGLShader>(filepath);
+			}
+			case RendererAPI::API::Vulkan:
+			{
+				return CreateRef<VulkanShader>(filepath);
 			}
 		}
 		PX_CORE_ASSERT(false, "Unknown RendererAPI");

@@ -22,6 +22,11 @@ namespace Povox {
 		VkQueue TransferQueue;
 	};
 
+	struct PhysicalDeviceLimits
+	{
+		uint32_t MaxBoundDescriptorSets;
+	};
+
 	class VulkanDevice
 	{
 	public:
@@ -36,7 +41,7 @@ namespace Povox {
 		QueueFamilyIndices FindQueueFamilies();
 		inline const QueueFamilies& GetQueueFamilies() { return m_QueueFamilies; }
 
-		VkPhysicalDeviceProperties GetPhysicalDeviceProperties(VkPhysicalDevice physicalDevice);
+		VkPhysicalDeviceProperties GetPhysicalDeviceProperties();
 
 		inline VkDevice GetVulkanDevice() const { return m_Device; }
 		inline VkPhysicalDevice GetPhysicalDevice() const { return m_PhysicalDevice; }
@@ -51,6 +56,8 @@ namespace Povox {
 		VkSurfaceKHR m_Surface = VK_NULL_HANDLE;
 
 		QueueFamilies m_QueueFamilies;
+
+		PhysicalDeviceLimits m_PhysicalLimits;
 	};
 
 }

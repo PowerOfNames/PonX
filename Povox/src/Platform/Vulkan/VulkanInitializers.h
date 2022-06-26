@@ -13,15 +13,6 @@ namespace Povox {	namespace VulkanInits {
 //Render pass
 	VkRenderPassBeginInfo BeginRenderPass(VkRenderPass renderPass, VkExtent2D extent, VkFramebuffer framebuffer);
 
-//Pipeline creation
-	VkPipelineShaderStageCreateInfo CreateShaderStageInfo(VkShaderStageFlagBits stageFlag, VkShaderModule module);
-	VkPipelineVertexInputStateCreateInfo CreateVertexInputStateInfo();
-	VkPipelineInputAssemblyStateCreateInfo CreateAssemblyStateInfo(VkPrimitiveTopology topology);
-	VkPipelineRasterizationStateCreateInfo CreateRasterizationStateInfo(VkPolygonMode mode, VkCullModeFlags culling);
-	VkPipelineMultisampleStateCreateInfo CreateMultisampleStateInfo();
-	VkPipelineColorBlendAttachmentState CreateColorBlendAttachment();
-	VkPipelineDepthStencilStateCreateInfo CreateDepthStencilSTateInfo();
-	VkPipelineLayoutCreateInfo CreatePipelineLayoutInfo();
 
 //Images
 	VkImageCreateInfo CreateImageInfo(VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkExtent3D extent, VkImageLayout initialLayout = VK_IMAGE_LAYOUT_UNDEFINED);

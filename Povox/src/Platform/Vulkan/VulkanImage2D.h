@@ -103,6 +103,8 @@ namespace Povox {
 
 		virtual const ImageSpecification& GetSpecification() const override { return m_Specification; }
 
+		inline VkImageView GetImageView() const { return m_View; }
+
 	private: 
 		void CreateImageView();
 		void CreateSampler();
