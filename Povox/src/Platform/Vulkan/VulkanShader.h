@@ -7,13 +7,6 @@
 
 namespace Povox {
 
-	struct CameraUniformBuffer
-	{
-		alignas(16) glm::mat4 ViewMatrix;
-		alignas(16) glm::mat4 ProjectionMatrix;
-		alignas(16) glm::mat4 ViewProjMatrix;
-	};
-
 	struct GPUBufferObject
 	{
 		glm::mat4 ModelMatrix;
@@ -42,30 +35,27 @@ namespace Povox {
 		//static VkShaderModule Create(VkDevice logicalDevice, const std::string& filepath);
 
 
-		virtual void Bind() const = 0;
-		virtual	void Unbind() const = 0;
-
-		virtual const std::string& GetName() const = 0;
+		virtual const std::string& GetName() const { return "Shader name!"; }
 
 		// Uniforms
-		virtual void SetInt(const std::string & name, int value) = 0;
-		virtual void SetIntArray(const std::string & name, int* values, uint32_t count) = 0;
+		virtual void SetInt(const std::string& name, int value) {};
+		virtual void SetIntArray(const std::string & name, int* values, uint32_t count) {}
 
-		virtual void SetFloat(const std::string & name, float value) = 0;
-		virtual void SetFloat2(const std::string & name, const glm::vec2 & vector) = 0;
-		virtual void SetFloat3(const std::string & name, const glm::vec3 & vector) = 0;
-		virtual void SetFloat4(const std::string & name, const glm::vec4 & vector) = 0;
+		virtual void SetFloat(const std::string & name, float value) {}
+		virtual void SetFloat2(const std::string & name, const glm::vec2 & vector) {}
+		virtual void SetFloat3(const std::string & name, const glm::vec3 & vector) {}
+		virtual void SetFloat4(const std::string & name, const glm::vec4 & vector) {}
 
-		virtual void SetMat3(const std::string & name, const glm::mat3 & matrix) = 0;
-		virtual void SetMat4(const std::string & name, const glm::mat4 & matrix) = 0;
+		virtual void SetMat3(const std::string & name, const glm::mat3 & matrix) {}
+		virtual void SetMat4(const std::string & name, const glm::mat4 & matrix) {}
 
 		inline const VkShaderModule GetModule(VkShaderStageFlagBits stage) const;
-		inline const ShaderInfo GetIno() const { return m_Info; }
+		inline const ShaderInfo GetInfo() const { return m_Info; }
 
 	private:
 		std::unordered_map<VkShaderStageFlagBits, std::string> PreProcess(const std::string& sources);
 		void CompileOrGetVulkanBinaries(std::unordered_map<VkShaderStageFlagBits, std::string> sources);
-		void Reflect();
+		//void Reflect();
 
 	private:
 		ShaderInfo m_Info;
@@ -78,14 +68,6 @@ namespace Povox {
 			VkDescriptorSetLayout m_DescriptorLayout = VK_NULL_HANDLE;
 			VkDescriptorSet m_DescriptorSet = VK_NULL_HANDLE;
 		};
-		Descriptor m_Descriptor;
-				
-	};
-
-	class VulkanDescriptor
-	{
-	public:
-		static VkDescriptorSetLayout CreateLayout(VkDevice logicalDevice, const std::vector<VkDescriptorSetLayoutBinding>& layoutBindings);
-		static VkDescriptorSet CreateSet(VkDevice logicalDevice, VkDescriptorPool pool, VkDescriptorSetLayout* layout);
+		Descriptor m_Descriptor;				
 	};
 }

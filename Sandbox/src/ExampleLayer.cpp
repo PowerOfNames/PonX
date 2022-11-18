@@ -16,7 +16,7 @@ void ExampleLayer::OnAttach()
 	//Geometry Pass ?? -> should make the depth buffer, right?
 	{
 		Povox::FramebufferSpecification fbspec;
-		fbspec.Attachements = { Povox::ImageFormat::Depth };	
+		fbspec.Attachments = { Povox::ImageFormat::Depth };	
 		fbspec.Width = 1280.0f;
 		fbspec.Height = 720.0f;
 		fbspec.Name = "Geometry";
@@ -30,7 +30,7 @@ void ExampleLayer::OnAttach()
 	}
 	{
 		Povox::FramebufferSpecification fbSpec;
-		fbSpec.Attachements = { Povox::ImageFormat::RGBA8 };
+		fbSpec.Attachments = { Povox::ImageFormat::RGBA8 };
 		fbSpec.Width = 1280.0f;
 		fbSpec.Height = 720.0f;
 		fbSpec.Name = "Color";
@@ -44,7 +44,7 @@ void ExampleLayer::OnAttach()
 	}
 	{
 		Povox::FramebufferSpecification fbSpec;
-		fbSpec.Attachements = { Povox::ImageFormat::RGBA8 };
+		fbSpec.Attachments = { Povox::ImageFormat::RGBA8 };
 		fbSpec.Width = 1280.0f;
 		fbSpec.Height = 720.0f;
 		fbSpec.Name = "Composite";
@@ -56,6 +56,7 @@ void ExampleLayer::OnAttach()
 		compositePass.TargetFramebuffer = Povox::Framebuffer::Create(fbSpec);
 		Povox::PipelineSpecification compositeSpecs;
 		compositeSpecs.TargetRenderPass = Povox::RenderPass::Create(compositePass);
+		compositeSpecs.Shader = Povox::Renderer::GetShaderLibrary()->Get("CompositeShader");
 		m_CompositePipeline = Povox::Pipeline::Create(compositeSpecs);
 	}
 
@@ -69,7 +70,6 @@ void ExampleLayer::OnDetach()
 
 void ExampleLayer::OnUpdate(Povox::Timestep deltatime)
 {
-
 	//Set framebuffer size
 	//Povox::RenderCommand::SetClearColor({ 0.15f, 0.16f, 0.15f, 1.0f });
 	//Povox::RenderCommand::Clear();
@@ -77,6 +77,13 @@ void ExampleLayer::OnUpdate(Povox::Timestep deltatime)
 	//BeginBatch(Scene)
 	//add stuff
 	//endbatch(scene)
+
+	m_EditorCamera.OnUpdate(deltatime);
+	Povox::Renderer2D::ResetStats();
+	
+	Povox::Renderer2D::BeginScene(m_EditorCamera);
+	Povox::Renderer2D::DrawQuad(glm::vec2(0.0f, 0.0f), glm::vec2(1.0f, 1.0f), glm::vec4(1.0f, 0.0f, 1.0f, 1.0f));
+	Povox::Renderer2D::EndScene();
 }
 
 void ExampleLayer::OnImGuiRender()
@@ -146,14 +153,16 @@ void ExampleLayer::OnImGuiRender()
 
 		m_ViewportIsFocused = ImGui::IsWindowFocused();
 		m_ViewportIsHovered = ImGui::IsWindowHovered();
-		Povox::Application::Get().GetImGuiVulkanLayer()->BlockEvents(!m_ViewportIsFocused || !m_ViewportIsHovered);
+		Povox::Application::Get()->GetImGuiVulkanLayer()->BlockEvents(!m_ViewportIsFocused || !m_ViewportIsHovered);
 
 		ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail();
 		m_ViewportSize = { viewportPanelSize.x, viewportPanelSize.y };
 
 		//uint32_t textureID = m_Framebuffer->GetColorAttachmentRendererID(0);
 		//ImGui::Image(reinterpret_cast<void*>(textureID), ImVec2(m_ViewportSize.x, m_ViewportSize.y), ImVec2{ 0, 1 }, ImVec2{ 1, 0 });
-		Povox::RenderCommand::AddImGuiImage(m_ViewportSize.x, m_ViewportSize.y);
+		//Povox::RenderCommand::AddImGuiImage(m_ViewportSize.x, m_ViewportSize.y);
+		//ImGui::Image(m_CompositePipeline->GetSpecification().TargetRenderPass->GetSpecification().TargetFramebuffer->GetColorAttachment()->GetDescriptorSet(), 
+		//	ImVec2(m_ViewportSize.x, m_ViewportSize.y), ImVec2{ 0, 1 }, ImVec2{ 1, 0 })
 		ImGui::End();
 		ImGui::PopStyleVar();
 	}

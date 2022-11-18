@@ -54,8 +54,8 @@ namespace Povox {
 
 		SetDarkThemeColors();
 
-		Application& app = Application::Get();
-		GLFWwindow* window = static_cast<GLFWwindow*>(app.GetWindow().GetNativeWindow());
+		Application* app = Application::Get();
+		GLFWwindow* window = static_cast<GLFWwindow*>(app->GetWindow().GetNativeWindow());
 
 		// Setup Platform/Renderer bindings
 		ImGui_ImplGlfw_InitForOpenGL(window, true);
@@ -90,8 +90,8 @@ namespace Povox {
 	void ImGuiLayer::End()
 	{
 		ImGuiIO& io = ImGui::GetIO();
-		Application& app = Application::Get();
-		io.DisplaySize = ImVec2((float)app.GetWindow().GetWidth(), (float)app.GetWindow().GetHeight());
+		Application* app = Application::Get();
+		io.DisplaySize = ImVec2((float)app->GetWindow().GetWidth(), (float)app->GetWindow().GetHeight());
 
 		// Rendering
 		ImGui::Render();

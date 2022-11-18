@@ -17,9 +17,14 @@ namespace Povox {
 		{
 			return CreateRef<VulkanImage2D>(spec);
 		}
-			
+		case RendererAPI::API::NONE:
+		{
+			PX_CORE_ASSERT(false, "RendererAPI::NONE is not supported!");
+			return nullptr;
 		}
-		PX_CORE_ASSERT(true, "Unknown Renderer::API!");
+		}
+		PX_CORE_ASSERT(false, "Unknown RendererAPI");
+		return nullptr;
 	}
 
 }

@@ -30,7 +30,12 @@ namespace Povox {
 		void CloseApp();
 	private:
 		EditorCamera m_EditorCamera;
-		Ref<Framebuffer> m_Framebuffer;
+
+		std::vector<Renderable> m_DrawList;
+
+		Ref<Framebuffer> m_ImGuiViewportFB;
+		Ref<RenderPass> m_ImGuiRenderpass;
+		Ref<Pipeline> m_StandardPipeline;
 
 		Ref<Scene> m_ActiveScene;
 		std::string m_CurrentScenePath;

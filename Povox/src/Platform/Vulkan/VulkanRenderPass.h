@@ -1,25 +1,9 @@
-#include "VulkanUtility.h"
+#include "VulkanUtilities.h"
 #include "VulkanInitializers.h"
 
 #include "Povox/Renderer/RenderPass.h"
 
 namespace Povox {
-
-	class VulkanRenderPass : public RenderPass
-	{
-	public:
-		VulkanRenderPass(const RenderPassSpecification& spec);
-		virtual ~VulkanRenderPass();
-
-		virtual inline const RenderPassSpecification& GetSpecification() const override { return m_Specification; }
-
-		inline VkRenderPass GetVulkanRenderPass() const { return m_RenderPass; }
-	private:
-		RenderPassSpecification m_Specification;
-		VkRenderPass m_RenderPass = VK_NULL_HANDLE;
-
-
-	};
 
 	class VulkanRenderPassBuilder
 	{
@@ -38,4 +22,20 @@ namespace Povox {
 		std::vector<VkSubpassDescription> m_Subpasses;
 		std::vector<VkSubpassDependency> m_Dependencies;
 	};
+
+	class VulkanRenderPass : public RenderPass
+	{
+	public:
+		VulkanRenderPass(const RenderPassSpecification& spec);
+		virtual ~VulkanRenderPass();
+
+		virtual inline const RenderPassSpecification& GetSpecification() const override { return m_Specification; }
+
+		inline VkRenderPass GetVulkanObj() const { return m_RenderPass; }
+
+	private:
+		RenderPassSpecification m_Specification;
+		VkRenderPass m_RenderPass = VK_NULL_HANDLE;
+	};
+
 }

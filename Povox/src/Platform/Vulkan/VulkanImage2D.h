@@ -2,10 +2,7 @@
 #include "Povox/Renderer/Image2D.h"
 
 
-
-#include "VulkanUtility.h"
-
-
+#include "VulkanUtilities.h"
 
 
 namespace Povox {
@@ -21,15 +18,6 @@ namespace Povox {
 			PX_CORE_ASSERT(true, "ImageFormat not covered!");
 		}
 
-		static VkImageUsageFlags GetVulkanImageUsages(ImageUsages usages)
-		{
-			VkImageUsageFlags out;
-			for (auto& usage : usages.Usages)
-			{
-				out |= GetVulkanImageUsage(usage);
-			}
-			return out;
-		}
 		static VkImageUsageFlagBits GetVulkanImageUsage(ImageUsage usage)
 		{
 			switch (usage)
@@ -42,7 +30,16 @@ namespace Povox {
 			case ImageUsage::SAMPLED: return VK_IMAGE_USAGE_SAMPLED_BIT;
 			}
 			PX_CORE_ASSERT(true, "ImageUsage not covered!");
-			return VK_IMAGE_USAGE_FLAG_BITS_MAX_ENUM;
+		}
+
+		static VkImageUsageFlags GetVulkanImageUsages(ImageUsages usages)
+		{
+			VkImageUsageFlags out;
+			for (auto& usage : usages.Usages)
+			{
+				out |= GetVulkanImageUsage(usage);
+			}
+			return out;
 		}
 
 		static VkImageTiling GetVulkanTiling(ImageTiling tiling)
@@ -52,19 +49,7 @@ namespace Povox {
 			case ImageTiling::OPTIMAL: return VK_IMAGE_TILING_OPTIMAL;
 			case ImageTiling::LINEAR: return VK_IMAGE_TILING_LINEAR;
 			}
-		}
-
-		static VmaMemoryUsage GetVmaUsage(MemoryUsage usage)
-		{
-			switch (usage)
-			{
-			case MemoryUsage::Unknown: return VMA_MEMORY_USAGE_UNKNOWN;
-			case MemoryUsage::GPU_ONLY: return VMA_MEMORY_USAGE_GPU_ONLY;
-			case MemoryUsage::CPU_ONLY: return VMA_MEMORY_USAGE_CPU_ONLY;
-			case MemoryUsage::UPLOAD: return VMA_MEMORY_USAGE_CPU_TO_GPU;
-			case MemoryUsage::DOWNLOAD: return VMA_MEMORY_USAGE_GPU_TO_CPU;
-			case MemoryUsage::CPU_COPY: return VMA_MEMORY_USAGE_CPU_COPY;
-			}
+			PX_CORE_ASSERT(true, "ImageTiling not covered!");
 		}
 
 		static bool IsVulkanDepthFormat(VkFormat format)
@@ -76,6 +61,7 @@ namespace Povox {
 			case VK_FORMAT_D24_UNORM_S8_UINT: return true;
 			default: return false;
 			}
+			PX_CORE_ASSERT(true, "Not a viable DepthFormat!");
 		}
 	}
 
@@ -84,35 +70,52 @@ namespace Povox {
 		VkImage Image;
 		VmaAllocation Allocation;
 	};
-
+	/*
 	class VulkanImageDepr
 	{
 	public:
 		static AllocatedImage LoadFromFile(UploadContext& uploadContext, const char* path, VkFormat format);
 		static AllocatedImage Create(VkImageCreateInfo imageInfo, VmaMemoryUsage memoryUsage = VMA_MEMORY_USAGE_GPU_ONLY);
 
-	};
+	};*/
 
 	class VulkanImage2D : public Image2D
 	{
 	public:
 		VulkanImage2D(const ImageSpecification& spec);
+		VulkanImage2D(const char* path, VkFormat format);
 		virtual ~VulkanImage2D();
 
 		virtual void Destroy() override;
 
 		virtual const ImageSpecification& GetSpecification() const override { return m_Specification; }
+		virtual uint64_t* GetDescriptorSet() const override { return (uint64_t*)m_DescriptorSet; }
+
+		static AllocatedImage CreateAllocation(VkExtent3D extent, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VmaMemoryUsage memUsage, VkImageLayout initialLayout = VK_IMAGE_LAYOUT_UNDEFINED);
 
 		inline VkImageView GetImageView() const { return m_View; }
 
 	private: 
 		void CreateImageView();
+		void CreateDescriptorSet();
 		void CreateSampler();
 	private:
 		ImageSpecification m_Specification;
 
 		AllocatedImage m_Allocation{};
 		VkImageView m_View = VK_NULL_HANDLE;
+		VkDescriptorSet m_DescriptorSet = VK_NULL_HANDLE;
 		VkSampler m_Sampler = VK_NULL_HANDLE;
+	};
+
+	class VulkanTexture2D
+	{
+		VulkanTexture2D();
+		~VulkanTexture2D() = default;
+
+
+	private:
+		Ref<VulkanImage2D> m_Image;
+
 	};
 }

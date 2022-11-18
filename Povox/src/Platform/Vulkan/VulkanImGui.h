@@ -1,5 +1,5 @@
 #pragma once
-#include "VulkanUtility.h"
+#include "VulkanUtilities.h"
 
 #include "VulkanBuffer.h"
 
@@ -13,23 +13,20 @@ namespace Povox {
 	public:
 		struct FrameData
 		{
-			VkCommandPool CommandPool{ VK_NULL_HANDLE };
-			VkCommandBuffer CommandBuffer{ VK_NULL_HANDLE };
+			VkCommandPool CommandPool = VK_NULL_HANDLE;
+			VkCommandBuffer CommandBuffer = VK_NULL_HANDLE;
 
-			VkDescriptorSet DescriptorSet{ VK_NULL_HANDLE };
+			VkDescriptorSet DescriptorSet = VK_NULL_HANDLE;
 		};
 
-		VulkanImGui(UploadContext* uploadContext, VkFormat swapchainImageFormat, uint8_t maxFrames);
-		~VulkanImGui() = default;
+		VulkanImGui(VkFormat swapchainImageFormat, uint8_t maxFrames);
+		~VulkanImGui();
 
 		void Init(const std::vector<VkImageView>& swapchainViews, uint32_t width, uint32_t height);
 
 		void OnSwapchainRecreate(const std::vector<VkImageView>& swapchainImageViews, VkExtent2D newExtent);
 
 		void Destroy();
-		void DestroyRenderPass();
-		void VulkanImGui::DestroyFramebuffers();
-		void VulkanImGui::DestroyCommands();
 
 		void BeginFrame();
 		void EndFrame();
@@ -47,12 +44,11 @@ namespace Povox {
 		void InitFrameBuffers(const std::vector<VkImageView>& swapchainViews, uint32_t width, uint32_t height);
 	
 	private:
-		UploadContext* m_UploadContext;
-		VkFormat m_SwapchainImageFormat;
+		VkFormat m_SwapchainImageFormat = VK_FORMAT_UNDEFINED;
 
-		VkDescriptorPool m_DescriptorPool;
+		VkDescriptorPool m_DescriptorPool = VK_NULL_HANDLE;
 
-		uint8_t m_MaxFramesInFlight;
+		uint8_t m_MaxFramesInFlight = 0;
 		std::vector<VulkanImGui::FrameData> m_FrameData ;
 		std::vector<VkFramebuffer> m_Framebuffers ;
 

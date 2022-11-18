@@ -20,15 +20,14 @@ namespace Povox {
 		}
 	};
 
-	Application* CreateApplication()
+	Application* CreateApplication(int argc, char** argv)
 	{
 		PX_TRACE("Start Povosom App!");
 
 		ApplicationSpecification specs;
-
-
-
-		specs.RendererProps.MaxFramesInFlight = 1;
+		specs.UseAPI = RendererAPI::API::Vulkan;
+		specs.ImGuiEnabled = true;
+		specs.MaxFramesInFlight = 2;
 
 		return new Povosom(specs);
 	}

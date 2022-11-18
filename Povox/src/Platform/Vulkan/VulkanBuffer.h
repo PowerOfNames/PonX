@@ -1,103 +1,54 @@
 #pragma once
-#include "Povox/Renderer/Buffer.h"
-#include "VulkanUtility.h"
 #include "VulkanDevice.h"
 
+#include "Povox/Renderer/Buffer.h"
+#include "Povox/Renderer/Renderable.h"
 
-#include <vulkan/vulkan.h>
-#include <vk_mem_alloc.h>
+
+#include "vk_mem_alloc.h"
 
 namespace Povox {
 
-	struct VertexInputDescription
-	{
-		std::vector< VkVertexInputBindingDescription> Bindings;
-		std::vector< VkVertexInputAttributeDescription> Attributes;
+	namespace VulkanUtils {
 
-		VkPipelineVertexInputStateCreateFlags Flags = 0;
-	};
-	struct VertexData
-	{
-		glm::vec3 Position;
-		glm::vec3 Color;
-		glm::vec2 TexCoord;
-
-		static VertexInputDescription GetVertexDescription()
+		VkBufferUsageFlags GetVulkanBufferUsage(BufferUsage usage)
 		{
-			VertexInputDescription output;
-
-			VkVertexInputBindingDescription vertexBindingDescription{};
-			vertexBindingDescription.binding = 0;
-			vertexBindingDescription.stride = sizeof(VertexData);
-			vertexBindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-
-			output.Bindings.push_back(vertexBindingDescription);
-		
-			VkVertexInputAttributeDescription positionAttribute{};
-			positionAttribute.binding = 0;
-			positionAttribute.location = 0;
-			positionAttribute.format = VK_FORMAT_R32G32B32_SFLOAT;
-			positionAttribute.offset = offsetof(VertexData, Position);
-
-			VkVertexInputAttributeDescription colorAttribute{};
-			colorAttribute.binding = 0;
-			colorAttribute.location = 1;
-			colorAttribute.format = VK_FORMAT_R32G32B32_SFLOAT;
-			colorAttribute.offset = offsetof(VertexData, Color);
-			
-			VkVertexInputAttributeDescription uvAttributes{};
-			uvAttributes.binding = 0;
-			uvAttributes.location = 2;
-			uvAttributes.format = VK_FORMAT_R32G32_SFLOAT;
-			uvAttributes.offset = offsetof(VertexData, TexCoord);
-
-			output.Attributes.push_back(positionAttribute);
-			output.Attributes.push_back(colorAttribute);
-			output.Attributes.push_back(uvAttributes);
-
-			return output;
+			switch (usage)
+			{
+			case BufferUsage::VERTEX_BUFFER:	return VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+			case BufferUsage::INDEX_BUFFER:		return VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+			case BufferUsage::UNIFORM_BUFFER:	return VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+			case BufferUsage::STORAGE_BUFFER:	return VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+			case BufferUsage::UNDEFINED:		break;
+			}
+			PX_CORE_ASSERT(true, "BufferUsage not defined!");
+			return VK_BUFFER_USAGE_FLAG_BITS_MAX_ENUM;
 		}
-	};
+	}
 
 	struct AllocatedBuffer
 	{
-		VkBuffer Buffer;
-		VmaAllocation Allocation;
+		VkBuffer Buffer = VK_NULL_HANDLE;
+		VmaAllocation Allocation = nullptr;
 	};
+	
 
-	struct Mesh
-	{
-		std::vector<VertexData> Vertices;
-		AllocatedBuffer VertexBuffer;
-
-		std::vector<uint16_t> Indices;
-		AllocatedBuffer IndexBuffer;
-	};
-
-	class VulkanBuffer
+	class VulkanBuffer : public Buffer
 	{
 	public:
-		static AllocatedBuffer Create(size_t allocSize, VkBufferUsageFlags usage, VmaMemoryUsage memUsage);
-	};
+		VulkanBuffer(const BufferSpecification& specs);
+		~VulkanBuffer();
 
-	class VulkanVertexBuffer
-	{
-	public:
-		static void Create(UploadContext& uploadContext, Mesh& mesh);
-	};
+		virtual void SetData(void* inputData, size_t size) override;
+		//virtual void SetLayout(const BufferLayout& vertexLayout) override { m_Specification.VertexLayout = vertexLayout; }
+		virtual BufferSpecification& GetSpecification() override { return m_Specification; }
 
-	class VulkanIndexBuffer
-	{
-	public:
-		static void Create(UploadContext& uploadContext, Mesh& mesh);
-	};
+		const AllocatedBuffer& GetAllocation() { return m_Allocation; }
 
-	class VulkanUniformBuffer
-	{
-	public:
+		static AllocatedBuffer CreateAllocation(size_t allocSize, VkBufferUsageFlags usage, VmaMemoryUsage memUsage);
 
 	private:
-		VkBuffer m_Buffer;
-
+		BufferSpecification m_Specification;
+		AllocatedBuffer m_Allocation{};
 	};
 }

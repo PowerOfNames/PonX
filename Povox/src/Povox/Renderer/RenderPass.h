@@ -1,7 +1,6 @@
 #pragma once
-#include "Platform/Vulkan/VulkanFramebuffer.h"
-
 #include "Povox/Core/Core.h"
+#include "Povox/Renderer/Framebuffer.h"
 
 namespace Povox {
 

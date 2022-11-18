@@ -2,14 +2,14 @@
 
 #ifdef PX_PLATFORM_WINDOWS
 
-extern Povox::Application* Povox::CreateApplication();
+extern Povox::Application* Povox::CreateApplication(int argc, char** argv);
 
 int main(int argc, char** argv)
 {
 	Povox::Log::Init();
 
 	PX_PROFILE_BEGIN_SESSION("Startup", "profiling/PovoxProfile-Startup.json");
-	auto app = Povox::CreateApplication();
+	auto app = Povox::CreateApplication(argc, argv);
 	PX_PROFILE_END_SESSION();
 
 	PX_PROFILE_BEGIN_SESSION("Running", "profiling/PovoxProfile-Running.json");

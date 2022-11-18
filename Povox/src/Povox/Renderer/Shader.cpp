@@ -1,8 +1,8 @@
 #include "pxpch.h"
+#include "Povox/Renderer/Renderer.h"
 #include "Povox/Renderer/Shader.h"
 
-#include "Povox/Renderer/Renderer.h"
-#include "Platform/OpenGL/OpenGLShader.h"
+
 #include "Platform/Vulkan/VulkanShader.h"
 
 
@@ -13,36 +13,14 @@ namespace Povox {
 	{
 		switch (Renderer::GetAPI())
 		{
-			case RendererAPI::API::NONE:
-			{
-				PX_CORE_ASSERT(false, "RendererAPI::NONE is not supported!");
-				return nullptr;
-			}
-			case RendererAPI::API::OpenGL:
-			{
-				return CreateRef<OpenGLShader>(filepath);
-			}
 			case RendererAPI::API::Vulkan:
 			{
 				return CreateRef<VulkanShader>(filepath);
 			}
-		}
-		PX_CORE_ASSERT(false, "Unknown RendererAPI");
-		return nullptr;
-	}
-
-	Ref<Shader> Shader::Create(const std::string& name, const std::string& vertexSrc, const std::string& fragmentSrc)
-	{
-		switch (Renderer::GetAPI())
-		{
 			case RendererAPI::API::NONE:
 			{
 				PX_CORE_ASSERT(false, "RendererAPI::NONE is not supported!");
 				return nullptr;
-			}
-			case RendererAPI::API::OpenGL:
-			{
-				return CreateRef<OpenGLShader>(name, vertexSrc, fragmentSrc);
 			}
 		}
 		PX_CORE_ASSERT(false, "Unknown RendererAPI");
@@ -63,7 +41,7 @@ namespace Povox {
 		Add(name, shader);
 	}
 
-	Ref<Povox::Shader> ShaderLibrary::Load(const std::string& name, std::string& filepath)
+	Ref<Shader> ShaderLibrary::Load(const std::string& name, std::string& filepath)
 	{
 		auto shader = Shader::Create(filepath);
 		Add(name, shader);
@@ -71,7 +49,7 @@ namespace Povox {
 		return shader;
 	}
 
-	Ref<Povox::Shader> ShaderLibrary::Load(const std::string& filepath)
+	Ref<Shader> ShaderLibrary::Load(const std::string& filepath)
 	{
 		auto shader = Shader::Create(filepath);
 		Add(shader);
@@ -79,7 +57,7 @@ namespace Povox {
 		return shader;
 	}
 
-	Ref<Povox::Shader> ShaderLibrary::Get(const std::string& name)
+	Ref<Shader> ShaderLibrary::Get(const std::string& name)
 	{
 		PX_CORE_ASSERT(Contains(name), "Shader does not exist!");
 		return m_Shaders[name];

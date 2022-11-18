@@ -23,7 +23,7 @@ struct VertexOutput
 };
 
 layout(location = 0) out VertexOutput Output;
-layout(location = 4) out flat int v_EntityID;
+//layout(location = 4) out flat int v_EntityID;
 
 
 void main()
@@ -32,7 +32,7 @@ void main()
 	Output.TexCoord = a_TexCoord;
 	Output.TexID = a_TexID;
 	Output.TilingFactor = a_TilingFactor;
-	v_EntityID = a_EntityID;
+	//v_EntityID = a_EntityID;
 
 	gl_Position = u_ViewProjection * vec4(a_Position, 1.0f);
 }
@@ -41,7 +41,7 @@ void main()
 #version 450 core
 		
 layout(location = 0) out vec4 color;
-layout(location = 1) out int entityID;
+//layout(location = 1) out int entityID;
 
 
 struct VertexOutput
@@ -53,7 +53,7 @@ struct VertexOutput
 };
 
 layout(location = 0) in VertexOutput Input;
-layout(location = 4) in flat int v_EntityID;
+//layout(location = 4) in flat int v_EntityID;
 
 layout(binding = 0) uniform sampler2D u_Textures[32];
 
@@ -97,5 +97,5 @@ void main()
 		case 31: texColor *= texture(u_Textures[31], Input.TexCoord * Input.TilingFactor); break;
 	}
 	color = texColor;
-	entityID = v_EntityID;
+	//entityID = v_EntityID;
 }

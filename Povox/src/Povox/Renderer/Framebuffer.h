@@ -22,15 +22,16 @@ namespace Povox {
 		std::vector<FramebufferImageSpecification> Attachments;
 	};
 
+	class Framebuffer;
 	struct FramebufferSpecification
 	{
 		uint32_t Width = 0, Height = 0;
 		struct
 		{
-			uint32_t X = 1.0f;
-			uint32_t Y = 1.0f;
+			float X = 1.0f;
+			float Y = 1.0f;
 		} Scale;
-		FramebufferAttachmentSpecification Attachements;
+		FramebufferAttachmentSpecification Attachments;
 		std::vector<Ref<Image2D>> OriginalImages;
 
 		uint32_t Samples = 1;
@@ -47,21 +48,17 @@ namespace Povox {
 	public:
 		virtual ~Framebuffer() = default;
 
-		virtual void Bind() const = 0;
-		virtual void Unbind() const = 0;
-
 		virtual void Resize(uint32_t width, uint32_t height) = 0;
 		virtual int ReadPixel(uint32_t attachmentIndex, int posX, int posY) = 0;
 
-		virtual void ClearColorAttachment(size_t attachmentIndex, int value) = 0;
 
 		virtual const FramebufferSpecification& GetSpecification() const = 0;
-		virtual uint32_t GetColorAttachmentRendererID(uint32_t index = 0) const = 0;
-		virtual uint32_t GetDepthAttachmentRendererID() const = 0;
 
-		virtual const Ref<Image2D> GetColorAttachment(size_t index = 0) const = 0;
-		virtual const Ref<Image2D> GetDepthAttachment() const = 0;
+		virtual const std::vector<Ref<Image2D>>& GetColorAttachments() = 0;
+		virtual const Ref<Image2D> GetColorAttachment(size_t index = 0) = 0;
+		virtual const Ref<Image2D> GetDepthAttachment() = 0;
 		
+		static Ref<Framebuffer> Create();
 		static Ref<Framebuffer> Create(const FramebufferSpecification& spec);
 	};
 

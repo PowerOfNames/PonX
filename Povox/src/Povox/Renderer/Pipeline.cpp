@@ -4,12 +4,16 @@
 #include "Povox/Renderer/Renderer.h"
 #include "Platform/Vulkan/VulkanPipeline.h"
 
-Povox::Ref<Povox::Pipeline> Povox::Pipeline::Create(const PipelineSpecification& specs)
-{
-	switch (Renderer::GetAPI())
+
+namespace Povox {
+
+	Ref<Pipeline> Pipeline::Create(const PipelineSpecification& specs)
 	{
-	case RendererAPI::API::Vulkan: return CreateRef<VulkanPipeline>(specs);
+		switch (Renderer::GetAPI())
+		{
+			case RendererAPI::API::Vulkan: return CreateRef<VulkanPipeline>(specs);
+		}
+		PX_CORE_ASSERT(true, "Renderer API not supported!");
 	}
-	PX_CORE_ASSERT(true, "Renderer API not supported!");
 }
 

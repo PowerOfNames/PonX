@@ -22,7 +22,7 @@ namespace Povox {
 		inline unsigned int GetWidth() const override { return m_Data.Width; }
 		inline unsigned int GetHeight() const override { return m_Data.Width; }
 
-		inline VulkanSwapchain& GetSwapchain() override { return *m_Swapchain; } //investigate, if this creates any leaks
+		inline Ref<VulkanSwapchain> GetSwapchain() override { return m_Swapchain; } //investigate, if this creates any leaks
 
 		// Window attibutes
 		inline void SetEventCallback(const EventCallbackFn& callback) override { m_Data.EventCallback = callback; }

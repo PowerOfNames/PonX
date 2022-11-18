@@ -3,6 +3,7 @@
 
 #include "VulkanContext.h"
 #include "VulkanDebug.h"
+#include "VulkanFramebuffer.h"
 
 #include "Povox/Core/Log.h"
 
@@ -69,20 +70,21 @@ namespace Povox {
 	}
 
 
-
 	VulkanRenderPass::VulkanRenderPass(const RenderPassSpecification& spec)
 		: m_Specification(std::move(spec))
 	{
-		auto& framebuffer = std::dynamic_pointer_cast<VulkanFramebuffer>(spec.TargetFramebuffer);
-		auto fbspecs = framebuffer->GetSpecification();
+		Ref<VulkanFramebuffer> framebuffer = std::dynamic_pointer_cast<VulkanFramebuffer>(spec.TargetFramebuffer);
+		auto& fbspecs = framebuffer->GetSpecification();
 		VkDevice device = VulkanContext::GetDevice()->GetVulkanDevice();		
 
-		std::vector<VkAttachmentDescription> attachments(fbspecs.Attachements.Attachments.size());
+
+		//TODO: maybe separate depth and color attachments at every step to reduce if calls
+		std::vector<VkAttachmentDescription> attachments(fbspecs.Attachments.Attachments.size());
 		uint32_t colorCount = 0;
 		for (uint32_t i = 0; i < attachments.size(); i++)
 		{
 			VkAttachmentDescription attachment{};
-			VkFormat format = VulkanUtils::GetVulkanImageFormat(fbspecs.Attachements.Attachments[i].Format);
+			VkFormat format = VulkanUtils::GetVulkanImageFormat(fbspecs.Attachments.Attachments[i].Format);
 			attachment.format = format;
 			attachment.samples = VK_SAMPLE_COUNT_1_BIT;
 			attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
@@ -98,8 +100,6 @@ namespace Povox {
 			}
 			else
 			{
-				attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-				attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 				attachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 				colorCount++;
 			}
@@ -109,7 +109,7 @@ namespace Povox {
 		VkAttachmentReference depthref{};
 		for (uint32_t i = 0; i < attachments.size(); i++)
 		{	
-			if (Utils::IsDepthFormat(fbspecs.Attachements.Attachments[i].Format))
+			if (Utils::IsDepthFormat(fbspecs.Attachments.Attachments[i].Format))
 			{
 				VkAttachmentReference ref{};
 				ref.attachment = i;
@@ -125,6 +125,8 @@ namespace Povox {
 			}
 			
 		}
+
+		//TODO: subpasses later come from framebuffer chains -> pack multiple renderpasses in one if possible
 		VkSubpassDescription subpass{};
 		subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
 		subpass.colorAttachmentCount = static_cast<uint32_t>(colorRefs.size());
@@ -153,7 +155,7 @@ namespace Povox {
 
 		PX_CORE_VK_ASSERT(vkCreateRenderPass(device, &renderPassInfo, nullptr, &m_RenderPass), VK_SUCCESS, "Failed to create renderpass!");
 		//Now create the actual framebuffer with this render pass
-		framebuffer->SetRenderPass(m_RenderPass);
+		framebuffer->Construct(m_RenderPass);
 	}
 
 

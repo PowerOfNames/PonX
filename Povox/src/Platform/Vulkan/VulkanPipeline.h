@@ -16,6 +16,8 @@ namespace Povox {
 		VulkanPipeline(const PipelineSpecification& specs);
 		virtual ~VulkanPipeline();
 		
+		inline VkPipelineLayout GetLayout() { return m_Layout; }
+		inline VkPipeline GetVulkanObj() { return m_Pipeline; }
 		virtual inline  PipelineSpecification& GetSpecification() override { return m_Specs; }
 
 	private:

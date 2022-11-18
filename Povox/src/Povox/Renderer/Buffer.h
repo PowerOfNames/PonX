@@ -1,11 +1,12 @@
 #pragma once
-#include "Povox/Renderer/Shader.h"
+#include "Povox/Core/Log.h"
+#include "Povox/Renderer/Utilities.h"
 
 namespace Povox {
 
 	struct BufferElement
 	{
-		ShaderDataType Type;
+		ShaderUtils::ShaderDataType Usage;
 		std::string Name;
 		uint32_t Size;
 		uint32_t Offset;
@@ -13,24 +14,24 @@ namespace Povox {
 
 		BufferElement() = default;
 
-		BufferElement(ShaderDataType type, std::string name, bool normalized = false)
-			: Type(type), Name(name), Size(ShaderDataTypeSize(type)), Offset(0), Normalized(normalized) {}
+		BufferElement(ShaderUtils::ShaderDataType type, std::string name, bool normalized = false)
+			: Usage(type), Name(name), Size(ShaderUtils::ShaderDataTypeSize(type)), Offset(0), Normalized(normalized) {}
 
 		uint32_t GetComponentCount() const
 		{
-			switch (Type)
+			switch (Usage)
 			{
-			case Povox::ShaderDataType::Float:	return 1;
-			case Povox::ShaderDataType::Float2:	return 2;
-			case Povox::ShaderDataType::Float3:	return 3;
-			case Povox::ShaderDataType::Float4:	return 4;
-			case Povox::ShaderDataType::Mat3:	return 3 * 3;	
-			case Povox::ShaderDataType::Mat4:	return 4 * 4;
-			case Povox::ShaderDataType::Int:	return 1;
-			case Povox::ShaderDataType::Int2:	return 2;
-			case Povox::ShaderDataType::Int3:	return 3;
-			case Povox::ShaderDataType::Int4:	return 4;
-			case Povox::ShaderDataType::Bool:	return 1;
+			case ShaderUtils::ShaderDataType::Float:	return 1;
+			case ShaderUtils::ShaderDataType::Float2:	return 2;
+			case ShaderUtils::ShaderDataType::Float3:	return 3;
+			case ShaderUtils::ShaderDataType::Float4:	return 4;
+			case ShaderUtils::ShaderDataType::Mat3:		return 3 * 3;	
+			case ShaderUtils::ShaderDataType::Mat4:		return 4 * 4;
+			case ShaderUtils::ShaderDataType::Int:		return 1;
+			case ShaderUtils::ShaderDataType::Int2:		return 2;
+			case ShaderUtils::ShaderDataType::Int3:		return 3;
+			case ShaderUtils::ShaderDataType::Int4:		return 4;
+			case ShaderUtils::ShaderDataType::Bool:		return 1;
 			}
 
 			PX_CORE_ASSERT(false, "No such ShaderDataType defined!");
@@ -71,33 +72,40 @@ namespace Povox {
 		uint32_t m_Stride = 0;
 	};
 
-	class VertexBuffer
+	enum class BufferUsage
 	{
-	public:
-		virtual ~VertexBuffer() =  default;
+		UNDEFINED = 0,
 
-		virtual void Bind() const = 0;
-		virtual void Unbind() const = 0;
-
-		virtual void SetData(const void* data, uint32_t size) = 0;
-
-		virtual const BufferLayout& GetLayout() const = 0;
-		virtual void SetLayout(const BufferLayout& layout) = 0;
-
-		static Ref<VertexBuffer> Create(uint32_t size);
-		static Ref<VertexBuffer> Create(float* vertices, uint32_t size);
+		VERTEX_BUFFER = 1,
+		INDEX_BUFFER = 2,
+		UNIFORM_BUFFER = 3,
+		STORAGE_BUFFER = 4
 	};
 
-	class IndexBuffer
+	struct BufferSpecification
+	{
+		BufferUsage Usage = BufferUsage::UNDEFINED;
+		MemoryUtils::MemoryUsage MemUsage = MemoryUtils::MemoryUsage::UNDEFINED;
+
+		BufferLayout VertexLayout;
+
+		uint32_t ElementCount = 0;
+		uint32_t ElementOffset = 0;
+		uint32_t ElementSize = 0;
+
+		size_t Size = ElementCount * ElementSize;
+		void* Data;
+	};
+
+	class Buffer
 	{
 	public:
-		virtual ~IndexBuffer() = default;
+		virtual ~Buffer() = default;
 
-		virtual void Bind() const = 0;
-		virtual void Unbind() const = 0;
+		virtual void SetData(void* data, size_t size) = 0;
+		//virtual void SetLayout(const BufferLayout& vertexLayout) = 0;
+		virtual BufferSpecification& GetSpecification() = 0;
 
-		virtual uint32_t GetCount() const = 0;
-
-		static Ref<IndexBuffer> Create(uint32_t* indices, uint32_t count);
+		static Ref<Buffer> Create(const BufferSpecification& specs);
 	};
 }

@@ -49,18 +49,18 @@ namespace Povox {
 			glfwSetErrorCallback(GLFWErrorCallback);
 		}
 
-		
-			//PX_PROFILE_SCOPE("GLFW create window!");
-		#ifdef PX_DEBUG
-			if (Renderer::GetAPI() == RendererAPI::API::OpenGL)
-				glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GLFW_TRUE);
-		#endif
-
-			if (Renderer::GetAPI() == RendererAPI::API::Vulkan)
+		switch (Renderer::GetAPI())
+		{
+			case RendererAPI::API::NONE:
+			{
+				PX_CORE_ASSERT(true, "RendererAPI has not been set yes!");
+			}
+			case RendererAPI::API::Vulkan:
 			{
 				glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 				m_GLFW_NO_API = true;
 			}
+		}
 
 		m_Window = glfwCreateWindow(static_cast<int>(props.Width), static_cast<int>(props.Height), props.Title.c_str(), nullptr, nullptr);
 		++s_GLFWwindowCount;		
@@ -69,9 +69,8 @@ namespace Povox {
 		m_Context->Init();
 
 		m_Swapchain = CreateRef<VulkanSwapchain>(m_Window);
-		m_Swapchain->Create(static_cast<uint32_t>(m_Data.Width), static_cast<uint32_t>(m_Data.Height));
+		m_Swapchain->Init(static_cast<uint32_t>(m_Data.Width), static_cast<uint32_t>(m_Data.Height));
 
-		//VulkanRendererAPI::SetContext(std::dynamic_pointer_cast<VulkanContext>(m_Context));
 
 		glfwSetWindowUserPointer(m_Window, &m_Data);
 		if(!m_GLFW_NO_API)

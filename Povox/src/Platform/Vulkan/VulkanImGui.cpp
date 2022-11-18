@@ -1,10 +1,12 @@
 #include "pxpch.h"
 #include "VulkanImGui.h"
 
+#include "VulkanContext.h"
 #include "VulkanDebug.h"
 #include "VulkanCommands.h"
 
 #include "VulkanFramebuffer.h"
+#include "VulkanRenderPass.h"
 
 #include <imgui.h>
 
@@ -12,10 +14,15 @@
 
 namespace Povox {
 
-	VulkanImGui::VulkanImGui(UploadContext* uploadContext, VkFormat swapchainImageFormat, uint8_t maxFrames)
-		: m_Core(core), m_UploadContext(uploadContext), m_SwapchainImageFormat(swapchainImageFormat), m_MaxFramesInFlight(maxFrames)
+	VulkanImGui::VulkanImGui(VkFormat swapchainImageFormat, uint8_t maxFrames)
+		:m_SwapchainImageFormat(swapchainImageFormat), m_MaxFramesInFlight(maxFrames)
 	{
 		m_FrameData.resize(maxFrames);
+	}
+
+	VulkanImGui::~VulkanImGui()
+	{
+		Destroy();
 	}
 
 	void VulkanImGui::Init(const std::vector<VkImageView>& swapchainViews, uint32_t width, uint32_t height)
@@ -45,25 +52,24 @@ namespace Povox {
 		pool_info.poolSizeCount = (uint32_t)IM_ARRAYSIZE(pool_sizes);
 		pool_info.pPoolSizes = pool_sizes;
 		
-		PX_CORE_VK_ASSERT(vkCreateDescriptorPool(m_Core->Device, &pool_info, nullptr, &m_DescriptorPool), VK_SUCCESS, "Failed to create ImGuiDescriptorPool");
+		VkDevice device = VulkanContext::GetDevice()->GetVulkanDevice();
+		PX_CORE_VK_ASSERT(vkCreateDescriptorPool(device, &pool_info, nullptr, &m_DescriptorPool), VK_SUCCESS, "Failed to create ImGuiDescriptorPool");
 
 		ImGui_ImplVulkan_InitInfo init_info = {};
-		init_info.Instance = m_Core->Instance;
-		init_info.PhysicalDevice = m_Core->PhysicalDevice;
-		init_info.Device = m_Core->Device;
-		init_info.Queue = m_Core->QueueFamily.GraphicsQueue;
+		init_info.Instance = VulkanContext::GetInstance();
+		init_info.PhysicalDevice = VulkanContext::GetDevice()->GetPhysicalDevice();
+		init_info.Device = device;
+		init_info.Queue = VulkanContext::GetDevice()->GetQueueFamilies().GraphicsQueue;
 		init_info.DescriptorPool = m_DescriptorPool;
 		init_info.MinImageCount = (uint32_t)swapchainViews.size();
 		init_info.ImageCount = (uint32_t)swapchainViews.size();
 		init_info.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
 		ImGui_ImplVulkan_Init(&init_info, m_RenderPass);
 		
-		VulkanCommands::ImmidiateSubmitGfx(*m_UploadContext, [=](VkCommandBuffer cmd)
+		VulkanCommandControl::ImmidiateSubmit(VulkanCommandControl::SubmitType::SUBMIT_TYPE_GRAPHICS, [=](VkCommandBuffer cmd)
 			{
 				ImGui_ImplVulkan_CreateFontsTexture(cmd);
 			});
-		//VkCommandBuffer cmd = VulkanCommandBuffer::BeginSingleTimeCommands(m_Core->Device, m_UploadContext->CmdPoolGfx);
-		//VulkanCommandBuffer::EndSingleTimeCommands(m_Core->Device, cmd, m_Core->QueueFamily.GraphicsQueue, m_UploadContext->CmdPoolGfx, m_UploadContext->Fence);
 
 		ImGui_ImplVulkan_DestroyFontUploadObjects();
 	}
@@ -75,24 +81,28 @@ namespace Povox {
 
 	void VulkanImGui::Destroy()
 	{
-		vkDestroyDescriptorPool(m_Core->Device, m_DescriptorPool, nullptr);
-		ImGui_ImplVulkan_Shutdown();
-	}
-	void VulkanImGui::DestroyRenderPass()
-	{
-		vkDestroyRenderPass(m_Core->Device, m_RenderPass, nullptr);
-	}
-	void VulkanImGui::DestroyFramebuffers()
-	{
-		for(size_t i = 0; i < m_Framebuffers.size(); i++)
-			vkDestroyFramebuffer(m_Core->Device, m_Framebuffers[i], nullptr);
-	}
-	void VulkanImGui::DestroyCommands()
-	{
+		VkDevice device = VulkanContext::GetDevice()->GetVulkanDevice();
+
+		if (m_RenderPass)
+		{
+			vkDestroyRenderPass(device, m_RenderPass, nullptr);
+			m_RenderPass = VK_NULL_HANDLE;
+		}
+
+		for (size_t i = 0; i < m_Framebuffers.size(); i++)
+			vkDestroyFramebuffer(device, m_Framebuffers[i], nullptr);
+
 		for (size_t i = 0; i < m_FrameData.size(); i++)
 		{
-			vkFreeCommandBuffers(m_Core->Device, m_FrameData[i].CommandPool, 1, &m_FrameData[i].CommandBuffer);
-			vkDestroyCommandPool(m_Core->Device, m_FrameData[i].CommandPool, nullptr);
+			vkFreeCommandBuffers(device, m_FrameData[i].CommandPool, 1, &m_FrameData[i].CommandBuffer);
+			vkDestroyCommandPool(device, m_FrameData[i].CommandPool, nullptr);
+		}
+
+		if (m_DescriptorPool)
+		{
+			vkDestroyDescriptorPool(device, m_DescriptorPool, nullptr);
+			m_DescriptorPool = VK_NULL_HANDLE;
+			ImGui_ImplVulkan_Shutdown();
 		}
 	}
 
@@ -108,20 +118,31 @@ namespace Povox {
 
 	VkCommandBuffer VulkanImGui::BeginRender(uint32_t imageIndex, VkExtent2D swapchainExtent)
 	{
-		vkResetCommandPool(m_Core->Device, GetFrame(imageIndex).CommandPool, 0);
+		vkResetCommandPool(VulkanContext::GetDevice()->GetVulkanDevice(), GetFrame(imageIndex).CommandPool, 0);
 
 		VkCommandBuffer cmd = GetFrame(imageIndex).CommandBuffer;
-		VkCommandBufferBeginInfo cmdBegin = VulkanInits::BeginCommandBuffer(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
+		VkCommandBufferBeginInfo cmdBegin{};
+		cmdBegin.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+		cmdBegin.pNext = nullptr;
+		cmdBegin.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 		PX_CORE_VK_ASSERT(vkBeginCommandBuffer(cmd, &cmdBegin), VK_SUCCESS, "Failed to begin command buffer!");
 
 		std::array<VkClearValue, 2> clearColor = {};
 		clearColor[0].color = { 0.25f, 0.25f, 0.25f, 1.0f };
 		clearColor[1].depthStencil = { 1.0f, 0 };
-		VkRenderPassBeginInfo renderPassBegin = VulkanInits::BeginRenderPass(m_RenderPass, swapchainExtent, m_Framebuffers[imageIndex]);
-		renderPassBegin.clearValueCount = static_cast<uint32_t>(clearColor.size());
-		renderPassBegin.pClearValues = clearColor.data();
+		VkRenderPassBeginInfo info{};
+		info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+		info.pNext = nullptr;
+		info.renderPass = m_RenderPass;
+		info.framebuffer = m_Framebuffers[imageIndex];
+		info.renderArea.offset = { 0, 0 };
+		info.renderArea.extent = swapchainExtent;
 
-		vkCmdBeginRenderPass(cmd, &renderPassBegin, VK_SUBPASS_CONTENTS_INLINE);
+
+		info.clearValueCount = static_cast<uint32_t>(clearColor.size());
+		info.pClearValues = clearColor.data();
+
+		vkCmdBeginRenderPass(cmd, &info, VK_SUBPASS_CONTENTS_INLINE);
 		return cmd;
 	}
 
@@ -184,23 +205,42 @@ namespace Povox {
 	}
 	void VulkanImGui::InitCommandBuffers()
 	{
-		VkCommandPoolCreateInfo poolInfo = VulkanInits::CreateCommandPoolInfo(m_Core->QueueFamilyIndices.GraphicsFamily.value(), VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
+		VkCommandPoolCreateInfo poolci{};
+		poolci.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+		poolci.pNext = nullptr;
+		poolci.queueFamilyIndex = VulkanContext::GetDevice()->FindQueueFamilies().GraphicsFamily.value();
+		poolci.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+
+		VkCommandBufferAllocateInfo bufferci{};
+		bufferci.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+		bufferci.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+		
+		bufferci.commandBufferCount = 1;
 
 		for (uint8_t i = 0; i < m_MaxFramesInFlight; i++)
 		{
-			m_FrameData[i].CommandPool = VulkanCommandPool::Create(poolInfo);
-			m_FrameData[i].CommandBuffer = VulkanCommandBuffer::Create(m_Core->Device, m_FrameData[i].CommandPool, VulkanInits::CreateCommandBufferAllocInfo(m_FrameData[i].CommandPool, 1));
+			PX_CORE_VK_ASSERT(vkCreateCommandPool(VulkanContext::GetDevice()->GetVulkanDevice(), &poolci, nullptr, &m_FrameData[i].CommandPool), VK_SUCCESS, "Failed to create graphics command pool!");
+			bufferci.commandPool = m_FrameData[i].CommandPool;
+			PX_CORE_VK_ASSERT(vkAllocateCommandBuffers(VulkanContext::GetDevice()->GetVulkanDevice(), &bufferci, &m_FrameData[i].CommandBuffer), VK_SUCCESS, "Failed to create CommandBuffer!");
 		}
 	}
 	void VulkanImGui::InitFrameBuffers(const std::vector<VkImageView>& swapchainViews, uint32_t width, uint32_t height)
 	{
 		m_Framebuffers.resize(swapchainViews.size());
-		VkFramebufferCreateInfo info = VulkanInits::CreateFramebufferInfo(m_RenderPass, width, height);
+
+		VkFramebufferCreateInfo info{};
+		info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+		info.pNext = nullptr;
+		info.width = width;
+		info.height = height;
+		info.renderPass = m_RenderPass;
+		info.layers = 1;
+
 		for (size_t i = 0; i < m_Framebuffers.size(); i++)
 		{
 			info.attachmentCount = 1;
 			info.pAttachments = &swapchainViews[i];
-			PX_CORE_VK_ASSERT(vkCreateFramebuffer(m_Core->Device, &info, nullptr, &m_Framebuffers[i]), VK_SUCCESS, "Failed to create framebuffer!");
+			PX_CORE_VK_ASSERT(vkCreateFramebuffer(VulkanContext::GetDevice()->GetVulkanDevice(), &info, nullptr, &m_Framebuffers[i]), VK_SUCCESS, "Failed to create framebuffer!");
 		}
 	}
 

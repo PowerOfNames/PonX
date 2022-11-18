@@ -5,69 +5,6 @@
 #include "VulkanBuffer.h"
 
 namespace Povox { namespace VulkanInits {
-//CommandPool
-	VkCommandPoolCreateInfo CreateCommandPoolInfo(uint32_t familyIndex, VkCommandPoolCreateFlags flags)
-	{
-		VkCommandPoolCreateInfo info = {};
-		info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-		info.pNext = nullptr;
-
-		info.queueFamilyIndex = familyIndex;
-		info.flags = flags;
-
-		return info;
-	}
-
-	VkCommandBufferAllocateInfo CreateCommandBufferAllocInfo(VkCommandPool commandPool, uint32_t size)
-	{
-		VkCommandBufferAllocateInfo info{};
-		info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-		info.commandPool = commandPool;
-		info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;	// primary can be called for execution, secondary can be called from primaries		
-		info.commandBufferCount = size;
-
-		return info;
-	}
-
-	VkCommandBufferBeginInfo BeginCommandBuffer(VkCommandBufferUsageFlags flags)
-	{
-		VkCommandBufferBeginInfo beginInfo{};
-		beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-		beginInfo.flags = flags;
-		beginInfo.pInheritanceInfo = nullptr;	// optional, only used if buffer is secondary
-
-		return beginInfo;
-	}
-
-	VkSubmitInfo SubmitInfo(VkCommandBuffer* cmd)
-	{
-		VkSubmitInfo submitInfo{};
-		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-		submitInfo.pNext = nullptr;
-
-		submitInfo.waitSemaphoreCount = 0;
-		submitInfo.pWaitSemaphores = nullptr;
-		submitInfo.pWaitDstStageMask = nullptr;
-		submitInfo.commandBufferCount = 1;
-		submitInfo.signalSemaphoreCount = 0;
-		submitInfo.pCommandBuffers = cmd;
-		submitInfo.pSignalSemaphores = nullptr;
-
-		return submitInfo;
-	}
-
-//Render pass
-	VkRenderPassBeginInfo BeginRenderPass(VkRenderPass renderPass, VkExtent2D extent, VkFramebuffer framebuffer)
-	{
-		VkRenderPassBeginInfo info{};
-		info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-		info.renderPass = renderPass;
-		info.framebuffer = framebuffer;
-		info.renderArea.offset = { 0, 0 };
-		info.renderArea.extent = extent;		
-
-		return info;
-	}
 
 
 //Pipeline
@@ -266,19 +203,5 @@ namespace Povox { namespace VulkanInits {
 		write.pImageInfo = imageInfo;	// optional image data
 
 		return write;
-	}
-
-// Framebuffer
-	VkFramebufferCreateInfo CreateFramebufferInfo(VkRenderPass renderPass, uint32_t width, uint32_t height)
-	{
-		VkFramebufferCreateInfo info{};
-		info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-		info.pNext = nullptr;
-		info.width = width;
-		info.height = height;
-		info.renderPass = renderPass;
-		info.layers = 1;
-
-		return info;
 	}
 } }

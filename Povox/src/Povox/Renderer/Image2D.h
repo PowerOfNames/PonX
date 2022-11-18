@@ -1,5 +1,5 @@
 #pragma once
-
+#include "Utilities.h"
 
 
 namespace Povox {
@@ -31,20 +31,6 @@ namespace Povox {
 		}
 	}
 
-	enum class MemoryUsage
-	{
-		Unknown = 0,
-
-		GPU_ONLY = 1,
-		CPU_ONLY = 2,
-		UPLOAD	 = 3,
-		DOWNLOAD = 4,
-
-		CPU_COPY = 5,
-		CPU_TO_GPU = UPLOAD,
-		GPU_TO_CPU = DOWNLOAD
-	};
-
 	enum class ImageUsage
 	{
 		COLOR_ATTACHMENT,
@@ -75,7 +61,7 @@ namespace Povox {
 	{
 		uint32_t Width = 0, Height = 0;
 		ImageFormat Format = ImageFormat::None;
-		MemoryUsage Memory = MemoryUsage::Unknown;
+		MemoryUtils::MemoryUsage Memory = MemoryUtils::MemoryUsage::UNDEFINED;
 		ImageUsages Usages;
 		ImageTiling Tiling = ImageTiling::LINEAR; //check wheather this is supported or not upon startup end set it then globally
 		uint32_t MipLevels = 1;
@@ -84,6 +70,7 @@ namespace Povox {
 		bool CopyDst = false;
 	};
 
+
 	class Image2D
 	{
 	public:
@@ -91,6 +78,7 @@ namespace Povox {
 
 		virtual void Destroy() = 0;
 		virtual const ImageSpecification& GetSpecification() const = 0;
+		virtual uint64_t* GetDescriptorSet() const = 0;
 
 		static Ref<Image2D> Create(const ImageSpecification& spec);
 	};

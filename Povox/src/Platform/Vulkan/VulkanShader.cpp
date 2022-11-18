@@ -13,14 +13,15 @@
 
 #include <shaderc/shaderc.hpp>
 #include <spirv_cross/spirv_cross.hpp>
+#include <spirv_reflect.h>
 
 namespace Povox {
 
-	namespace Utils { namespace Shader {
+	namespace VulkanUtils {
 
 		static VkShaderStageFlagBits VKShaderTypeFromString(const std::string& string)
 		{
-			if(string == "vert")
+			if (string == "vert")
 				return VK_SHADER_STAGE_VERTEX_BIT;
 			if (string == "frag")
 				return VK_SHADER_STAGE_FRAGMENT_BIT;
@@ -32,8 +33,8 @@ namespace Povox {
 		{
 			switch (stage)
 			{
-			case VK_SHADER_STAGE_VERTEX_BIT: return ".chached_vulkan.vert";
-			case VK_SHADER_STAGE_FRAGMENT_BIT: return ".chached_vulkan.frag";
+				case VK_SHADER_STAGE_VERTEX_BIT: return ".chached_vulkan.vert";
+				case VK_SHADER_STAGE_FRAGMENT_BIT: return ".chached_vulkan.frag";
 			}
 			PX_CORE_ASSERT(false, "Shaderstage not defined");
 			return "";
@@ -43,14 +44,14 @@ namespace Povox {
 		{
 			switch (stage)
 			{
-			case VK_SHADER_STAGE_VERTEX_BIT: return shaderc_glsl_vertex_shader;
-			case VK_SHADER_STAGE_FRAGMENT_BIT: return shaderc_glsl_fragment_shader;
+				case VK_SHADER_STAGE_VERTEX_BIT: return shaderc_glsl_vertex_shader;
+				case VK_SHADER_STAGE_FRAGMENT_BIT: return shaderc_glsl_fragment_shader;
 			}
 
 			PX_CORE_ASSERT(false, "Shaderstage not defined");
 			return (shaderc_shader_kind)0;
 		}
-	} }
+	}
 
 
 	VulkanShader::VulkanShader(const std::string& filepath)
@@ -75,8 +76,8 @@ namespace Povox {
 			Timer timer;
 			CompileOrGetVulkanBinaries(shaderSourceCodeMap);
 			PX_CORE_WARN("Shader compilation took {0}ms", timer.ElapsedMilliseconds());
-			Reflect();
-			PX_CORE_WARN("Shader reflection took {0}ms", timer.ElapsedMilliseconds());
+			//Reflect();
+			//PX_CORE_WARN("Shader reflection took {0}ms", timer.ElapsedMilliseconds());
 		}
 
 		VkShaderModuleCreateInfo createInfo{};
@@ -110,7 +111,7 @@ namespace Povox {
 			PX_CORE_ASSERT(eol != std::string::npos, "Syntax Error!");
 			size_t begin = pos + typeTokenLength + 1;
 			std::string type = sources.substr(begin, eol - begin);
-			PX_CORE_ASSERT(Utils::Shader::VKShaderTypeFromString(type), "Invalid shader type specified!");
+			PX_CORE_ASSERT(VulkanUtils::VKShaderTypeFromString(type), "Invalid shader type specified!");
 
 			// finds the beginning of the shader string
 			// sets position of the next '#type' token
@@ -119,7 +120,7 @@ namespace Povox {
 			PX_CORE_ASSERT(nextLine != std::string::npos, "Syntax Error!");
 			pos = sources.find(typeToken, nextLine);
 
-			shaderSources[Utils::Shader::VKShaderTypeFromString(type)] = (pos == std::string::npos) ? sources.substr(nextLine) : sources.substr(nextLine, pos - nextLine);
+			shaderSources[VulkanUtils::VKShaderTypeFromString(type)] = (pos == std::string::npos) ? sources.substr(nextLine) : sources.substr(nextLine, pos - nextLine);
 		}
 		return shaderSources;
 	}
@@ -146,7 +147,7 @@ namespace Povox {
 		for (auto&& [stage, code] : sources)
 		{
 			std::filesystem::path shaderFilePath = m_Info.Path;
-			std::filesystem::path cachedPath = cacheDirectory / (shaderFilePath.filename().string() + Utils::Shader::VKShaderStageCachedVulkanFileExtension(stage));
+			std::filesystem::path cachedPath = cacheDirectory / (shaderFilePath.filename().string() + VulkanUtils::VKShaderStageCachedVulkanFileExtension(stage));
 
 			std::ifstream in(cachedPath, std::ios::in | std::ios::binary);
 			if (in.is_open()) // happens if chache path exists
@@ -161,7 +162,7 @@ namespace Povox {
 			}
 			else
 			{
-				shaderc::SpvCompilationResult module = compiler.CompileGlslToSpv(code, Utils::Shader::VKShaderStageToShaderC(stage), m_Info.Path.c_str(), options);
+				shaderc::SpvCompilationResult module = compiler.CompileGlslToSpv(code, VulkanUtils::VKShaderStageToShaderC(stage), m_Info.Path.c_str(), options);
 				if (module.GetCompilationStatus() != shaderc_compilation_status_success)
 				{
 					PX_CORE_ERROR(module.GetErrorMessage());
@@ -182,8 +183,15 @@ namespace Povox {
 		}
 	}
 
+	const VkShaderModule VulkanShader::GetModule(VkShaderStageFlagBits stage) const
+	{
+		PX_CORE_ASSERT(!(m_Modules.find(stage) == m_Modules.end()), "Shaderstage not covered by shader '{0}'", m_Info.DebugName);
+
+		return m_Modules.at(stage);
+	}
+
 	//Creates a DescriptorSetLayout by reflecting the shade and allocates it form the Pool in the Context
-	void VulkanShader::Reflect()
+	/*void VulkanShader::Reflect()
 	{
 		VkDescriptorPool descPool = VulkanContext::GetDescriptorPool();
 		VkDevice device = VulkanContext::GetDevice()->GetVulkanDevice();
@@ -254,12 +262,12 @@ namespace Povox {
 
 
 		// The layout it connected to the shader reflection. I need a way to compare different shaders and manage similarities, maybe store the layouts named? in some kind of pool?
-		// I definitely need a way to link the data with the respective DescriptorSetLayout. maybe via the ShaderObject, which should be attached to the material, which is 
+		// I definitely need a way to link the data with the respective DescriptorSetLayout. maybe via the ShaderObject, which should be attached to the material, which is
 		// attached to the object. It is also swapchain image dependent
-		size_t sceneParameterBuffersize = PadUniformBuffer(sizeof(SceneUniformBufferD), physicalProps.limits.minUniformBufferOffsetAlignment) * Application::Get().GetSpecification().RendererProps.MaxFramesInFlight;
+		size_t sceneParameterBuffersize = PadUniformBuffer(sizeof(SceneUniformBufferD), physicalProps.limits.minUniformBufferOffsetAlignment) * Application::Get()->GetSpecification().MaxFramesInFlight;
 		m_SceneParameterBuffer = VulkanBuffer::Create(sceneParameterBuffersize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 
-		for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+		for (int i = 0; i < Application::Get()->GetSpecification().MaxFramesInFlight; i++)
 		{
 			m_Frames[i].CamUniformBuffer = VulkanBuffer::Create(sizeof(CameraUniformBuffer), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 			PX_CORE_WARN("Created Descriptor uniform buffer!");
@@ -302,44 +310,5 @@ namespace Povox {
 
 			vkUpdateDescriptorSets(s_Device->GetVulkanDevice(), static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
 		}
-	}
-
-
-	const VkShaderModule VulkanShader::GetModule(VkShaderStageFlagBits stage) const
-	{
-		PX_CORE_ASSERT(!(m_Modules.find(stage) == m_Modules.end()), "Shaderstage not covered by shader '{0}'", m_Info.DebugName);
-
-		return m_Modules.at(stage);
-	}
-
-//-------------------VulkanDescriptorPool---------------------------
-
-	VkDescriptorSetLayout VulkanDescriptor::CreateLayout(VkDevice logicalDevice, const std::vector<VkDescriptorSetLayoutBinding>& layoutBindings)
-	{		
-		VkDescriptorSetLayoutCreateInfo layoutInfo{};
-		layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-		layoutInfo.pNext = nullptr;
-
-		layoutInfo.flags = 0;
-		layoutInfo.bindingCount = static_cast<uint32_t>(layoutBindings.size());
-		layoutInfo.pBindings = layoutBindings.data();
-
-		VkDescriptorSetLayout output;
-		PX_CORE_VK_ASSERT(vkCreateDescriptorSetLayout(logicalDevice, &layoutInfo, nullptr, &output), VK_SUCCESS, "Failed to create descriptor set layout!");
-		return output;
-	}
-
-	VkDescriptorSet VulkanDescriptor::CreateSet(VkDevice logicalDevice, VkDescriptorPool pool, VkDescriptorSetLayout* layout)
-	{		
-		VkDescriptorSetAllocateInfo allocInfo{};
-		allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-		allocInfo.descriptorPool = pool;
-		allocInfo.descriptorSetCount = 1;
-		allocInfo.pSetLayouts = layout;
-
-		VkDescriptorSet output;
-		PX_CORE_VK_ASSERT(vkAllocateDescriptorSets(logicalDevice, &allocInfo, &output), VK_SUCCESS, "Failed to create descriptor sets!");
-
-		return output;
-	}
+	}*/
 }

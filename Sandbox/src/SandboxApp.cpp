@@ -21,10 +21,11 @@ public:
 	}
 };
 
-Povox::Application* Povox::CreateApplication()
+Povox::Application* Povox::CreateApplication(int argc, char** argv)
 {
 	Povox::ApplicationSpecification specs;
-	specs.RendererProps.MaxFramesInFlight = 1;
+	specs.UseAPI = Povox::RendererAPI::API::Vulkan;
+	specs.ImGuiEnabled = true;
 	
 
 	return new Sandbox(specs);

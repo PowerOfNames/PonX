@@ -6,7 +6,7 @@
 
 namespace Povox {
 
-	class POVOX_API Log
+	class Log
 	{
 	public:
 		static void Init();

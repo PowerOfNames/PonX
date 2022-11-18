@@ -1,48 +1,104 @@
 #include "pxpch.h"
 #include "Povox/Renderer/Renderer.h"
 #include "Povox/Renderer/Renderer2D.h"
-#include "Povox/Renderer/VoxelRenderer.h"
 #include "Platform/Vulkan/VulkanRenderer.h"
-
-#include "Platform/OpenGL/OpenGLShader.h"
 
 namespace Povox {
 
-	Scope<Renderer::SceneData> Renderer::s_SceneData = CreateScope<Renderer::SceneData>();
 
 	RendererData* Renderer::s_Data;
-	void Renderer::Init()
+	void Renderer::Init(const RendererSpecification& specs)
 	{
 		PX_PROFILE_FUNCTION();
 
-		//maybe get rid of the RenderCommand API. depends on if I want to include more then just Vulkan... with only vulkan, I can hardcode the vulkan renderer
-		// here and use that. Also, Renderer2D should be an abstraction of the rendererAPI to take care of 2D GEOMETRY, I will create another for GUI stuff
-		// (maybe move ImGui there for testing), also adding a dedicated 3DRenderer for 3D basig geometry
-		// one for Voxel based Rendering, one for fancy stuff (ComputeSimulations? maybe, this could also just be a custom project, like Povosom)
+
+		//Initialize main API
+		s_RendererAPI = CreateScope<VulkanRenderer>(specs);
+
+		// Initialize the subrenderers (2D, Voxel, PixelSimulation, RayCasting, Scene)
+		Renderer2D::Init();
 		
-		RenderCommand::Init(); //For now, leave it like that -> This takes care of the main rendering API commands
+		//Shader Loading
+		//s_Data->ShaderLibrary->Add("GeometryShader", Shader::Create("assets/shaders/geometryShader.glsl"));
+		s_Data->ShaderLibrary->Add("StandardShader", Shader::Create("assets/shaders/standardShader.glsl"));
+		//s_Data->ShaderLibrary->Add("CompositeShader", Shader::Create("assets/shaders/geometryShader.glsl"));
 
-
-		//Renderer2D::Init();
-		//VoxelRenderer::Init();
-		
-
-		s_Data->ShaderLibrary->Add("GeometryShader", Shader::Create("assets/shaders/geometryShader.vert"));
+		//Texture Loading here or in specific Renderer
 	}
 
-	void Renderer::BeginScene(OrthographicCamera& camera)
+	void Renderer::Shutdown()
 	{
 		PX_PROFILE_FUNCTION();
 
 
-		s_SceneData->ViewProjectionMatrix = camera.GetViewProjectionMatrix();
+		//clear libs, shutdown the renderers
+		Renderer2D::Shutdown();
+
+
 	}
 
-	void Renderer::EndScene()
+	void Renderer::BeginFrame()
 	{
 		PX_PROFILE_FUNCTION();
 
 
+		s_RendererAPI->BeginFrame();
+	}
+
+	void Renderer::EndFrame()
+	{
+		PX_PROFILE_FUNCTION();
+
+
+		s_RendererAPI->EndFrame();
+	}
+	
+	uint32_t Renderer::GetCurrentFrameIndex()
+	{
+		return s_RendererAPI->GetCurrentFrameIndex();
+	}
+
+	const void* Renderer::GetCommandBuffer(uint32_t index)
+	{
+		return s_RendererAPI->GetCommandBuffer(index);
+	}
+
+	void Renderer::BeginCommandBuffer(const void* cmd)
+	{
+		s_RendererAPI->BeginCommandBuffer(cmd);
+	}
+
+	void Renderer::EndCommandBuffer()
+	{
+		s_RendererAPI->EndCommandBuffer();
+	}
+
+	void Renderer::BeginRenderPass(Ref<RenderPass> renderPass)
+	{
+		s_RendererAPI->BeginRenderPass(renderPass);
+	}
+
+	void Renderer::EndRenderPass()
+	{
+		s_RendererAPI->EndRenderPass();
+	}
+
+	void Renderer::BindPipeline(Ref<Pipeline> pipeline)
+	{
+		s_RendererAPI->BindPipeline(pipeline);
+	}
+
+	void Renderer::UpdateCamera(Ref<Buffer> cameraUniformBuffer)
+	{
+		s_RendererAPI->UpdateCamera(cameraUniformBuffer);
+	}
+
+	void Renderer::Submit(const Renderable& object)
+	{
+		PX_PROFILE_FUNCTION();
+
+
+		s_RendererAPI->Submit(object);
 	}
 
 	void Renderer::OnWindowResize(uint32_t width, uint32_t height)
@@ -50,7 +106,7 @@ namespace Povox {
 		PX_PROFILE_FUNCTION();
 
 
-		RenderCommand::SetViewport(0, 0, width, height);
+		s_RendererAPI->SetViewport(0, 0, width, height);
 	}
 
 	void Renderer::OnFramebufferResize(uint32_t width, uint32_t height)
@@ -58,22 +114,10 @@ namespace Povox {
 		PX_PROFILE_FUNCTION();
 
 
-		RenderCommand::SetViewport(0, 0, width, height);
+		s_RendererAPI->SetViewport(0, 0, width, height);
 	}
 
-	// TODO: later should submit every call into a render command queue
-	void Renderer::Submit(const Ref<Shader>& shader, const Ref<VertexArray>& vertexArray, const glm::mat4& transform)
-	{
-		PX_PROFILE_FUNCTION();
-
-
-		shader->Bind();
-		shader->SetMat4("u_ViewProjection", s_SceneData->ViewProjectionMatrix);
-		shader->SetMat4("u_Transform", transform);
-
-		vertexArray->Bind();
-		RenderCommand::DrawIndexed(vertexArray);
-	}
+	
 
 	void Renderer::CreateAPI(const RendererSpecification& specs)
 	{

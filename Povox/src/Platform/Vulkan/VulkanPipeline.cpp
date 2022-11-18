@@ -1,14 +1,116 @@
 #include "pxpch.h"
-#include "VulkanPipeline.h"
-#include "VulkanBuffer.h"
-#include "VulkanShader.h"
-#include "VulkanDebug.h"
-
 #include "VulkanContext.h"
+#include "VulkanDebug.h"
+#include "VulkanPipeline.h"
+#include "VulkanRenderPass.h"
+#include "VulkanShader.h"
+
+#include "Povox/Renderer/Renderable.h"
 
 #include "glm/glm.hpp"
 
 namespace Povox {
+
+	namespace VulkanUtils {
+
+		static VkPrimitiveTopology GetVulkanPrimitiveTopology(PipelineUtils::PrimitiveTopology topo)
+		{
+			switch (topo)
+			{
+				case PipelineUtils::PrimitiveTopology::TRIANGLE_LIST: return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+				case PipelineUtils::PrimitiveTopology::TRIANGLE_STRIP: return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
+
+				default: PX_CORE_ASSERT(true, "Topology false or missing!");
+			}
+		}
+
+		static VkPolygonMode GetVulkanPolygonMode(PipelineUtils::PolygonMode mode)
+		{
+			switch (mode)
+			{
+				case PipelineUtils::PolygonMode::FILL: return VK_POLYGON_MODE_FILL;
+				case PipelineUtils::PolygonMode::LINE: return VK_POLYGON_MODE_LINE;
+				case PipelineUtils::PolygonMode::POINT: return VK_POLYGON_MODE_POINT;
+
+				default: PX_CORE_ASSERT(true, "PolygonMode false or missing!");
+			}
+		}
+
+		static VkFrontFace GetVulkanFrontFace(PipelineUtils::FrontFace face)
+		{
+			switch (face)
+			{
+				case PipelineUtils::FrontFace::COUNTER_CLOCKWISE: return VK_FRONT_FACE_COUNTER_CLOCKWISE;
+				case PipelineUtils::FrontFace::CLOCKWISE: return VK_FRONT_FACE_CLOCKWISE;
+
+				default: PX_CORE_ASSERT(true, "FrontFace false!");
+			}
+		}
+
+		static VkCullModeFlagBits GetVulkanCullMode(PipelineUtils::CullMode culling)
+		{
+			switch (culling)
+			{
+				case Povox::PipelineUtils::CullMode::NONE: return VK_CULL_MODE_NONE;
+				case Povox::PipelineUtils::CullMode::FRONT: return VK_CULL_MODE_FRONT_BIT;
+				case Povox::PipelineUtils::CullMode::BACK: return VK_CULL_MODE_BACK_BIT;
+				case Povox::PipelineUtils::CullMode::FRONT_AND_BACK: return VK_CULL_MODE_FRONT_AND_BACK;
+
+				default: PX_CORE_ASSERT(true, "CullMode false!");
+			}
+		}
+	}
+
+
+
+	struct VertexInputDescription
+	{
+		std::vector<VkVertexInputBindingDescription> Bindings;
+		std::vector<VkVertexInputAttributeDescription> Attributes;
+
+		VkPipelineVertexInputStateCreateFlags Flags = 0;
+	};
+
+	struct VulkanVertexData
+	{
+		VertexData VertexProperties;
+
+		static VertexInputDescription GetVertexDescription()
+		{
+			VertexInputDescription output;
+
+			VkVertexInputBindingDescription vertexBindingDescription{};
+			vertexBindingDescription.binding = 0;
+			vertexBindingDescription.stride = sizeof(VulkanVertexData);
+			vertexBindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+
+			output.Bindings.push_back(vertexBindingDescription);
+
+			VkVertexInputAttributeDescription positionAttribute{};
+			positionAttribute.binding = 0;
+			positionAttribute.location = 0;
+			positionAttribute.format = VK_FORMAT_R32G32B32_SFLOAT;
+			positionAttribute.offset = offsetof(VulkanVertexData, VertexProperties.Position);
+
+			VkVertexInputAttributeDescription colorAttribute{};
+			colorAttribute.binding = 0;
+			colorAttribute.location = 1;
+			colorAttribute.format = VK_FORMAT_R32G32B32_SFLOAT;
+			colorAttribute.offset = offsetof(VulkanVertexData, VertexProperties.Color);
+
+			VkVertexInputAttributeDescription uvAttributes{};
+			uvAttributes.binding = 0;
+			uvAttributes.location = 2;
+			uvAttributes.format = VK_FORMAT_R32G32_SFLOAT;
+			uvAttributes.offset = offsetof(VulkanVertexData, VertexProperties.TexCoord);
+
+			output.Attributes.push_back(positionAttribute);
+			output.Attributes.push_back(colorAttribute);
+			output.Attributes.push_back(uvAttributes);
+
+			return output;
+		}
+	};
 
 	VulkanPipeline::VulkanPipeline(const PipelineSpecification& specs)
 		:m_Specs(specs)
@@ -18,6 +120,7 @@ namespace Povox {
 
 		VkDevice device = VulkanContext::GetDevice()->GetVulkanDevice();
 		Ref<VulkanShader> shader = std::dynamic_pointer_cast<VulkanShader>(specs.Shader);
+		//descriptor set layout: comes either from shader.reflect() OR needs to be set manually
 
 		//std::vector<VkDescriptorSetLayout> layouts{ 2, m_GlobalDescriptorSetLayout, m_ObjectDescriptorSetLayout };
 		VkPipelineLayoutCreateInfo layoutInfo{};
@@ -50,25 +153,26 @@ namespace Povox {
 			info.vertexAttributeDescriptionCount = 0;
 			m_VertexInputStateInfo = info;
 
-			VertexInputDescription description = VertexData::GetVertexDescription();
-			m_VertexInputStateInfo.vertexBindingDescriptionCount = description.Bindings.size();
+			//VertexInputDescription comes from shader-reflect
+			VertexInputDescription description = VulkanVertexData::GetVertexDescription();
+			m_VertexInputStateInfo.vertexBindingDescriptionCount = static_cast<uint32_t>(description.Bindings.size());
 			m_VertexInputStateInfo.pVertexBindingDescriptions = description.Bindings.data();
-			m_VertexInputStateInfo.vertexAttributeDescriptionCount = description.Attributes.size();
+			m_VertexInputStateInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(description.Attributes.size());
 			m_VertexInputStateInfo.pVertexAttributeDescriptions = description.Attributes.data();
 		}
-
-		VkShaderModule vertexShaderModule = VulkanShader::Create(device, "assets/shaders/defaultVS.vert");
-		{
+		//TODO: Check what modules exist and iterate over them
+		VkShaderModule vertexShaderModule = shader->GetModule(VK_SHADER_STAGE_VERTEX_BIT);
+ 		{
 			VkPipelineShaderStageCreateInfo info{};
 			info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 			info.pNext = nullptr;
 
 			info.stage = VK_SHADER_STAGE_VERTEX_BIT;
-			info.module = shader->GetModule();
+			info.module = vertexShaderModule;
 			info.pName = "main";
 			m_ShaderStageInfos.push_back(info);
 		}
-		VkShaderModule fragmentShaderModule = VulkanShader::Create(device, "assets/shaders/defaultLit.frag");
+		VkShaderModule fragmentShaderModule = shader->GetModule(VK_SHADER_STAGE_FRAGMENT_BIT);
 		{
 			VkPipelineShaderStageCreateInfo info{};
 			info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -84,7 +188,7 @@ namespace Povox {
 			info.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
 			info.pNext = nullptr;
 
-			info.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+			info.topology = VulkanUtils::GetVulkanPrimitiveTopology(specs.Primitive);
 			info.primitiveRestartEnable = VK_FALSE;
 			m_AssemblyStateInfo = info;
 		}
@@ -92,7 +196,7 @@ namespace Povox {
 			m_Viewport.x = 0.0f;
 			m_Viewport.y = 0.0f;
 			m_Viewport.width = (float)specs.TargetRenderPass->GetSpecification().TargetFramebuffer->GetSpecification().Width;
-			m_Viewport.height = (float)m_Specs.TargetRenderPass->GetSpecification().TargetFramebuffer->GetSpecification().Height;
+			m_Viewport.height = (float)specs.TargetRenderPass->GetSpecification().TargetFramebuffer->GetSpecification().Height;
 			m_Viewport.minDepth = 0.0f;
 			m_Viewport.maxDepth = 1.0f;
 		}
@@ -103,10 +207,10 @@ namespace Povox {
 
 			info.depthClampEnable = VK_FALSE;								// if true, too near or too far fragments will be clamped instead of discareded
 			info.rasterizerDiscardEnable = VK_FALSE;								// if true, geometry will never be rasterized, so there will be no output to the framebuffer
-			info.polygonMode = VK_POLYGON_MODE_FILL;					// determines if filled, lines or point shall be rendered
+			info.polygonMode = VulkanUtils::GetVulkanPolygonMode(specs.FillMode);					// determines if filled, lines or point shall be rendered
 			info.lineWidth = 1.0f;									// thicker then 1.0f reuires wideLine GPU feature
-			info.cullMode = VK_CULL_MODE_NONE;
-			info.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+			info.cullMode = VulkanUtils::GetVulkanCullMode(specs.Culling);
+			info.frontFace = VulkanUtils::GetVulkanFrontFace(specs.Front);
 			info.depthBiasEnable = VK_FALSE;
 			m_RasterizationStateInfo = info;
 		}
@@ -128,8 +232,8 @@ namespace Povox {
 			info.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
 			info.pNext = nullptr;
 
-			info.depthTestEnable = VK_TRUE;
-			info.depthWriteEnable = VK_TRUE;
+			info.depthTestEnable = specs.DepthTesting;
+			info.depthWriteEnable = specs.DepthWriting;
 			info.depthCompareOp = VK_COMPARE_OP_LESS;
 			info.depthBoundsTestEnable = VK_FALSE;
 			info.minDepthBounds = 0.0f;		// optional
@@ -212,7 +316,7 @@ namespace Povox {
 
 		// The Pipeline
 		pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-		pipelineInfo.stageCount = m_ShaderStageInfos.size();
+		pipelineInfo.stageCount = static_cast<uint32_t>(m_ShaderStageInfos.size());
 		pipelineInfo.pStages = m_ShaderStageInfos.data();
 		pipelineInfo.pVertexInputState = &m_VertexInputStateInfo;
 		pipelineInfo.pInputAssemblyState = &m_AssemblyStateInfo;
@@ -220,10 +324,12 @@ namespace Povox {
 		pipelineInfo.pMultisampleState = &m_MultisampleStateInfo;
 		pipelineInfo.pDepthStencilState = &m_DepthStencilStateInfo;
 		pipelineInfo.pColorBlendState = &colorBlendStateInfo;
-		pipelineInfo.pDynamicState = &dynamicStateInfo;
-
+		if (specs.DynamicViewAndScissors)
+			pipelineInfo.pDynamicState = &dynamicStateInfo;
+		else
+			pipelineInfo.pDynamicState = nullptr;
 		pipelineInfo.layout = m_Layout;
-		pipelineInfo.renderPass = std::dynamic_pointer_cast<VulkanRenderPass>(m_Specs.TargetRenderPass)->GetVulkanRenderPass();
+		pipelineInfo.renderPass = std::dynamic_pointer_cast<VulkanRenderPass>(m_Specs.TargetRenderPass)->GetVulkanObj();
 		pipelineInfo.subpass = 0; // index
 
 		pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;	// only used if VK_PIPELINE_CREATE_DERIVATIVE_BIT is specified under flags in VkGraphicsPipelineCreateInfo
@@ -231,16 +337,21 @@ namespace Povox {
 
 
 		PX_CORE_VK_ASSERT(vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_Pipeline), VK_SUCCESS, "Failed to create Graphics pipeline!");
-
 	}
 
 	VulkanPipeline::~VulkanPipeline()
 	{
 		VkDevice device = VulkanContext::GetDevice()->GetVulkanDevice();
 		if (m_Layout)
+		{
 			vkDestroyPipelineLayout(device, m_Layout, nullptr);
+			m_Layout = VK_NULL_HANDLE;
+		}
 		if (m_Pipeline)
+		{
 			vkDestroyPipeline(device, m_Pipeline, nullptr);
+			m_Pipeline = VK_NULL_HANDLE;
+		}
 	}
 
 	

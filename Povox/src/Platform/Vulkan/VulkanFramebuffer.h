@@ -1,8 +1,7 @@
 #pragma once
-#include "VulkanUtility.h"
+#include "VulkanUtilities.h"
 #include "VulkanInitializers.h"
 #include "VulkanImage2D.h"
-#include "VulkanRenderPass.h"
 
 #include "Povox/Renderer/Framebuffer.h"
 
@@ -22,7 +21,7 @@ namespace Povox {
 				VK_FORMAT_D32_SFLOAT_S8_UINT,
 				VK_FORMAT_D24_UNORM_S8_UINT
 			};
-			return std::find(formats.begin(), formats.end(), Image->GetSpecification().Format) != std::end(formats);
+			return std::find(formats.begin(), formats.end(), VulkanUtils::GetVulkanImageFormat(Image->GetSpecification().Format)) != std::end(formats);
 		}
 
 		bool HasStencil()
@@ -32,32 +31,13 @@ namespace Povox {
 				VK_FORMAT_S8_UINT,
 				VK_FORMAT_D32_SFLOAT_S8_UINT
 			};
-			return std::find(formats.begin(), formats.end(), Image->GetSpecification().Format) != std::end(formats);
+			return std::find(formats.begin(), formats.end(), VulkanUtils::GetVulkanImageFormat(Image->GetSpecification().Format)) != std::end(formats);
 		}
 
 		bool HasDepthStencil()
 		{
 			return (HasDepth() || HasStencil());
 		}
-	};	
-
-	class VulkanFramebuffer;
-	class VulkanFramebufferPool
-	{
-	public:
-		VulkanFramebufferPool();
-		~VulkanFramebufferPool();
-
-		void Clear();
-		void Resize(uint32_t width, uint32_t hight);
-
-		void AddFramebuffer(const std::string& name, VulkanFramebuffer* framebuffer);
-		VulkanFramebuffer* GetFramebuffer(const std::string& name);
-		VulkanFramebuffer* RemoveFramebuffer(const std::string& name);
-		bool HasFramebuffer(const std::string& name);
-	private:
-		VulkanFramebuffer* m_CurrentRenderTarget = nullptr;
-		std::unordered_map<const std::string, VulkanFramebuffer*> m_Framebuffers;
 	};
 
 	class VulkanFramebuffer : public Framebuffer
@@ -70,39 +50,35 @@ namespace Povox {
 		virtual void Resize(uint32_t width = 0, uint32_t height = 0) override;
 		void Destroy();
 		
-		virtual void Bind() const override {};
-		virtual void Unbind() const override {};
-
-
-		virtual void ClearColorAttachment(uint32_t attachmentIndex, int value) override {};
-
+		//move to image/texture/buffer
 		virtual int ReadPixel(uint32_t attachmentIndex, int posX, int posY) override { return 0; };
 
 		virtual inline const FramebufferSpecification& GetSpecification() const override { return m_Specification; };
 
-		virtual const Ref<Image2D> GetColorAttachment(size_t index = 0) const override;
-		inline std::vector<Ref<Image2D>>& GetColorAttachments() { return m_ColorAttachments; }
-		inline Ref<Image2D> GetDepthAttachment() { return m_DepthAttachment; };
+		virtual inline std::vector<Ref<Image2D>>& GetColorAttachments() override { return m_ColorAttachments; }
+		virtual const Ref<Image2D> GetColorAttachment(size_t index = 0) override;
+		virtual inline const Ref<Image2D> GetDepthAttachment() override { return m_DepthAttachment; };
 		
 		inline uint32_t GetWidth() { return m_Specification.Width; }
 		inline uint32_t GetHeight() { return m_Specification.Height; }
 
 		inline bool Resizable() const { return m_Specification.Resizable; }
 
-		inline VkFramebuffer GetFramebuffer() { return m_Framebuffer; }
+		inline VkFramebuffer GetVulkanObj() { return m_Framebuffer; }
 		inline VkRenderPass GetRenderPass() { return m_RenderPass; }
 		inline VkRenderPass SetRenderPass(VkRenderPass renderPass) { m_RenderPass = renderPass; Construct(); }
+		
+		//helper for renderpass to actually create the framebuffer
+		void Construct(VkRenderPass renderpass = VK_NULL_HANDLE);
 	private:
 		void CreateAttachments();
-		void Construct();
 	private:
-		uint32_t m_ID;
 		FramebufferSpecification m_Specification;
-
-		VkRenderPass m_RenderPass = VK_NULL_HANDLE;
 		VkFramebuffer m_Framebuffer = VK_NULL_HANDLE;
 
 		std::vector<Ref<Image2D>> m_ColorAttachments;
 		Ref<Image2D> m_DepthAttachment = nullptr;
+
+		VkRenderPass m_RenderPass = VK_NULL_HANDLE;
 	};
 }

@@ -2,8 +2,8 @@
 #include "VulkanDevice.h"
 
 #include "VulkanContext.h"
-
 #include "VulkanDebug.h"
+
 
 namespace Povox {
 
@@ -71,7 +71,7 @@ namespace Povox {
 	VkPhysicalDeviceProperties VulkanDevice::GetPhysicalDeviceProperties()
 	{
 		VkPhysicalDeviceProperties properties;
-		vkGetPhysicalDeviceProperties(physicalDevice, &properties);
+		vkGetPhysicalDeviceProperties(m_PhysicalDevice, &properties);
 
 		
 		return properties;

@@ -17,6 +17,8 @@ namespace Povox {
 		:m_Specification(specs)
 	{
 		CreateAttachments();
+
+		//The actual fb will be constructed AFTEr a RP has been created. THis will happen either in FB->create() or manually, when needed using this->Construct(rp)
 	}
 
 	VulkanFramebuffer::~VulkanFramebuffer()
@@ -28,18 +30,18 @@ namespace Povox {
 	{
 		VkDevice device = VulkanContext::GetDevice()->GetVulkanDevice();
 
-		if (m_Specification.SwapChainTarget && (m_Specification.Attachements.Attachments.size() > 1 || Utils::IsDepthFormat(m_Specification.Attachements.Attachments[0].Format)))
-			PX_CORE_ASSERT(true, "Framebuffer as Swapchain target is only allowed to hold ONE COLOR attachment!");
+		if (m_Specification.SwapChainTarget && (m_Specification.Attachments.Attachments.size() > 2 || Utils::IsDepthFormat(m_Specification.Attachments.Attachments[0].Format)))
+			PX_CORE_ASSERT(true, "Framebuffer as Swapchain target is only allowed to hold ONE COLOR attachment and ONE DEPTH attachment for now!");
 
-		//First check if images come from elsewhere, if so, use those, if not, create own
-		for (auto& attachment : m_Specification.Attachements.Attachments)
+		for (auto& attachment : m_Specification.Attachments.Attachments)
 		{
+			//First check if images come from elsewhere, if so, use those, if not, create new
 			if (!m_Specification.OriginalImages.empty())
 			{
-				PX_CORE_ASSERT(m_Specification.OriginalImages.size() == m_Specification.Attachements.Attachments.size(), "Framebuffer specification: Original size does not match attachments size!");
+				PX_CORE_ASSERT(m_Specification.OriginalImages.size() == m_Specification.Attachments.Attachments.size(), "Framebuffer specification: Original images size does not match attachments size!");
 				for (uint32_t i = 0; i < m_Specification.OriginalImages.size(); i++)
 				{
-					if (Utils::IsDepthFormat(m_Specification.Attachements.Attachments[i].Format))
+					if (Utils::IsDepthFormat(m_Specification.Attachments.Attachments[i].Format))
 						m_DepthAttachment = m_Specification.OriginalImages[i];
 					else
 						m_ColorAttachments.push_back(m_Specification.OriginalImages[i]);
@@ -49,9 +51,9 @@ namespace Povox {
 			{
 				ImageSpecification imageSpec;
 				imageSpec.Format = attachment.Format;
-				imageSpec.Width = m_Specification.Width * m_Specification.Scale.X;
-				imageSpec.Height = m_Specification.Height * m_Specification.Scale.Y;
-				imageSpec.Memory = MemoryUsage::GPU_ONLY;
+				imageSpec.Width = (uint32_t)((float)m_Specification.Width * m_Specification.Scale.X); //float to int conversion
+				imageSpec.Height = (uint32_t)((float)m_Specification.Height * m_Specification.Scale.Y);
+				imageSpec.Memory = MemoryUtils::MemoryUsage::GPU_ONLY;
 				imageSpec.MipLevels = 1;
 				imageSpec.Tiling = ImageTiling::OPTIMAL;
 				if (Utils::IsDepthFormat(attachment.Format))
@@ -102,13 +104,17 @@ namespace Povox {
 		Construct();
 	}
 
-	void VulkanFramebuffer::Construct()
+	void VulkanFramebuffer::Construct(VkRenderPass renderpass)
 	{
+		if (renderpass)
+			m_RenderPass = renderpass;
+
 		if (!m_RenderPass)
 		{
 			PX_CORE_ASSERT(true, "No Renderpass has been set yet for Framebuffer construction!");
 			return;
 		}
+
 
 		std::vector<VkImageView> attachments;
 		attachments.resize(m_ColorAttachments.size());
@@ -137,14 +143,18 @@ namespace Povox {
 
 		VkDevice device = VulkanContext::GetDevice()->GetVulkanDevice();
 
-		//only clear image resources, if fb own them
+		//only clear image resources, if fb owns them
 		if (m_Specification.OriginalImages.empty())
 		{
-			if (m_DepthAttachment)
-				m_DepthAttachment->Destroy();
 			for (uint32_t i = 0; i < m_ColorAttachments.size(); i++)
 			{
 				m_ColorAttachments[i]->Destroy();
+				m_ColorAttachments.clear();
+			}
+			if (m_DepthAttachment)
+			{
+				m_DepthAttachment->Destroy();
+				m_DepthAttachment = nullptr;
 			}
 		}
 		if (m_Framebuffer)
@@ -154,12 +164,12 @@ namespace Povox {
 		}
 		if (m_RenderPass)
 		{
-			vkDestroyRenderPass(device, m_RenderPass, nullptr); //??? -> maybe just set to null handle, and the actual VUlkanRenderpass takes care of its cleanup
+			vkDestroyRenderPass(device, m_RenderPass, nullptr); //??? -> maybe just set to null handle, and the actual VulkanRenderpass takes care of its cleanup
 			m_RenderPass = VK_NULL_HANDLE;
 		}
 	}
 
-	Ref<Image2D> VulkanFramebuffer::GetColorImage(size_t index)
+	const Ref<Image2D> VulkanFramebuffer::GetColorAttachment(size_t index)
 	{
 		PX_CORE_ASSERT(index < m_ColorAttachments.size(), "Indext out of range!");
 		return m_ColorAttachments[index];

@@ -40,8 +40,6 @@ void Sandbox2D::OnUpdate(Povox::Timestep deltatime)
 	Povox::Renderer2D::ResetStats();
     {
         PX_PROFILE_SCOPE("Renderer_Preps")
-	    Povox::RenderCommand::SetClearColor({ 0.1f, 0.1f, 0.2f, 1.0f });
-	    Povox::RenderCommand::Clear();
     }
 
 	static float rotation = 0.0;

@@ -3,18 +3,10 @@
 
 #include "VulkanDebug.h"
 #include "VulkanDevice.h"
-#include "VulkanImage2D.h"
-#include "VulkanCommands.h"
-#include "VulkanInitializers.h"
+
 
 #include "Povox/Core/Application.h"
-
-#include "vulkan/vulkan.h"
-#pragma warning(push, 0)
-#define VMA_IMPLEMENTATION
-#include <vk_mem_alloc.h>
-#pragma warning(pop)
-
+#include "Povox/Renderer/Renderer.h"
 
 
 
@@ -53,32 +45,12 @@ namespace Povox {
 		CreateMemAllocator();
 		PX_CORE_WARN("Finished MemAllocator!");
 
-		//set the coreObjects for all vulkan object abstractions and helper classes
-		//VulkanIndexBuffer::Init(&m_CoreObjects);
-		//VulkanVertexBuffer::Init(&m_CoreObjects);
-
-		InitCommands();
-		PX_CORE_WARN("Finished Commands!");
+		s_ResourceFreeQueue.resize(Application::Get()->GetSpecification().MaxFramesInFlight);
 
 		// Renderpass creation -> automatically after swapchain creation
 		InitOffscreenRenderPass();
 		PX_CORE_WARN("Finished Renderpass!");
-
 		CreateViewportImagesAndViews();
-
-		LoadTextures();
-		PX_CORE_WARN("Finished loading textures!");
-
-
-
-		CreateDepthResources();
-		// default initially, but can change, framebuffer main bridge to after effects stuff
-		//CreatePresentFramebuffers();
-		//CreateOffscreenFramebuffers();
-		PX_CORE_WARN("Finished fbs!");
-
-		LoadMeshes();
-		PX_CORE_WARN("Finished loading meshes!");
 
 		PX_CORE_TRACE("VulkanContext initialization finished!");
 	}
@@ -87,174 +59,53 @@ namespace Povox {
 	{
 		vkDeviceWaitIdle(s_Device->GetVulkanDevice());
 		PX_CORE_TRACE("Cleanup swapchain begin!");
-
-		vkDestroyImageView(s_Device->GetVulkanDevice(), m_DepthImageView, nullptr);
-		vmaDestroyImage(s_Allocator, m_DepthImage.Image, m_DepthImage.Allocation);
 		
-		vkDestroyImageView(s_Device->GetVulkanDevice(), m_ViewportImageView, nullptr);
-		vmaDestroyImage(s_Allocator, m_ViewportImage.Image, m_ViewportImage.Allocation);
-
-
-		for (auto& framebuffer : m_OffscreenFramebuffers)
-		{
-			framebuffer.Destroy();
-		}
+		//vkDestroyImageView(s_Device->GetVulkanDevice(), m_ViewportImageView, nullptr);
+		//vmaDestroyImage(s_Allocator, m_ViewportImage.Image, m_ViewportImage.Allocation);
 	}
 
 	void VulkanContext::Shutdown()
 	{
 		PX_PROFILE_FUNCTION();
 
+		for (auto& queue : s_ResourceFreeQueue)
+		{
+			for (auto& func : queue)
+				func();
+		}
+		s_ResourceFreeQueue.clear();
 
 		CleanupSwapchain();
-		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
-		{
-			vmaDestroyBuffer(s_Allocator, m_Frames[i].CamUniformBuffer.Buffer, m_Frames[i].CamUniformBuffer.Allocation);
-			vmaDestroyBuffer(s_Allocator, m_Frames[i].ObjectBuffer.Buffer, m_Frames[i].ObjectBuffer.Allocation);
-		}
-		vmaDestroyBuffer(s_Allocator, m_SceneParameterBuffer.Buffer, m_SceneParameterBuffer.Allocation);
-		vkDestroyDescriptorPool(s_Device->GetVulkanDevice(), m_DescriptorPool, nullptr);
 
-		for (auto& [name, texture] : m_Textures)
+
+
+		for (size_t i = 0; i < Application::Get()->GetSpecification().MaxFramesInFlight; i++)
 		{
-			vkDestroyImageView(s_Device->GetVulkanDevice(), texture.ImageView, nullptr);
-			vmaDestroyImage(s_Allocator, texture.Image2D.Image, texture.Image2D.Allocation);
+			//vmaDestroyBuffer(s_Allocator, m_Frames[i].ObjectBuffer.Buffer, m_Frames[i].ObjectBuffer.Allocation);
 		}
+		
+		vkDestroyDescriptorPool(s_Device->GetVulkanDevice(), m_DescriptorPool, nullptr);
 
 		vkDestroyDescriptorSetLayout(s_Device->GetVulkanDevice(), m_GlobalDescriptorSetLayout, nullptr);
 		vkDestroyDescriptorSetLayout(s_Device->GetVulkanDevice(), m_ObjectDescriptorSetLayout, nullptr);
-		vkDestroyFence(s_Device->GetVulkanDevice(), m_UploadContext.Fence, nullptr);
 		
-		vkDestroyCommandPool(s_Device->GetVulkanDevice(), m_UploadContext.CmdPoolGfx, nullptr);
-		vkDestroyCommandPool(s_Device->GetVulkanDevice(), m_UploadContext.CmdPoolTrsf, nullptr);
-		m_ImGui->DestroyCommands();
+		
 
 		if (PX_ENABLE_VK_VALIDATION_LAYERS)
 			DestroyDebugUtilsMessengerEXT(s_Instance, m_DebugMessenger, nullptr);
 		vkDestroyInstance(s_Instance, nullptr);
 	}
 
-
-	//Swap buffers can be called by a swapchain. Same goes for:
-	// AcquireNextImage -> return image index
-	// QueueSubmit stuff -> needs to be researched, if I ned to collect every command buffer before and put them here. THen, It may be managed by the CommandBUfferQueue upon Execute?
-	// Present -> sets up the QueuePresent stuff
-	// 
-	//It should exclude everything that is CommanBuffer recoding, renderpass management and material/pipeline managment, but they need to happen in th right order in the App.Run loop
-	//Uniformbuffer related stuff, swapchain recreation, I will have to see if I can manage that via the layers and window
-	// also, GUI (ImgUi) management
-	void VulkanContext::SwapBuffers() //technically this function just does the presenting. The command recording and frame prep needs to be separated
+	//by Cherno
+	void VulkanContext::SubmitResourceFree(std::function<void()>&& func)
 	{
-		PX_PROFILE_FUNCTION();
-
-
-		PX_CORE_WARN("Start update uniform buffer!");
-		UpdateUniformBuffer();			// Update function
-		PX_CORE_WARN("Finished update uniform buffer!");
-
-
-		//combine the beginRender with a renderpass. Renderpass holds the framebuffer it is targeted to. this way I dont need a framebuffer pool in particular
-
-
-		VkCommandBuffer cmd = GetCurrentFrameIndex().MainCommandBuffer;
-		VkCommandBufferBeginInfo cmdBegin = VulkanInits::BeginCommandBuffer(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
-		PX_CORE_VK_ASSERT(vkBeginCommandBuffer(cmd, &cmdBegin), VK_SUCCESS, "Failed to begin command buffer!");
-
-		std::array<VkClearValue, 2> clearColor = {};
-		clearColor[0].color = { 0.25f, 0.25f, 0.25f, 1.0f };			// clearcolor (framebuffer)
-		clearColor[1].depthStencil = { 1.0f, 0 };
-
-		if (Application::GetSpecification().ImGuiEnabled)
-		{
-			VkRenderPassBeginInfo renderPassBegin = VulkanInits::BeginRenderPass(	m_RenderPassPool.GetRenderPass("OffscreenPass"), 
-																					m_Swapchain->GetExtent2D(), 
-																					m_FramebufferPool.GetFramebuffer("OffscreenFB")->GetCurrent(imageIndex));
-			//Framebuffer clear colors!
-			renderPassBegin.clearValueCount = static_cast<uint32_t>(clearColor.size());
-			renderPassBegin.pClearValues = clearColor.data();
-			vkCmdBeginRenderPass(cmd, &renderPassBegin, VK_SUBPASS_CONTENTS_INLINE);
-		}
-		else
-		{		
-			//Render without GUI to default framebuffer
-
-		}
-
-		// Bind command for pipeline		|needs (bind point (graphisc here)), pipeline
-		vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_GraphicsPipeline);
-		VkRect2D scissor;
-		scissor.offset = { 0, 0 };
-		scissor.extent = m_Swapchain->GetExtent2D();
-
-		VkViewport viewport;
-		viewport.x = 0.0f;
-		viewport.y = 0.0f;
-		viewport.width = (float)specs.TargetRenderPass->GetSpecification().TargetFramebuffer()->GetSpecification().Width;
-		viewport.height = (float)m_Specs.TargetRenderPass->GetSpecification().TargetFramebuffer()->GetSpecification().Height;
-
-		vkCmdSetScissor(cmd, 0, 1, &scissor);
-		vkCmdSetViewport(cmd, 0, 1, &viewport);
-
-		int frameIndex = m_CurrentFrame % MAX_FRAMES_IN_FLIGHT;
-		uint32_t uniformOffset = PadUniformBuffer(sizeof(SceneUniformBufferD), m_PhysicalDeviceProperties.limits.minUniformBufferOffsetAlignment) * frameIndex;
-		vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_GraphicsPipelineLayout, 0, 1, &GetCurrentFrameIndex().GlobalDescriptorSet, 1, &uniformOffset);	// Bind command for descriptor-sets |needs (bindpoint), pipeline-layout, firstSet, setCount, setArray, dynOffsetCount, dynOffsets 		
-		//the pipeline layout is later part of the obj material
-		VkBuffer vertexBuffers[] = { m_DoubleTriangleMesh.VertexBuffer.Buffer };																			// VertexBuffer needed
-		VkDeviceSize offsets[] = { 0 };
-		vkCmdBindVertexBuffers(cmd, 0, 1, vertexBuffers, offsets);																							// Bind command for vertex buffer	|needs (first binding, binding count), buffer array and offset
-		vkCmdBindIndexBuffer(cmd, m_DoubleTriangleMesh.IndexBuffer.Buffer, 0, VK_INDEX_TYPE_UINT16);																			// Bind command for index buffer	|needs indexbuffer, offset, type		
-
-		static auto startTime = std::chrono::high_resolution_clock::now();
-		auto currentTime = std::chrono::high_resolution_clock::now();
-		float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
-		float x = 0.0 + time;
-		glm::mat4 model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(x, 0.0f, 1.0f));
-		//PushConstants pushConstant;
-		//pushConstant.ModelMatrix = model;
-		//vkCmdPushConstants(cmd, m_GraphicsPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PushConstants), &pushConstant);
-
-		//mapping of model data into the SSBO object buffer
-		/* Instead of using memcpy here, we are doing a different trick. It is possible to cast the void* from mapping the buffer into another type, and write into it normally.
-		 * This will work completely fine, and makes it easier to write complex types into a buffer.
-		 **/
-		void* objData;
-		vmaMapMemory(s_Allocator, m_Frames[m_CurrentFrame].ObjectBuffer.Allocation, &objData);
-		GPUBufferObject* objectSSBO = (GPUBufferObject*)objData;
-		int count = 5;
-		for (int i = 0; i < count; i++)
-		{
-			objectSSBO[i].ModelMatrix = model;
-		}
-		vmaUnmapMemory(s_Allocator, m_Frames[m_CurrentFrame].ObjectBuffer.Allocation);
-		vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_GraphicsPipelineLayout, 1, 1, &m_Frames[m_CurrentFrame].ObjectDescriptorSet, 0, nullptr);
-		//the pipeline layout is later part of the obj material
-
-		vkCmdDrawIndexed(cmd, static_cast<uint32_t>(m_DoubleTriangleMesh.Indices.size()), 1, 0, 0, 0);				// Draw indexed command		|needs index count, instance count, firstIndex, vertex offset, first instance 
-		vkCmdEndRenderPass(cmd); // End Render Pass
-		
-		/*VkRenderPassBeginInfo renderPassBegin = VulkanInits::BeginRenderPass(m_RenderPassPool.GetRenderPass("DefaultPass"), m_Swapchain->GetExtent2D(), m_SwapchainFramebuffers[imageIndex]);
-		renderPassBegin.clearValueCount = static_cast<uint32_t>(clearColor.size());
-		renderPassBegin.pClearValues = clearColor.data();
-		vkCmdBeginRenderPass(cmd, &renderPassBegin, VK_SUBPASS_CONTENTS_INLINE);
-		vkCmdEndRenderPass(cmd);*/ // End Render Pass
-
-		PX_CORE_VK_ASSERT(vkEndCommandBuffer(cmd), VK_SUCCESS, "Failed to record graphics command buffer!");
-
-		CopyOffscreenToViewportImage(m_OffscreenFramebuffers[frameIndex].GetColorAttachment(0).Image.Image);
-
-		//ImGui
-		PX_CORE_WARN("Begin ImGUi");
-		VkCommandBuffer imGuicmd = m_ImGui->BeginRender(imageIndex, m_Swapchain->GetExtent2D());
-		m_ImGui->RenderDrawData(imGuicmd);
-		m_ImGui->EndRender(imGuicmd);
-		PX_CORE_WARN("End ImGUi");		
+		s_ResourceFreeQueue[Renderer::GetCurrentFrameIndex()].push_back(func);
 	}
-
 
 	// this is only used in the next function!
 	void VulkanContext::CreateViewportImagesAndViews()
 	{
-		VkExtent3D extent;
+		/*VkExtent3D extent;
 		extent.width = static_cast<uint32_t>(m_Swapchain->GetExtent2D().width);
 		extent.height = static_cast<uint32_t>(m_Swapchain->GetExtent2D().height);
 		extent.depth = 1;
@@ -263,7 +114,7 @@ namespace Povox {
 		m_ViewportImage = VulkanImageDepr::Create(imageInfo, VMA_MEMORY_USAGE_CPU_ONLY);
 
 		VkImageViewCreateInfo ivInfo = VulkanInits::CreateImageViewInfo(m_Swapchain->GetImageFormat(), m_ViewportImage.Image, VK_IMAGE_ASPECT_COLOR_BIT);
-		vkCreateImageView(s_Device->GetVulkanDevice(), &ivInfo, nullptr, &m_ViewportImageView);
+		vkCreateImageView(s_Device->GetVulkanDevice(), &ivInfo, nullptr, &m_ViewportImageView);*/
 	}
 
 	//maybe refactor this in a ways, that I can call a function in the layer, which results to me the image as Image2D or Texture2D, so I can use it. Need to make sure
@@ -271,7 +122,7 @@ namespace Povox {
 	void VulkanContext::CopyOffscreenToViewportImage(VkImage& srcImage)
 	{
 		//Transitioning
-		VulkanCommands::ImmidiateSubmitGfx(m_UploadContext, [=](VkCommandBuffer cmd)
+		/*VulkanCommands::ImmidiateSubmitGfx(m_UploadContext, [=](VkCommandBuffer cmd)
 			{
 				VkImageMemoryBarrier barrier{};
 				barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -360,76 +211,8 @@ namespace Povox {
 				dstStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
 
 				vkCmdPipelineBarrier(cmd, srcStage, dstStage, 0, 0, nullptr, 0, nullptr, 1, &barrier);
-			});
+			});*/
 	}
-
-	// will have to see what happens with this stuff
-	void VulkanContext::UpdateUniformBuffer()
-	{
-		static auto startTime = std::chrono::high_resolution_clock::now();
-
-		auto currentTime = std::chrono::high_resolution_clock::now();
-		float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
-
-		CameraUniformBuffer ubo;
-		ubo.ViewMatrix = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-		ubo.ProjectionMatrix = glm::perspective(glm::radians(45.0f), m_Swapchain->GetExtent2D().width / (float)m_Swapchain->GetExtent2D().height, 0.1f, 10.0f);
-		ubo.ProjectionMatrix[1][1] *= -1; //flips Y
-		ubo.ViewProjMatrix = ubo.ProjectionMatrix * ubo.ViewMatrix;
-
-		void* data;
-		vmaMapMemory(s_Allocator, GetCurrentFrameIndex().CamUniformBuffer.Allocation, &data);
-		memcpy(data, &ubo, sizeof(CameraUniformBuffer));
-		vmaUnmapMemory(s_Allocator, GetCurrentFrameIndex().CamUniformBuffer.Allocation);
-
-		m_SceneParameter.AmbientColor = glm::vec4(0.2f, 0.5f, 1.0f, 1.0f);
-
-		char* sceneData;
-		vmaMapMemory(s_Allocator, m_SceneParameterBuffer.Allocation, (void**)&sceneData);
-		int frameIndex = m_CurrentFrame % MAX_FRAMES_IN_FLIGHT;
-		sceneData += PadUniformBuffer(sizeof(SceneUniformBufferD), m_PhysicalDeviceProperties.limits.minUniformBufferOffsetAlignment);
-		memcpy(sceneData, &m_SceneParameter, sizeof(SceneUniformBufferD));
-		vmaUnmapMemory(s_Allocator, m_SceneParameterBuffer.Allocation);
-	}
-	size_t VulkanContext::PadUniformBuffer(size_t inputSize, size_t minGPUBufferOffsetAlignment)
-	{
-		size_t alignedSize = inputSize;
-		if (minGPUBufferOffsetAlignment > 0)
-		{
-			alignedSize = (alignedSize + minGPUBufferOffsetAlignment - 1) & ~(minGPUBufferOffsetAlignment - 1);
-		}
-		return alignedSize;
-	}
-
-	// ImGui -> questionable where this should go
-	void VulkanContext::InitImGui()
-	{
-		m_ImGui->Init(Application::Get().GetWindow().GetSwapchain().GetImageViews(), m_Swapchain->GetExtent2D().width, m_Swapchain->GetExtent2D().height);
-	}
-	void VulkanContext::BeginImGuiFrame()
-	{
-		m_ImGui->BeginFrame();
-	}
-	void VulkanContext::EndImGuiFrame()
-	{
-		m_ImGui->EndFrame();
-	}
-	void VulkanContext::AddImGuiImage(float width, float height)
-	{
-		//later change to "First frame presented, or something"
-		//ImGui is dependend on the first frame being rendered (cause of viewport)
-		if (m_CurrentFrame > 0)
-		{
-			if (m_PresentImGui == nullptr || m_FramebufferResized)
-			{
-				vkFreeDescriptorSets(s_Device->GetVulkanDevice(), m_ImGui->GetDescriptorPool(), 1, &m_PresentImGuiSet);
-				m_PresentImGuiSet = ImGui_VulkanImpl_AddTexture(m_TextureSampler, m_ViewportImageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-			}
-			ImGui::Image((ImTextureID)m_PresentImGuiSet, { width, height }); //TODO: -> move to Example
-		}
-		PX_CORE_TRACE("Current frame: {0}", m_CurrentFrame);
-	}
-
 
 	//Core stuff -> those will get called upon init, and stored as statics, so I can call the statically from where I need them (mostly vulkan specific files)
 	void VulkanContext::CreateInstance()
@@ -468,7 +251,7 @@ namespace Povox {
 		}
 
 		auto extensions = GetRequiredExtensions();
-		createInfo.enabledExtensionCount = extensions.size();
+		createInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
 		createInfo.ppEnabledExtensionNames = extensions.data();
 
 		PX_CORE_VK_ASSERT(vkCreateInstance(&createInfo, nullptr, &s_Instance), VK_SUCCESS, "Failed to create Vulkan Instance");
@@ -485,7 +268,7 @@ namespace Povox {
 	//layer managed
 	void VulkanContext::InitOffscreenRenderPass()
 	{
-		VulkanRenderPassBuilder builder = VulkanRenderPassBuilder::Begin();
+		/*VulkanRenderPassBuilder builder = VulkanRenderPassBuilder::Begin();
 
 		VkAttachmentDescription colorAttachment{};
 		colorAttachment.format = m_Swapchain->GetImageFormat();
@@ -532,60 +315,25 @@ namespace Povox {
 		dependency.srcAccessMask = 0;
 		dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 
-		builder.AddDependency(dependency);		 
-	}
-
-	//external stuff, all managed by the layers via the different renderers
-	void VulkanContext::LoadMeshes()
-	{
-		const std::vector<VertexData> vertices = {
-			{{-0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
-			{{0.5f, -0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}},
-			{{0.5f, 0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},
-			{{-0.5f, 0.5f, 0.0f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}}
-		};
-		m_DoubleTriangleMesh.Vertices = vertices;
-
-		const std::vector<uint16_t> indices = {
-			 0, 1, 2, 2, 3, 0
-		};
-		m_DoubleTriangleMesh.Indices = indices;
-
-		UploadMeshes();
+		builder.AddDependency(dependency);*/	 
 	}
 	void VulkanContext::UploadMeshes()
 	{
-		VulkanVertexBuffer::Create(m_UploadContext, m_DoubleTriangleMesh);
-		VulkanIndexBuffer::Create(m_UploadContext, m_DoubleTriangleMesh);
+		//VulkanVertexBuffer::Create(m_UploadContext, m_DoubleTriangleMesh);
+		//VulkanIndexBuffer::Create(m_UploadContext, m_DoubleTriangleMesh);
 	}
 	// same as shaders, get created an stored inside the layers, and then linked via a game object or material?
 	void VulkanContext::LoadTextures()
 	{
-		Texture logo;
+		/*Texture logo;
 		logo.Image2D = VulkanImageDepr::LoadFromFile(m_UploadContext, "assets/textures/newLogo.png", VK_FORMAT_R8G8B8A8_SRGB);
 
 		VkImageViewCreateInfo imageInfo = VulkanInits::CreateImageViewInfo(VK_FORMAT_R8G8B8A8_SRGB, logo.Image2D.Image, VK_IMAGE_ASPECT_COLOR_BIT);
 		PX_CORE_VK_ASSERT(vkCreateImageView(s_Device->GetVulkanDevice(), &imageInfo, nullptr, &logo.ImageView), VK_SUCCESS, "Failed to create image view!");
 
-		m_Textures["Logo"] = logo;
+		m_Textures["Logo"] = logo;*/
 	}
-
-	// one of the more tricky ones -> create CommandBuffers and RenderCommandBuffer? RenderCommandqueue which then gets executed from the rendered
-	// commands get collected inside the queue
-	// create pools for specific tasks? Geometry, Shading...? Or keep it as is...
-	void VulkanContext::InitCommands()
-	{
-		VkCommandPoolCreateInfo commandPoolInfoTrsf = VulkanInits::CreateCommandPoolInfo(s_Device->FindQueueFamilies().TransferFamily.value(), VK_COMMAND_POOL_CREATE_TRANSIENT_BIT);
-		
-		VkCommandPoolCreateInfo uploadPoolInfo = VulkanInits::CreateCommandPoolInfo(s_Device->FindQueueFamilies().GraphicsFamily.value());
-		m_UploadContext.CmdPoolGfx = VulkanCommandPool::Create(uploadPoolInfo);
-		VkCommandBufferAllocateInfo uploadCmdBufferGfxInfo = VulkanInits::CreateCommandBufferAllocInfo(m_UploadContext.CmdPoolGfx, 1);
-		m_UploadContext.CmdBufferGfx = VulkanCommandBuffer::Create(s_Device->GetVulkanDevice(), m_UploadContext.CmdPoolGfx, uploadCmdBufferGfxInfo);
-
-		m_UploadContext.CmdPoolTrsf = VulkanCommandPool::Create(commandPoolInfoTrsf);
-		VkCommandBufferAllocateInfo uploadCmdBufferTrsfInfo = VulkanInits::CreateCommandBufferAllocInfo(m_UploadContext.CmdPoolTrsf, 1);
-		m_UploadContext.CmdBufferTrsf = VulkanCommandBuffer::Create(s_Device->GetVulkanDevice(), m_UploadContext.CmdPoolTrsf, uploadCmdBufferTrsfInfo);
-	}
+	
 
 
 	// might be completely dependent on shaders. Upon startup, I run through the shader lib, and compile every shader, which should also reflect on them and then create 
@@ -634,58 +382,6 @@ namespace Povox {
 		}*/
 	}
 
-	void VulkanContext::CreateDepthResources()
-	{
-		VkFormat depthFormat = VulkanUtils::FindDepthFormat(s_Device->GetPhysicalDevice());
-		VkExtent3D extent;
-		extent.width = static_cast<uint32_t>(m_Swapchain->GetExtent2D().width);
-		extent.height = static_cast<uint32_t>(m_Swapchain->GetExtent2D().height);
-		extent.depth = 1;
-
-		VkImageCreateInfo imageInfo = VulkanInits::CreateImageInfo(depthFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, extent);
-		m_DepthImage = VulkanImageDepr::Create(imageInfo);
-
-		VkImageViewCreateInfo viewInfo = VulkanInits::CreateImageViewInfo(depthFormat, m_DepthImage.Image, VK_IMAGE_ASPECT_DEPTH_BIT);
-		PX_CORE_VK_ASSERT(vkCreateImageView(s_Device->GetVulkanDevice(), &viewInfo, nullptr, &m_DepthImageView), VK_SUCCESS, "Failed to create ImageView!");
-
-		VulkanCommands::ImmidiateSubmitGfx(m_UploadContext, [=](VkCommandBuffer cmd)
-			{
-				VkImageMemoryBarrier barrier{};
-				barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-				barrier.image = m_DepthImage.Image;
-				barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-				barrier.newLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
-				barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-				barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-				barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-				if (depthFormat == VK_FORMAT_D32_SFLOAT_S8_UINT || depthFormat == VK_FORMAT_D24_UNORM_S8_UINT)
-					barrier.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
-				barrier.subresourceRange.baseMipLevel = 0;
-				barrier.subresourceRange.levelCount = 1;
-				barrier.subresourceRange.baseArrayLayer = 0;
-				barrier.subresourceRange.layerCount = 1;
-
-				VkPipelineStageFlags srcStage;
-				VkPipelineStageFlags dstStage;
-
-				barrier.srcAccessMask = 0;
-				barrier.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-
-				srcStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-				dstStage = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-
-				vkCmdPipelineBarrier(cmd, srcStage, dstStage, 0, 0, nullptr, 0, nullptr, 1, &barrier);
-			});
-	}
-
-	// Upload context stuff -> should only be available and used if an exclusive TransferQueue is available
-	void VulkanContext::CreateSyncObjects()
-	{
-		VkFenceCreateInfo createFenceInfo{};
-		createFenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-		createFenceInfo.flags = 0;
-		PX_CORE_VK_ASSERT(vkCreateFence(s_Device->GetVulkanDevice(), &createFenceInfo, nullptr, &m_UploadContext.Fence), VK_SUCCESS, "Failed to create upload fence!");
-	}
 
 	// Extensions and layers
 	bool VulkanContext::CheckValidationLayerSupport()

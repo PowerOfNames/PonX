@@ -6,6 +6,8 @@ namespace Povox {
 	class VulkanDescriptorAllocator
 	{
 	public:
+		VulkanDescriptorAllocator() = default;
+		~VulkanDescriptorAllocator();
 		void Cleanup();
 		bool Allocate(VkDescriptorSet* set, VkDescriptorSetLayout layout);
 		void ResetPool();
@@ -41,10 +43,11 @@ namespace Povox {
 
 
 
-
 	class VulkanDescriptorLayoutCache
 	{
 	public:
+		VulkanDescriptorLayoutCache() = default;
+		~VulkanDescriptorLayoutCache();
 		void Cleanup();
 
 

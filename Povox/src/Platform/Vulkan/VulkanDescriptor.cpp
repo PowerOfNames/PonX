@@ -7,6 +7,12 @@
 
 namespace Povox
 {
+
+	VulkanDescriptorAllocator::~VulkanDescriptorAllocator()
+	{
+		Cleanup();
+	}
+
 // ------------- Allocator -------------
 	void VulkanDescriptorAllocator::Cleanup()
 	{
@@ -112,6 +118,11 @@ namespace Povox
 		}
 	}
 
+
+	VulkanDescriptorLayoutCache::~VulkanDescriptorLayoutCache()
+	{
+		Cleanup();
+	}
 
 // ------------- LayoutCache -------------
 
@@ -291,7 +302,9 @@ namespace Povox
 
 	bool VulkanDescriptorBuilder::Build(VkDescriptorSet& set)
 	{
+		//TODO: fill
 
+		return false;
 	}
 
 }

@@ -10,14 +10,14 @@ namespace Povox {
 	{
 		switch (Renderer::GetAPI())
 		{
+		case RendererAPI::API::Vulkan:
+		{
+			//return CreateRef<VulkanTexture2D>(width, height);
+		}
 		case RendererAPI::API::NONE:
 		{
 			PX_CORE_ASSERT(false, "RendererAPI::NONE is not supported!");
 			return nullptr;
-		}
-		case RendererAPI::API::OpenGL:
-		{
-			return CreateRef<OpenGLTexture2D>(width, height);
 		}
 		}
 		PX_CORE_ASSERT(false, "Unknown RendererAPI");
@@ -28,15 +28,16 @@ namespace Povox {
 	{
 		switch (Renderer::GetAPI())
 		{
+		case RendererAPI::API::Vulkan:
+		{
+			//return CreateRef<VulkanTexture2D>(path);
+		}
 		case RendererAPI::API::NONE:
 		{
 			PX_CORE_ASSERT(false, "RendererAPI::NONE is not supported!");
 			return nullptr;
 		}
-		case RendererAPI::API::OpenGL:
-		{
-			return CreateRef<OpenGLTexture2D>(path);
-		}
+		
 		}
 		PX_CORE_ASSERT(false, "Unknown RendererAPI");
 		return nullptr;

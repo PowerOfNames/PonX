@@ -20,6 +20,8 @@ project "Povox"
 		"vendor/glm/glm/**.hpp",
 		"vendor/glm/glm/**.inl",
 		"vendor/VMA/**.h",
+		"vendor/SPIRV_Reflect/spirv_reflect.cpp",
+		"vendor/SPIRV_Reflect/spirv_reflect.h",
 
 		"vendor/ImGuizmo/ImGuizmo.h",
 		"vendor/ImGuizmo/ImGuizmo.cpp"
@@ -44,7 +46,8 @@ project "Povox"
 		"%{IncludeDir.yaml_cpp}",
 		"%{IncludeDir.ImGuizmo}",
 		"%{IncludeDir.VulkanSDK}",
-		"%{IncludeDir.VMA}"
+		"%{IncludeDir.VMA}",
+		"%{IncludeDir.SPIRV_Reflect}"
 	}
 
 	links

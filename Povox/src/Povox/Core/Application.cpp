@@ -4,7 +4,6 @@
 #include "Povox/Core/Log.h"
 #include "Povox/Core/Input.h"
 #include "Povox/Renderer/Renderer.h"
-#include "Povox/Renderer/RendererAPI.h"
 #include "Povox/Core/Timestep.h"
 
 #include <GLFW/glfw3.h>
@@ -15,32 +14,34 @@ namespace Povox {
 	Application* Application::s_Instance = nullptr;
 
 	Application::Application(const ApplicationSpecification& specs)
+		: m_Specification(specs)
 	{
 		PX_PROFILE_FUNCTION();
 
-		s_Specification = specs;
 
 		PX_CORE_ASSERT(!s_Instance, "Application already exists!");
 		s_Instance = this;
 
-		//TODO: Implement OnStartup() -> sets up rendererContext, which renderer to use, creates window etc.
-		//Set Graphics API to Vulkan when available, else to OpenGL
-		RendererAPI::SetAPI(RendererAPI::API::Vulkan);
+		/* Correct order to initialize the core :
+		 *
+		 * - First set the correct RendererAPI
+		 * - Create and setup Window -> RendererContext and Swapchain
+		 * - Setup RendererAPI -> Dependent on finished Context and Swapchain
+		 */
 
-		// Window holds scope of the graphics context and initializes it upon window init (which happens in the constructor)
+		RendererAPI::SetAPI(specs.UseAPI);
+
 		m_Window = Window::Create();
 		m_Window->SetEventCallback(PX_BIND_EVENT_FN(Application::OnEvent));
 
-		Renderer::Init();
+		RendererSpecification rendererSpecs{};
+		rendererSpecs.MaxSceneObjects = 20000;
+		rendererSpecs.MaxFramesInFlight = specs.MaxFramesInFlight;
+		Renderer::Init(rendererSpecs);
 
+		//The ImGui stuff should not be in the application -> GUI Renderer should take care of this stuff
 		switch (RendererAPI::GetAPI())
 		{
-			case RendererAPI::API::OpenGL:
-			{
-				m_ImGuiLayer = new ImGuiLayer();
-				PushOverlay(m_ImGuiLayer);
-				break;
-			}
 			case RendererAPI::API::Vulkan:
 			{
 				m_ImGuiVulkanLayer = new ImGuiVulkanLayer();
@@ -52,8 +53,63 @@ namespace Povox {
 		}		
 	}
 
+
+	void Application::Run()
+	{
+		PX_PROFILE_FUNCTION();
+
+
+		while (m_Running)
+		{
+			PX_PROFILE_SCOPE("Application Run-Loop");
+
+			//Between Begin and EndFrame happens the CommandRecording of everything rendering related
+			Renderer::BeginFrame();
+
+			float time = (float)glfwGetTime();
+			Timestep timestep = time - m_DeltaTime;
+			m_DeltaTime = time;
+
+			if (!m_Minimized)
+			{
+				for (Layer* layer : m_Layerstack)
+				{
+					layer->OnUpdate(timestep);
+				}
+			}
+
+			//if the GUI rendering happens here, then I have to change the frame handling end end it AFTER ImgUi or other GUI has been handled and rendered before buffer swapping
+			if (RendererAPI::GetAPI() == RendererAPI::API::Vulkan && m_Specification.ImGuiEnabled)
+			{
+				m_ImGuiVulkanLayer->Begin();
+				for (Layer* layer : m_Layerstack)
+				{
+					layer->OnImGuiRender();
+				}
+				m_ImGuiVulkanLayer->End();
+			}
+
+			Renderer::EndFrame();
+
+			//The recorded commands now get processed in the swapchain, which lives in the window
+			m_Window->OnUpdate();
+		}
+	}
+
 	Application::~Application() 
 	{
+		PX_PROFILE_FUNCTION();
+
+
+		/* Shutdown routine:
+		 * end last rendering
+		 * shutdown the RendererAPI -> automatic
+		 * shutdown Swapchain and Context
+		 * shutdown window
+		 * close app
+		 */
+
+		Renderer::Shutdown();
 	}
 
 	void Application::PushLayer(Layer* layer)
@@ -89,52 +145,6 @@ namespace Povox {
 			if (e.Handled)
 				break;
 		}
-	}
-
-	void Application::Run()
-	{
-		PX_PROFILE_FUNCTION();
-
-
-		while (m_Running)
-		{
-			PX_PROFILE_SCOPE("Application Run-Loop");
-
-			float time = (float)glfwGetTime();
-			Timestep timestep = time - m_DeltaTime;
-			m_DeltaTime = time;
-
-			if (!m_Minimized)
-			{
-				for (Layer* layer : m_Layerstack)
-				{
-					layer->OnUpdate(timestep);
-				}
-			}
-
-			if (RendererAPI::GetAPI() == RendererAPI::API::OpenGL)
-			{
-				m_ImGuiLayer->Begin();
-				for (Layer* layer : m_Layerstack)
-				{
-					layer->OnImGuiRender();
-				}
-				m_ImGuiLayer->End();
-			}
-
-			if (RendererAPI::GetAPI() == RendererAPI::API::Vulkan)
-			{
-				m_ImGuiVulkanLayer->Begin();
-				for (Layer* layer : m_Layerstack)
-				{
-					layer->OnImGuiRender();
-				}
-				m_ImGuiVulkanLayer->End();
-			}
-
-			m_Window->OnUpdate();
-		}
-		//Shutdown?
 	}
 
 	bool Application::OnWindowClose(WindowCloseEvent& e)

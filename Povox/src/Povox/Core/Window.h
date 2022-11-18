@@ -1,12 +1,6 @@
 #pragma once
-
-#include "pxpch.h"
-
 #include "Povox/Core/Core.h"
 #include "Povox/Events/Event.h"
-
-#include "Platform/Vulkan/VulkanSwapchain.h"
-
 
 namespace Povox {
 
@@ -24,6 +18,7 @@ namespace Povox {
 		}
 	};
 
+	class VulkanSwapchain;
 	// interface representing a desktop system based window
 	class Window
 	{
@@ -38,7 +33,7 @@ namespace Povox {
 		virtual unsigned int GetWidth() const = 0;
 		virtual unsigned int GetHeight() const = 0;
 
-		virtual VulkanSwapchain& GetSwapchain() = 0;
+		virtual Ref<VulkanSwapchain> GetSwapchain() = 0;
 
 		// Window attributes
 		virtual void SetEventCallback(const EventCallbackFn& eventcallback) = 0;

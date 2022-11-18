@@ -1,10 +1,9 @@
 #pragma once
 
-#include "Povox/Renderer/VertexArray.h"
 
 namespace Povox {
-
-	class OpenGLVertexArray : public VertexArray
+	/*
+	class OpenGLVertexArray
 	{
 	public:
 		OpenGLVertexArray();
@@ -25,5 +24,5 @@ namespace Povox {
 		std::vector<Ref<VertexBuffer>> m_VertexBuffers;
 		Ref<IndexBuffer> m_IndexBuffer;
 	};
-
+	*/
 }

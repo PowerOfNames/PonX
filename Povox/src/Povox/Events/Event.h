@@ -2,6 +2,9 @@
 
 #include "Povox/Core/Core.h"
 
+#include <string>
+#include <functional>
+
 namespace Povox {
 
 	// At the moment, the event system is a blocking event system, which means, that upon receiving a event, it must immediately be handled.
@@ -33,7 +36,7 @@ namespace Povox {
 
 #define EVENT_CLASS_CATEGORY(category) virtual int GetCategoryFlags() const override { return category; }
 
-	class POVOX_API Event
+	class Event
 	{
 		friend class EventDispatcher;
 

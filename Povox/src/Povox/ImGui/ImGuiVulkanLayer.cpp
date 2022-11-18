@@ -1,7 +1,7 @@
 #include "pxpch.h"
 #include "ImGuiVulkanLayer.h"
 
-#include "Platform/Vulkan/VulkanRendererAPI.h"
+#include "Platform/Vulkan/VulkanRenderer.h"
 
 #include <imgui.h>
 #include <backends/imgui_impl_glfw.h>
@@ -53,8 +53,8 @@ namespace Povox {
 
 		SetDarkThemeColors();
 
-		Application& app = Application::Get();
-		GLFWwindow* window = static_cast<GLFWwindow*>(app.GetWindow().GetNativeWindow());
+		Application* app = Application::Get();
+		GLFWwindow* window = static_cast<GLFWwindow*>(app->GetWindow().GetNativeWindow());
 
 		// Setup Platform/Renderer bindings
 		ImGui_ImplGlfw_InitForVulkan(window, true);
@@ -87,8 +87,8 @@ namespace Povox {
 	void ImGuiVulkanLayer::End()
 	{
 		ImGuiIO& io = ImGui::GetIO();
-		Application& app = Application::Get();
-		io.DisplaySize = ImVec2((float)app.GetWindow().GetWidth(), (float)app.GetWindow().GetHeight());
+		Application* app = Application::Get();
+		io.DisplaySize = ImVec2((float)app->GetWindow().GetWidth(), (float)app->GetWindow().GetHeight());
 
 		// Rendering
 		VulkanRenderer::EndImGuiFrame();

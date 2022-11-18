@@ -1,7 +1,5 @@
 #pragma once
-
-#include "VulkanUtility.h"
-#include <vulkan/vulkan.h>
+#include "VulkanUtilities.h"
 
 namespace Povox {
 
