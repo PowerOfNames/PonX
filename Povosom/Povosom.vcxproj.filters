@@ -18,7 +18,4 @@
     </ClCompile>
     <ClCompile Include="src\PovosomApp.cpp" />
   </ItemGroup>
-  <ItemGroup>
-    <None Include="assets\shaders\Triangle.glsl" />
-  </ItemGroup>
 </Project>
