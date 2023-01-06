@@ -10,9 +10,6 @@
 [submodule "Povox/vendor/glm"]
 	path = Povox/vendor/glm
 	url = https://github.com/g-truc/glm
-[submodule "Povox/vendor/yaml-cpp"]
-	path = Povox/vendor/yaml-cpp
-	url = https://github.com/PowerOfNames/yaml-cpp
 [submodule "Povox/vendor/ImGuizmo"]
 	path = Povox/vendor/ImGuizmo
 	url = https://github.com/PowerOfNames/ImGuizmo
