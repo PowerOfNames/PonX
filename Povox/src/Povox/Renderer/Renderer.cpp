@@ -18,6 +18,7 @@ namespace Povox {
 		//Initialize main API
 		s_Data.ShaderLibrary = CreateRef<ShaderLibrary>();
 		s_Data.ShaderLibrary->Add("TextureShader", Shader::Create("assets/shaders/Texture.glsl"));
+		s_Data.ShaderLibrary->Add("TriangleShader", Shader::Create("assets/shaders/Triangle.glsl"));
 		
 		s_RendererAPI = CreateScope<VulkanRenderer>(specs);
 

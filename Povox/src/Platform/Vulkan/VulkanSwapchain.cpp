@@ -344,6 +344,7 @@ namespace Povox {
 
 		m_CurrentFrame.CurrentImage = m_Images[m_CurrentFrame.CurrentImageIndex];
 		m_CurrentFrame.CurrentImageView = m_ImageViews[m_CurrentFrame.CurrentImageIndex];
+		m_CurrentFrame.Commands.clear();
 
 		return &m_CurrentFrame;
 	}

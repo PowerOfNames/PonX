@@ -112,13 +112,6 @@ namespace Povox {
 
 				bufferci.commandPool = m_Frames[i].Commands.Pool;
 				PX_CORE_VK_ASSERT(vkAllocateCommandBuffers(m_Device, &bufferci, &m_Frames[i].Commands.Buffer), VK_SUCCESS, "Failed to create CommandBuffer!");
-
-				VkDebugUtilsObjectNameInfoEXT nameInfo{};
-				nameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_MARKER_OBJECT_NAME_INFO_EXT;
-				nameInfo.objectType = VK_OBJECT_TYPE_COMMAND_BUFFER;
-				nameInfo.objectHandle = (uint32_t)&m_Frames[i].Commands.Buffer;
-				nameInfo.pObjectName = "Frame CommandBuffer Frame:" + i;
-				vkSetDebugUtilsObjectNameEXT(m_Device, &nameInfo);
 			}
 			PX_CORE_INFO("VulkanRenderer::InitFrameData: Created '{0}' Commandpools and buffers", maxFrames);
 
@@ -235,7 +228,7 @@ namespace Povox {
 		auto& currentFreeQueue = VulkanContext::GetResourceFreeQueue()[m_CurrentFrame];
 		for (auto& func : currentFreeQueue)
 		//	func();
-		currentFreeQueue.clear();
+		//currentFreeQueue.clear();
 		vkWaitForFences(m_Device, 1, &GetCurrentFrame().Fence, VK_TRUE, UINT64_MAX);
 		vkResetFences(m_Device, 1, &GetCurrentFrame().Fence);
 
@@ -247,10 +240,6 @@ namespace Povox {
 		m_SwapchainFrame->CurrentFence = GetCurrentFrame().Fence;
 		m_SwapchainFrame->PresentSemaphore = GetCurrentFrame().Semaphores.PresentSemaphore;
 		m_SwapchainFrame->RenderSemaphore = GetCurrentFrame().Semaphores.RenderSemaphore;
-
-		//iterate over the different command buffers (if there are multiple ones)
-		m_SwapchainFrame->Commands.clear();
-		m_SwapchainFrame->Commands.push_back(GetCurrentFrame().Commands.Buffer);
 
 		PX_CORE_TRACE("Finished VulkanRenderer::BeginFrame!");
 	}
@@ -273,14 +262,14 @@ namespace Povox {
 		vkCmdBindDescriptorSets(m_ActiveCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_ActivePipeline->GetLayout(), 0, 1, &GetCurrentFrame().GlobalDescriptorSet, 0, nullptr/*&uniformOffset*/);
 		
 		
-		PX_CORE_WARN("Here!!");
 		VkBuffer vertexBuffer = std::dynamic_pointer_cast<VulkanBuffer>(renderable.MeshData.VertexBuffer)->GetAllocation().Buffer;
+		VkBuffer indexBuffer = std::dynamic_pointer_cast<VulkanBuffer>(renderable.MeshData.IndexBuffer)->GetAllocation().Buffer;
+		if (vertexBuffer == VK_NULL_HANDLE)
+			PX_CORE_WARN("VertexBuffer is empty!");
 		VkDeviceSize offsets[] = { 0 };
 		vkCmdBindVertexBuffers(m_ActiveCommandBuffer, 0, 1, &vertexBuffer, offsets);		// Bind command for vertex buffer	|needs (first binding, binding count), buffer array and offset
-		PX_CORE_WARN("Here!!");
-		vkCmdBindIndexBuffer(m_ActiveCommandBuffer, std::dynamic_pointer_cast<VulkanBuffer>(renderable.MeshData.IndexBuffer)->GetAllocation().Buffer, 0, VK_INDEX_TYPE_UINT32);	// Bind command for index buffer	|needs indexbuffer, offset, type		
-		PX_CORE_WARN("Here!!");
-		vkCmdDrawIndexed(m_ActiveCommandBuffer, 4, 1, 0, 0, 0);
+		vkCmdBindIndexBuffer(m_ActiveCommandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);	// Bind command for index buffer	|needs indexbuffer, offset, type		
+		vkCmdDrawIndexed(m_ActiveCommandBuffer, 6, 1, 0, 0, 0);
 
 		//vkCmdBindDescriptorSets(m_ActiveCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_ActivePipeline->GetLayout(), 1, 1, &m_Frames[m_CurrentFrame].ObjectDescriptorSet, 0, nullptr);
 
@@ -437,11 +426,20 @@ namespace Povox {
 		PX_CORE_TRACE("VulkanRenderer::BeginCommandBuffer: Started!");
 
 		m_ActiveCommandBuffer = (VkCommandBuffer)commBuf;
+		m_SwapchainFrame->Commands.push_back(m_ActiveCommandBuffer);
 		VkCommandBufferBeginInfo cmdBegin{};
 		cmdBegin.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 		cmdBegin.pNext = nullptr;
 		cmdBegin.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 		PX_CORE_VK_ASSERT(vkBeginCommandBuffer(m_ActiveCommandBuffer, &cmdBegin), VK_SUCCESS, "Failed to begin command buffer!");
+		
+		VkDebugUtilsObjectNameInfoEXT nameInfo{};
+		nameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+		nameInfo.objectType = VK_OBJECT_TYPE_COMMAND_BUFFER;
+		nameInfo.objectHandle = (uint64_t)m_ActiveCommandBuffer;
+		nameInfo.pObjectName = "Frame CommandBuffer Frame";
+		NameVkObject(m_Device, nameInfo);
+		
 		PX_CORE_TRACE("VulkanRenderer::BeginCommandBuffer: Finished!");
 	}
 	void VulkanRenderer::EndCommandBuffer()

@@ -81,6 +81,21 @@ namespace Povox {
 		UNIFORM_BUFFER = 3,
 		STORAGE_BUFFER = 4
 	};
+	namespace EnumToString {
+		constexpr const char* BufferUsageString(BufferUsage usage)
+		{
+			switch (usage)
+			{
+				case BufferUsage::UNDEFINED: return "UNDEFINED";
+				case BufferUsage::VERTEX_BUFFER: return "VERTEX_BUFFER";
+				case BufferUsage::INDEX_BUFFER: return "INDEX_BUFFER";
+				case BufferUsage::UNIFORM_BUFFER: return "UNIFORM_BUFFER";
+				case BufferUsage::STORAGE_BUFFER: return "STORAGE_BUFFER";
+				default: return "Missing BufferUsageString conversion!";
+			}
+		}
+	}
+	
 
 	struct BufferSpecification
 	{

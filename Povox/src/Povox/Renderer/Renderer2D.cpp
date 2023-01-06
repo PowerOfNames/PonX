@@ -49,6 +49,8 @@ namespace Povox {
 
 		CameraUniformLayout CameraBuffer;
 		Ref<Buffer> CameraUniformBuffer;		
+
+		std::vector<Renderable> RenderedObjects;
 	};
 
 	static Renderer2DData s_QuadData;
@@ -177,6 +179,7 @@ namespace Povox {
 		s_QuadData.QuadVertexBufferPtr = s_QuadData.QuadVertexBufferBase;
 
 		s_QuadData.TextureSlotIndex = 1;
+		s_QuadData.RenderedObjects.clear();
 	}
 
 	void Renderer2D::Flush()
@@ -242,6 +245,7 @@ namespace Povox {
 		vertexBufferSpecs.ElementSize = sizeof(VertexData);
 		vertexBufferSpecs.Size = vertexData.size() * sizeof(vertexData);
 		vertexBufferSpecs.Data = vertexData.data();
+		PX_CORE_INFO("Created VertexBuffer for quad");
 		renderable.MeshData.VertexBuffer = Buffer::Create(vertexBufferSpecs);
 
 		const std::vector<uint32_t> quadIndices = { 0, 1, 2, 2, 3, 0 };
@@ -256,6 +260,7 @@ namespace Povox {
 		renderable.Material.Color = { 1.0f, 1.0f, 1.0f };
 		renderable.Material.Shader = Renderer::GetShaderLibrary()->Get("TextureShader");
 		renderable.Material.Texture = s_QuadData.WhiteImage;
+		s_QuadData.RenderedObjects.push_back(renderable);
 		Renderer::DrawRenderable(renderable);
 
 		//DrawQuad(transform, color);

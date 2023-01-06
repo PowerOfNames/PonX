@@ -44,7 +44,16 @@ void main()
 	Output.TilingFactor = a_TilingFactor;
 	o_EntityID = a_EntityID;
 
-	gl_Position = u_Camera.ViewProjection * vec4(a_Position, 1.0f);
+	//const array of positions for the triangle
+	const vec3 positions[3] = vec3[3](
+		vec3(1.f,1.f, 0.0f),
+		vec3(-1.f,1.f, 0.0f),
+		vec3(0.f,-1.f, 0.0f)
+	);
+
+	//output the position of each vertex
+	gl_Position = vec4(positions[gl_VertexIndex], 1.0f);
+	//gl_Position = u_Camera.ViewProjection * vec4(a_Position, 1.0f);
 }
 
 #type fragment
@@ -62,7 +71,7 @@ struct VertexInput
 };
 
 layout(location = 0) in VertexInput Input;
-layout(location = 4) in flat int v_EntityID;
+//layout(location = 4) in flat int v_EntityID;
 
 //layout(binding = 0) uniform sampler2D u_Textures[32];
 //layout(set = 2, binding = 0) uniform sampler2D u_Texture;
@@ -107,6 +116,6 @@ void main()
 		case 31: texColor *= texture(u_Textures[31], Input.TexCoord * Input.TilingFactor); break;
 	}*/
 	//texColor *= texture(u_Texture, Input.TexCoord * Input.TilingFactor);
-	color = texColor;
-	entityID = v_EntityID;
+	color = vec4(1.0, 0.0, 1.0, 1.0);
+	//entityID = v_EntityID;
 }

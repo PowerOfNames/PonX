@@ -3,8 +3,7 @@
 -- Povox dependencies
 
 
-Vulkan_SDK = "%{wks.location}/Povox/vendor/VulkanSDK"
--- Vulkan_SDK = os.getenv("VulkanSDK_Povox")
+ Vulkan_SDK = os.getenv("Vulkan_SDK")
 
 
 IncludeDir = {}

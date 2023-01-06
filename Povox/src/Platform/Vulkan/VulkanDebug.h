@@ -71,4 +71,12 @@ namespace Povox {
 			func(instance, debugMessenger, allocator);
 		}
 	}
+
+	static VkResult NameVkObject(VkDevice device, VkDebugUtilsObjectNameInfoEXT objNameInfo)
+	{
+		auto func = (PFN_vkSetDebugUtilsObjectNameEXT)vkGetDeviceProcAddr(device, "vkSetDebugUtilsObjectNameEXT");
+		if (func != nullptr)
+			return func(device, &objNameInfo);
+		return VK_INCOMPLETE;
+	}
 }

@@ -43,7 +43,7 @@ namespace Povox {
 		//static VkShaderModule Create(VkDevice logicalDevice, const std::string& filepath);
 
 
-		virtual const std::string& GetName() const { return "Shader name!"; }
+		virtual const std::string& GetName() const { return m_DebugName; }
 
 		// Uniforms
 		virtual void SetInt(const std::string& name, int value) {}
@@ -86,7 +86,7 @@ namespace Povox {
 
 		VertexInputDescription m_VertexInputDescription{};
 
-		const std::string m_FilePath;
-		std::string m_DebugName;
+		const std::string m_FilePath = "";
+		std::string m_DebugName = "Shader name";
 	};
 }

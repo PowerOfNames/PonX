@@ -26,7 +26,7 @@ namespace Povox {
 
 		ApplicationSpecification specs;
 		specs.UseAPI = RendererAPI::API::Vulkan;
-		specs.ImGuiEnabled = true;
+		specs.ImGuiEnabled = false;
 		specs.MaxFramesInFlight = 2;
 
 		return new Povosom(specs);

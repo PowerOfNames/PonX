@@ -94,7 +94,7 @@ namespace Povox {
 		PX_CORE_TRACE("Device-Name: {0}", deviceProperties.deviceName);
 		if (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
 			PX_CORE_TRACE("Device-type: Discrete GPU");
-		PX_CORE_TRACE("API-Version: {0}.{1}.{2}.{3}", VK_API_VERSION_VARIANT(deviceProperties.apiVersion), VK_API_VERSION_MAJOR(deviceProperties.apiVersion), VK_API_VERSION_MINOR(deviceProperties.apiVersion), VK_API_VERSION_PATCH(deviceProperties.apiVersion));
+		PX_CORE_TRACE("API-Version: VulklanSDK {0}.{1}.{2}", VK_API_VERSION_MAJOR(deviceProperties.apiVersion), VK_API_VERSION_MINOR(deviceProperties.apiVersion), VK_API_VERSION_PATCH(deviceProperties.apiVersion));
 
 
 		int score = 0;

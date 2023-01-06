@@ -45,6 +45,7 @@ namespace Povox {
 
 			PipelineSpecification standardPipelineSpecs{};
 			standardPipelineSpecs.DynamicViewAndScissors = true;
+			standardPipelineSpecs.Culling = PipelineUtils::CullMode::NONE;
 			standardPipelineSpecs.TargetRenderPass = m_ImGuiRenderpass;
 			standardPipelineSpecs.Shader = Renderer::GetShaderLibrary()->Get("TextureShader");
 			m_StandardPipeline = Pipeline::Create(standardPipelineSpecs);
@@ -53,35 +54,6 @@ namespace Povox {
         m_ActiveScene = CreateRef<Scene>();
 
         m_EditorCamera = EditorCamera(30.0f, 1.778f, 0.1f, 1000.0f);
-#if 0
-        class CameraController : public ScriptableEntity
-        {
-        public:
-            void OnCreate()
-            {
-            }
-
-            void OnDestroy()
-            {
-            }
-
-            void OnUpdate(Timestep deltatime)
-            {
-                auto& translation = GetComponent<TransformComponent>().Translation;
-                float speed = 5.0f;
-
-                if (Input::IsKeyPressed(Key::A))
-                    translation.x -= deltatime * speed;
-                if (Input::IsKeyPressed(Key::D))
-                    translation.x += deltatime * speed;
-                if (Input::IsKeyPressed(Key::W))
-                    translation.y += deltatime * speed;
-                if (Input::IsKeyPressed(Key::S))
-                    translation.y -= deltatime * speed;
-
-            }
-        };
-#endif
         m_SceneHierarchyPanel.SetContext(m_ActiveScene);
 
 		PX_CORE_TRACE("Finished EditorLayer::OnAttach()");
@@ -134,7 +106,7 @@ namespace Povox {
 		Renderer::BindPipeline(m_StandardPipeline);
 
 		Renderer2D::BeginScene(m_EditorCamera); //doesn't mess with renderer atm
-		Renderer2D::DrawQuad({ 1.0f, 1.0f, 1.0f }, { 1.0f, 1.0f }, { 1.0f, 1.0f, 0.5f, 1.0f });	
+		Renderer2D::DrawQuad({ -0.5f, -0.5f, 0.0f }, { 0.5f, 0.5f }, { 1.0f, 1.0f, 0.5f, 1.0f });	
 		Renderer2D::EndScene(); //doesn't mess with renderer atm
 
 		Renderer::EndRenderPass();

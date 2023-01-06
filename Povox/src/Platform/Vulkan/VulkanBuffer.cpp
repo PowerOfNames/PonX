@@ -28,8 +28,17 @@ namespace Povox {
 	VulkanBuffer::VulkanBuffer(const BufferSpecification& specs)
 		: m_Specification(specs)
 	{
-		if (specs.Size <= 0)
-			m_Allocation = CreateAllocation(specs.Size, VulkanUtils::GetVulkanBufferUsage(specs.Usage), VulkanUtils::GetVmaUsage(specs.MemUsage));
+		PX_CORE_ASSERT(specs.Size > 0, "A size needs to be defined!");
+		m_Allocation = CreateAllocation(specs.Size, VulkanUtils::GetVulkanBufferUsage(specs.Usage) | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VulkanUtils::GetVmaUsage(specs.MemUsage));
+
+		VkDebugUtilsObjectNameInfoEXT nameInfo{};
+		nameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+		nameInfo.objectType = VK_OBJECT_TYPE_BUFFER;
+		nameInfo.objectHandle = (uint64_t)m_Allocation.Buffer;
+		char name[100] = "Buffer ";
+		nameInfo.pObjectName = strcat(name, EnumToString::BufferUsageString(specs.Usage));
+		NameVkObject(VulkanContext::GetDevice()->GetVulkanDevice(), nameInfo);
+		//delete[] name;
 
 		if(specs.Data != nullptr)
 			SetData(specs.Data, specs.Size);
