@@ -1,9 +1,9 @@
 #pragma once
-#include "VulkanUtilities.h"
-#include "VulkanInitializers.h"
-#include "VulkanImage2D.h"
-
 #include "Povox/Renderer/Framebuffer.h"
+
+#include "Platform/Vulkan/VulkanUtilities.h"
+#include "Platform/Vulkan/VulkanImage2D.h"
+
 
 namespace Povox {
 

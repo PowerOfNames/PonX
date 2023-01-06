@@ -1,8 +1,7 @@
 #pragma once
-#include "VulkanDevice.h"
-#include "VulkanImage2D.h"
+#include "Platform/Vulkan/VulkanDevice.h"
+#include "Platform/Vulkan/VulkanImage2D.h"
 
-#include "Povox/Core/Application.h"
 
 
 struct GLFWwindow;
@@ -49,16 +48,16 @@ namespace Povox {
 
 		inline VkSwapchainKHR Get() { return m_Swapchain; }
 		//inline VkSwapchainKHR GetOld() { return m_OldSwapchain; }
-		inline VkSurfaceKHR GetSurface() { return m_Surface; }
 
 		inline std::vector<VkImage>& GetImages() { return m_Images; }
 		inline std::vector<VkImageView>& GetImageViews() { return m_ImageViews; }
-		inline static VkFormat GetImageFormat() { return m_Props.SurfaceFormat.format; }
+		inline static VkFormat GetImageFormat() { return s_Props.SurfaceFormat.format; }
 
 		inline VkRenderPass GetRenderPass() { return m_RenderPass; }
 		inline std::vector<VkFramebuffer>& GetFramebuffers() { return m_Framebuffers; }
 
-		inline static const SwapchainProperties& GetProperties() { return m_Props; }
+		inline static VkSurfaceKHR GetSurface() { return s_Surface; }
+		inline static const SwapchainProperties& GetProperties() { return s_Props; }
 
 		SwapchainFrame* AcquireNextImageIndex(VkSemaphore presentSemaphore);
 
@@ -68,15 +67,14 @@ namespace Povox {
 		void ChooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
 
 	private:
-		static SwapchainProperties m_Props;
+		static SwapchainProperties s_Props;
+		static VkSurfaceKHR s_Surface;
 		
-		Ref<VulkanDevice> m_Device;
 		GLFWwindow* m_WindowHandle = nullptr;
 
 		VkSwapchainKHR m_Swapchain = VK_NULL_HANDLE;
 		VkSwapchainKHR m_OldSwapchain = VK_NULL_HANDLE;
 
-		VkSurfaceKHR m_Surface = VK_NULL_HANDLE;
 
 		std::vector<VkImage> m_Images;
 		std::vector<VkImageView> m_ImageViews;

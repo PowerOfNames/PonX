@@ -1,8 +1,10 @@
 #include "pxpch.h"
 #include "VulkanDevice.h"
 
-#include "VulkanContext.h"
-#include "VulkanDebug.h"
+#include "Povox/Core/Application.h"
+#include "Platform/Vulkan/VulkanContext.h"
+#include "Platform/Vulkan/VulkanDebug.h"
+#include "Platform/Vulkan/VulkanSwapchain.h"
 
 
 namespace Povox {
@@ -14,7 +16,7 @@ namespace Povox {
 
 	void VulkanDevice::CreateLogicalDevice(const std::vector<const char*>& deviceExtensions, const std::vector<const char*> validationLayers)
 	{
-		QueueFamilyIndices indices = FindQueueFamilies();
+		QueueFamilyIndices indices = FindQueueFamilies(m_PhysicalDevice);
 		std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
 		std::set<uint32_t> uniqueQueueFamilies = {
 									indices.GraphicsFamily.value(),
@@ -37,6 +39,7 @@ namespace Povox {
 		VkPhysicalDeviceFeatures deviceFeatures{};
 		deviceFeatures.fillModeNonSolid = VK_TRUE;
 		deviceFeatures.samplerAnisotropy = VK_TRUE;
+		deviceFeatures.independentBlend = VK_TRUE;	//check if supported
 
 		VkPhysicalDeviceShaderDrawParametersFeatures shaderDrawParametersFeatures{};
 		shaderDrawParametersFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_DRAW_PARAMETERS_FEATURES;
@@ -62,32 +65,36 @@ namespace Povox {
 			createInfo.enabledLayerCount = 0;
 		}
 		PX_CORE_VK_ASSERT(vkCreateDevice(m_PhysicalDevice, &createInfo, nullptr, &m_Device), VK_SUCCESS, "Failed to create logical device!");
+		PX_CORE_TRACE("Logical Device has been created!");
+
 
 		vkGetDeviceQueue(m_Device, indices.GraphicsFamily.value(), 0, &m_QueueFamilies.GraphicsQueue);
 		vkGetDeviceQueue(m_Device, indices.PresentFamily.value(), 0, &m_QueueFamilies.PresentQueue);
 		vkGetDeviceQueue(m_Device, indices.TransferFamily.value(), 0, &m_QueueFamilies.TransferQueue);
+		PX_CORE_TRACE("Queues have been set up!");
 	}
 
 	VkPhysicalDeviceProperties VulkanDevice::GetPhysicalDeviceProperties()
 	{
 		VkPhysicalDeviceProperties properties;
+		PX_CORE_ASSERT(m_PhysicalDevice != VK_NULL_HANDLE, "Physical device has not been picked yet!");
 		vkGetPhysicalDeviceProperties(m_PhysicalDevice, &properties);
 
 		
 		return properties;
 	}
 
-	int VulkanDevice::RatePhysicalDevice(const std::vector<const char*>& deviceExtensions)
+	int VulkanDevice::RatePhysicalDevice(const std::vector<const char*>& deviceExtensions, VkPhysicalDevice physicalDevice)
 	{
 		VkPhysicalDeviceProperties deviceProperties;
 		VkPhysicalDeviceFeatures supportedFeatures;
-		vkGetPhysicalDeviceProperties(m_PhysicalDevice, &deviceProperties);
-		vkGetPhysicalDeviceFeatures(m_PhysicalDevice, &supportedFeatures);
+		vkGetPhysicalDeviceProperties(physicalDevice, &deviceProperties);
+		vkGetPhysicalDeviceFeatures(physicalDevice, &supportedFeatures);
 
-		PX_CORE_INFO("Device-Name: {0}", deviceProperties.deviceName);
+		PX_CORE_TRACE("Device-Name: {0}", deviceProperties.deviceName);
 		if (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
-			PX_CORE_INFO("Device-type: Discrete GPU");
-		PX_CORE_INFO("API-Version: {0}.{1}.{2}.{3}", VK_API_VERSION_VARIANT(deviceProperties.apiVersion), VK_API_VERSION_MAJOR(deviceProperties.apiVersion), VK_API_VERSION_MINOR(deviceProperties.apiVersion), VK_API_VERSION_PATCH(deviceProperties.apiVersion));
+			PX_CORE_TRACE("Device-type: Discrete GPU");
+		PX_CORE_TRACE("API-Version: {0}.{1}.{2}.{3}", VK_API_VERSION_VARIANT(deviceProperties.apiVersion), VK_API_VERSION_MAJOR(deviceProperties.apiVersion), VK_API_VERSION_MINOR(deviceProperties.apiVersion), VK_API_VERSION_PATCH(deviceProperties.apiVersion));
 
 
 		int score = 0;
@@ -98,11 +105,11 @@ namespace Povox {
 		//if (!deviceFeatures.geometryShader)											// Geometry Shader (needed in this case)
 		//	return 0;
 
-		bool extensionSupported = CheckDeviceExtensionSupport(deviceExtensions);
-		bool swapchainAdequat = extensionSupported ? QuerySwapchainSupport().IsAdequat() : false;
+		bool extensionSupported = CheckDeviceExtensionSupport(deviceExtensions, physicalDevice);
+		bool swapchainAdequat = extensionSupported ? QuerySwapchainSupport(physicalDevice).IsAdequat() : false;
 
 
-		if (!FindQueueFamilies().IsComplete() && extensionSupported && swapchainAdequat && supportedFeatures.samplerAnisotropy)
+		if (!FindQueueFamilies(physicalDevice).IsComplete() && extensionSupported && swapchainAdequat && supportedFeatures.samplerAnisotropy)
 		{
 			PX_CORE_WARN("There are features missing!");
 			return 0;
@@ -123,7 +130,7 @@ namespace Povox {
 
 		for (const auto& device : devices)
 		{
-			int score = RatePhysicalDevice(deviceExtensions);
+			int score = RatePhysicalDevice(deviceExtensions, device);
 			candidates.insert(std::make_pair(score, device));
 		}
 		//TODO: change to choose highest score instead of first over 0
@@ -132,40 +139,44 @@ namespace Povox {
 			m_PhysicalDevice = candidates.rbegin()->second;
 		}
 		PX_CORE_ASSERT(m_PhysicalDevice != VK_NULL_HANDLE, "Failed to find suitable GPU!");
+		PX_CORE_TRACE("Physical Device has been picked!");
 	}
 
-	SwapchainSupportDetails VulkanDevice::QuerySwapchainSupport()
+	SwapchainSupportDetails VulkanDevice::QuerySwapchainSupport(VkPhysicalDevice physicalDevice)
 	{
 		SwapchainSupportDetails details;
 
-		vkGetPhysicalDeviceSurfaceCapabilitiesKHR(m_PhysicalDevice, m_Surface, &details.Capabilities);
+		VkSurfaceKHR surface = VulkanSwapchain::GetSurface();
+		PX_CORE_ASSERT(surface != VK_NULL_HANDLE, "Surface has not been instantiated yet!");
+
+		vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, surface, &details.Capabilities);
 
 		uint32_t formatCount;
-		vkGetPhysicalDeviceSurfaceFormatsKHR(m_PhysicalDevice, m_Surface, &formatCount, nullptr);
+		vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &formatCount, nullptr);
 		if (formatCount != 0)
 		{
 			details.Formats.resize(formatCount);
-			vkGetPhysicalDeviceSurfaceFormatsKHR(m_PhysicalDevice, m_Surface, &formatCount, details.Formats.data());
+			vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &formatCount, details.Formats.data());
 		}
 
 		uint32_t presentModeCount;
-		vkGetPhysicalDeviceSurfacePresentModesKHR(m_PhysicalDevice, m_Surface, &presentModeCount, nullptr);
+		vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &presentModeCount, nullptr);
 		if (presentModeCount != 0)
 		{
 			details.PresentModes.resize(presentModeCount);
-			vkGetPhysicalDeviceSurfacePresentModesKHR(m_PhysicalDevice, m_Surface, &presentModeCount, details.PresentModes.data());
+			vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &presentModeCount, details.PresentModes.data());
 		}
 
 		return details;
 	}
 
-	bool VulkanDevice::CheckDeviceExtensionSupport(const std::vector<const char*>& deviceExtensions)
+	bool VulkanDevice::CheckDeviceExtensionSupport(const std::vector<const char*>& deviceExtensions, VkPhysicalDevice physicalDevice)
 	{
 		uint32_t extensionCount;
-		vkEnumerateDeviceExtensionProperties(m_PhysicalDevice, nullptr, &extensionCount, nullptr);
+		vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &extensionCount, nullptr);
 
 		std::vector<VkExtensionProperties> aExtensions(extensionCount);
-		vkEnumerateDeviceExtensionProperties(m_PhysicalDevice, nullptr, &extensionCount, aExtensions.data());
+		vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &extensionCount, aExtensions.data());
 
 		std::set<std::string> requiredExtensions(deviceExtensions.begin(), deviceExtensions.end());
 
@@ -177,14 +188,14 @@ namespace Povox {
 		return requiredExtensions.empty();
 	}
 
-	QueueFamilyIndices VulkanDevice::FindQueueFamilies()
+	QueueFamilyIndices VulkanDevice::FindQueueFamilies(VkPhysicalDevice physicalDevice)
 	{
 		QueueFamilyIndices indices;
 
 		uint32_t queueFamilyCount;
-		vkGetPhysicalDeviceQueueFamilyProperties(m_PhysicalDevice, &queueFamilyCount, nullptr);
+		vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, nullptr);
 		std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
-		vkGetPhysicalDeviceQueueFamilyProperties(m_PhysicalDevice, &queueFamilyCount, &queueFamilies[0]);
+		vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, &queueFamilies[0]);
 
 		int i = 0;
 		bool presentFound = false;
@@ -194,7 +205,7 @@ namespace Povox {
 				indices.GraphicsFamily = i;
 
 			VkBool32 presentSupport = false;
-			vkGetPhysicalDeviceSurfaceSupportKHR(m_PhysicalDevice, i, m_Surface, &presentSupport);
+			vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, i, VulkanSwapchain::GetSurface(), &presentSupport);
 			if (presentSupport && !presentFound)
 			{
 				indices.PresentFamily = i;

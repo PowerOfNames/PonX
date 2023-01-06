@@ -78,7 +78,7 @@ namespace Povox {
 				}
 			}
 
-			//if the GUI rendering happens here, then I have to change the frame handling end end it AFTER ImgUi or other GUI has been handled and rendered before buffer swapping
+			//if the GUI rendering happens here, then I have to change the frame handling and end it AFTER ImGui or other GUI has been handled and rendered before buffer swapping
 			if (RendererAPI::GetAPI() == RendererAPI::API::Vulkan && m_Specification.ImGuiEnabled)
 			{
 				m_ImGuiVulkanLayer->Begin();
@@ -93,6 +93,8 @@ namespace Povox {
 
 			//The recorded commands now get processed in the swapchain, which lives in the window
 			m_Window->OnUpdate();
+
+			PX_CORE_WARN("Finished Run!");
 		}
 	}
 

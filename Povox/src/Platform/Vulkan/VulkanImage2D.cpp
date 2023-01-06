@@ -1,11 +1,10 @@
 #include "pxpch.h"
 #include "VulkanImage2D.h"
 
-#include "VulkanCommands.h"
-#include "VulkanContext.h"
-#include "VulkanBuffer.h"
-#include "VulkanDebug.h"
-#include "VulkanInitializers.h"
+#include "Platform/Vulkan/VulkanCommands.h"
+#include "Platform/Vulkan/VulkanContext.h"
+#include "Platform/Vulkan/VulkanBuffer.h"
+#include "Platform/Vulkan/VulkanDebug.h"
 
 
 #include <stb_image.h>
@@ -13,7 +12,9 @@
 
 namespace Povox {
 
+
 	VulkanImage2D::VulkanImage2D(const ImageSpecification& spec)
+		: m_Specification(spec)
 	{
 		VkExtent3D extent;
 		extent.width = spec.Width;
@@ -24,6 +25,8 @@ namespace Povox {
 			VulkanUtils::GetVulkanImageUsages(spec.Usages), VulkanUtils::GetVmaUsage(spec.Memory));
 		
 		CreateImageView();
+		CreateSampler();
+		CreateDescriptorSet();
 	}
 
 	VulkanImage2D::VulkanImage2D(const char* path, VkFormat format)
@@ -120,9 +123,26 @@ namespace Povox {
 		vmaDestroyBuffer(VulkanContext::GetAllocator(), stagingBuffer.Buffer, stagingBuffer.Allocation);
 	}
 
+	VulkanImage2D::VulkanImage2D(uint32_t width, uint32_t height)
+	{
+		m_Specification.Width = width;
+		m_Specification.Height = height;
+		m_Specification.Format = ImageFormat::RGBA8;
+		m_Specification.Memory = MemoryUtils::MemoryUsage::CPU_TO_GPU;
+		m_Specification.CopyDst = true;
+		m_Specification.Usages = { ImageUsage::COLOR_ATTACHMENT, ImageUsage::SAMPLED, ImageUsage::COPY_SRC };
+
+		m_Allocation = CreateAllocation({width, height, 1}, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL,
+			VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+
+		CreateImageView();
+		CreateSampler();
+		CreateDescriptorSet();
+	}
+
 	VulkanImage2D::~VulkanImage2D()
 	{
-		vmaDestroyImage(VulkanContext::GetAllocator(), m_Allocation.Image, m_Allocation.Allocation);
+		Destroy();
 	}
 
 	void VulkanImage2D::Destroy()
@@ -169,6 +189,84 @@ namespace Povox {
 		return output;
 	}
 
+	void VulkanImage2D::SetData(void* data, size_t size)
+	{
+		uint32_t imageSize = m_Specification.Width * m_Specification.Height * m_Specification.ChannelCount;
+		AllocatedBuffer stagingBuffer = VulkanBuffer::CreateAllocation(imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_ONLY);
+		void* databuffer;
+		vmaMapMemory(VulkanContext::GetAllocator(), stagingBuffer.Allocation, &databuffer);
+		memcpy(databuffer, data, static_cast<size_t>(imageSize));
+		vmaUnmapMemory(VulkanContext::GetAllocator(), stagingBuffer.Allocation);
+
+		VulkanCommandControl::ImmidiateSubmit(VulkanCommandControl::SubmitType::SUBMIT_TYPE_GRAPHICS, [=](VkCommandBuffer cmd)
+			{
+				VkImageMemoryBarrier barrier{};
+				barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+				barrier.image = m_Allocation.Image;
+				barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+				barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+				barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+				barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+				barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+				barrier.subresourceRange.baseMipLevel = 0;
+				barrier.subresourceRange.levelCount = 1;
+				barrier.subresourceRange.baseArrayLayer = 0;
+				barrier.subresourceRange.layerCount = 1;
+
+				VkPipelineStageFlags srcStage;
+				VkPipelineStageFlags dstStage;
+				barrier.srcAccessMask = 0;
+				barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+
+				srcStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+				dstStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+
+				vkCmdPipelineBarrier(cmd, srcStage, dstStage, 0, 0, nullptr, 0, nullptr, 1, &barrier);
+			});
+		VulkanCommandControl::ImmidiateSubmit(VulkanCommandControl::SubmitType::SUBMIT_TYPE_TRANSFER, [=](VkCommandBuffer cmd)
+			{
+				VkBufferImageCopy region{};
+				region.bufferOffset = 0;
+				region.bufferImageHeight = 0;
+				region.bufferRowLength = 0;
+				region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+				region.imageSubresource.mipLevel = 0;
+				region.imageSubresource.baseArrayLayer = 0;
+				region.imageSubresource.layerCount = 1;
+				region.imageOffset = { 0, 0, 0 };
+				region.imageExtent = { static_cast<uint32_t>(m_Specification.Width), static_cast<uint32_t>(m_Specification.Height), 1 };
+
+				vkCmdCopyBufferToImage(cmd, stagingBuffer.Buffer, m_Allocation.Image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+			});
+		VulkanCommandControl::ImmidiateSubmit(VulkanCommandControl::SubmitType::SUBMIT_TYPE_GRAPHICS, [=](VkCommandBuffer cmd)
+			{
+				VkImageMemoryBarrier barrier{};
+				barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+				barrier.image = m_Allocation.Image;
+				barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+				barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+				barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+				barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+				barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+				barrier.subresourceRange.baseMipLevel = 0;
+				barrier.subresourceRange.levelCount = 1;
+				barrier.subresourceRange.baseArrayLayer = 0;
+				barrier.subresourceRange.layerCount = 1;
+
+				VkPipelineStageFlags srcStage;
+				VkPipelineStageFlags dstStage;
+				barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+				barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+				srcStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+				dstStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+
+				vkCmdPipelineBarrier(cmd, srcStage, dstStage, 0, 0, nullptr, 0, nullptr, 1, &barrier);
+			});
+
+		vmaDestroyBuffer(VulkanContext::GetAllocator(), stagingBuffer.Buffer, stagingBuffer.Allocation);
+	}
+
 	void VulkanImage2D::CreateImageView()
 	{
 		VkImageAspectFlags mask = 0;
@@ -176,21 +274,29 @@ namespace Povox {
 		{
 			switch (usage)
 			{
-			case ImageUsage::COLOR_ATTACHMENT: mask |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT; break;
-			case ImageUsage::DEPTH_ATTACHMENT: mask |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT; break;
-			case ImageUsage::INPUT_ATTACHMENT: mask |= VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT; break;
-			case ImageUsage::STORAGE: mask |= VK_IMAGE_USAGE_STORAGE_BIT; break;
-			case ImageUsage::SAMPLED: mask |= VK_IMAGE_USAGE_SAMPLED_BIT; break;
+			case ImageUsage::COLOR_ATTACHMENT: mask |= VK_IMAGE_ASPECT_COLOR_BIT; break;
+			case ImageUsage::DEPTH_ATTACHMENT: mask |= VK_IMAGE_ASPECT_DEPTH_BIT; break;
 			default: PX_CORE_ASSERT(true, "Usage not covered");
 			}
 		}
-		if (m_Specification.CopySrc)
-			mask |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
-		if (m_Specification.CopyDst)
-			mask |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 
-		VkImageViewCreateInfo imageInfo = VulkanInits::CreateImageViewInfo(VulkanUtils::GetVulkanImageFormat(m_Specification.Format), m_Allocation.Image, mask);
-		PX_CORE_VK_ASSERT(vkCreateImageView(VulkanContext::GetDevice()->GetVulkanDevice(), &imageInfo, nullptr, &m_View), VK_SUCCESS, "Failed to create image view!");
+		VkImageViewCreateInfo info{};
+		info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+		info.image = m_Allocation.Image;
+		info.viewType = VK_IMAGE_VIEW_TYPE_2D;
+		info.format = VulkanUtils::GetVulkanImageFormat(m_Specification.Format);
+
+		info.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+		info.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+		info.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+		info.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+
+		info.subresourceRange.aspectMask = mask;
+		info.subresourceRange.baseMipLevel = 0;
+		info.subresourceRange.levelCount = 1;
+		info.subresourceRange.baseArrayLayer = 0;
+		info.subresourceRange.layerCount = 1;
+		PX_CORE_VK_ASSERT(vkCreateImageView(VulkanContext::GetDevice()->GetVulkanDevice(), &info, nullptr, &m_View), VK_SUCCESS, "Failed to create image view!");
 	}
 
 

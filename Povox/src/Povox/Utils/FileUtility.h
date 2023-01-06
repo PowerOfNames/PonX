@@ -39,26 +39,26 @@ namespace Povox {	namespace Utils {
 			return result;
 		}
 
-		static const char* GetGLChacheDirectory()
+		static const char* GetGLCacheDirectory()
 		{
-			return "assets/chache/shader/opengl";
+			return "assets/cache/shader/opengl";
 		}
 
-		static const char* GetVKChacheDirectory()
+		static const char* GetVKCacheDirectory()
 		{
-			return "assets/chache/shader/vulkan";
+			return "assets/cache/shader/vulkan";
 		}
 
 		static void CreateGLCacheDirectoryIfNeeded()
 		{
-			std::string path = GetGLChacheDirectory();
+			std::string path = GetGLCacheDirectory();
 			if (!std::filesystem::exists(path))
 				std::filesystem::create_directories(path);
 		}
 
 		static void CreateVKCacheDirectoryIfNeeded()
 		{
-			std::string path = GetVKChacheDirectory();
+			std::string path = GetVKCacheDirectory();
 			if (!std::filesystem::exists(path))
 				std::filesystem::create_directories(path);
 		}

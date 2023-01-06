@@ -8,15 +8,36 @@
 
 namespace Povox {
 
+	namespace VulkanUtils {
+
+		VkBufferUsageFlags GetVulkanBufferUsage(BufferUsage usage)
+		{
+			switch (usage)
+			{
+				case BufferUsage::VERTEX_BUFFER:	return VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+				case BufferUsage::INDEX_BUFFER:		return VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+				case BufferUsage::UNIFORM_BUFFER:	return VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+				case BufferUsage::STORAGE_BUFFER:	return VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+				case BufferUsage::UNDEFINED:		break;
+			}
+			PX_CORE_ASSERT(true, "BufferUsage not defined!");
+			return VK_BUFFER_USAGE_FLAG_BITS_MAX_ENUM;
+		}
+	}
 
 	VulkanBuffer::VulkanBuffer(const BufferSpecification& specs)
 		: m_Specification(specs)
 	{
-		if (specs.Size < 0)
-			CreateAllocation(specs.Size, VulkanUtils::GetVulkanBufferUsage(specs.Usage), VulkanUtils::GetVmaUsage(specs.MemUsage));
+		if (specs.Size <= 0)
+			m_Allocation = CreateAllocation(specs.Size, VulkanUtils::GetVulkanBufferUsage(specs.Usage), VulkanUtils::GetVmaUsage(specs.MemUsage));
 
 		if(specs.Data != nullptr)
-			SetData(specs.Data, specs.Size);		
+			SetData(specs.Data, specs.Size);
+
+		VulkanContext::SubmitResourceFree([=]()
+			{
+				vmaDestroyBuffer(VulkanContext::GetAllocator(), m_Allocation.Buffer, m_Allocation.Allocation);
+			});
 	}
 
 	VulkanBuffer::~VulkanBuffer()
@@ -26,7 +47,7 @@ namespace Povox {
 
 	void VulkanBuffer::SetData(void* inputData, size_t size)
 	{
-		if(m_Allocation.Buffer != VK_NULL_HANDLE)
+		if(m_Allocation.Buffer == VK_NULL_HANDLE)
 			m_Allocation = CreateAllocation(m_Specification.Size, VulkanUtils::GetVulkanBufferUsage(m_Specification.Usage) | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VulkanUtils::GetVmaUsage(m_Specification.MemUsage));
 		
 		const size_t bufferSize = size;
@@ -67,12 +88,6 @@ namespace Povox {
 		AllocatedBuffer newBuffer;
 
 		PX_CORE_VK_ASSERT(vmaCreateBuffer(VulkanContext::GetAllocator(), &bufferInfo, &vmaAllocInfo, &newBuffer.Buffer, &newBuffer.Allocation, nullptr), VK_SUCCESS, "Failed to create Buffer!");
-
-		VulkanContext::SubmitResourceFree([=]()
-			{
-				vmaDestroyBuffer(VulkanContext::GetAllocator(), newBuffer.Buffer, newBuffer.Allocation);
-
-			});
 
 		return newBuffer;
 	}

@@ -1,5 +1,4 @@
-#include "VulkanUtilities.h"
-#include "VulkanInitializers.h"
+#include "Platform/Vulkan/VulkanUtilities.h"
 
 #include "Povox/Renderer/RenderPass.h"
 

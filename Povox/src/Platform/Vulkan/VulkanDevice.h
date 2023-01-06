@@ -31,27 +31,26 @@ namespace Povox {
 		VulkanDevice() = default;
 		~VulkanDevice();
 
-		SwapchainSupportDetails QuerySwapchainSupport();
+		SwapchainSupportDetails QuerySwapchainSupport(VkPhysicalDevice physicalDevice);
 		
 		void PickPhysicalDevice(const std::vector<const char*>& deviceExtensions);
 		void CreateLogicalDevice(const std::vector<const char*>& deviceExtensions, const std::vector<const char*> validationLayers);
 
-		QueueFamilyIndices FindQueueFamilies();
+		QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice physicalDevice);
 		inline const QueueFamilies& GetQueueFamilies() { return m_QueueFamilies; }
 
 		VkPhysicalDeviceProperties GetPhysicalDeviceProperties();
 
-		inline VkDevice GetVulkanDevice() const { return m_Device; }
+		inline VkDevice GetVulkanDevice() { return m_Device; }
 		inline VkPhysicalDevice GetPhysicalDevice() const { return m_PhysicalDevice; }
 
 	private:
-		int RatePhysicalDevice(const std::vector<const char*>& deviceExtensions);
-		bool CheckDeviceExtensionSupport(const std::vector<const char*>& deviceExtensions);
+		int RatePhysicalDevice(const std::vector<const char*>& deviceExtensions, VkPhysicalDevice physicalDevice);
+		bool CheckDeviceExtensionSupport(const std::vector<const char*>& deviceExtensions, VkPhysicalDevice physicalDevice);
 
 	private:
 		VkDevice m_Device = VK_NULL_HANDLE;
 		VkPhysicalDevice m_PhysicalDevice = VK_NULL_HANDLE;
-		VkSurfaceKHR m_Surface = VK_NULL_HANDLE;
 
 		QueueFamilies m_QueueFamilies;
 

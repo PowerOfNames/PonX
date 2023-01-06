@@ -1,9 +1,8 @@
 #pragma once
 #include "Povox/Renderer/Pipeline.h"
 
-#include "VulkanInitializers.h"
-#include "VulkanSwapchain.h"
-#include "VulkanShader.h"
+#include "Platform/Vulkan/VulkanSwapchain.h"
+#include "Platform/Vulkan/VulkanShader.h"
 
 
 #include <vulkan/vulkan.h>
@@ -34,7 +33,8 @@ namespace Povox {
 		VkPipelineRasterizationStateCreateInfo m_RasterizationStateInfo;
 		VkPipelineMultisampleStateCreateInfo m_MultisampleStateInfo;
 		VkPipelineDepthStencilStateCreateInfo m_DepthStencilStateInfo;
-		VkPipelineColorBlendAttachmentState m_ColorBlendAttachmentStateInfo;
+		VkPipelineColorBlendStateCreateInfo m_ColorBlendStateInfo;
+		std::vector<VkPipelineColorBlendAttachmentState> m_ColorBlendAttachmentStateInfos;
 	};
 
 }

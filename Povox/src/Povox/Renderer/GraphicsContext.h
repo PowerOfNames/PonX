@@ -10,6 +10,6 @@ namespace Povox {
 		virtual void Init() = 0;
 		virtual void Shutdown() = 0;
 
-		static Ref<GraphicsContext> Create(void* window);
+		static Ref<GraphicsContext> Create();
 	};
 }

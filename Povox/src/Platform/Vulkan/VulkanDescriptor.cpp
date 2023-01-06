@@ -27,7 +27,6 @@ namespace Povox
 		}
 	}
 
-
 	bool VulkanDescriptorAllocator::Allocate(VkDescriptorSet* set, VkDescriptorSetLayout layout)
 	{
 		if (m_CurrentPool == VK_NULL_HANDLE)
@@ -61,14 +60,13 @@ namespace Povox
 		{
 			m_CurrentPool = GrapPool();
 			m_UsedPools.push_back(m_CurrentPool);
-			//allocInfo.descriptorPool = m_CurrentPool;   these are pointers, so I technically might not need to have to relink to the new pool. Comment in tut however, states this
+			allocInfo.descriptorPool = m_CurrentPool;
 
 			PX_CORE_VK_ASSERT(vkAllocateDescriptorSets(VulkanContext::GetDevice()->GetVulkanDevice(), &allocInfo, set), VK_SUCCESS, "DescriptorSetAllocation failed after reAlloc try!");
 			return true;
 		}
 		return false;
 	}
-
 
 	void VulkanDescriptorAllocator::ResetPool()
 	{
@@ -81,7 +79,6 @@ namespace Povox
 		m_UsedPools.clear();
 		m_CurrentPool = VK_NULL_HANDLE;
 	}
-
 
 	VkDescriptorPool VulkanDescriptorAllocator::CreatePool(const VulkanDescriptorAllocator::PoolSizes& sizes, uint32_t count, VkDescriptorPoolCreateFlags flags)
 	{
@@ -100,7 +97,7 @@ namespace Povox
 		info.maxSets = count;
 
 		VkDescriptorPool pool;
-		PX_CORE_VK_ASSERT(vkCreateDescriptorPool(VulkanContext::GetDevice()->GetVulkanDevice(), &info, nullptr, &pool), VK_TRUE, "Failed to create DescriptorPool!");
+		PX_CORE_VK_ASSERT(vkCreateDescriptorPool(VulkanContext::GetDevice()->GetVulkanDevice(), &info, nullptr, &pool), VK_SUCCESS, "Failed to create DescriptorPool!");
 		return pool;
 	}
 
@@ -119,12 +116,11 @@ namespace Povox
 	}
 
 
+// ------------- LayoutCache -------------
 	VulkanDescriptorLayoutCache::~VulkanDescriptorLayoutCache()
 	{
 		Cleanup();
 	}
-
-// ------------- LayoutCache -------------
 
 	void VulkanDescriptorLayoutCache::Cleanup()
 	{
@@ -213,7 +209,7 @@ namespace Povox
 
 // ------------- DescriptorBuilder -------------
 
-	VulkanDescriptorBuilder VulkanDescriptorBuilder::Begin(VulkanDescriptorLayoutCache* layoutCache, VulkanDescriptorAllocator* allocator)
+	VulkanDescriptorBuilder VulkanDescriptorBuilder::Begin(Ref<VulkanDescriptorLayoutCache> layoutCache, Ref<VulkanDescriptorAllocator> allocator)
 	{
 		VulkanDescriptorBuilder builder;
 		builder.m_Cache = layoutCache;
@@ -222,6 +218,23 @@ namespace Povox
 		return builder;
 	}
 
+	VulkanDescriptorBuilder& VulkanDescriptorBuilder::BindBuffer(VkDescriptorSetLayoutBinding newBinding, VkDescriptorBufferInfo* bufferInfo)
+	{
+		m_Bindings.push_back(newBinding);
+
+		VkWriteDescriptorSet newWrite{};
+		newWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		newWrite.pNext = nullptr;
+
+		newWrite.descriptorCount = newBinding.descriptorCount;
+		newWrite.descriptorType = newBinding.descriptorType;
+		newWrite.pBufferInfo = bufferInfo;
+		newWrite.dstBinding = newBinding.binding;
+
+		m_Writes.push_back(newWrite);
+
+		return *this;
+	}
 
 	VulkanDescriptorBuilder& VulkanDescriptorBuilder::BindBuffer(uint32_t binding, VkDescriptorBufferInfo* bufferInfo, VkDescriptorType type, VkShaderStageFlags stageFlags)
 	{
@@ -248,7 +261,23 @@ namespace Povox
 		return *this;
 	}
 
+	VulkanDescriptorBuilder& VulkanDescriptorBuilder::BindImage(VkDescriptorSetLayoutBinding newBinding, VkDescriptorImageInfo* imageInfo)
+	{
+		m_Bindings.push_back(newBinding);
 
+		VkWriteDescriptorSet newWrite{};
+		newWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		newWrite.pNext = nullptr;
+
+		newWrite.descriptorCount = newBinding.descriptorCount;
+		newWrite.descriptorType = newBinding.descriptorType;
+		newWrite.pImageInfo = imageInfo;
+		newWrite.dstBinding = newBinding.binding;
+
+		m_Writes.push_back(newWrite);
+
+		return *this;
+	}
 	VulkanDescriptorBuilder& VulkanDescriptorBuilder::BindImage(uint32_t binding, VkDescriptorImageInfo* imageInfo, VkDescriptorType type, VkShaderStageFlags stageFlags)
 	{
 		VkDescriptorSetLayoutBinding newBinding{};

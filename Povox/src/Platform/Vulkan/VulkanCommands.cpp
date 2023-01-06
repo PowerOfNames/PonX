@@ -1,10 +1,9 @@
 #include "pxpch.h"
 #include "VulkanCommands.h"
 
-#include "VulkanContext.h"
-#include "VulkanDebug.h"
-#include "VulkanUtilities.h"
-#include "VulkanInitializers.h"
+#include "Platform/Vulkan/VulkanContext.h"
+#include "Platform/Vulkan/VulkanDebug.h"
+#include "Platform/Vulkan/VulkanUtilities.h"
 
 namespace Povox {
 
@@ -15,7 +14,7 @@ namespace Povox {
 	{
 		if (!m_UploadContext)
 		{
-			PX_CORE_ASSERT(true, "UploadCOntext has to be set first!");
+			PX_CORE_ASSERT(true, "UploadContext has to be set first!");
 			return;
 		}
 
@@ -24,20 +23,20 @@ namespace Povox {
 		VkQueue queue = VK_NULL_HANDLE;
 		switch(submitType)
 		{
-		case SubmitType::SUBMIT_TYPE_GRAPHICS:
-		{
-			pool = m_UploadContext->CmdPoolGfx;
-			buffer = m_UploadContext->CmdBufferGfx;
-			queue = VulkanContext::GetDevice()->GetQueueFamilies().GraphicsQueue;
-			break;
-		}
-		case SubmitType::SUBMIT_TYPE_TRANSFER:
-		{
-			pool = m_UploadContext->CmdPoolTrsf;
-			buffer = m_UploadContext->CmdBufferTrsf;
-			VulkanContext::GetDevice()->GetQueueFamilies().TransferQueue;
-			break;
-		}		
+			case SubmitType::SUBMIT_TYPE_GRAPHICS:
+			{
+				pool = m_UploadContext->CmdPoolGfx;
+				buffer = m_UploadContext->CmdBufferGfx;
+				queue = VulkanContext::GetDevice()->GetQueueFamilies().GraphicsQueue;
+				break;
+			}
+			case SubmitType::SUBMIT_TYPE_TRANSFER:
+			{
+				pool = m_UploadContext->CmdPoolTrsf;
+				buffer = m_UploadContext->CmdBufferTrsf;
+				queue = VulkanContext::GetDevice()->GetQueueFamilies().TransferQueue;
+				break;
+			}
 		}
 		if (!pool || !buffer || !queue)
 		{
@@ -67,7 +66,7 @@ namespace Povox {
 		submitInfo.signalSemaphoreCount = 0;
 		submitInfo.pCommandBuffers = &buffer;
 		submitInfo.pSignalSemaphores = nullptr;
-		PX_CORE_VK_ASSERT(vkQueueSubmit(VulkanContext::GetDevice()->GetQueueFamilies().GraphicsQueue, 1, &submitInfo, m_UploadContext->Fence), VK_SUCCESS, "Failed to submit cmd buffer!");
+		PX_CORE_VK_ASSERT(vkQueueSubmit(queue, 1, &submitInfo, m_UploadContext->Fence), VK_SUCCESS, "Failed to submit cmd buffer!");
 		
 		vkWaitForFences(device, 1, &m_UploadContext->Fence, VK_TRUE, UINT64_MAX);
 		vkResetFences(device, 1, &m_UploadContext->Fence);
@@ -79,7 +78,7 @@ namespace Povox {
 	{
 		m_UploadContext = CreateRef<UploadContext>();
 		VkDevice device = VulkanContext::GetDevice()->GetVulkanDevice();
-		auto& families = VulkanContext::GetDevice()->FindQueueFamilies();
+		auto& families = VulkanContext::GetDevice()->FindQueueFamilies(VulkanContext::GetDevice()->GetPhysicalDevice());
 
 		VkCommandPoolCreateInfo uploadPoolInfoTrsf = {};
 		uploadPoolInfoTrsf.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
@@ -106,14 +105,14 @@ namespace Povox {
 		uploadPoolInfoGfx.pNext = nullptr;
 
 		uploadPoolInfoGfx.queueFamilyIndex = families.GraphicsFamily.value();
-		uploadPoolInfoGfx.flags = 0;
+		uploadPoolInfoGfx.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
 		PX_CORE_VK_ASSERT(vkCreateCommandPool(device, &uploadPoolInfoGfx, nullptr, &m_UploadContext->CmdPoolGfx), VK_SUCCESS, "Failed to create graphics command pool!");
 
 		VkCommandBufferAllocateInfo uploadCmdBufferGfxInfo{};
 		uploadCmdBufferGfxInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
 		uploadCmdBufferGfxInfo.pNext = nullptr;
 
-		uploadCmdBufferGfxInfo.commandPool = m_UploadContext->CmdPoolTrsf;
+		uploadCmdBufferGfxInfo.commandPool = m_UploadContext->CmdPoolGfx;
 		uploadCmdBufferGfxInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;	// primary can be called for execution, secondary can be called from primaries		
 		uploadCmdBufferGfxInfo.commandBufferCount = 1;
 		PX_CORE_VK_ASSERT(vkAllocateCommandBuffers(device, &uploadCmdBufferGfxInfo, &m_UploadContext->CmdBufferGfx), VK_SUCCESS, "Failed to create CommandBuffer!");

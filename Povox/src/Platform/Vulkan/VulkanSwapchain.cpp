@@ -1,21 +1,26 @@
 #include "pxpch.h"
 #include "VulkanSwapchain.h"
 
-#include "VulkanCommands.h"
-#include "VulkanContext.h"
-#include "VulkanDebug.h"
-#include "VulkanInitializers.h"
+#include "Povox/Core/Application.h"
+
+#include "Platform/Vulkan/VulkanCommands.h"
+#include "Platform/Vulkan/VulkanContext.h"
+#include "Platform/Vulkan/VulkanDebug.h"
+
 
 namespace Povox {
 
-	SwapchainProperties VulkanSwapchain::m_Props;
+	SwapchainProperties VulkanSwapchain::s_Props{};
+	VkSurfaceKHR VulkanSwapchain::s_Surface = VK_NULL_HANDLE;
 
 	VulkanSwapchain::VulkanSwapchain(GLFWwindow* windowHandle)
 	{
 		PX_CORE_ASSERT(windowHandle, "Window handle is null");
 		m_WindowHandle = windowHandle;
 
-		PX_CORE_VK_ASSERT(glfwCreateWindowSurface(VulkanContext::GetInstance(), m_WindowHandle, nullptr, &m_Surface), VK_SUCCESS, "Failed to create window surface!");
+
+		//TODO: Potetialy move somewhere else BUT window handle is needed...
+		PX_CORE_VK_ASSERT(glfwCreateWindowSurface(VulkanContext::GetInstance(), m_WindowHandle, nullptr, &s_Surface), VK_SUCCESS, "Failed to create window surface!");
 		PX_CORE_TRACE("VulkanSurface created!");
 	}
 
@@ -30,17 +35,18 @@ namespace Povox {
 
 
 
-		m_Props.Width = width;
-		m_Props.Height = height;
+		s_Props.Width = width;
+		s_Props.Height = height;
 
 		m_OldSwapchain = m_Swapchain;
 
-		VkDevice device = m_Device->GetVulkanDevice();
+		Ref<VulkanDevice> devicePtr = VulkanContext::GetDevice();
+		VkDevice device = devicePtr->GetVulkanDevice();
 		vkDeviceWaitIdle(device);
 
 		uint32_t maxFramesInFlight = Application::Get()->GetSpecification().MaxFramesInFlight;
 
-		SwapchainSupportDetails swapchainSupportDetails = m_Device->QuerySwapchainSupport();
+		SwapchainSupportDetails swapchainSupportDetails = devicePtr->QuerySwapchainSupport(devicePtr->GetPhysicalDevice());
 		ChooseSwapSurfaceFormat(swapchainSupportDetails.Formats);
 		ChooseSwapPresentMode(swapchainSupportDetails.PresentModes);
 		ChooseSwapExtent(swapchainSupportDetails.Capabilities, width, height);
@@ -58,23 +64,23 @@ namespace Povox {
 		}
 
 		VkSurfaceCapabilitiesKHR caps{};
-		vkGetPhysicalDeviceSurfaceCapabilitiesKHR(m_Device->GetPhysicalDevice(), m_Surface, &caps);
+		vkGetPhysicalDeviceSurfaceCapabilitiesKHR(devicePtr->GetPhysicalDevice(), s_Surface, &caps);
 
 		VkSwapchainCreateInfoKHR createInfo{};
 		createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-		createInfo.surface = m_Surface;
+		createInfo.surface = s_Surface;
 		createInfo.minImageCount = imageCount;
-		createInfo.imageFormat = m_Props.SurfaceFormat.format;
-		createInfo.imageColorSpace = m_Props.SurfaceFormat.colorSpace;
-		createInfo.imageExtent = { width, width };
+		createInfo.imageFormat = s_Props.SurfaceFormat.format;
+		createInfo.imageColorSpace = s_Props.SurfaceFormat.colorSpace;
+		createInfo.imageExtent = { width, height };
 		createInfo.imageArrayLayers = 1;
 		createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 		if (caps.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_SRC_BIT)
 			createInfo.imageUsage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
 		if (caps.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_DST_BIT)
 			createInfo.imageUsage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
-		createInfo.presentMode = m_Props.PresentMode;
-		QueueFamilyIndices queueFamIndices = m_Device->FindQueueFamilies();
+		createInfo.presentMode = s_Props.PresentMode;
+		QueueFamilyIndices queueFamIndices = devicePtr->FindQueueFamilies(VulkanContext::GetDevice()->GetPhysicalDevice());
 		uint32_t queueFamilyIndices[] = {
 						queueFamIndices.GraphicsFamily.value(),
 						queueFamIndices.PresentFamily.value(),
@@ -94,38 +100,86 @@ namespace Povox {
 		}
 		createInfo.preTransform = swapchainSupportDetails.Capabilities.currentTransform;
 		createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-		createInfo.presentMode = m_Props.PresentMode;					// -> vsync
+		createInfo.presentMode = s_Props.PresentMode;					// -> vsync
 		createInfo.clipped = VK_TRUE;
 		createInfo.oldSwapchain = m_OldSwapchain;
-		PX_CORE_VK_ASSERT(vkCreateSwapchainKHR(m_Device->GetVulkanDevice(), &createInfo, nullptr, &m_Swapchain), VK_SUCCESS, "Failed to create logical device!");
+		PX_CORE_VK_ASSERT(vkCreateSwapchainKHR(device, &createInfo, nullptr, &m_Swapchain), VK_SUCCESS, "Failed to create logical device!");
 
 		// Images
 		vkGetSwapchainImagesKHR(device, m_Swapchain, &imageCount, nullptr);
 		m_Images.resize(imageCount);
 		vkGetSwapchainImagesKHR(device, m_Swapchain, &imageCount, m_Images.data());
-		m_Props.ImageCount = imageCount;
+		s_Props.ImageCount = imageCount;
 		m_ImageViews.resize(m_Images.size());
 		for (size_t i = 0; i < m_ImageViews.size(); i++)
 		{
-			VkImageViewCreateInfo imageInfo = VulkanInits::CreateImageViewInfo(m_Props.SurfaceFormat.format, m_Images[i], VK_IMAGE_ASPECT_COLOR_BIT);
-			PX_CORE_VK_ASSERT(vkCreateImageView(device, &imageInfo, nullptr, &m_ImageViews[i]), VK_SUCCESS, "Failed to create image view!");
+			VkImageViewCreateInfo info{};
+			info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+			info.image = m_Images[i];
+			info.viewType = VK_IMAGE_VIEW_TYPE_2D;
+			info.format = s_Props.SurfaceFormat.format;
+
+			info.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+			info.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+			info.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+			info.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+
+			info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+			info.subresourceRange.baseMipLevel = 0;
+			info.subresourceRange.levelCount = 1;
+			info.subresourceRange.baseArrayLayer = 0;
+			info.subresourceRange.layerCount = 1;
+
+			PX_CORE_VK_ASSERT(vkCreateImageView(device, &info, nullptr, &m_ImageViews[i]), VK_SUCCESS, "Failed to create image view!");
 		}
 
 		{
-			m_DepthFormat = VulkanUtils::FindDepthFormat(m_Device->GetPhysicalDevice());
+			m_DepthFormat = VulkanUtils::FindDepthFormat(devicePtr->GetPhysicalDevice());
 			VkExtent3D extent{};
-			extent.width = m_Props.Width;
-			extent.height = m_Props.Height;
+			extent.width = s_Props.Width;
+			extent.height = s_Props.Height;
 			extent.depth = 1;
-			VkImageCreateInfo imageInfo = VulkanInits::CreateImageInfo(m_DepthFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, extent);
+
+			VkImageCreateInfo info{};
+			info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+			info.pNext = nullptr;
+
+			info.imageType = VK_IMAGE_TYPE_2D;
+
+			info.extent = extent;
+			info.format = m_DepthFormat;
+
+			info.arrayLayers = 1;
+			info.mipLevels = 1;
+			info.tiling = VK_IMAGE_TILING_OPTIMAL;
+			info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+			info.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;	// used as destination from the buffer to image, and the shader needs to sample from it
+			info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;				// exclusive means it will only be used by one queue family (graphics and therefore also transfer possible)
+			info.samples = VK_SAMPLE_COUNT_1_BIT;						// related to multi sampling -> in attachments
+			info.flags = 0;	// optional, can be used for sparse textures, in for examples for voxel terrain, to avoid using memory with AIR
+
 
 			VmaAllocationCreateInfo allocationInfo{};
 			allocationInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+			PX_CORE_VK_ASSERT(vmaCreateImage(VulkanContext::GetAllocator(), &info, &allocationInfo, &m_DepthImage, &m_DepthImageAllocation, nullptr), VK_SUCCESS, "Failed to create Image!");
 
-			PX_CORE_VK_ASSERT(vmaCreateImage(VulkanContext::GetAllocator(), &imageInfo, &allocationInfo, &m_DepthImage, &m_DepthImageAllocation, nullptr), VK_SUCCESS, "Failed to create Image!");
+			VkImageViewCreateInfo viewInfo{};
+			viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+			viewInfo.image = m_DepthImage;
+			viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+			viewInfo.format = m_DepthFormat;
 
-			VkImageViewCreateInfo viewInfo = VulkanInits::CreateImageViewInfo(m_DepthFormat, m_DepthImage, VK_IMAGE_ASPECT_DEPTH_BIT);
-			PX_CORE_VK_ASSERT(vkCreateImageView(m_Device->GetVulkanDevice(), &viewInfo, nullptr, &m_DepthImageView), VK_SUCCESS, "Failed to create ImageView!");
+			viewInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+			viewInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+			viewInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+			viewInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+
+			viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+			viewInfo.subresourceRange.baseMipLevel = 0;
+			viewInfo.subresourceRange.levelCount = 1;
+			viewInfo.subresourceRange.baseArrayLayer = 0;
+			viewInfo.subresourceRange.layerCount = 1;
+			PX_CORE_VK_ASSERT(vkCreateImageView(device, &viewInfo, nullptr, &m_DepthImageView), VK_SUCCESS, "Failed to create ImageView!");
 
 			VulkanCommandControl::ImmidiateSubmit(VulkanCommandControl::SubmitType::SUBMIT_TYPE_GRAPHICS, [=](VkCommandBuffer cmd)
 				{
@@ -161,7 +215,7 @@ namespace Povox {
 		if (!m_RenderPass)
 		{
 			VkAttachmentDescription colorAttachment{};
-			colorAttachment.format = m_Props.SurfaceFormat.format;
+			colorAttachment.format = s_Props.SurfaceFormat.format;
 			colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
 			colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 			colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -214,7 +268,7 @@ namespace Povox {
 			renderPassInfo.dependencyCount = 1;
 			renderPassInfo.pDependencies = &dependency;
 
-			PX_CORE_VK_ASSERT(vkCreateRenderPass(m_Device->GetVulkanDevice(), &renderPassInfo, nullptr, &m_RenderPass), VK_SUCCESS, "Failed to create renderpass!");
+			PX_CORE_VK_ASSERT(vkCreateRenderPass(device, &renderPassInfo, nullptr, &m_RenderPass), VK_SUCCESS, "Failed to create renderpass!");
 		}
 
 		// Framebuffers
@@ -231,7 +285,7 @@ namespace Povox {
 			std::array<VkImageView, 2> imageViews = { m_ImageViews[i], m_DepthImageView };
 			fbInfo.attachmentCount = static_cast<uint32_t>(imageViews.size());
 			fbInfo.pAttachments = imageViews.data();
-			PX_CORE_VK_ASSERT(vkCreateFramebuffer(m_Device->GetVulkanDevice(), &fbInfo, nullptr, &m_Framebuffers[i]), VK_SUCCESS, "Failed to create framebuffer!");
+			PX_CORE_VK_ASSERT(vkCreateFramebuffer(device, &fbInfo, nullptr, &m_Framebuffers[i]), VK_SUCCESS, "Failed to create framebuffer!");
 		}
 
 		PX_CORE_INFO("Finished Swapchain creation with extent: '( {0} | {1} )', '{2}' Images and '{3}' Frames in Flight!", width, height, m_Images.size(), maxFramesInFlight);
@@ -242,7 +296,7 @@ namespace Povox {
 		PX_PROFILE_FUNCTION();
 
 
-		VkDevice device = m_Device->GetVulkanDevice();
+		VkDevice device = VulkanContext::GetDevice()->GetVulkanDevice();
 		vkDeviceWaitIdle(device);
 
 		for (size_t i = 0; i < m_Framebuffers.size(); i++)
@@ -266,7 +320,7 @@ namespace Povox {
 		if(m_OldSwapchain)
 			vkDestroySwapchainKHR(device, m_OldSwapchain, nullptr);
 
-		vkDestroySurfaceKHR(VulkanContext::GetInstance(), m_Surface, nullptr);
+		vkDestroySurfaceKHR(VulkanContext::GetInstance(), s_Surface, nullptr);
 	}
 
 	SwapchainFrame* VulkanSwapchain::AcquireNextImageIndex(VkSemaphore presentSemaphore)
@@ -275,7 +329,7 @@ namespace Povox {
 
 
 		m_CurrentFrame.LastImageIndex = m_CurrentFrame.CurrentImageIndex;
-		VkResult result = vkAcquireNextImageKHR(m_Device->GetVulkanDevice(), m_Swapchain, UINT64_MAX /*disables timeout*/, presentSemaphore, VK_NULL_HANDLE, &m_CurrentFrame.CurrentImageIndex);
+		VkResult result = vkAcquireNextImageKHR(VulkanContext::GetDevice()->GetVulkanDevice(), m_Swapchain, UINT64_MAX /*disables timeout*/, presentSemaphore, VK_NULL_HANDLE, &m_CurrentFrame.CurrentImageIndex);
 
 		if (result == VK_ERROR_OUT_OF_DATE_KHR)
 		{
@@ -323,7 +377,7 @@ namespace Povox {
 		submitInfo.signalSemaphoreCount = 1;
 		submitInfo.pSignalSemaphores = &m_CurrentFrame.RenderSemaphore;
 
-		PX_CORE_VK_ASSERT(vkQueueSubmit(m_Device->GetQueueFamilies().GraphicsQueue, 1, &submitInfo, m_CurrentFrame.CurrentFence), VK_SUCCESS, "Failed to submit draw render buffer!");
+		PX_CORE_VK_ASSERT(vkQueueSubmit(VulkanContext::GetDevice()->GetQueueFamilies().GraphicsQueue, 1, &submitInfo, m_CurrentFrame.CurrentFence), VK_SUCCESS, "Failed to submit draw render buffer!");
 	}
 
 	void VulkanSwapchain::Present()
@@ -341,7 +395,7 @@ namespace Povox {
 		presentInfo.pResults = nullptr;
 
 		VkResult result;
-		result = vkQueuePresentKHR(m_Device->GetQueueFamilies().PresentQueue, &presentInfo);
+		result = vkQueuePresentKHR(VulkanContext::GetDevice()->GetQueueFamilies().PresentQueue, &presentInfo);
 
 		if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
 		{
@@ -363,28 +417,28 @@ namespace Povox {
 			{
 				result = format;
 				PX_CORE_INFO("Swapchain surface format:  {0}", result.format);
-				m_Props.SurfaceFormat = format;
+				s_Props.SurfaceFormat = format;
 			}
 		}
 		result = availableFormats[0];
 		PX_CORE_INFO("Swapchain surface format:  {0}", result.format);
-		m_Props.SurfaceFormat = result;
+		s_Props.SurfaceFormat = result;
 	}
 	void VulkanSwapchain::ChooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes)
 	{
 		for (const auto& mode : availablePresentModes)
 		{
 			if (mode == VK_PRESENT_MODE_MAILBOX_KHR) // on mobile, FIFO_KHR is more likely to be used because of lower enegry consumption
-				m_Props.PresentMode = mode;
+				s_Props.PresentMode = mode;
 		}
-		m_Props.PresentMode = VK_PRESENT_MODE_FIFO_KHR;
+		s_Props.PresentMode = VK_PRESENT_MODE_FIFO_KHR;
 	}
 	void VulkanSwapchain::ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities, uint32_t width, uint32_t height)
 	{
 		if (capabilities.currentExtent.width != UINT32_MAX)
 		{
-			m_Props.Width = capabilities.currentExtent.width;
-			m_Props.Height = capabilities.currentExtent.height;
+			s_Props.Width = capabilities.currentExtent.width;
+			s_Props.Height = capabilities.currentExtent.height;
 		}
 
 		else
@@ -394,9 +448,9 @@ namespace Povox {
 			actualExtend.width = std::max(capabilities.minImageExtent.width, std::min(capabilities.maxImageExtent.width, actualExtend.width));
 			actualExtend.height = std::max(capabilities.minImageExtent.height, std::min(capabilities.maxImageExtent.height, actualExtend.height));
 
-			m_Props.Width = actualExtend.width;
-			m_Props.Height = actualExtend.height;
+			s_Props.Width = actualExtend.width;
+			s_Props.Height = actualExtend.height;
 		}
-		PX_CORE_INFO("Swapchain extent: '[{0}|{1}]'", m_Props.Width, m_Props.Height);
+		PX_CORE_INFO("Swapchain extent: '[{0}|{1}]'", s_Props.Width, s_Props.Height);
 	}
 }

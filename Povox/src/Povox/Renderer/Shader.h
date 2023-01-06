@@ -7,15 +7,6 @@
 
 namespace Povox {
 
-
-	struct ShaderInfo
-	{
-		std::string Path = "Unknown";
-		uint8_t StageCount = 0;
-
-		std::string DebugName = "Shader";
-	};
-
 	class Shader
 	{
 	public:
@@ -41,6 +32,8 @@ namespace Povox {
 	class ShaderLibrary
 	{
 	public:
+		ShaderLibrary();
+		~ShaderLibrary() = default;
 
 		void Add(const std::string& name, const Ref<Shader>& shader);
 		void Add(const Ref<Shader>& shader);

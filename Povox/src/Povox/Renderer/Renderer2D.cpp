@@ -1,6 +1,7 @@
 #include "pxpch.h"
 #include "Povox/Renderer/Renderer2D.h"
 
+#include "Povox/Renderer/Renderable.h"
 #include "Povox/Renderer/Renderer.h"
 
 #include "Povox/Renderer/Buffer.h"
@@ -32,6 +33,7 @@ namespace Povox {
 		Ref<Buffer> QuadIndexBuffer;
 		Ref<Shader> TextureShader;
 		Ref<Texture2D> WhiteTexture;
+		Ref<Image2D> WhiteImage;
 
 		uint32_t QuadIndexCount = 0;
 		QuadVertex* QuadVertexBufferBase = nullptr;
@@ -45,7 +47,7 @@ namespace Povox {
 		Renderer2D::Statistics Stats;
 
 
-		CameraUniformBuffer CameraBuffer;
+		CameraUniformLayout CameraBuffer;
 		Ref<Buffer> CameraUniformBuffer;		
 	};
 
@@ -56,6 +58,7 @@ namespace Povox {
 		PX_PROFILE_FUNCTION();
 
 
+		PX_CORE_TRACE("Starting Renderer2D::Init!");
 		BufferSpecification vertexBufferSpecs{};
 		vertexBufferSpecs.Usage = BufferUsage::VERTEX_BUFFER;
 		vertexBufferSpecs.ElementCount = s_QuadData.MaxVertices;
@@ -99,16 +102,17 @@ namespace Povox {
 		s_QuadData.QuadIndexBuffer = Buffer::Create(indexBufferSpecs);
 		delete[] quadIndices;
 
-		s_QuadData.WhiteTexture = Texture2D::Create(1, 1);
+		//s_QuadData.WhiteTexture = Texture::Create(1, 1);
+		s_QuadData.WhiteImage = Image2D::Create(1, 1);
 		uint32_t whiteTextureData = 0xffffffff;
-		s_QuadData.WhiteTexture->SetData(&whiteTextureData, sizeof(uint32_t));
+		s_QuadData.WhiteImage->SetData(&whiteTextureData, sizeof(uint32_t));
 
 		
 		int32_t samplers[s_QuadData.MaxTextureSlots];
 		for (uint32_t i = 0; i < s_QuadData.MaxTextureSlots; i++)
 			samplers[i] = i;
 		
-		s_QuadData.TextureShader = Shader::Create("assets/shaders/Texture.glsl");
+		s_QuadData.TextureShader = Renderer::GetShaderLibrary()->Get("TextureShader");
 		s_QuadData.TextureSlots[0] = s_QuadData.WhiteTexture;
 
 		s_QuadData.QuadVertexPositions[0] = { -0.5f, -0.5f, 0.0f, 1.0f };
@@ -121,9 +125,11 @@ namespace Povox {
 		BufferSpecification uniformBufferSpecs{};
 		uniformBufferSpecs.Usage = BufferUsage::UNIFORM_BUFFER;
 		uniformBufferSpecs.ElementCount = 1;
-		uniformBufferSpecs.ElementSize = sizeof(Renderer2DData::CameraUniformBuffer);
-		uniformBufferSpecs.Size = sizeof(Renderer2DData::CameraUniformBuffer);
+		uniformBufferSpecs.ElementSize = sizeof(Renderer2DData::CameraBuffer);
+		uniformBufferSpecs.Size = sizeof(Renderer2DData::CameraBuffer);
 		s_QuadData.CameraUniformBuffer = Buffer::Create(uniformBufferSpecs);
+
+		PX_CORE_TRACE("Finished Renderer2D::Init!");
 	}
 
 	void Renderer2D::Shutdown()
@@ -139,7 +145,7 @@ namespace Povox {
 		PX_PROFILE_FUNCTION();
 
 		s_QuadData.CameraBuffer.ViewProjMatrix = camera.GetViewProjectionMatrix();
-		s_QuadData.CameraUniformBuffer->SetData(&s_QuadData.CameraBuffer, sizeof(Renderer2DData::CameraUniformBuffer));
+		s_QuadData.CameraUniformBuffer->SetData(&s_QuadData.CameraBuffer, sizeof(Renderer2DData::CameraBuffer));
 		StartBatch();
 	}
 
@@ -148,7 +154,7 @@ namespace Povox {
 		PX_PROFILE_FUNCTION();
 
 		s_QuadData.CameraBuffer.ViewProjMatrix = camera.GetProjection() * glm::inverse(transform);
-		s_QuadData.CameraUniformBuffer->SetData(&s_QuadData.CameraBuffer, sizeof(Renderer2DData::CameraUniformBuffer));
+		s_QuadData.CameraUniformBuffer->SetData(&s_QuadData.CameraBuffer, sizeof(Renderer2DData::CameraBuffer));
 		StartBatch();
 	}
 
@@ -160,8 +166,8 @@ namespace Povox {
 		s_QuadData.CameraBuffer.ViewMatrix = camera.GetViewMatrix();
 		s_QuadData.CameraBuffer.ProjectionMatrix = camera.GetProjection();
 		s_QuadData.CameraBuffer.ViewProjMatrix = camera.GetViewProjectionMatrix();
-		s_QuadData.CameraUniformBuffer->SetData(&s_QuadData.CameraBuffer, sizeof(Renderer2DData::CameraUniformBuffer));
-		Renderer::UpdateCamera(s_QuadData.CameraUniformBuffer);
+		s_QuadData.CameraUniformBuffer->SetData(&s_QuadData.CameraBuffer, sizeof(Renderer2DData::CameraBuffer));
+		//Renderer::UpdateCamera(s_QuadData.CameraUniformBuffer);
 		StartBatch();
 	}
 
@@ -179,13 +185,13 @@ namespace Povox {
 			return; // nothing to draw
 
 		uint32_t dataSize = (uint32_t)((uint8_t*)s_QuadData.QuadVertexBufferPtr - (uint8_t*)s_QuadData.QuadVertexBufferBase);
-		s_QuadData.QuadVertexBuffer->SetData(s_QuadData.QuadVertexBufferBase, dataSize);
+		//s_QuadData.QuadVertexBuffer->SetData(s_QuadData.QuadVertexBufferBase, dataSize);
 
 
-		for (uint32_t i = 0; i < s_QuadData.TextureSlotIndex; i++)
-			s_QuadData.TextureSlots[i]->Bind(i);
+		//for (uint32_t i = 0; i < s_QuadData.TextureSlotIndex; i++)
+		//	s_QuadData.TextureSlots[i]->Bind(i);
 
-
+		//Renderer::Draw();df
 		s_QuadData.Stats.DrawCalls++;
 	}
 
@@ -212,10 +218,47 @@ namespace Povox {
 
 	void Renderer2D::DrawQuad(const glm::vec3& position, const glm::vec2 size, const glm::vec4& color)
 	{
+		constexpr glm::vec2 textureCoords[4] = { {0.0f, 0.0f}, {1.0f, 0.0f}, {1.0f, 1.0f}, {0.0f, 1.0f} };
+
 		glm::mat4 transform = glm::translate(glm::mat4(1.0f), position)
 			* glm::scale(glm::mat4(1.0f), { size.x, size.y, 1.0f });
 
-		DrawQuad(transform, color);
+		Renderable renderable;
+
+		std::vector<VertexData> vertexData;
+		vertexData.resize(4);
+		for (uint32_t i = 0; i < 4; i++)
+		{
+			vertexData[i].Position = transform * s_QuadData.QuadVertexPositions[i];
+			vertexData[i].Color = color;
+			vertexData[i].TexCoord = textureCoords[i];
+			vertexData[i].TexID = 0.0f;
+			vertexData[i].TilingFactor = 1.0f;
+			vertexData[i].EntityID = 1;
+		}
+		BufferSpecification vertexBufferSpecs{};
+		vertexBufferSpecs.Usage = BufferUsage::VERTEX_BUFFER;
+		vertexBufferSpecs.ElementCount = vertexData.size();
+		vertexBufferSpecs.ElementSize = sizeof(VertexData);
+		vertexBufferSpecs.Size = vertexData.size() * sizeof(vertexData);
+		vertexBufferSpecs.Data = vertexData.data();
+		renderable.MeshData.VertexBuffer = Buffer::Create(vertexBufferSpecs);
+
+		const std::vector<uint32_t> quadIndices = { 0, 1, 2, 2, 3, 0 };
+		BufferSpecification indexBufferSpecs{};
+		indexBufferSpecs.Usage = BufferUsage::INDEX_BUFFER;
+		indexBufferSpecs.ElementCount = quadIndices.size();
+		indexBufferSpecs.ElementSize = sizeof(uint32_t);
+		indexBufferSpecs.Size = quadIndices.size() * sizeof(uint32_t);
+		indexBufferSpecs.Data = (void*)quadIndices.data();
+		renderable.MeshData.IndexBuffer = Buffer::Create(indexBufferSpecs);
+
+		renderable.Material.Color = { 1.0f, 1.0f, 1.0f };
+		renderable.Material.Shader = Renderer::GetShaderLibrary()->Get("TextureShader");
+		renderable.Material.Texture = s_QuadData.WhiteImage;
+		Renderer::DrawRenderable(renderable);
+
+		//DrawQuad(transform, color);
 	}
 // Quads Texture
 	void Renderer2D::DrawQuad(const glm::vec2& position, const glm::vec2 size, const Ref<Texture2D>& texture, float tilingFactor, const glm::vec4& tintingColor)
@@ -231,7 +274,12 @@ namespace Povox {
 		glm::mat4 transform = glm::translate(glm::mat4(1.0f), position)
 			* glm::scale(glm::mat4(1.0f), { size.x, size.y, 1.0f });
 		
-		DrawQuad(transform, texture, tilingFactor, tintingColor);
+		Renderable renderable;
+
+
+
+		Renderer::DrawRenderable(renderable);
+		//DrawQuad(transform, texture, tilingFactor, tintingColor);
 	}
 // Quads Subtexture
 	void Renderer2D::DrawQuad(const glm::vec2& position, const glm::vec2 size, const Ref<SubTexture2D>& subTexture, float tilingFactor, const glm::vec4& tintingColor)

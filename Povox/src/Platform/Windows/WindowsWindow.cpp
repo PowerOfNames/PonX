@@ -65,10 +65,13 @@ namespace Povox {
 		m_Window = glfwCreateWindow(static_cast<int>(props.Width), static_cast<int>(props.Height), props.Title.c_str(), nullptr, nullptr);
 		++s_GLFWwindowCount;		
 		
-		m_Context = GraphicsContext::Create(m_Window);
-		m_Context->Init();
-
+		//Create Context with vkinstance 
+		m_Context = GraphicsContext::Create();
+		//use vkinstance to create surface in swapchain
 		m_Swapchain = CreateRef<VulkanSwapchain>(m_Window);
+		//init context with surface after swapchain has set surface up
+		m_Context->Init();
+		//init rest of swapchain
 		m_Swapchain->Init(static_cast<uint32_t>(m_Data.Width), static_cast<uint32_t>(m_Data.Height));
 
 

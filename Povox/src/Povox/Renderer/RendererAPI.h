@@ -23,7 +23,9 @@ namespace Povox {
 
 
 		virtual void BeginFrame() = 0;
-		virtual void Draw(const std::vector<Renderable>& drawList) = 0;
+		//virtual void Draw(const std::vector<Renderable>& drawList) = 0;
+		virtual void DrawRenderable(const Renderable& renderable) = 0;
+		virtual void Draw() = 0;
 		virtual void EndFrame() = 0;
 
 		virtual void UpdateCamera(Ref<Buffer> cameraUniformBuffer) = 0;
@@ -42,8 +44,7 @@ namespace Povox {
 
 		virtual void BindPipeline(Ref<Pipeline> pipeline) = 0;
 
-
-		virtual void AddImGuiImage(float width, float height) = 0;
+		virtual void PrepareSwapchainImage(Ref<Image2D> finalImage) = 0;
 
 		virtual void SetViewport(uint32_t x, uint32_t y, uint32_t width, uint32_t height) = 0;
 		virtual void OnResize(uint32_t width, uint32_t height) = 0;

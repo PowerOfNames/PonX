@@ -12,7 +12,7 @@ namespace Povox {
 		{
 		case RendererAPI::API::Vulkan:
 		{
-			//return CreateRef<VulkanTexture2D>(width, height);
+			//return CreateRef<VulkanImage2D>(width, height);
 		}
 		case RendererAPI::API::NONE:
 		{

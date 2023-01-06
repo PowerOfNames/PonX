@@ -6,7 +6,9 @@ namespace Povox {
 
 	struct RenderPassSpecification
 	{
-		Ref<Framebuffer> TargetFramebuffer;
+		Ref<Framebuffer> TargetFramebuffer = nullptr;
+		uint32_t ColorAttachmentCount = 0;
+		bool HasDepthAttachment = false;
 	};
 
 	class RenderPass

@@ -10,10 +10,6 @@
 #include "Povox/ImGui/ImGuiLayer.h"
 #include "Povox/ImGui/ImGuiVulkanLayer.h"
 
-#include "Povox/Renderer/Shader.h"
-#include "Povox/Renderer/Buffer.h"
-#include "Povox/Renderer/OrthographicCameraController.h"
-
 
 namespace Povox {
 

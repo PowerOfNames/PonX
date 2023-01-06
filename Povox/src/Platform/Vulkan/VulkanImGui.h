@@ -31,9 +31,9 @@ namespace Povox {
 		void BeginFrame();
 		void EndFrame();
 
-		VkCommandBuffer BeginRender(uint32_t imageIndex, VkExtent2D swapchainExtent);
-		void RenderDrawData(VkCommandBuffer cmd);
-		void EndRender(VkCommandBuffer cmd);
+		void BeginRender(uint32_t imageIndex, VkExtent2D swapchainExtent);
+		void RenderDrawData();
+		void EndRender();
 
 		FrameData& GetFrame(uint32_t index);
 		inline VkDescriptorPool GetDescriptorPool() { return m_DescriptorPool; }
@@ -52,6 +52,7 @@ namespace Povox {
 		std::vector<VulkanImGui::FrameData> m_FrameData ;
 		std::vector<VkFramebuffer> m_Framebuffers ;
 
+		VkCommandBuffer m_CurrentActiveCmd = VK_NULL_HANDLE;
 		VkRenderPass m_RenderPass = VK_NULL_HANDLE;
 	};
 

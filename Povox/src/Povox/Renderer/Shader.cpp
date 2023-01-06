@@ -27,12 +27,24 @@ namespace Povox {
 		return nullptr;
 	}
 
+
+
+	//------------------ShaderLibrary---------------------
+	
+	ShaderLibrary::ShaderLibrary()
+	{
+		PX_CORE_TRACE("Created ShaderLibrary!");
+	}
+
 	void ShaderLibrary::Add(const std::string& name, const Ref<Shader>& shader)
 	{
 		if (Contains(name)) 
 			PX_CORE_INFO("Shader '{0}' already exists!", name);
 		else
+		{
 			m_Shaders[name] = shader;
+			PX_CORE_TRACE("Added shader '{0}'", name);
+		}
 	}
 	
 	void ShaderLibrary::Add(const Ref<Shader>& shader)
@@ -60,6 +72,9 @@ namespace Povox {
 	Ref<Shader> ShaderLibrary::Get(const std::string& name)
 	{
 		PX_CORE_ASSERT(Contains(name), "Shader does not exist!");
+
+
+		PX_CORE_TRACE("ShaderLibrary:: Getting Shader '{0}'", name);
 		return m_Shaders[name];
 	}
 

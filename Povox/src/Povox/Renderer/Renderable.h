@@ -7,19 +7,19 @@
 namespace Povox {
 
 	class Shader;
-	class Texture;
+	class Image2D;
 	struct SimpleMaterial
 	{
 		glm::vec3 Color{ 1.0f, 1.0f, 1.0f };
 
 		Ref<Shader> Shader = nullptr;
-		Ref<Texture> Texture = nullptr;
+		Ref<Image2D> Texture = nullptr;
 	};
 
 	struct VertexData
 	{
 		glm::vec3 Position;
-		glm::vec3 Color;
+		glm::vec4 Color;
 		glm::vec2 TexCoord;
 
 		float TexID;

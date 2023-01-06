@@ -24,25 +24,29 @@ namespace Povox {
     {
         PX_PROFILE_FUNCTION();
 
+
+		PX_CORE_TRACE("Started EditorLayer::OnAttach()");
 		//ImGuiOfflineRendering
 		{
 			FramebufferSpecification imGuiViewportFBSpecs{};
-			imGuiViewportFBSpecs.Attachments = { {ImageFormat::RGBA8}, {ImageFormat::Depth} };
-			imGuiViewportFBSpecs.Width = 1280.0f;
-			imGuiViewportFBSpecs.Height = 720.0f;
-			imGuiViewportFBSpecs.SwapChainTarget = false;
+			imGuiViewportFBSpecs.Attachments = { {ImageFormat::RGBA8}, {ImageFormat::RED_INTEGER}, {ImageFormat::Depth} };
+			imGuiViewportFBSpecs.Width = Application::Get()->GetWindow().GetWidth();
+			imGuiViewportFBSpecs.Height = Application::Get()->GetWindow().GetHeight();
+			imGuiViewportFBSpecs.SwapChainTarget = true;
 			m_ImGuiViewportFB = Framebuffer::Create(imGuiViewportFBSpecs);
 
 
 			RenderPassSpecification imGuiViewportRPSpecs{};
 			imGuiViewportRPSpecs.TargetFramebuffer = m_ImGuiViewportFB;
+			imGuiViewportRPSpecs.ColorAttachmentCount = 2;
+			imGuiViewportRPSpecs.HasDepthAttachment = true;
 			m_ImGuiRenderpass = RenderPass::Create(imGuiViewportRPSpecs);
 
 
 			PipelineSpecification standardPipelineSpecs{};
 			standardPipelineSpecs.DynamicViewAndScissors = true;
 			standardPipelineSpecs.TargetRenderPass = m_ImGuiRenderpass;
-			standardPipelineSpecs.Shader = Renderer::GetShaderLibrary()->Get("StandardShader");
+			standardPipelineSpecs.Shader = Renderer::GetShaderLibrary()->Get("TextureShader");
 			m_StandardPipeline = Pipeline::Create(standardPipelineSpecs);
 		}
 
@@ -79,6 +83,8 @@ namespace Povox {
         };
 #endif
         m_SceneHierarchyPanel.SetContext(m_ActiveScene);
+
+		PX_CORE_TRACE("Finished EditorLayer::OnAttach()");
     }
 
 
@@ -96,14 +102,16 @@ namespace Povox {
         PX_PROFILE_FUNCTION();
 
 
+		PX_CORE_TRACE("EditorLayer::OnUpdate Started!");
         m_Deltatime = deltatime;
+		PX_CORE_TRACE("EditorLayer::OnUpdate: DeltaTime: '{0}'", deltatime);
 
         //Resize
         if (FramebufferSpecification spec = m_ImGuiViewportFB->GetSpecification();
             m_ViewportSize.x > 0.0f && m_ViewportSize.y > 0.0f && //zero sized framebuffer is invalid
             (spec.Width != m_ViewportSize.x || spec.Height != m_ViewportSize.y))
         {
-			m_ImGuiViewportFB->Resize((uint32_t)m_ViewportSize.x, (uint32_t)m_ViewportSize.y);
+			//m_ImGuiViewportFB->Resize((uint32_t)m_ViewportSize.x, (uint32_t)m_ViewportSize.y);
             m_EditorCamera.SetViewportSize(m_ViewportSize.x, m_ViewportSize.y);
 
             m_ActiveScene->OnViewportResize((uint32_t)m_ViewportSize.x, (uint32_t)m_ViewportSize.y);
@@ -125,18 +133,16 @@ namespace Povox {
 		Renderer::BeginRenderPass(m_ImGuiRenderpass);
 		Renderer::BindPipeline(m_StandardPipeline);
 
-
-		Renderer2D::BeginScene(m_EditorCamera);
-		
-		Renderer2D::DrawQuad({ 1.0f, 1.0f, 1.0f }, { 1.0f, 1.0f }, { 1.0f, 1.0f, 0.5f, 1.0f });
-		
-		Renderer2D::EndScene();
+		Renderer2D::BeginScene(m_EditorCamera); //doesn't mess with renderer atm
+		Renderer2D::DrawQuad({ 1.0f, 1.0f, 1.0f }, { 1.0f, 1.0f }, { 1.0f, 1.0f, 0.5f, 1.0f });	
+		Renderer2D::EndScene(); //doesn't mess with renderer atm
 
 		Renderer::EndRenderPass();
-		//Begin next RP
-		//End next RP
 		Renderer::EndCommandBuffer();
-		
+
+		//CopyFinalImage into current SwapchainImage
+		if(!Application::Get()->GetSpecification().ImGuiEnabled)
+			Renderer::PrepareSwapchainImage(m_ImGuiViewportFB->GetColorAttachment(0));
 
         auto [mx, my] = ImGui::GetMousePos();
         mx -= m_ViewportBounds[0].x;
@@ -151,12 +157,14 @@ namespace Povox {
             //int pixelData = m_ImGuiViewportFB->GetColorAttachment(1)->ReadPixel(1, mouseX, mouseY);
             //m_HoveredEntity = pixelData == -1 ? Entity() : Entity((entt::entity)pixelData, m_ActiveScene.get());
         }
+		PX_CORE_TRACE("EditorLayer::OnUpdate Finished!");
     }
 
     void EditorLayer::OnImGuiRender()
     {
         PX_PROFILE_FUNCTION();
 
+		PX_CORE_TRACE("EditorLayer::OnImguiRender Started!");
 
         auto stats = Renderer2D::GetStats();
 
@@ -255,6 +263,7 @@ namespace Povox {
 
         ImGui::End(); // Renderer Stats
 
+		PX_CORE_TRACE("EditorLayer::OnImguiRender Pre Viewport!");
 
      // Viewport
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{ 0, 0 });
@@ -268,7 +277,7 @@ namespace Povox {
 
         m_ViewportIsFocused = ImGui::IsWindowFocused();
         m_ViewportIsHovered = ImGui::IsWindowHovered();
-        Application::Get()->GetImGuiLayer()->BlockEvents(!m_ViewportIsFocused || !m_ViewportIsHovered);
+        Application::Get()->GetImGuiVulkanLayer()->BlockEvents(!m_ViewportIsFocused || !m_ViewportIsHovered);
 
 
         ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail();
@@ -276,9 +285,10 @@ namespace Povox {
 
 		//TODO: add textureID cast to vulkan descriptor set (uint64_t*?)
 		//replace with Renderer::GetFinalImage!
-        uint64_t* textureID = m_ImGuiViewportFB->GetColorAttachment(0)->GetDescriptorSet();
-        ImGui::Image(reinterpret_cast<void*>(textureID), ImVec2(m_ViewportSize.x, m_ViewportSize.y), ImVec2{ 0, 1 }, ImVec2{ 1, 0 });
+        void* textureID = m_ImGuiViewportFB->GetColorAttachment(0)->GetDescriptorSet();
+        ImGui::Image(textureID, ImVec2(m_ViewportSize.x, m_ViewportSize.y), ImVec2{ 0, 1 }, ImVec2{ 1, 0 });
         
+		PX_CORE_TRACE("EditorLayer::OnImguiRender Post Viewport!");
 
      // Gizmos
         Entity selectedEntity = m_SceneHierarchyPanel.GetSelectedEntity();
@@ -340,9 +350,10 @@ namespace Povox {
             }
 
         }
-        
+
         ImGui::End();
-        ImGui::PopStyleVar(ImGuiStyleVar_WindowPadding);
+		//ImGui::PopStyleVar(ImGuiStyleVar_WindowPadding);
+		ImGui::PopStyleVar();
                
 
         ImGui::Begin("Test Tab");
@@ -360,6 +371,8 @@ namespace Povox {
         ImGui::End();
 
         ImGui::End(); //Dockspace end
+
+		PX_CORE_TRACE("EditorLayer::OnImguiRender Finished!");
     }
 
     void EditorLayer::OnEvent(Event& e)

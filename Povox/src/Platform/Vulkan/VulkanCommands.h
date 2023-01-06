@@ -1,7 +1,7 @@
 #pragma once
 
-#include "VulkanDevice.h"
-#include "VulkanUtilities.h"
+#include "Platform/Vulkan/VulkanDevice.h"
+#include "Platform/Vulkan/VulkanUtilities.h"
 
 #include "Povox/Core/Core.h"
 

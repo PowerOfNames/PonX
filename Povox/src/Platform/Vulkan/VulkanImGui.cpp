@@ -116,16 +116,16 @@ namespace Povox {
 		ImGui::Render();
 	}
 
-	VkCommandBuffer VulkanImGui::BeginRender(uint32_t imageIndex, VkExtent2D swapchainExtent)
+	void VulkanImGui::BeginRender(uint32_t imageIndex, VkExtent2D swapchainExtent)
 	{
 		vkResetCommandPool(VulkanContext::GetDevice()->GetVulkanDevice(), GetFrame(imageIndex).CommandPool, 0);
 
-		VkCommandBuffer cmd = GetFrame(imageIndex).CommandBuffer;
+		m_CurrentActiveCmd = GetFrame(imageIndex).CommandBuffer;
 		VkCommandBufferBeginInfo cmdBegin{};
 		cmdBegin.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 		cmdBegin.pNext = nullptr;
 		cmdBegin.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-		PX_CORE_VK_ASSERT(vkBeginCommandBuffer(cmd, &cmdBegin), VK_SUCCESS, "Failed to begin command buffer!");
+		PX_CORE_VK_ASSERT(vkBeginCommandBuffer(m_CurrentActiveCmd, &cmdBegin), VK_SUCCESS, "Failed to begin command buffer!");
 
 		std::array<VkClearValue, 2> clearColor = {};
 		clearColor[0].color = { 0.25f, 0.25f, 0.25f, 1.0f };
@@ -142,19 +142,19 @@ namespace Povox {
 		info.clearValueCount = static_cast<uint32_t>(clearColor.size());
 		info.pClearValues = clearColor.data();
 
-		vkCmdBeginRenderPass(cmd, &info, VK_SUBPASS_CONTENTS_INLINE);
-		return cmd;
+		vkCmdBeginRenderPass(m_CurrentActiveCmd, &info, VK_SUBPASS_CONTENTS_INLINE);
 	}
 
-	void VulkanImGui::RenderDrawData(VkCommandBuffer cmd)
+	void VulkanImGui::RenderDrawData()
 	{
-		ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmd);
+		ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), m_CurrentActiveCmd);
 	}
 
-	void VulkanImGui::EndRender(VkCommandBuffer cmd)
+	void VulkanImGui::EndRender()
 	{
-		vkCmdEndRenderPass(cmd);
-		PX_CORE_VK_ASSERT(vkEndCommandBuffer(cmd), VK_SUCCESS, "Failed to record graphics command buffer!");
+		vkCmdEndRenderPass(m_CurrentActiveCmd);
+		PX_CORE_VK_ASSERT(vkEndCommandBuffer(m_CurrentActiveCmd), VK_SUCCESS, "Failed to record graphics command buffer!");
+		m_CurrentActiveCmd = VK_NULL_HANDLE;
 	}	
 
 	VulkanImGui::FrameData& VulkanImGui::GetFrame(uint32_t index)
@@ -208,7 +208,7 @@ namespace Povox {
 		VkCommandPoolCreateInfo poolci{};
 		poolci.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
 		poolci.pNext = nullptr;
-		poolci.queueFamilyIndex = VulkanContext::GetDevice()->FindQueueFamilies().GraphicsFamily.value();
+		poolci.queueFamilyIndex = VulkanContext::GetDevice()->FindQueueFamilies(VulkanContext::GetDevice()->GetPhysicalDevice()).GraphicsFamily.value();
 		poolci.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 
 		VkCommandBufferAllocateInfo bufferci{};

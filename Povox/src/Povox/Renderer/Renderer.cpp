@@ -5,14 +5,20 @@
 
 namespace Povox {
 
+	
 
-	RendererData* Renderer::s_Data;
+	Scope<RendererAPI> Renderer::s_RendererAPI = nullptr;
+	RendererData Renderer::s_Data{};
+
 	void Renderer::Init(const RendererSpecification& specs)
 	{
 		PX_PROFILE_FUNCTION();
 
 
 		//Initialize main API
+		s_Data.ShaderLibrary = CreateRef<ShaderLibrary>();
+		s_Data.ShaderLibrary->Add("TextureShader", Shader::Create("assets/shaders/Texture.glsl"));
+		
 		s_RendererAPI = CreateScope<VulkanRenderer>(specs);
 
 		// Initialize the subrenderers (2D, Voxel, PixelSimulation, RayCasting, Scene)
@@ -20,7 +26,6 @@ namespace Povox {
 		
 		//Shader Loading
 		//s_Data->ShaderLibrary->Add("GeometryShader", Shader::Create("assets/shaders/geometryShader.glsl"));
-		s_Data->ShaderLibrary->Add("StandardShader", Shader::Create("assets/shaders/standardShader.glsl"));
 		//s_Data->ShaderLibrary->Add("CompositeShader", Shader::Create("assets/shaders/geometryShader.glsl"));
 
 		//Texture Loading here or in specific Renderer
@@ -43,6 +48,18 @@ namespace Povox {
 
 
 		s_RendererAPI->BeginFrame();
+	}
+
+	void Renderer::DrawRenderable(const Renderable& renderable)
+	{
+		s_RendererAPI->DrawRenderable(renderable);
+	}
+	void Renderer::Draw()
+	{
+		PX_PROFILE_FUNCTION();
+
+
+		s_RendererAPI->Draw();
 	}
 
 	void Renderer::EndFrame()
@@ -101,6 +118,11 @@ namespace Povox {
 		s_RendererAPI->Submit(object);
 	}
 
+	void Renderer::PrepareSwapchainImage(Ref<Image2D> finalImage)
+	{
+		s_RendererAPI->PrepareSwapchainImage(finalImage);
+	}
+
 	void Renderer::OnWindowResize(uint32_t width, uint32_t height)
 	{
 		PX_PROFILE_FUNCTION();
@@ -123,7 +145,7 @@ namespace Povox {
 	{
 		switch (Renderer::GetAPI())
 		{
-		case RendererAPI::API::Vulkan : s_RendererAPI = CreateScope<VulkanRenderer>(specs);
+			case RendererAPI::API::Vulkan : s_RendererAPI = CreateScope<VulkanRenderer>(specs);
 		}
 	}
 

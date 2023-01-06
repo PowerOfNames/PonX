@@ -2,6 +2,8 @@
 #include "Povox/Core/Core.h"
 #include "Povox/Events/Event.h"
 
+//#include "Platform/Vulkan/VulkanSwapchain.h"
+
 namespace Povox {
 
 	struct WindowProps
@@ -17,7 +19,6 @@ namespace Povox {
 		{
 		}
 	};
-
 	class VulkanSwapchain;
 	// interface representing a desktop system based window
 	class Window

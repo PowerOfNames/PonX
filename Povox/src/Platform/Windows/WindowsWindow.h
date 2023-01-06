@@ -20,7 +20,7 @@ namespace Povox {
 		void OnResize(uint32_t width, uint32_t height) override;
 
 		inline unsigned int GetWidth() const override { return m_Data.Width; }
-		inline unsigned int GetHeight() const override { return m_Data.Width; }
+		inline unsigned int GetHeight() const override { return m_Data.Height; }
 
 		inline Ref<VulkanSwapchain> GetSwapchain() override { return m_Swapchain; } //investigate, if this creates any leaks
 

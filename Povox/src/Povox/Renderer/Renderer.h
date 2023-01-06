@@ -1,10 +1,11 @@
 #pragma once
 
-#include "Povox/Renderer/Renderable.h"
+#include "Povox/Renderer/Buffer.h"
 #include "Povox/Renderer/OrthographicCamera.h"
-#include "Povox/Renderer/Shader.h"
+#include "Povox/Renderer/Renderable.h"
 #include "Povox/Renderer/RendererAPI.h"
 #include "Povox/Renderer/RenderPass.h"
+#include "Povox/Renderer/Shader.h"
 
 
 
@@ -22,7 +23,7 @@ namespace Povox {
 		Ref<ShaderLibrary> ShaderLibrary;
 	};
 
-	struct CameraUniformBuffer
+	struct CameraUniformLayout
 	{
 		alignas(16) glm::mat4 ViewMatrix;
 		alignas(16) glm::mat4 ProjectionMatrix;
@@ -36,6 +37,8 @@ namespace Povox {
 		static void Shutdown();
 
 		static void BeginFrame();
+		static void DrawRenderable(const Renderable& renderable);
+		static void Draw();
 		static void EndFrame();
 
 		static uint32_t GetCurrentFrameIndex();
@@ -56,13 +59,15 @@ namespace Povox {
 
 		static void Submit(const Renderable& object);
 
+		static void PrepareSwapchainImage(Ref<Image2D> finalImage);
+
 		inline static RendererAPI::API GetAPI() { return RendererAPI::GetAPI(); }
-		inline static Ref<ShaderLibrary>& GetShaderLibrary() { return s_Data->ShaderLibrary; }
+		inline static Ref<ShaderLibrary>& GetShaderLibrary() { return s_Data.ShaderLibrary; }
 
 		static void CreateAPI(const RendererSpecification& specs);
-	private:
 
+	private:
 		static Scope<RendererAPI> s_RendererAPI;
-		static RendererData* s_Data;
+		static RendererData s_Data;
 	};
 }

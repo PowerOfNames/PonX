@@ -8,7 +8,7 @@
 
 namespace Povox {
 
-	Ref<GraphicsContext> GraphicsContext::Create(void* window)
+	Ref<GraphicsContext> GraphicsContext::Create()
 	{
 		switch (Renderer::GetAPI())
 		{

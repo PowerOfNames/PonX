@@ -42,7 +42,6 @@ namespace Povox {
 	};
 
 
-
 	class VulkanDescriptorLayoutCache
 	{
 	public:
@@ -75,15 +74,16 @@ namespace Povox {
 	};
 
 
-
 	class VulkanDescriptorBuilder
 	{
 	public:
-		static VulkanDescriptorBuilder Begin(VulkanDescriptorLayoutCache* layoutCache, VulkanDescriptorAllocator* allocator);
+		static VulkanDescriptorBuilder Begin(Ref<VulkanDescriptorLayoutCache> layoutCache, Ref<VulkanDescriptorAllocator> allocator);
 
 
 		VulkanDescriptorBuilder& BindBuffer(uint32_t binding, VkDescriptorBufferInfo* bufferInfo, VkDescriptorType type, VkShaderStageFlags stageFlags);
+		VulkanDescriptorBuilder& BindBuffer(VkDescriptorSetLayoutBinding newBinding, VkDescriptorBufferInfo* bufferInfo);
 		VulkanDescriptorBuilder& BindImage(uint32_t binding, VkDescriptorImageInfo* imageInfo, VkDescriptorType type, VkShaderStageFlags stageFlags);
+		VulkanDescriptorBuilder& BindImage(VkDescriptorSetLayoutBinding newBinding, VkDescriptorImageInfo* imageInfo);
 
 		bool Build(VkDescriptorSet& set, VkDescriptorSetLayout& layout);
 		bool Build(VkDescriptorSet& set);
@@ -92,7 +92,7 @@ namespace Povox {
 		std::vector<VkWriteDescriptorSet> m_Writes;
 		std::vector<VkDescriptorSetLayoutBinding> m_Bindings;
 
-		VulkanDescriptorLayoutCache* m_Cache;
-		VulkanDescriptorAllocator* m_Allocator;
+		Ref<VulkanDescriptorLayoutCache> m_Cache;
+		Ref<VulkanDescriptorAllocator> m_Allocator;
 	};
 }

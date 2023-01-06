@@ -1,11 +1,12 @@
 #include "pxpch.h"
 #include "VulkanFramebuffer.h"
 
-#include "VulkanContext.h"
-#include "Povox/Core/Application.h"
-#include "VulkanSwapchain.h"
+#include "Platform/Vulkan/VulkanContext.h"
+#include "Platform/Vulkan/VulkanDebug.h"
+#include "Platform/Vulkan/VulkanSwapchain.h"
 
-#include "VulkanDebug.h"
+#include "Povox/Core/Application.h"
+
 
 
 namespace Povox {
@@ -18,7 +19,9 @@ namespace Povox {
 	{
 		CreateAttachments();
 
-		//The actual fb will be constructed AFTEr a RP has been created. THis will happen either in FB->create() or manually, when needed using this->Construct(rp)
+		//The actual fb will be constructed AFTER a RP has been created. THis will happen either in FB->create() or manually, when needed using this->Construct(rp)
+
+		PX_CORE_TRACE("VulkanFramebuffer::Construct!");
 	}
 
 	VulkanFramebuffer::~VulkanFramebuffer()
@@ -60,11 +63,13 @@ namespace Povox {
 				{
 					imageSpec.Usages = { ImageUsage::DEPTH_ATTACHMENT };
 					m_DepthAttachment = Image2D::Create(imageSpec);
+					PX_CORE_TRACE("FB: Creating DepthAttachment");
 				}
 				else
 				{
-					imageSpec.Usages = { ImageUsage::COLOR_ATTACHMENT };
+					imageSpec.Usages = { ImageUsage::COLOR_ATTACHMENT, ImageUsage::COPY_SRC };
 					m_ColorAttachments.emplace_back(Image2D::Create(imageSpec));
+					PX_CORE_TRACE("FB: Creating ColorAttachment");
 				}
 			}
 		}
@@ -133,6 +138,7 @@ namespace Povox {
 		fbCI.attachmentCount = static_cast<uint32_t>(attachments.size());
 		fbCI.pAttachments = attachments.data();
 		fbCI.renderPass = m_RenderPass;
+		fbCI.layers = 1; //number of laers in images
 		PX_CORE_VK_ASSERT(vkCreateFramebuffer(VulkanContext::GetDevice()->GetVulkanDevice(), &fbCI, nullptr, &m_Framebuffer), VK_SUCCESS, "Failed to create Framebuffer!");
 	}
 
