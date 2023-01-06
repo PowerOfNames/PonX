@@ -3,7 +3,6 @@
 bin-int/
 
 # Povox
-Povox/vendor/VulkanSDK
 Povosom/assets/cache
 RenderDoc
 profiling

@@ -13,3 +13,6 @@
 [submodule "Povox/vendor/ImGuizmo"]
 	path = Povox/vendor/ImGuizmo
 	url = https://github.com/PowerOfNames/ImGuizmo
+[submodule "Povox/vendor/yaml-cpp"]
+	path = Povox/vendor/yaml-cpp
+	url = https://github.com/PowerOfNames/yaml-cpp.git
