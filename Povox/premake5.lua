@@ -23,8 +23,8 @@ project "Povox"
 		"vendor/glm/glm/**.inl",
 		"vendor/VMA/**.h",
 		
-		"vendor/SPIRV_Reflect/spirv_reflect.cpp",
-		"vendor/SPIRV_Reflect/spirv_reflect.h",
+		"vendor/SPIRV-Reflect/spirv_reflect.cpp",
+		"vendor/SPIRV-Reflect/spirv_reflect.h",
 
 		-- thanks to nepp95, who came up with this (compiling yaml here instead in its own premake.lua) cause linking it is a pain...
 		"vendor/yaml-cpp/src/**.h",
@@ -75,6 +75,9 @@ project "Povox"
 		flags { "NoPCH" }
 
 	filter "files:vendor/yaml-cpp/src/**.cpp"
+        flags { "NoPCH" }
+
+	filter "files:vendor/SPIRV-Reflect/**.cpp"
         flags { "NoPCH" }
 
 
