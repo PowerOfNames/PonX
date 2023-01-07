@@ -15,13 +15,20 @@ project "Povox"
 	{
 		"src/**.h",
 		"src/**.cpp",
+
 		"vendor/stb_image/**.cpp",
 		"vendor/stb_image/**.h",
+
 		"vendor/glm/glm/**.hpp",
 		"vendor/glm/glm/**.inl",
 		"vendor/VMA/**.h",
 		"vendor/SPIRV_Reflect/spirv_reflect.cpp",
 		"vendor/SPIRV_Reflect/spirv_reflect.h",
+
+		-- thanks to nepp95, who came up with this (compiling yaml here instead in its own premake.lua) cause linking it is a pain...
+		"vendor/yaml-cpp/src/**.h",
+		"vendor/yaml-cpp/src/**.cpp",
+		"vendor/yaml-cpp/include/**.h",
 
 		"vendor/ImGuizmo/ImGuizmo.h",
 		"vendor/ImGuizmo/ImGuizmo.cpp"
@@ -30,21 +37,23 @@ project "Povox"
 	defines
 	{
 		"_CRT_SECURE_NO_WARNINGS",
-		"GLFW_INCLUDE_NONE"
+		"GLFW_INCLUDE_NONE",
+		"YAML_CPP_STATIC_DEFINE"
 	}
 
 	includedirs
 	{
 		"src",
 		"vendor/spdlog/include",
-		"%{IncludeDir.GLFW}",
 		"%{IncludeDir.Glad}",
-		"%{IncludeDir.ImGui}",
+		"%{IncludeDir.GLFW}",
 		"%{IncludeDir.glm}",
 		"%{IncludeDir.stb_image}",
-		"%{IncludeDir.entt}",
 		"%{IncludeDir.yaml_cpp}",
+		"%{IncludeDir.entt}",
+		"%{IncludeDir.ImGui}",
 		"%{IncludeDir.ImGuizmo}",
+
 		"%{IncludeDir.VulkanSDK}",
 		"%{IncludeDir.VMA}",
 		"%{IncludeDir.SPIRV_Reflect}"
@@ -55,14 +64,17 @@ project "Povox"
 		"GLFW",
 		"Glad",
 		"ImGui",
-		"yaml-cpp",
+		--"yaml-cpp",
 		"opengl32.lib",
 		"%{Library.Vulkan}",
 		"%{Library.VulkanUtils}"
 	}
 
 	filter "files:vendor/ImGuizmo/**.cpp"
-	flags { "NoPCH" }
+		flags { "NoPCH" }
+
+	filter "files:vendor/yaml-cpp/src/**.cpp"
+        flags { "NoPCH" }
 
 
 	filter "system:windows"

@@ -29,7 +29,7 @@ group "Dependencies"
 	include "Povox/vendor/GLFW"
 	include "Povox/vendor/Glad"
 	include "Povox/vendor/ImGui"
-	include "Povox/vendor/yaml-cpp"
+	--include "Povox/vendor/yaml-cpp"
 group ""
 
 include "Povox"

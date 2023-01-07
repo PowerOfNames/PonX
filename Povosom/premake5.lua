@@ -19,8 +19,8 @@ project "Povosom"
 		"%{wks.location}/Povox/vendor/spdlog/include",
 		"%{wks.location}/Povox/src",
 		"%{wks.location}/Povox/vendor",
-		"%{IncludeDir.glm}",
 		"%{IncludeDir.entt}",
+		"%{IncludeDir.glm}",
 		"%{IncludeDir.ImGuizmo}"
 	}
 

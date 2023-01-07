@@ -7,18 +7,20 @@
 
 
 IncludeDir = {}
-IncludeDir["GLFW"]			= "%{wks.location}/Povox/vendor/GLFW/include"
 IncludeDir["Glad"]			= "%{wks.location}/Povox/vendor/Glad/include"
-IncludeDir["ImGui"]			= "%{wks.location}/Povox/vendor/ImGui"
+IncludeDir["GLFW"]			= "%{wks.location}/Povox/vendor/GLFW/include"
 IncludeDir["glm"]			= "%{wks.location}/Povox/vendor/glm"
 IncludeDir["stb_image"]		= "%{wks.location}/Povox/vendor/stb_image"
 IncludeDir["entt"]			= "%{wks.location}/Povox/vendor/entt/include"
 IncludeDir["yaml_cpp"]		= "%{wks.location}/Povox/vendor/yaml-cpp/include"
+
+IncludeDir["ImGui"]			= "%{wks.location}/Povox/vendor/ImGui"
 IncludeDir["ImGuizmo"]		= "%{wks.location}/Povox/vendor/ImGuizmo"
+
 IncludeDir["VulkanSDK"]		= "%{Vulkan_SDK}/Include"
-IncludeDir["SPIRV-cross"]	= "%{wks.location}/Povox/vendor/SPIRV-cross"
-IncludeDir["shaderc"]		= "%{wks.location}/Povox/vendor/shaderc"
 IncludeDir["VMA"]			= "%{wks.location}/Povox/vendor/VMA"
+IncludeDir["shaderc"]		= "%{wks.location}/Povox/vendor/shaderc"
+IncludeDir["SPIRV-cross"]	= "%{wks.location}/Povox/vendor/SPIRV-cross"
 IncludeDir["SPIRV_Reflect"]	= "%{wks.location}/Povox/vendor/SPIRV_Reflect"
 
 
