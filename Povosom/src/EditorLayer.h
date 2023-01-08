@@ -30,6 +30,7 @@ namespace Povox {
 		void CloseApp();
 	private:
 		EditorCamera m_EditorCamera;
+		OrthographicCameraController m_OrthoCamControl;
 
 		std::vector<Renderable> m_DrawList;
 

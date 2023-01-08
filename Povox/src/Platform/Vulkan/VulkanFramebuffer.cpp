@@ -138,7 +138,7 @@ namespace Povox {
 		fbCI.attachmentCount = static_cast<uint32_t>(attachments.size());
 		fbCI.pAttachments = attachments.data();
 		fbCI.renderPass = m_RenderPass;
-		fbCI.layers = 1; //number of laers in images
+		fbCI.layers = 1; //number of layers in images
 		PX_CORE_VK_ASSERT(vkCreateFramebuffer(VulkanContext::GetDevice()->GetVulkanDevice(), &fbCI, nullptr, &m_Framebuffer), VK_SUCCESS, "Failed to create Framebuffer!");
 	}
 

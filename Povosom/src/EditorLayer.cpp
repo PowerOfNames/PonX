@@ -16,7 +16,7 @@
 namespace Povox {
 
     EditorLayer::EditorLayer()
-        :Layer("Povosom2D")
+        : Layer("Povosom2D"), m_OrthoCamControl(1.778f, false)
     {
     }
 
@@ -29,7 +29,7 @@ namespace Povox {
 		//ImGuiOfflineRendering
 		{
 			FramebufferSpecification imGuiViewportFBSpecs{};
-			imGuiViewportFBSpecs.Attachments = { {ImageFormat::RGBA8}, {ImageFormat::RED_INTEGER}, {ImageFormat::Depth} };
+			imGuiViewportFBSpecs.Attachments = { {ImageFormat::RGBA8}, {ImageFormat::RED_INTEGER, MemoryUtils::MemoryUsage::GPU_TO_CPU}, {ImageFormat::Depth} };
 			imGuiViewportFBSpecs.Width = Application::Get()->GetWindow().GetWidth();
 			imGuiViewportFBSpecs.Height = Application::Get()->GetWindow().GetHeight();
 			imGuiViewportFBSpecs.SwapChainTarget = true;
@@ -53,7 +53,7 @@ namespace Povox {
 
         m_ActiveScene = CreateRef<Scene>();
 
-        m_EditorCamera = EditorCamera(30.0f, 1.778f, 0.1f, 1000.0f);
+        m_EditorCamera = EditorCamera(60.0f, 1.778f, 0.1f, 1000.0f);
         m_SceneHierarchyPanel.SetContext(m_ActiveScene);
 
 		PX_CORE_TRACE("Finished EditorLayer::OnAttach()");
@@ -91,7 +91,7 @@ namespace Povox {
 
         //Update
         m_EditorCamera.OnUpdate(deltatime);
-            
+		m_OrthoCamControl.OnUpdate(deltatime);
 
         //Renderer Stats
         Renderer2D::ResetStats();
@@ -105,8 +105,9 @@ namespace Povox {
 		Renderer::BeginRenderPass(m_ImGuiRenderpass);
 		Renderer::BindPipeline(m_StandardPipeline);
 
-		Renderer2D::BeginScene(m_EditorCamera); //doesn't mess with renderer atm
-		Renderer2D::DrawQuad({ -0.5f, -0.5f, 0.0f }, { 0.5f, 0.5f }, { 1.0f, 1.0f, 0.5f, 1.0f });	
+		//Renderer2D::BeginScene(m_EditorCamera); //doesn't mess with renderer atm
+		Renderer2D::BeginScene(m_OrthoCamControl.GetCamera()); //doesn't mess with renderer atm
+		Renderer2D::DrawQuad({ 0.0f, 0.0f, 0.0f }, { 1.0f, 1.0f }, { 1.0f, 1.0f, 0.5f, 1.0f });	
 		Renderer2D::EndScene(); //doesn't mess with renderer atm
 
 		Renderer::EndRenderPass();

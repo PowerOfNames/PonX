@@ -139,7 +139,10 @@ namespace Povox {
 			m_PhysicalDevice = candidates.rbegin()->second;
 		}
 		PX_CORE_ASSERT(m_PhysicalDevice != VK_NULL_HANDLE, "Failed to find suitable GPU!");
-		PX_CORE_TRACE("Physical Device has been picked!");
+		VkPhysicalDeviceProperties deviceProperties;
+		vkGetPhysicalDeviceProperties(m_PhysicalDevice, &deviceProperties);
+
+		PX_CORE_TRACE("Physical Device '{0}' has been picked!", deviceProperties.deviceName);
 	}
 
 	SwapchainSupportDetails VulkanDevice::QuerySwapchainSupport(VkPhysicalDevice physicalDevice)

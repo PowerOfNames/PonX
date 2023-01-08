@@ -106,9 +106,9 @@ namespace Povox {
 		s_RendererAPI->BindPipeline(pipeline);
 	}
 
-	void Renderer::UpdateCamera(Ref<Buffer> cameraUniformBuffer)
+	void Renderer::UpdateCamera(const CameraUniform& cam)
 	{
-		s_RendererAPI->UpdateCamera(cameraUniformBuffer);
+		s_RendererAPI->UpdateCamera(cam);
 	}
 
 	void Renderer::Submit(const Renderable& object)

@@ -111,7 +111,7 @@ namespace Povox {
 			}
 			else
 			{
-				if (spec.TargetFramebuffer->GetSpecification().SwapChainTarget)				
+				if (!spec.TargetFramebuffer->GetSpecification().SwapChainTarget)				
 					attachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 				else
 					attachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;

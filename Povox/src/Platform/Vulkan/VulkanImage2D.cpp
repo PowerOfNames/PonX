@@ -29,6 +29,23 @@ namespace Povox {
 		CreateDescriptorSet();
 	}
 
+	VulkanImage2D::VulkanImage2D(uint32_t width, uint32_t height)
+	{
+		m_Specification.Width = width;
+		m_Specification.Height = height;
+		m_Specification.Format = ImageFormat::RGBA8;
+		m_Specification.Memory = MemoryUtils::MemoryUsage::CPU_TO_GPU;
+		m_Specification.CopyDst = true;
+		m_Specification.Usages = { ImageUsage::COLOR_ATTACHMENT, ImageUsage::SAMPLED, ImageUsage::COPY_SRC };
+
+		m_Allocation = CreateAllocation({ width, height, 1 }, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_LINEAR,
+			VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
+
+		CreateImageView();
+		CreateSampler();
+		CreateDescriptorSet();
+	}
+
 	VulkanImage2D::VulkanImage2D(const char* path, VkFormat format)
 	{
 		int width, height, channels;
@@ -121,23 +138,6 @@ namespace Povox {
 			});
 
 		vmaDestroyBuffer(VulkanContext::GetAllocator(), stagingBuffer.Buffer, stagingBuffer.Allocation);
-	}
-
-	VulkanImage2D::VulkanImage2D(uint32_t width, uint32_t height)
-	{
-		m_Specification.Width = width;
-		m_Specification.Height = height;
-		m_Specification.Format = ImageFormat::RGBA8;
-		m_Specification.Memory = MemoryUtils::MemoryUsage::CPU_TO_GPU;
-		m_Specification.CopyDst = true;
-		m_Specification.Usages = { ImageUsage::COLOR_ATTACHMENT, ImageUsage::SAMPLED, ImageUsage::COPY_SRC };
-
-		m_Allocation = CreateAllocation({width, height, 1}, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL,
-			VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
-
-		CreateImageView();
-		CreateSampler();
-		CreateDescriptorSet();
 	}
 
 	VulkanImage2D::~VulkanImage2D()

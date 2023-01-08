@@ -54,27 +54,26 @@ namespace Povox {
 		vmaDestroyBuffer(VulkanContext::GetAllocator(), m_Allocation.Buffer, m_Allocation.Allocation);
 	}
 
-	void VulkanBuffer::SetData(void* inputData, size_t size)
+	void VulkanBuffer::SetData(void* inputData, const size_t size)
 	{
 		if(m_Allocation.Buffer == VK_NULL_HANDLE)
 			m_Allocation = CreateAllocation(m_Specification.Size, VulkanUtils::GetVulkanBufferUsage(m_Specification.Usage) | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VulkanUtils::GetVmaUsage(m_Specification.MemUsage));
 		
-		const size_t bufferSize = size;
 		m_Specification.Size = size;
 		m_Specification.Data = inputData;
-		AllocatedBuffer stagingBuffer = CreateAllocation(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_ONLY);
+		AllocatedBuffer stagingBuffer = CreateAllocation(size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_ONLY);
 
 		VmaAllocator allocator = VulkanContext::GetAllocator();
 		void* data;
 		vmaMapMemory(allocator, stagingBuffer.Allocation, &data);
-		memcpy(data, inputData, bufferSize);
+		memcpy(data, inputData, size);
 		vmaUnmapMemory(allocator, stagingBuffer.Allocation);
 
 
 		VulkanCommandControl::ImmidiateSubmit(VulkanCommandControl::SubmitType::SUBMIT_TYPE_TRANSFER, [=](VkCommandBuffer cmd)
 			{
 				VkBufferCopy copyRegion{};
-				copyRegion.size = bufferSize;
+				copyRegion.size = size;
 
 				vkCmdCopyBuffer(cmd, stagingBuffer.Buffer, m_Allocation.Buffer, 1, &copyRegion);
 			});

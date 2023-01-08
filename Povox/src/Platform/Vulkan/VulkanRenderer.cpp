@@ -66,6 +66,7 @@ namespace Povox {
 		PX_CORE_TRACE("VulkanRenderer::InitCommandControl Initialized Commandcontrol!");
 	}
 
+	//content should maybe get seperated out into functions that set up the frame data according to the used shaders? potentially 
 	void VulkanRenderer::InitFrameData()
 	{
 		uint32_t maxFrames = m_Specification.MaxFramesInFlight;
@@ -154,7 +155,7 @@ namespace Povox {
 
 			for (uint32_t i = 0; i < maxFrames; i++)
 			{
-				m_Frames[i].CamUniformBuffer = VulkanBuffer::CreateAllocation(sizeof(CameraUniformLayout), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+				m_Frames[i].CamUniformBuffer = VulkanBuffer::CreateAllocation(sizeof(CameraUniform), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 				PX_CORE_WARN("Created Descriptor uniform buffer!");
 
 				VulkanDescriptorBuilder builder = VulkanDescriptorBuilder::Begin(VulkanContext::GetDescriptorLayoutCache(), VulkanContext::GetDescriptorAllocator());
@@ -162,7 +163,7 @@ namespace Povox {
 				VkDescriptorBufferInfo camInfo{};
 				camInfo.buffer = m_Frames[i].CamUniformBuffer.Buffer;
 				camInfo.offset = 0;
-				camInfo.range = sizeof(CameraUniformLayout);
+				camInfo.range = sizeof(CameraUniform);
 				builder.BindBuffer(camBinding, &camInfo);
 								
 				/*
@@ -222,8 +223,6 @@ namespace Povox {
 		PX_CORE_WARN("Start swap buffers!");
 
 
-		PX_CORE_TRACE("Starting VulkanRenderer::BeginFrame!");
-
 		//ATTANTION: Possible, that I need to render before the clearing, maybe, possibly
 		auto& currentFreeQueue = VulkanContext::GetResourceFreeQueue()[m_CurrentFrame];
 		for (auto& func : currentFreeQueue)
@@ -241,7 +240,6 @@ namespace Povox {
 		m_SwapchainFrame->PresentSemaphore = GetCurrentFrame().Semaphores.PresentSemaphore;
 		m_SwapchainFrame->RenderSemaphore = GetCurrentFrame().Semaphores.RenderSemaphore;
 
-		PX_CORE_TRACE("Finished VulkanRenderer::BeginFrame!");
 	}
 
 	//void VulkanRenderer::Draw(const std::vector<Renderable>& drawList)
@@ -251,25 +249,19 @@ namespace Povox {
 		PX_PROFILE_FUNCTION();
 
 
-		PX_CORE_WARN("Started Draw single renderable!");
-
 		Ref<VulkanShader> vkShader = std::dynamic_pointer_cast<VulkanShader>(renderable.Material.Shader);
 
 		uint32_t frameIndex = m_CurrentFrame % m_Specification.MaxFramesInFlight;
 		uint32_t uniformOffset = PadUniformBuffer(sizeof(SceneUniformBufferD), VulkanContext::GetDevice()->GetPhysicalDeviceProperties().limits.minUniformBufferOffsetAlignment) * (size_t)frameIndex;
-		// Bind command for descriptor-sets |needs (bindpoint), pipeline-layout, firstSet, setCount, setArray, dynOffsetCount, dynOffsets
-		//Get the descriptor set from the bound shader/material
+
 		vkCmdBindDescriptorSets(m_ActiveCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_ActivePipeline->GetLayout(), 0, 1, &GetCurrentFrame().GlobalDescriptorSet, 0, nullptr/*&uniformOffset*/);
 		
 		
 		VkBuffer vertexBuffer = std::dynamic_pointer_cast<VulkanBuffer>(renderable.MeshData.VertexBuffer)->GetAllocation().Buffer;
 		VkBuffer indexBuffer = std::dynamic_pointer_cast<VulkanBuffer>(renderable.MeshData.IndexBuffer)->GetAllocation().Buffer;
-		if (vertexBuffer == VK_NULL_HANDLE)
-			PX_CORE_WARN("VertexBuffer is empty!");
 		VkDeviceSize offsets[] = { 0 };
-		vkCmdBindVertexBuffers(m_ActiveCommandBuffer, 0, 1, &vertexBuffer, offsets);		// Bind command for vertex buffer	|needs (first binding, binding count), buffer array and offset
-		vkCmdBindIndexBuffer(m_ActiveCommandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);	// Bind command for index buffer	|needs indexbuffer, offset, type		
-		vkCmdDrawIndexed(m_ActiveCommandBuffer, 6, 1, 0, 0, 0);
+		vkCmdBindVertexBuffers(m_ActiveCommandBuffer, 0, 1, &vertexBuffer, offsets);
+		vkCmdBindIndexBuffer(m_ActiveCommandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);		
 
 		//vkCmdBindDescriptorSets(m_ActiveCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_ActivePipeline->GetLayout(), 1, 1, &m_Frames[m_CurrentFrame].ObjectDescriptorSet, 0, nullptr);
 
@@ -300,6 +292,7 @@ namespace Povox {
 		vkCmdBindDescriptorSets(m_ActiveCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_ActivePipeline->GetLayout(), 1, 1, &m_Frames[m_CurrentFrame].ObjectDescriptorSet, 0, nullptr);
 		//the pipeline layout is later part of the obj material
 		*/
+		vkCmdDrawIndexed(m_ActiveCommandBuffer, 6, 1, 0, 0, 0);
 	}
 
 	void VulkanRenderer::Draw()
@@ -373,8 +366,8 @@ namespace Povox {
 
 	void VulkanRenderer::EndFrame()
 	{
-		//Now retrieve the final image from the last renderpass and copy it into the current swapchain image?
-
+		// Now retrieve the final image from the last renderpass and copy it into the current swapchain image?
+		// Either here or in the Application/Layer -> maybe build a render flow manager
 
 		m_CurrentFrame = (m_CurrentFrame++) % m_Specification.MaxFramesInFlight;
 		m_DebugInfo.TotalFrames++;
@@ -384,20 +377,26 @@ namespace Povox {
 
 
 
-	void VulkanRenderer::UpdateCamera(Ref<Buffer> cameraUniformBuffer)
+	void VulkanRenderer::UpdateCamera(const CameraUniform& cam)
 	{
-		Ref<VulkanBuffer> cameraBuffer = std::dynamic_pointer_cast<VulkanBuffer>(cameraUniformBuffer);
+		//Ref<VulkanBuffer> cameraBuffer = std::dynamic_pointer_cast<VulkanBuffer>(cameraUniformBuffer);
 
-		CameraUniformLayout ubo;
-		ubo.ViewMatrix = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-		ubo.ProjectionMatrix = glm::perspective(glm::radians(45.0f), m_Swapchain->GetProperties().Width / (float)m_Swapchain->GetProperties().Height, 0.1f, 10.0f);
-		ubo.ProjectionMatrix[1][1] *= -1; //flips Y
-		ubo.ViewProjMatrix = ubo.ProjectionMatrix * ubo.ViewMatrix;
+		//CameraUniform ubo;
+		//ubo.ViewMatrix = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+		//ubo.ProjectionMatrix = glm::perspective(glm::radians(45.0f), m_Swapchain->GetProperties().Width / (float)m_Swapchain->GetProperties().Height, 0.1f, 10.0f);
+		//ubo.ProjectionMatrix[1][1] *= -1; //flips Y
+		//ubo.ViewProjMatrix = ubo.ProjectionMatrix * ubo.ViewMatrix;
+
+		CameraUniform camOut;
+		camOut.ViewMatrix = cam.ViewMatrix;
+		camOut.ProjectionMatrix = cam.ProjectionMatrix;
+		camOut.ProjectionMatrix[1][1] *= -1;
+		camOut.ViewProjMatrix = camOut.ProjectionMatrix * camOut.ViewMatrix;
 
 		void* data;
-		vmaMapMemory(VulkanContext::GetAllocator(), cameraBuffer->GetAllocation().Allocation, &data);
-		memcpy(data, &ubo, sizeof(CameraUniformLayout));
-		vmaUnmapMemory(VulkanContext::GetAllocator(), cameraBuffer->GetAllocation().Allocation);
+		vmaMapMemory(VulkanContext::GetAllocator(), GetCurrentFrame().CamUniformBuffer.Allocation, &data);
+		memcpy(data, &camOut, sizeof(CameraUniform));
+		vmaUnmapMemory(VulkanContext::GetAllocator(), GetCurrentFrame().CamUniformBuffer.Allocation);
 
 
 		/*
@@ -423,7 +422,6 @@ namespace Povox {
 
 	void VulkanRenderer::BeginCommandBuffer(const void* commBuf)
 	{
-		PX_CORE_TRACE("VulkanRenderer::BeginCommandBuffer: Started!");
 
 		m_ActiveCommandBuffer = (VkCommandBuffer)commBuf;
 		m_SwapchainFrame->Commands.push_back(m_ActiveCommandBuffer);
@@ -440,20 +438,18 @@ namespace Povox {
 		nameInfo.pObjectName = "Frame CommandBuffer Frame";
 		NameVkObject(m_Device, nameInfo);
 		
-		PX_CORE_TRACE("VulkanRenderer::BeginCommandBuffer: Finished!");
 	}
 	void VulkanRenderer::EndCommandBuffer()
 	{
-		PX_CORE_TRACE("VulkanRenderer::EndCommandBuffer: Started!");
+
 		PX_CORE_VK_ASSERT(vkEndCommandBuffer(m_ActiveCommandBuffer), VK_SUCCESS, "Failed to record graphics command buffer!");
 		m_ActiveCommandBuffer = VK_NULL_HANDLE;
-		PX_CORE_TRACE("VulkanRenderer::EndCommandBuffer: Finished!");
+
 	}
 
 
 	void VulkanRenderer::BeginRenderPass(Ref<RenderPass> renderPass)
 	{
-		PX_CORE_TRACE("VulkanRenderer::BeginRenderPass: Starting!");
 
 		m_ActiveRenderPass = std::dynamic_pointer_cast<VulkanRenderPass>(renderPass);
 		Ref<VulkanFramebuffer> fb = std::dynamic_pointer_cast<VulkanFramebuffer>(m_ActiveRenderPass->GetSpecification().TargetFramebuffer);
@@ -461,7 +457,7 @@ namespace Povox {
 
 		//TODO: Get from the fb
 		std::array<VkClearValue, 3> clearColor = {};
-		clearColor[0].color = { 0.25f, 0.25f, 0.25f, 1.0f };
+		clearColor[0].color = { 0.0f, 0.0f, 0.0f, 0.0f };
 		clearColor[1].color = { 0.0f, 0.0f, 0.0f, 0.0f };
 		clearColor[2].depthStencil = { 1.0f, 0 };
 
@@ -477,20 +473,18 @@ namespace Povox {
 		info.pClearValues = clearColor.data();
 
 		vkCmdBeginRenderPass(m_ActiveCommandBuffer, &info, VK_SUBPASS_CONTENTS_INLINE);
-		PX_CORE_TRACE("VulkanRenderer::BeginRenderPass: Finished!");
 	}
 	void VulkanRenderer::EndRenderPass()
 	{
-		PX_CORE_TRACE("VulkanRenderer::EndRenderpass Starting!");
+
 		vkCmdEndRenderPass(m_ActiveCommandBuffer);
 		m_ActiveRenderPass = nullptr;
-		PX_CORE_TRACE("VulkanRenderer::EndRenderpass Finished!");
+
 	}
 
 
 	void VulkanRenderer::BindPipeline(Ref<Pipeline> pipeline)
 	{
-		PX_CORE_TRACE("VulkanRenderer::BindPipeline Starting!");
 
 		m_ActivePipeline = std::dynamic_pointer_cast<VulkanPipeline>(pipeline);
 
@@ -513,7 +507,7 @@ namespace Povox {
 		}
 
 		vkCmdBindPipeline(m_ActiveCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_ActivePipeline->GetVulkanObj());
-		PX_CORE_TRACE("VulkanRenderer::BindPipeline Finished!");
+
 	}
 
 	void VulkanRenderer::Submit(const Renderable& object)
@@ -546,7 +540,7 @@ namespace Povox {
 			barrier.srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
 			barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
 
-			srcStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+			srcStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
 			dstStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
 
 			vkCmdPipelineBarrier(cmd, srcStage, dstStage, 0, 0, nullptr, 0, nullptr, 1, &barrier);
@@ -556,7 +550,7 @@ namespace Povox {
 			VkImageMemoryBarrier barrier{};
 			barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
 			barrier.image = finalImageVK->GetImage();
-			barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+			barrier.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 			barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
 			barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 			barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
@@ -576,8 +570,6 @@ namespace Povox {
 
 			vkCmdPipelineBarrier(cmd, srcStage, dstStage, 0, 0, nullptr, 0, nullptr, 1, &barrier);
 			});
-		PX_CORE_INFO("Image size - Width: {0}", finalImageVK->GetSpecification().Width);
-		PX_CORE_INFO("Image size - Height: {0}", finalImageVK->GetSpecification().Height);
 		//Image copying
 		m_CommandControl->ImmidiateSubmit(VulkanCommandControl::SubmitType::SUBMIT_TYPE_TRANSFER, [=](VkCommandBuffer cmd)
 			{
@@ -598,7 +590,6 @@ namespace Povox {
 			barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
 			barrier.image = m_SwapchainFrame->CurrentImage;
 			barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-
 			barrier.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
 			barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
@@ -611,39 +602,14 @@ namespace Povox {
 
 			VkPipelineStageFlags srcStage;
 			VkPipelineStageFlags dstStage;
-			barrier.srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
-			barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
-
-			srcStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
-			dstStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
-
-			vkCmdPipelineBarrier(cmd, srcStage, dstStage, 0, 0, nullptr, 0, nullptr, 1, &barrier);
-			});
-		/*
-		m_CommandControl->ImmidiateSubmit(VulkanCommandControl::SubmitType::SUBMIT_TYPE_GRAPHICS, [=](VkCommandBuffer cmd) {
-			VkImageMemoryBarrier barrier{};
-			barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-			barrier.image = finalImageVK->GetImage();
-			barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-			barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-			barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-			barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-			barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-			barrier.subresourceRange.baseMipLevel = 0;
-			barrier.subresourceRange.levelCount = 1;
-			barrier.subresourceRange.baseArrayLayer = 0;
-			barrier.subresourceRange.layerCount = 1;
-
-			VkPipelineStageFlags srcStage;
-			VkPipelineStageFlags dstStage;
-			barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+			barrier.srcAccessMask = VK_ACCESS_MEMORY_WRITE_BIT;
 			barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 
 			srcStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
 			dstStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
 
 			vkCmdPipelineBarrier(cmd, srcStage, dstStage, 0, 0, nullptr, 0, nullptr, 1, &barrier);
-			});*/
+			});
 	}
 
 	void VulkanRenderer::SetViewport(uint32_t x, uint32_t y, uint32_t width, uint32_t height)

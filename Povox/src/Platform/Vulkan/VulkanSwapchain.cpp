@@ -398,6 +398,7 @@ namespace Povox {
 		VkResult result;
 		result = vkQueuePresentKHR(VulkanContext::GetDevice()->GetQueueFamilies().PresentQueue, &presentInfo);
 
+		//check if the framebuffer resized
 		if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
 		{
 			Recreate(Application::Get()->GetWindow().GetWidth(), Application::Get()->GetWindow().GetHeight());

@@ -62,8 +62,12 @@ namespace Povox {
 			switch (format)
 			{
 				case VK_FORMAT_UNDEFINED: return 0;
+				case VK_FORMAT_R32G32_SFLOAT: return 8;
+				case VK_FORMAT_R32G32B32_SFLOAT: return 12;
+				case VK_FORMAT_R32G32B32A32_SFLOAT: return 16;
 				case VK_FORMAT_R8G8B8A8_SRGB: return 4;
-				case VK_FORMAT_R16_UINT: return 2;
+				case VK_FORMAT_R32_SFLOAT: return 4;
+				case VK_FORMAT_R32_SINT: return 4;
 					
 				default: return 0;
 			}
@@ -251,7 +255,6 @@ namespace Povox {
 				bindingDescription.binding = 0;
 				bindingDescription.stride = 0;
 				bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-				m_VertexInputDescription.Bindings.push_back(bindingDescription);
 								
 				m_VertexInputDescription.Attributes.reserve(inputVars.size());
 				for (size_t i = 0; i < inputVars.size(); i++)//example says ++i Why?
@@ -266,6 +269,7 @@ namespace Povox {
 					attributeDescription.format = static_cast<VkFormat>(reflectVar.format);
 					attributeDescription.offset = 0; //Later 
 					m_VertexInputDescription.Attributes.push_back(attributeDescription);
+
 				}
 				//sort ascending
 				std::sort(std::begin(m_VertexInputDescription.Attributes), std::end(m_VertexInputDescription.Attributes), [](const VkVertexInputAttributeDescription& a, const VkVertexInputAttributeDescription& b)
@@ -278,7 +282,10 @@ namespace Povox {
 					uint32_t formatSize = VulkanUtils::FormatSize(attribute.format);
 					attribute.offset = bindingDescription.stride;
 					bindingDescription.stride += formatSize;
+					PX_CORE_WARN("Offset: {0}", bindingDescription.stride);
 				}
+				m_VertexInputDescription.Bindings.push_back(bindingDescription);
+
 				//later compare to the actual mesh-information
 
 				//Debug Print Input and outputs

@@ -23,11 +23,11 @@ namespace Povox {
 		Ref<ShaderLibrary> ShaderLibrary;
 	};
 
-	struct CameraUniformLayout
+	struct CameraUniform
 	{
-		alignas(16) glm::mat4 ViewMatrix;
-		alignas(16) glm::mat4 ProjectionMatrix;
-		alignas(16) glm::mat4 ViewProjMatrix;
+		glm::mat4 ViewMatrix;
+		glm::mat4 ProjectionMatrix;
+		glm::mat4 ViewProjMatrix;
 	};
 
 	class Renderer
@@ -52,7 +52,7 @@ namespace Povox {
 
 		static void BindPipeline(Ref<Pipeline> pipeline);
 
-		static void UpdateCamera(Ref<Buffer> cameraUniformBuffer);
+		static void UpdateCamera(const CameraUniform& cam);
 
 		static void OnWindowResize(uint32_t width, uint32_t height);
 		static void OnFramebufferResize(uint32_t width, uint32_t height);

@@ -46,9 +46,8 @@ namespace Povox {
 
 		Renderer2D::Statistics Stats;
 
+		CameraUniform CameraData;
 
-		CameraUniformLayout CameraBuffer;
-		Ref<Buffer> CameraUniformBuffer;		
 
 		std::vector<Renderable> RenderedObjects;
 	};
@@ -124,13 +123,6 @@ namespace Povox {
 
 		//s_QuadData.TextureShader->Bind();
 
-		BufferSpecification uniformBufferSpecs{};
-		uniformBufferSpecs.Usage = BufferUsage::UNIFORM_BUFFER;
-		uniformBufferSpecs.ElementCount = 1;
-		uniformBufferSpecs.ElementSize = sizeof(Renderer2DData::CameraBuffer);
-		uniformBufferSpecs.Size = sizeof(Renderer2DData::CameraBuffer);
-		s_QuadData.CameraUniformBuffer = Buffer::Create(uniformBufferSpecs);
-
 		PX_CORE_TRACE("Finished Renderer2D::Init!");
 	}
 
@@ -146,8 +138,7 @@ namespace Povox {
 	{
 		PX_PROFILE_FUNCTION();
 
-		s_QuadData.CameraBuffer.ViewProjMatrix = camera.GetViewProjectionMatrix();
-		s_QuadData.CameraUniformBuffer->SetData(&s_QuadData.CameraBuffer, sizeof(Renderer2DData::CameraBuffer));
+		s_QuadData.CameraData.ViewProjMatrix = camera.GetViewProjectionMatrix();
 		StartBatch();
 	}
 
@@ -155,8 +146,7 @@ namespace Povox {
 	{
 		PX_PROFILE_FUNCTION();
 
-		s_QuadData.CameraBuffer.ViewProjMatrix = camera.GetProjection() * glm::inverse(transform);
-		s_QuadData.CameraUniformBuffer->SetData(&s_QuadData.CameraBuffer, sizeof(Renderer2DData::CameraBuffer));
+		s_QuadData.CameraData.ViewProjMatrix = camera.GetProjection() * glm::inverse(transform);
 		StartBatch();
 	}
 
@@ -165,11 +155,10 @@ namespace Povox {
 		PX_PROFILE_FUNCTION();
 
 
-		s_QuadData.CameraBuffer.ViewMatrix = camera.GetViewMatrix();
-		s_QuadData.CameraBuffer.ProjectionMatrix = camera.GetProjection();
-		s_QuadData.CameraBuffer.ViewProjMatrix = camera.GetViewProjectionMatrix();
-		s_QuadData.CameraUniformBuffer->SetData(&s_QuadData.CameraBuffer, sizeof(Renderer2DData::CameraBuffer));
-		//Renderer::UpdateCamera(s_QuadData.CameraUniformBuffer);
+		s_QuadData.CameraData.ViewMatrix = camera.GetViewMatrix();
+		s_QuadData.CameraData.ProjectionMatrix = camera.GetProjection();
+		s_QuadData.CameraData.ViewProjMatrix = camera.GetViewProjectionMatrix();
+		Renderer::UpdateCamera(s_QuadData.CameraData);
 		StartBatch();
 	}
 
@@ -194,7 +183,7 @@ namespace Povox {
 		//for (uint32_t i = 0; i < s_QuadData.TextureSlotIndex; i++)
 		//	s_QuadData.TextureSlots[i]->Bind(i);
 
-		//Renderer::Draw();df
+		//Renderer::Draw();
 		s_QuadData.Stats.DrawCalls++;
 	}
 
@@ -241,18 +230,21 @@ namespace Povox {
 		}
 		BufferSpecification vertexBufferSpecs{};
 		vertexBufferSpecs.Usage = BufferUsage::VERTEX_BUFFER;
+		vertexBufferSpecs.MemUsage = MemoryUtils::MemoryUsage::GPU_ONLY;
 		vertexBufferSpecs.ElementCount = vertexData.size();
 		vertexBufferSpecs.ElementSize = sizeof(VertexData);
-		vertexBufferSpecs.Size = vertexData.size() * sizeof(vertexData);
-		vertexBufferSpecs.Data = vertexData.data();
-		PX_CORE_INFO("Created VertexBuffer for quad");
+		vertexBufferSpecs.ElementOffset = sizeof(VertexData);
+		vertexBufferSpecs.Size = vertexData.size() * sizeof(VertexData);
+		vertexBufferSpecs.Data = (void*)vertexData.data();
 		renderable.MeshData.VertexBuffer = Buffer::Create(vertexBufferSpecs);
 
 		const std::vector<uint32_t> quadIndices = { 0, 1, 2, 2, 3, 0 };
 		BufferSpecification indexBufferSpecs{};
 		indexBufferSpecs.Usage = BufferUsage::INDEX_BUFFER;
+		indexBufferSpecs.MemUsage = MemoryUtils::MemoryUsage::GPU_ONLY;
 		indexBufferSpecs.ElementCount = quadIndices.size();
 		indexBufferSpecs.ElementSize = sizeof(uint32_t);
+		indexBufferSpecs.ElementOffset = sizeof(uint32_t);
 		indexBufferSpecs.Size = quadIndices.size() * sizeof(uint32_t);
 		indexBufferSpecs.Data = (void*)quadIndices.data();
 		renderable.MeshData.IndexBuffer = Buffer::Create(indexBufferSpecs);

@@ -5,11 +5,14 @@ namespace Povox {
 
 	struct FramebufferImageSpecification
 	{
-		FramebufferImageSpecification() = default;
+		/*FramebufferImageSpecification() = default;
 		FramebufferImageSpecification(ImageFormat format)
-			: Format(format) {}
+			: Format(format) {}*/
 
 		ImageFormat Format = ImageFormat::None;
+		MemoryUtils::MemoryUsage Memory = MemoryUtils::MemoryUsage::GPU_ONLY;
+		ImageTiling Tiling = ImageTiling::LINEAR;
+		std::vector<ImageUsage> Usages = { ImageUsage::COLOR_ATTACHMENT };
 		// TODO: Filtering/wrapping
 	};
 

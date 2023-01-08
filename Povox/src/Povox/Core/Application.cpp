@@ -86,13 +86,14 @@ namespace Povox {
 				{
 					layer->OnImGuiRender();
 				}
-				m_ImGuiVulkanLayer->End();
+				m_ImGuiVulkanLayer->End(); // the recorded commands should no w be added to the commandbuffer vctor, which then is processed during Swapchain::submit
 			}
 
-			Renderer::EndFrame();
-
+			
 			//The recorded commands now get processed in the swapchain, which lives in the window
 			m_Window->OnUpdate();
+
+			Renderer::EndFrame();
 
 			PX_CORE_WARN("Finished Run!");
 		}

@@ -76,7 +76,7 @@ namespace Povox {
 
 		virtual void SetViewport(uint32_t x, uint32_t y, uint32_t width, uint32_t height) override;
 
-		virtual void UpdateCamera(Ref<Buffer> cameraUniformBuffer) override;
+		virtual void UpdateCamera(const CameraUniform& cam) override;
 
 		static void InitImGui();
 		static void BeginImGuiFrame();

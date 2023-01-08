@@ -10,6 +10,7 @@
 
 namespace Povox {
 
+	struct CameraUniform;
 	class RendererAPI
 	{
 	public:
@@ -28,7 +29,7 @@ namespace Povox {
 		virtual void Draw() = 0;
 		virtual void EndFrame() = 0;
 
-		virtual void UpdateCamera(Ref<Buffer> cameraUniformBuffer) = 0;
+		virtual void UpdateCamera(const CameraUniform& cam) = 0;
 
 		virtual void Submit(const Renderable& object) = 0;
 
