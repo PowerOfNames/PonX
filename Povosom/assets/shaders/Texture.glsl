@@ -11,7 +11,7 @@ layout(location = 5) in int a_EntityID;
 
 layout(std140, set = 0, binding = 0) uniform Camera
 {
-	vec4 View;
+	mat4 View;
 	mat4 Projection;
 	mat4 ViewProjection;
 } u_Camera;
@@ -42,7 +42,7 @@ void main()
 	Output.TilingFactor = a_TilingFactor;
 	o_EntityID = a_EntityID;
 
-	gl_Position = u_Camera.Projection * u_Camera.View * vec4(a_Position, 1.0f);
+	gl_Position = u_Camera.ViewProjection * vec4(a_Position, 1.0f);
 }
 
 #type fragment

@@ -71,7 +71,7 @@ namespace Povox {
 	void EditorCamera::MousePan(const glm::vec2& delta)
 	{
 		auto [xSpeed, ySpeed] = PanSpeed();
-		m_FocalPoint += -GetRightVector() * delta.x * xSpeed * m_Distance;
+		m_FocalPoint += GetRightVector() * delta.x * xSpeed * m_Distance;
 		m_FocalPoint += GetUpVector() * delta.y * ySpeed * m_Distance;
 	}
 

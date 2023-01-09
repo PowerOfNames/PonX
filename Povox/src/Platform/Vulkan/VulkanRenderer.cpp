@@ -255,13 +255,13 @@ namespace Povox {
 		uint32_t uniformOffset = PadUniformBuffer(sizeof(SceneUniformBufferD), VulkanContext::GetDevice()->GetPhysicalDeviceProperties().limits.minUniformBufferOffsetAlignment) * (size_t)frameIndex;
 
 		vkCmdBindDescriptorSets(m_ActiveCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_ActivePipeline->GetLayout(), 0, 1, &GetCurrentFrame().GlobalDescriptorSet, 0, nullptr/*&uniformOffset*/);
-		
-		
+
+
 		VkBuffer vertexBuffer = std::dynamic_pointer_cast<VulkanBuffer>(renderable.MeshData.VertexBuffer)->GetAllocation().Buffer;
 		VkBuffer indexBuffer = std::dynamic_pointer_cast<VulkanBuffer>(renderable.MeshData.IndexBuffer)->GetAllocation().Buffer;
 		VkDeviceSize offsets[] = { 0 };
 		vkCmdBindVertexBuffers(m_ActiveCommandBuffer, 0, 1, &vertexBuffer, offsets);
-		vkCmdBindIndexBuffer(m_ActiveCommandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);		
+		vkCmdBindIndexBuffer(m_ActiveCommandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
 		//vkCmdBindDescriptorSets(m_ActiveCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_ActivePipeline->GetLayout(), 1, 1, &m_Frames[m_CurrentFrame].ObjectDescriptorSet, 0, nullptr);
 
@@ -279,19 +279,36 @@ namespace Povox {
 		/* Instead of using memcpy here, we are doing a different trick. It is possible to cast the void* from mapping the buffer into another type, and write into it normally.
 		 * This will work completely fine, and makes it easier to write complex types into a buffer.
 		 **/
-		/*
-		void* objData;
-		vmaMapMemory(VulkanContext::GetAllocator(), m_Frames[m_CurrentFrame].ObjectBuffer.Allocation, &objData);
-		GPUBufferObject* objectSSBO = (GPUBufferObject*)objData;
-		int count = 5;
-		for (int i = 0; i < count; i++)
-		{
-			objectSSBO[i].ModelMatrix = model;
-		}
-		vmaUnmapMemory(VulkanContext::GetAllocator(), m_Frames[m_CurrentFrame].ObjectBuffer.Allocation);
-		vkCmdBindDescriptorSets(m_ActiveCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_ActivePipeline->GetLayout(), 1, 1, &m_Frames[m_CurrentFrame].ObjectDescriptorSet, 0, nullptr);
-		//the pipeline layout is later part of the obj material
-		*/
+		 /*
+		 void* objData;
+		 vmaMapMemory(VulkanContext::GetAllocator(), m_Frames[m_CurrentFrame].ObjectBuffer.Allocation, &objData);
+		 GPUBufferObject* objectSSBO = (GPUBufferObject*)objData;
+		 int count = 5;
+		 for (int i = 0; i < count; i++)
+		 {
+			 objectSSBO[i].ModelMatrix = model;
+		 }
+		 vmaUnmapMemory(VulkanContext::GetAllocator(), m_Frames[m_CurrentFrame].ObjectBuffer.Allocation);
+		 vkCmdBindDescriptorSets(m_ActiveCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_ActivePipeline->GetLayout(), 1, 1, &m_Frames[m_CurrentFrame].ObjectDescriptorSet, 0, nullptr);
+		 //the pipeline layout is later part of the obj material
+		 */
+		uint32_t height = m_Swapchain->GetProperties().Height;
+		uint32_t width = m_Swapchain->GetProperties().Width;
+		VkViewport viewport{};
+		viewport.x = 0.0f;
+		viewport.y = static_cast<float>(height);
+		viewport.width = static_cast<float>(width);
+		viewport.height = -static_cast<float>(height);
+		viewport.minDepth = 0.0f;
+		viewport.maxDepth = 1.0f;
+		vkCmdSetViewport(m_ActiveCommandBuffer, 0, 1, &viewport);
+
+		VkRect2D scissor{};
+		scissor.offset = { 0, 0 };
+		scissor.extent = { width, height };
+		vkCmdSetScissor(m_ActiveCommandBuffer, 0, 1, &scissor);
+
+
 		vkCmdDrawIndexed(m_ActiveCommandBuffer, 6, 1, 0, 0, 0);
 	}
 
@@ -379,18 +396,11 @@ namespace Povox {
 
 	void VulkanRenderer::UpdateCamera(const CameraUniform& cam)
 	{
-		//Ref<VulkanBuffer> cameraBuffer = std::dynamic_pointer_cast<VulkanBuffer>(cameraUniformBuffer);
-
-		//CameraUniform ubo;
-		//ubo.ViewMatrix = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-		//ubo.ProjectionMatrix = glm::perspective(glm::radians(45.0f), m_Swapchain->GetProperties().Width / (float)m_Swapchain->GetProperties().Height, 0.1f, 10.0f);
-		//ubo.ProjectionMatrix[1][1] *= -1; //flips Y
-		//ubo.ViewProjMatrix = ubo.ProjectionMatrix * ubo.ViewMatrix;
 
 		CameraUniform camOut;
 		camOut.ViewMatrix = cam.ViewMatrix;
 		camOut.ProjectionMatrix = cam.ProjectionMatrix;
-		camOut.ProjectionMatrix[1][1] *= -1;
+		//camOut.ProjectionMatrix[1][1] *= -1; // either this or flip the viewport
 		camOut.ViewProjMatrix = camOut.ProjectionMatrix * camOut.ViewMatrix;
 
 		void* data;
