@@ -16,8 +16,17 @@ layout(std140, set = 0, binding = 0) uniform Camera
 	mat4 ViewProjection;
 } u_Camera;
 
+layout(std140, set = 0, binding = 1) uniform SceneData
+{
+	vec4 FogColor;
+	vec4 FogDistance;
+	vec4 AmbientColor;
+	vec4 SunlightDirection;
+	vec4 SunlightColor;
+} u_Scene;
+
 /*
-layout(set = 1, binding = 0) uniform Object
+layout(set = 2, binding = 0) uniform Object
 {
 	mat4 ModelMatrix;
 }u_Object;*/
@@ -62,8 +71,17 @@ struct VertexInput
 layout(location = 0) in VertexInput Input;
 layout(location = 4) in flat int v_EntityID;
 
+layout(std140, set = 0, binding = 1) uniform SceneData
+{
+	vec4 FogColor;
+	vec4 FogDistance;
+	vec4 AmbientColor;
+	vec4 SunlightDirection;
+	vec4 SunlightColor;
+} u_Scene;
+
 //layout(binding = 0) uniform sampler2D u_Textures[32];
-//layout(set = 2, binding = 0) uniform sampler2D u_Texture;
+layout(set = 1, binding = 0) uniform sampler2D u_Texture;
 
 void main()
 {
@@ -105,6 +123,7 @@ void main()
 		case 31: texColor *= texture(u_Textures[31], Input.TexCoord * Input.TilingFactor); break;
 	}*/
 	//texColor *= texture(u_Texture, Input.TexCoord * Input.TilingFactor);
-	color = vec4(0.8, 0.0, 0.6, 1.0);
-	//entityID = v_EntityID;
+	//color = vec4(texColor.xyz + u_Scene.AmbientColor.xyz, texColor.a);
+	color = vec4(1.0, 1.0, 1.0, 1.0);
+	entityID = v_EntityID;
 }

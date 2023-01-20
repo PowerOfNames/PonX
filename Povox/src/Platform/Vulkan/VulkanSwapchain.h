@@ -40,9 +40,8 @@ namespace Povox {
 		void Init(uint32_t width, uint32_t height);
 		void Destroy();
 
-		void QueueSubmit();
 		void SwapBuffers();
-		void Present();
+		
 
 		void Recreate(uint32_t width, uint32_t height);
 
@@ -62,6 +61,10 @@ namespace Povox {
 		SwapchainFrame* AcquireNextImageIndex(VkSemaphore presentSemaphore);
 
 	private:
+		void QueueSubmit();
+		void Present();
+
+		void Cleanup();
 		void ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities, uint32_t width, uint32_t height);
 		void ChooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
 		void ChooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);

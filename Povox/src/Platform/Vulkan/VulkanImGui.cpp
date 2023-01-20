@@ -6,7 +6,6 @@
 #include "VulkanCommands.h"
 
 #include "VulkanFramebuffer.h"
-#include "VulkanRenderPass.h"
 
 #include <imgui.h>
 
@@ -30,6 +29,7 @@ namespace Povox {
 		InitRenderPass();
 		InitCommandBuffers();
 		InitFrameBuffers(swapchainViews, width, height);
+		PX_CORE_ERROR("VulkanImGui::Init with width: '{0}' and height '{1}'", width, height);
 
 		VkDescriptorPoolSize pool_sizes[] =
 		{
@@ -116,16 +116,17 @@ namespace Povox {
 		ImGui::Render();
 	}
 
-	void VulkanImGui::BeginRender(uint32_t imageIndex, VkExtent2D swapchainExtent)
+	void VulkanImGui::BeginRenderPass(VkCommandBuffer cmd, uint32_t imageIndex, VkExtent2D swapchainExtent)
 	{
-		vkResetCommandPool(VulkanContext::GetDevice()->GetVulkanDevice(), GetFrame(imageIndex).CommandPool, 0);
-
-		m_CurrentActiveCmd = GetFrame(imageIndex).CommandBuffer;
+		//vkResetCommandPool(VulkanContext::GetDevice()->GetVulkanDevice(), GetFrame(imageIndex).CommandPool, 0);
+		m_CurrentActiveCmd = cmd;
+		//m_CurrentActiveCmd = GetFrame(imageIndex).CommandBuffer;
 		VkCommandBufferBeginInfo cmdBegin{};
 		cmdBegin.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 		cmdBegin.pNext = nullptr;
 		cmdBegin.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-		PX_CORE_VK_ASSERT(vkBeginCommandBuffer(m_CurrentActiveCmd, &cmdBegin), VK_SUCCESS, "Failed to begin command buffer!");
+		//PX_CORE_VK_ASSERT(vkBeginCommandBuffer(m_CurrentActiveCmd, &cmdBegin), VK_SUCCESS, "Failed to begin command buffer!");
+		// Not needed as I start that in application explicitly
 
 		std::array<VkClearValue, 2> clearColor = {};
 		clearColor[0].color = { 0.25f, 0.25f, 0.25f, 1.0f };
@@ -150,12 +151,17 @@ namespace Povox {
 		ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), m_CurrentActiveCmd);
 	}
 
-	void VulkanImGui::EndRender()
+	void VulkanImGui::EndRenderPass()
 	{
 		vkCmdEndRenderPass(m_CurrentActiveCmd);
-		PX_CORE_VK_ASSERT(vkEndCommandBuffer(m_CurrentActiveCmd), VK_SUCCESS, "Failed to record graphics command buffer!");
-		m_CurrentActiveCmd = VK_NULL_HANDLE;
+		//PX_CORE_VK_ASSERT(vkEndCommandBuffer(m_CurrentActiveCmd), VK_SUCCESS, "Failed to record graphics command buffer!");
+		//m_CurrentActiveCmd = VK_NULL_HANDLE;
 	}	
+
+	VkDescriptorSet VulkanImGui::GetImGUIDescriptorSet(VkImageView view, VkSampler sampler, VkImageLayout layout)
+	{
+		return ImGui_VulkanImpl_AddTexture(sampler, view, layout);
+	}
 
 	VulkanImGui::FrameData& VulkanImGui::GetFrame(uint32_t index)
 	{
@@ -168,40 +174,46 @@ namespace Povox {
 
 	void VulkanImGui::InitRenderPass()
 	{
-		VulkanRenderPassBuilder builder = VulkanRenderPassBuilder::Begin();
 		VkAttachmentDescription colorAttachment{};
 		colorAttachment.format = m_SwapchainImageFormat;
 		colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
 		colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-		colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+		colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 		colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 		colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-		colorAttachment.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+		colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 		colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-
-		builder.AddAttachment(colorAttachment);
-
 
 		VkAttachmentReference colorRef{};
 		colorRef.attachment = 0;
 		colorRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
-		std::vector<VkAttachmentReference> colorRefs{ colorRef };
 
-		builder.CreateAndAddSubpass(VK_PIPELINE_BIND_POINT_GRAPHICS, colorRefs);
-
+		VkSubpassDescription subpass{};
+		subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+		subpass.colorAttachmentCount = 1;
+		subpass.pColorAttachments = &colorRef;
 
 		VkSubpassDependency dependency{};
 		dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
 		dependency.dstSubpass = 0;
-		dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-		dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+		dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+		dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
 		dependency.srcAccessMask = 0;
 		dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 
-		builder.AddDependency(dependency);
 
-		m_RenderPass = builder.Build();
+		VkRenderPassCreateInfo renderPassInfo{};
+		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+		renderPassInfo.pNext = nullptr;
+		renderPassInfo.attachmentCount = 1;
+		renderPassInfo.pAttachments = &colorAttachment;
+		renderPassInfo.subpassCount = 1;
+		renderPassInfo.pSubpasses = &subpass;
+		renderPassInfo.dependencyCount = 1;
+		renderPassInfo.pDependencies = &dependency;
+
+		PX_CORE_VK_ASSERT(vkCreateRenderPass(VulkanContext::GetDevice()->GetVulkanDevice(), &renderPassInfo, nullptr, &m_RenderPass), VK_SUCCESS, "Failed to create renderpass!");
 	}
 	void VulkanImGui::InitCommandBuffers()
 	{

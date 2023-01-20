@@ -40,6 +40,8 @@ namespace Povox {
 
 		AllocatedBuffer	ObjectBuffer;
 		VkDescriptorSet ObjectDescriptorSet;
+
+		VkDescriptorSet TextureDescriptorSet;
 	};
 
 	class VulkanRenderer : public RendererAPI
@@ -52,20 +54,27 @@ namespace Povox {
 		void Shutdown();
 		void OnResize(uint32_t width, uint32_t height);
 
-		virtual inline uint32_t GetCurrentFrameIndex() const override { return m_CurrentImageIndex; }
+		virtual inline uint32_t GetCurrentFrameIndex() const override { return m_CurrentFrameIndex; }
+		
+		virtual void CreateFinalImage(Ref<Image2D> finalImage) override;
 
-		virtual void BeginFrame() override;
+		virtual bool BeginFrame() override;
 		//virtual void Draw(const std::vector<Renderable>& drawList) override;
 		virtual void DrawRenderable(const Renderable& renderable) override;
 		virtual void Draw() override;
+		virtual void DrawGUI() override;
 		virtual void EndFrame() override;
 
-		virtual inline const void* GetCommandBuffer(uint32_t index) override { return (const void* )GetFrame(index).Commands.Buffer; }
+		virtual inline const void* GetCommandBuffer(uint32_t index) override { return (const void*)GetFrame(index).Commands.Buffer; }
+		virtual inline const void* GetGUICommandBuffer(uint32_t index) override { return (const void*)(m_ImGui->GetFrame(index).CommandBuffer); }
 		virtual void BeginCommandBuffer(const void* cmd) override;
 		virtual void EndCommandBuffer() override;
 
-		virtual void BeginRenderPass(Ref<RenderPass> renderPass);
-		virtual void EndRenderPass();
+		virtual void BeginRenderPass(Ref<RenderPass> renderPass) override;
+		virtual void EndRenderPass() override;
+
+		virtual void BeginGUIRenderPass() override;
+		virtual void EndGUIRenderPass() override;
 
 		virtual void BindPipeline(Ref<Pipeline> pipeline) override;
 
@@ -78,17 +87,21 @@ namespace Povox {
 
 		virtual void UpdateCamera(const CameraUniform& cam) override;
 
+		virtual inline Ref<Image2D> GetFinalImage() { return m_FinalImage; }
+
 		static void InitImGui();
 		static void BeginImGuiFrame();
 		static void EndImGuiFrame();
+		virtual void* GetGUIDescriptorSet(Ref<Image2D> image) override;
 
-
-		inline FrameData& GetCurrentFrame() { return m_Frames[m_CurrentFrame]; }
 
 	private:
+		inline FrameData& GetCurrentFrame() { return m_Frames[m_CurrentFrameIndex]; }
 		FrameData& GetFrame(uint32_t index);
 		void InitCommandControl();
 		void InitFrameData();
+
+		void InitSamplers();
 
 		size_t PadUniformBuffer(size_t inputSize, size_t minGPUBufferOffsetAlignment);
 
@@ -106,13 +119,19 @@ namespace Povox {
 		Ref<VulkanPipeline> m_ActivePipeline = nullptr;
 
 		std::vector<FrameData> m_Frames;
-		uint32_t m_CurrentFrame = 0;
-		uint32_t m_CurrentImageIndex = 0;
+		uint32_t m_CurrentFrameIndex = 0;
+		uint32_t m_CurrentSwapchainImageIndex = 0;
 
+		//-------------			Samplers		 ---------------
+		VkSampler m_TextureSampler = VK_NULL_HANDLE;
+
+		Ref<VulkanImage2D> m_FinalImage;
 
 		//------------- Scene and Object related ---------------
-		VkDescriptorSetLayout m_GlobalDescriptorSetLayout;
-		VkDescriptorSetLayout m_ObjectDescriptorSetLayout;
+		VkDescriptorSetLayout m_GlobalDescriptorSetLayout = VK_NULL_HANDLE;
+		VkDescriptorSetLayout m_ObjectDescriptorSetLayout = VK_NULL_HANDLE;
+
+		VkDescriptorSetLayout m_TextureDescriptorSetLayout = VK_NULL_HANDLE;
 
 		std::unordered_map<Ref<VulkanShader>, std::vector<VkDescriptorSet>> m_DescriptorSetShaderMap;
 
@@ -122,9 +141,8 @@ namespace Povox {
 		Renderable* m_SceneObjectPtr = nullptr;
 
 
-		//SceneUniformBufferD m_SceneParameter;		// external
-		//AllocatedBuffer m_SceneParameterBuffer;		// external
-
+		SceneUniform m_SceneParameter;
+		AllocatedBuffer m_SceneParameterBuffer{};
 
 		static Scope<VulkanImGui> m_ImGui;
 

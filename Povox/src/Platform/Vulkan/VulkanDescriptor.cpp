@@ -323,6 +323,13 @@ namespace Povox
 		{
 			writes.dstSet = set;
 		}
+		//Debug
+		VkDebugUtilsObjectNameInfoEXT nameInfo{};
+		nameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+		nameInfo.objectType = VK_OBJECT_TYPE_DESCRIPTOR_SET;
+		nameInfo.objectHandle = (uint64_t)set;
+		nameInfo.pObjectName = "DescriptorSet lololol";
+		NameVkObject(VulkanContext::GetDevice()->GetVulkanDevice(), nameInfo);
 
 		vkUpdateDescriptorSets(VulkanContext::GetDevice()->GetVulkanDevice(), static_cast<uint32_t>(m_Writes.size()), m_Writes.data(), 0, nullptr);
 		return true;
@@ -331,7 +338,33 @@ namespace Povox
 
 	bool VulkanDescriptorBuilder::Build(VkDescriptorSet& set)
 	{
-		//TODO: fill
+		VkDescriptorSetLayoutCreateInfo info{};
+		info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+		info.pNext = nullptr;
+
+		info.bindingCount = static_cast<uint32_t>(m_Bindings.size());
+		info.pBindings = m_Bindings.data();
+
+		VkDescriptorSetLayout layout = m_Cache->CreateDescriptorLayout(&info);
+
+		bool success = m_Allocator->Allocate(&set, layout);
+		if (!success)
+			return false;
+
+		for (auto& writes : m_Writes)
+		{
+			writes.dstSet = set;
+		}
+		//Debug
+		VkDebugUtilsObjectNameInfoEXT nameInfo{};
+		nameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+		nameInfo.objectType = VK_OBJECT_TYPE_DESCRIPTOR_SET;
+		nameInfo.objectHandle = (uint64_t)set;
+		nameInfo.pObjectName = "DescriptorSet lololol";
+		NameVkObject(VulkanContext::GetDevice()->GetVulkanDevice(), nameInfo);
+
+		vkUpdateDescriptorSets(VulkanContext::GetDevice()->GetVulkanDevice(), static_cast<uint32_t>(m_Writes.size()), m_Writes.data(), 0, nullptr);
+		return true;
 
 		return false;
 	}

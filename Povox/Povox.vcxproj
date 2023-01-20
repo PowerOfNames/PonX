@@ -184,6 +184,7 @@
     <ClInclude Include="src\Povox\Events\MouseEvent.h" />
     <ClInclude Include="src\Povox\ImGui\ImGuiLayer.h" />
     <ClInclude Include="src\Povox\ImGui\ImGuiVulkanLayer.h" />
+    <ClInclude Include="src\Povox\ImGui\my_imgui_config.h" />
     <ClInclude Include="src\Povox\Math\Math.h" />
     <ClInclude Include="src\Povox\Renderer\Buffer.h" />
     <ClInclude Include="src\Povox\Renderer\Camera.h" />

@@ -28,6 +28,9 @@ namespace Povox {
 	{
 		// Setup Dear ImGui context
 		IMGUI_CHECKVERSION();
+
+#define IMGUI_USER_CONFIG "my_imgui_config.h"
+
 		ImGui::CreateContext();
 		ImGuiIO& io = ImGui::GetIO(); (void)io;
 		io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;       // Enable Keyboard Controls

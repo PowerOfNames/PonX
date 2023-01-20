@@ -14,7 +14,10 @@ namespace Povox {
 			switch (format)
 			{
 				case ImageFormat::RGBA8: return VK_FORMAT_R8G8B8A8_SRGB;
+				case ImageFormat::RGB8: return VK_FORMAT_R8G8B8_SRGB;
+				case ImageFormat::RG8: return VK_FORMAT_R8G8_SRGB;
 				case ImageFormat::RED_INTEGER: return VK_FORMAT_R32_SINT;
+				case ImageFormat::RED_FLOAT: return VK_FORMAT_R32_SFLOAT;
 				case ImageFormat::DEPTH24STENCIL8: return VulkanUtils::FindDepthFormat(VulkanContext::GetDevice()->GetPhysicalDevice());
 			}
 			PX_CORE_ASSERT(true, "ImageFormat not covered!");
@@ -45,6 +48,13 @@ namespace Povox {
 				out |= GetVulkanImageUsage(usage);
 			}
 			return out;
+		}
+
+		static VkImageLayout GetImageLayout(ImageUsages usages)
+		{
+			if (usages.ContainsUsage(ImageUsage::SAMPLED))
+				return VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+			return VK_IMAGE_LAYOUT_UNDEFINED;
 		}
 
 		static VkImageTiling GetVulkanTiling(ImageTiling tiling)
@@ -79,43 +89,67 @@ namespace Povox {
 	class VulkanImage2D : public Image2D
 	{
 	public:
-		VulkanImage2D(uint32_t width, uint32_t height);
+		VulkanImage2D(uint32_t width, uint32_t height, uint32_t channels = 4);
 		VulkanImage2D(const ImageSpecification& spec);
-		VulkanImage2D(const char* path, VkFormat format);
 		virtual ~VulkanImage2D() override;
+
 
 		virtual void Destroy() override;
 
 		virtual const ImageSpecification& GetSpecification() const override { return m_Specification; }
-		virtual void* GetDescriptorSet() const override { return (void*)m_DescriptorSet; }
-		virtual void SetData(void* data, size_t size) override;
+		virtual void* GetDescriptorSet() override { return nullptr; }
+		virtual void SetData(void* data) override;
 
 		static AllocatedImage CreateAllocation(VkExtent3D extent, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VmaMemoryUsage memUsage, VkImageLayout initialLayout = VK_IMAGE_LAYOUT_UNDEFINED);
 
 		inline VkImageView GetImageView() const { return m_View; }
+		inline VkSampler GetSampler() const { return m_Sampler; }
 		inline VkImage GetImage() { return m_Allocation.Image; }
-
-	private: 
-		void CreateImageView();
+		
 		void CreateDescriptorSet();
 		void CreateSampler();
+
+	private:
+		void CreateImage();
+		void CreateImageView();
+
 	private:
 		ImageSpecification m_Specification;
 
 		AllocatedImage m_Allocation{};
 		VkImageView m_View = VK_NULL_HANDLE;
-		VkDescriptorSet m_DescriptorSet = VK_NULL_HANDLE;
 		VkSampler m_Sampler = VK_NULL_HANDLE;
+		VkWriteDescriptorSet m_Write{};
+		VkDescriptorSetLayoutBinding m_Binding{};
+		VkDescriptorImageInfo m_DescImageInfo{};
+		VkDescriptorSet m_DescriptorSet = VK_NULL_HANDLE;
+		VkDescriptorSetLayout m_DescriptorSetLayout = VK_NULL_HANDLE;
 	};
 
-	class VulkanTexture : public Texture
-	{
-		VulkanTexture();
-		~VulkanTexture() = default;
 
+
+	class VulkanTexture2D : public Texture2D
+	{
+	public:
+		VulkanTexture2D(uint32_t width, uint32_t height, uint32_t channels);
+		VulkanTexture2D(const std::string& path);
+		virtual ~VulkanTexture2D() = default;
+
+		virtual inline uint32_t GetWidth() const override { return m_Image->GetSpecification().Width; };
+		virtual inline uint32_t GetHeight() const override { return m_Image->GetSpecification().Height; };
+
+		virtual void SetData(void* data) override;
+
+
+		bool VulkanTexture2D::operator==(const Texture& other) const override
+		{
+			//when RendererID is implemented, compare those.
+			return false;
+		}
 
 	private:
-		Ref<VulkanImage2D> m_Image;
+		Ref<VulkanImage2D> m_Image = nullptr;
 
+		std::string m_Path = "";
 	};
 }

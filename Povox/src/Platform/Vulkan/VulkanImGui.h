@@ -31,9 +31,11 @@ namespace Povox {
 		void BeginFrame();
 		void EndFrame();
 
-		void BeginRender(uint32_t imageIndex, VkExtent2D swapchainExtent);
+		void BeginRenderPass(VkCommandBuffer cmd, uint32_t imageIndex, VkExtent2D swapchainExtent);
 		void RenderDrawData();
-		void EndRender();
+		void EndRenderPass();
+
+		VkDescriptorSet GetImGUIDescriptorSet(VkImageView view, VkSampler sampler, VkImageLayout layout);
 
 		FrameData& GetFrame(uint32_t index);
 		inline VkDescriptorPool GetDescriptorPool() { return m_DescriptorPool; }
@@ -47,6 +49,7 @@ namespace Povox {
 		VkFormat m_SwapchainImageFormat = VK_FORMAT_UNDEFINED;
 
 		VkDescriptorPool m_DescriptorPool = VK_NULL_HANDLE;
+		VkDescriptorSetLayout m_DescriptorSetLayout;
 
 		uint8_t m_MaxFramesInFlight = 0;
 		std::vector<VulkanImGui::FrameData> m_FrameData ;

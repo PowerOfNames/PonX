@@ -27,13 +27,13 @@ namespace Povox {
 		return nullptr;
 	}
 
-	Ref<Image2D> Image2D::Create(uint32_t width, uint32_t height)
+	Ref<Image2D> Image2D::Create(uint32_t width, uint32_t height, uint32_t channels)
 	{
 		switch (Renderer::GetAPI())
 		{
 			case RendererAPI::API::Vulkan:
 			{
-				return CreateRef<VulkanImage2D>(width, height);
+				return CreateRef<VulkanImage2D>(width, height, channels);
 			}
 			case RendererAPI::API::NONE:
 			{

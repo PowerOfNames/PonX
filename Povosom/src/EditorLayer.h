@@ -36,7 +36,8 @@ namespace Povox {
 
 		Ref<Framebuffer> m_ImGuiViewportFB;
 		Ref<RenderPass> m_ImGuiRenderpass;
-		Ref<Pipeline> m_StandardPipeline;
+		Ref<Pipeline> m_FlatColorPipeline;
+		Ref<Pipeline> m_TexturePipeline;
 
 		Ref<Scene> m_ActiveScene;
 		std::string m_CurrentScenePath;

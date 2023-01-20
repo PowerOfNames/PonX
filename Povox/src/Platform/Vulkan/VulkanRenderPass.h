@@ -4,24 +4,6 @@
 
 namespace Povox {
 
-	class VulkanRenderPassBuilder
-	{
-	public:
-		static VulkanRenderPassBuilder Begin();
-
-		VulkanRenderPassBuilder& AddAttachment(VkAttachmentDescription attachment);
-		VulkanRenderPassBuilder& CreateAndAddSubpass(VkPipelineBindPoint pipelineBindpoint, const std::vector<VkAttachmentReference>& colorRefs, VkAttachmentReference depthRef);
-		VulkanRenderPassBuilder& CreateAndAddSubpass(VkPipelineBindPoint pipelineBindpoint, const std::vector<VkAttachmentReference>& colorRefs);
-		VulkanRenderPassBuilder& AddDependency(VkSubpassDependency dependency);
-
-		VkRenderPass Build();
-
-	private:
-		std::vector<VkAttachmentDescription> m_Attachments;
-		std::vector<VkSubpassDescription> m_Subpasses;
-		std::vector<VkSubpassDependency> m_Dependencies;
-	};
-
 	class VulkanRenderPass : public RenderPass
 	{
 	public:

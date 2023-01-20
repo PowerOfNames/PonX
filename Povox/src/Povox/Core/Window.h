@@ -2,7 +2,6 @@
 #include "Povox/Core/Core.h"
 #include "Povox/Events/Event.h"
 
-//#include "Platform/Vulkan/VulkanSwapchain.h"
 
 namespace Povox {
 

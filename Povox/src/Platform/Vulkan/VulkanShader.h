@@ -12,15 +12,6 @@ namespace Povox {
 		glm::mat4 ModelMatrix;
 	};
 
-	struct SceneUniformBufferD
-	{
-		glm::vec4 FogColor;
-		glm::vec4 FogDistance;
-		glm::vec4 AmbientColor;
-		glm::vec4 SunlightDirection;
-		glm::vec4 SunlightColor;
-	};
-
 	struct PushConstants
 	{
 		alignas(16) glm::mat4 ModelMatrix;

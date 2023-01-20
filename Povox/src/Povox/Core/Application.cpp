@@ -64,7 +64,8 @@ namespace Povox {
 			PX_PROFILE_SCOPE("Application Run-Loop");
 
 			//Between Begin and EndFrame happens the CommandRecording of everything rendering related
-			Renderer::BeginFrame();
+			if (!Renderer::BeginFrame())
+				return;
 
 			float time = (float)glfwGetTime();
 			Timestep timestep = time - m_DeltaTime;
@@ -74,26 +75,32 @@ namespace Povox {
 			{
 				for (Layer* layer : m_Layerstack)
 				{
-					layer->OnUpdate(timestep);
+					layer->OnUpdate(timestep);//contains begin renderpass, begin commandbuffer, end rnderpass, end commandbuffer
 				}
 			}
 
 			//if the GUI rendering happens here, then I have to change the frame handling and end it AFTER ImGui or other GUI has been handled and rendered before buffer swapping
 			if (RendererAPI::GetAPI() == RendererAPI::API::Vulkan && m_Specification.ImGuiEnabled)
 			{
+				const void* imGuiCmd = Renderer::GetGUICommandBuffer(Renderer::GetCurrentFrameIndex());
+				Renderer::BeginCommandBuffer(imGuiCmd);
+				Renderer::BeginGUIRenderPass();
 				m_ImGuiVulkanLayer->Begin();
 				for (Layer* layer : m_Layerstack)
 				{
 					layer->OnImGuiRender();
 				}
-				m_ImGuiVulkanLayer->End(); // the recorded commands should no w be added to the commandbuffer vctor, which then is processed during Swapchain::submit
+				m_ImGuiVulkanLayer->End(); // all the objects that got created during OnImgUiRender now are put into ImGuis DrawList 
+				Renderer::DrawGUI();
+				Renderer::EndGUIRenderPass();
+				Renderer::EndCommandBuffer();
 			}
 
+			Renderer::EndFrame();
 			
 			//The recorded commands now get processed in the swapchain, which lives in the window
 			m_Window->OnUpdate();
 
-			Renderer::EndFrame();
 
 			PX_CORE_WARN("Finished Run!");
 		}

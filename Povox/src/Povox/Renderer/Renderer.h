@@ -30,25 +30,42 @@ namespace Povox {
 		glm::mat4 ViewProjMatrix;
 	};
 
+	struct SceneUniform
+	{
+		glm::vec4 FogColor;
+		glm::vec4 FogDistance;
+		glm::vec4 AmbientColor; //.a = ambientFactor
+		glm::vec4 SunlightDirection;
+		glm::vec4 SunlightColor;
+	};
+
 	class Renderer
 	{
 	public:
 		static void Init(const RendererSpecification& specs);
 		static void Shutdown();
 
-		static void BeginFrame();
+		static bool BeginFrame();
 		static void DrawRenderable(const Renderable& renderable);
 		static void Draw();
+		static void DrawGUI();
 		static void EndFrame();
 
 		static uint32_t GetCurrentFrameIndex();
 
+		static void CreateFinalImage(Ref<Image2D> finalImage);
+		static Ref<Image2D> GetFinalImage();
+
 		static const void* GetCommandBuffer(uint32_t index);
+		static const void* GetGUICommandBuffer(uint32_t index);
 		static void BeginCommandBuffer(const void* cmd);
 		static void EndCommandBuffer();
 
 		static void BeginRenderPass(Ref<RenderPass> renderPass);
 		static void EndRenderPass();
+
+		static void BeginGUIRenderPass();
+		static void EndGUIRenderPass();
 
 		static void BindPipeline(Ref<Pipeline> pipeline);
 
@@ -60,6 +77,8 @@ namespace Povox {
 		static void Submit(const Renderable& object);
 
 		static void PrepareSwapchainImage(Ref<Image2D> finalImage);
+
+		static void* GetGUIDescriptorSet(Ref<Image2D> image);
 
 		inline static RendererAPI::API GetAPI() { return RendererAPI::GetAPI(); }
 		inline static Ref<ShaderLibrary>& GetShaderLibrary() { return s_Data.ShaderLibrary; }

@@ -18,7 +18,7 @@ namespace Povox {
 		//Initialize main API
 		s_Data.ShaderLibrary = CreateRef<ShaderLibrary>();
 		s_Data.ShaderLibrary->Add("TextureShader", Shader::Create("assets/shaders/Texture.glsl"));
-		s_Data.ShaderLibrary->Add("TriangleShader", Shader::Create("assets/shaders/Triangle.glsl"));
+		s_Data.ShaderLibrary->Add("FlatColorShader", Shader::Create("assets/shaders/FlatColor.glsl"));
 		
 		s_RendererAPI = CreateScope<VulkanRenderer>(specs);
 
@@ -43,12 +43,12 @@ namespace Povox {
 
 	}
 
-	void Renderer::BeginFrame()
+	bool Renderer::BeginFrame()
 	{
 		PX_PROFILE_FUNCTION();
 
 
-		s_RendererAPI->BeginFrame();
+		return s_RendererAPI->BeginFrame();
 	}
 
 	void Renderer::DrawRenderable(const Renderable& renderable)
@@ -61,6 +61,13 @@ namespace Povox {
 
 
 		s_RendererAPI->Draw();
+	}
+	void Renderer::DrawGUI()
+	{
+		PX_PROFILE_FUNCTION();
+
+
+		s_RendererAPI->DrawGUI();
 	}
 
 	void Renderer::EndFrame()
@@ -76,16 +83,29 @@ namespace Povox {
 		return s_RendererAPI->GetCurrentFrameIndex();
 	}
 
+	void Renderer::CreateFinalImage(Ref<Image2D> finalImage)
+	{
+		s_RendererAPI->CreateFinalImage(finalImage);
+	}
+
+	Ref<Image2D> Renderer::GetFinalImage()
+	{
+		return s_RendererAPI->GetFinalImage();
+	}
+
 	const void* Renderer::GetCommandBuffer(uint32_t index)
 	{
 		return s_RendererAPI->GetCommandBuffer(index);
+	}
+	const void* Renderer::GetGUICommandBuffer(uint32_t index)
+	{
+		return s_RendererAPI->GetGUICommandBuffer(index);
 	}
 
 	void Renderer::BeginCommandBuffer(const void* cmd)
 	{
 		s_RendererAPI->BeginCommandBuffer(cmd);
 	}
-
 	void Renderer::EndCommandBuffer()
 	{
 		s_RendererAPI->EndCommandBuffer();
@@ -95,10 +115,18 @@ namespace Povox {
 	{
 		s_RendererAPI->BeginRenderPass(renderPass);
 	}
-
 	void Renderer::EndRenderPass()
 	{
 		s_RendererAPI->EndRenderPass();
+	}
+
+	void Renderer::BeginGUIRenderPass()
+	{
+		s_RendererAPI->BeginGUIRenderPass();
+	}
+	void Renderer::EndGUIRenderPass()
+	{
+		s_RendererAPI->EndGUIRenderPass();
 	}
 
 	void Renderer::BindPipeline(Ref<Pipeline> pipeline)
@@ -122,6 +150,11 @@ namespace Povox {
 	void Renderer::PrepareSwapchainImage(Ref<Image2D> finalImage)
 	{
 		s_RendererAPI->PrepareSwapchainImage(finalImage);
+	}
+
+	void* Renderer::GetGUIDescriptorSet(Ref<Image2D> image)
+	{
+		return s_RendererAPI->GetGUIDescriptorSet(image);
 	}
 
 	void Renderer::OnWindowResize(uint32_t width, uint32_t height)

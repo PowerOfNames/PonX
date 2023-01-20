@@ -10,7 +10,11 @@ namespace Povox {
 
 		//Color
 		RGBA8,
+		RGB8,
+		RG8,
+
 		RED_INTEGER,
+		RED_FLOAT,
 
 		//Depth
 		DEPTH24STENCIL8,
@@ -58,6 +62,11 @@ namespace Povox {
 			:Usages(usages) {}
 
 		std::vector<ImageUsage> Usages;
+
+		bool ContainsUsage(ImageUsage usage)
+		{
+			return std::find(Usages.begin(), Usages.end(), usage) != Usages.end();
+		}
 	};
 
 	struct ImageSpecification
@@ -68,9 +77,6 @@ namespace Povox {
 		ImageUsages Usages;
 		ImageTiling Tiling = ImageTiling::LINEAR; //check whether this is supported or not upon startup end set it then globally
 		uint32_t MipLevels = 1;
-
-		bool CopySrc = false;
-		bool CopyDst = false;
 	};
 
 
@@ -81,10 +87,12 @@ namespace Povox {
 
 		virtual void Destroy() = 0;
 		virtual const ImageSpecification& GetSpecification() const = 0;
-		virtual void* GetDescriptorSet() const = 0;
-		virtual void SetData(void* data, size_t size) = 0;
+		
+		virtual void SetData(void* data) = 0;
+
+		virtual void* GetDescriptorSet() = 0;
 
 		static Ref<Image2D> Create(const ImageSpecification& spec);
-		static Ref<Image2D> Create(uint32_t width, uint32_t height);
+		static Ref<Image2D> Create(uint32_t width, uint32_t height, uint32_t channels = 4);
 	};
 }

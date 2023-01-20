@@ -172,6 +172,36 @@ namespace Povox {
 			return "SPV_SHADER:_STAGE_???";
 		}
 
+		VkDescriptorType MapBindingToType(uint32_t bindingNumber, VkDescriptorType type)
+		{
+			switch (bindingNumber)
+			{
+				case 0:
+				case 2:
+				case 4:
+				{
+					switch (type)
+					{
+						case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER: return type;
+						case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER: return type;
+						default: return type;
+					}
+				}
+				case 1:
+				case 3: 
+				{
+					switch (type)
+					{
+						case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER: return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
+						case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER: return VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC;
+						default: return type;
+					}
+				}
+				default: PX_CORE_ASSERT(true, "Binding number not covered");
+			}
+			return type;
+		}
+
 	}
 
 	VulkanShader::VulkanShader(const std::string& filepath)
@@ -190,7 +220,6 @@ namespace Povox {
 		m_DebugName = m_FilePath.substr(lastSlash, count);
 
 
-		PX_CORE_WARN("Starting to load shader from '{0}'", filepath);
 		std::string sources = Utils::Shader::ReadFile(filepath);
 		auto shaderSourceCodeMap = PreProcess(sources);
 
@@ -199,7 +228,7 @@ namespace Povox {
 			CompileOrGetVulkanBinaries(shaderSourceCodeMap);
 			PX_CORE_WARN("Shader compilation took {0}ms", timer.ElapsedMilliseconds());
 			Reflect();
-			PX_CORE_WARN("Shader reflection took {0}ms", timer.ElapsedMilliseconds());
+			PX_CORE_WARN("Shader compilation+reflection took {0}ms", timer.ElapsedMilliseconds());
 		}
 
 		VkShaderModuleCreateInfo createInfo{};
@@ -217,7 +246,15 @@ namespace Povox {
 	{
 		VkDevice device = VulkanContext::GetDevice()->GetVulkanDevice();
 		VkPhysicalDeviceProperties physicalProps = VulkanContext::GetDevice()->GetPhysicalDeviceProperties();
-				
+		bool debug = false;
+
+		struct DescriptorSetLayoutData {
+			uint32_t SetNumber = 0;
+			VkDescriptorSetLayoutCreateInfo CreateInfo{};
+			std::vector<VkDescriptorSetLayoutBinding> Bindings;
+		};
+		std::unordered_map<uint32_t, DescriptorSetLayoutData> descriptorSetsData;
+
 
 		uint32_t reflectionCheck = 0;
 		std::unordered_map<uint32_t, std::vector<VkDescriptorSetLayoutBinding>> setLayouts;
@@ -226,10 +263,9 @@ namespace Povox {
 			SpvReflectShaderModule module{};
 			SpvReflectResult result = spvReflectCreateShaderModule(sizeof(uint32_t) * data.size(), data.data(), &module);
 			PX_CORE_ASSERT(result == SPV_REFLECT_RESULT_SUCCESS, "ReflectionModule creation failed!");
-			
+
 			uint32_t count = 0;
 			result = spvReflectEnumerateInputVariables(&module, &count, nullptr);
-			PX_CORE_INFO("Enumerated '{0}' InputVars", count);
 			PX_CORE_ASSERT(result == SPV_REFLECT_RESULT_SUCCESS, "InputVariable enumeration failed!");
 
 			std::vector<SpvReflectInterfaceVariable*> inputVars(count);
@@ -238,24 +274,20 @@ namespace Povox {
 
 			count = 0;
 			result = spvReflectEnumerateOutputVariables(&module, &count, nullptr);
-			PX_CORE_INFO("Enumerated '{0}' OutputVars", count);
 			PX_CORE_ASSERT(result == SPV_REFLECT_RESULT_SUCCESS, "OutputVariable enumeration failed!");
 
 			std::vector<SpvReflectInterfaceVariable*> outputVars(count);
 			result = spvReflectEnumerateOutputVariables(&module, &count, outputVars.data());
 			PX_CORE_ASSERT(result == SPV_REFLECT_RESULT_SUCCESS, "OutputVariable querying failed!");
 
-			
+
 			if (stage == SPV_REFLECT_SHADER_STAGE_VERTEX_BIT)
 			{
-				PX_CORE_WARN("Reflecting Vertex Stage");
-
-
 				VkVertexInputBindingDescription bindingDescription{};
 				bindingDescription.binding = 0;
 				bindingDescription.stride = 0;
 				bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-								
+
 				m_VertexInputDescription.Attributes.reserve(inputVars.size());
 				for (size_t i = 0; i < inputVars.size(); i++)//example says ++i Why?
 				{
@@ -269,235 +301,201 @@ namespace Povox {
 					attributeDescription.format = static_cast<VkFormat>(reflectVar.format);
 					attributeDescription.offset = 0; //Later 
 					m_VertexInputDescription.Attributes.push_back(attributeDescription);
-
 				}
 				//sort ascending
 				std::sort(std::begin(m_VertexInputDescription.Attributes), std::end(m_VertexInputDescription.Attributes), [](const VkVertexInputAttributeDescription& a, const VkVertexInputAttributeDescription& b)
-				{
-					return a.location < b.location;
-				});
+					{
+						return a.location < b.location;
+					});
 				//calculate offset
 				for (auto& attribute : m_VertexInputDescription.Attributes)
 				{
 					uint32_t formatSize = VulkanUtils::FormatSize(attribute.format);
 					attribute.offset = bindingDescription.stride;
 					bindingDescription.stride += formatSize;
-					PX_CORE_WARN("Offset: {0}", bindingDescription.stride);
 				}
 				m_VertexInputDescription.Bindings.push_back(bindingDescription);
-
-				//later compare to the actual mesh-information
-
 				//Debug Print Input and outputs
-#ifdef PX_DEBUG
-				PX_CORE_INFO("Entry Point: {0}", module.entry_point_name);
-				PX_CORE_INFO("Source Language: {0}", spvReflectSourceLanguage(module.source_language));
-				PX_CORE_INFO("Source Language Version: {0}", module.source_language_version);
-				if (module.source_language == SpvSourceLanguageGLSL)
+			#ifdef PX_DEBUG
+				if (debug)
 				{
-					switch (module.shader_stage)
+
+
+					PX_CORE_INFO("Entry Point: {0}", module.entry_point_name);
+					PX_CORE_INFO("Source Language: {0}", spvReflectSourceLanguage(module.source_language));
+					PX_CORE_INFO("Source Language Version: {0}", module.source_language_version);
+					if (module.source_language == SpvSourceLanguageGLSL)
 					{
-						case SPV_REFLECT_SHADER_STAGE_VERTEX_BIT: PX_CORE_INFO("Shader Stage 'Vertex (VS)'"); break;
-						case SPV_REFLECT_SHADER_STAGE_TESSELLATION_CONTROL_BIT: PX_CORE_INFO("Shader Stage 'TesselationControl (HS)'"); break;
-						case SPV_REFLECT_SHADER_STAGE_TESSELLATION_EVALUATION_BIT: PX_CORE_INFO("Shader Stage 'TessellationEvalation (DS)'"); break;
-						case SPV_REFLECT_SHADER_STAGE_GEOMETRY_BIT: PX_CORE_INFO("Shader Stage 'Geometry (GS)'"); break;
-						case SPV_REFLECT_SHADER_STAGE_FRAGMENT_BIT: PX_CORE_INFO("Shader Stage 'Fragment (FS)'"); break;
-						case SPV_REFLECT_SHADER_STAGE_COMPUTE_BIT: PX_CORE_INFO("Shader Stage 'Compute (CS)'"); break;
+						switch (module.shader_stage)
+						{
+							case SPV_REFLECT_SHADER_STAGE_VERTEX_BIT: PX_CORE_INFO("Shader Stage 'Vertex (VS)'"); break;
+							case SPV_REFLECT_SHADER_STAGE_TESSELLATION_CONTROL_BIT: PX_CORE_INFO("Shader Stage 'TesselationControl (HS)'"); break;
+							case SPV_REFLECT_SHADER_STAGE_TESSELLATION_EVALUATION_BIT: PX_CORE_INFO("Shader Stage 'TessellationEvalation (DS)'"); break;
+							case SPV_REFLECT_SHADER_STAGE_GEOMETRY_BIT: PX_CORE_INFO("Shader Stage 'Geometry (GS)'"); break;
+							case SPV_REFLECT_SHADER_STAGE_FRAGMENT_BIT: PX_CORE_INFO("Shader Stage 'Fragment (FS)'"); break;
+							case SPV_REFLECT_SHADER_STAGE_COMPUTE_BIT: PX_CORE_INFO("Shader Stage 'Compute (CS)'"); break;
+						}
+					}
+
+					PX_CORE_INFO("Input Variables: ");
+					for (size_t i = 0; i < inputVars.size(); i++)
+					{
+						SpvReflectInterfaceVariable* var = inputVars[i];
+						PX_CORE_INFO("layout(location = {0}) in {1} {2}",
+							var->location,
+							VulkanShaderUtils::ReflectDecorationTypeDescriptionToString(*var->type_description).c_str(),
+							var->name
+						);
+					}
+
+					PX_CORE_INFO("Out Variables: ");
+					for (size_t i = 0; i < outputVars.size(); i++)
+					{
+						SpvReflectInterfaceVariable* var = outputVars[i];
+						if (var->decoration_flags & SPV_REFLECT_DECORATION_BUILT_IN)
+							continue;
+						PX_CORE_INFO("layout(location = {0}) out {1} {2}",
+							var->location,
+							VulkanShaderUtils::ReflectDecorationTypeDescriptionToString(*var->type_description).c_str(),
+							var->name
+						);
 					}
 				}
+			#endif
+			}//if-ShaderStage Vertex
 
-				PX_CORE_INFO("Input Variables: ");
-				for (size_t i = 0; i < inputVars.size(); i++)
+		// DesciptorSets
+			count = 0;
+			result = spvReflectEnumerateDescriptorSets(&module, &count, nullptr);
+			PX_CORE_ASSERT(result == SPV_REFLECT_RESULT_SUCCESS, "DescriptorSets enumeration failed!");
+
+			std::vector<SpvReflectDescriptorSet*> reflSets(count);
+			result = spvReflectEnumerateDescriptorSets(&module, &count, reflSets.data());
+			PX_CORE_ASSERT(result == SPV_REFLECT_RESULT_SUCCESS, "DescriptorSets querying failed!");
+
+			//For every set in shaderStage
+			for (size_t i = 0; i < reflSets.size(); i++)
+			{
+				const SpvReflectDescriptorSet& reflSet = *(reflSets[i]);
+
+				//check if set is already in map
+				if (descriptorSetsData.find(reflSet.set) == descriptorSetsData.end())
 				{
-					SpvReflectInterfaceVariable* var = inputVars[i];
-					PX_CORE_INFO("layout(location = {0}) in {1} {2}",
-						var->location,
-						VulkanShaderUtils::ReflectDecorationTypeDescriptionToString(*var->type_description).c_str(),
-						var->name
-					);
-				}
+					//not found -> create new layoutData
+					DescriptorSetLayoutData ld;
+					descriptorSetsData[reflSet.set] = ld;
+					auto& newSetLayoutData = descriptorSetsData[reflSet.set];
 
-				PX_CORE_INFO("Out Variables: ");
-				for (size_t i = 0; i < outputVars.size(); i++)
-				{
-					SpvReflectInterfaceVariable* var = outputVars[i];
-					if (var->decoration_flags & SPV_REFLECT_DECORATION_BUILT_IN)
-						continue;
-					PX_CORE_INFO("layout(location = {0}) out {1} {2}",
-						var->location,
-						VulkanShaderUtils::ReflectDecorationTypeDescriptionToString(*var->type_description).c_str(),
-						var->name
-					);
-				}
-#endif
 
-				//DesciptorSets
-				count = 0;
-				result = spvReflectEnumerateDescriptorSets(&module, &count, nullptr);
-				PX_CORE_ASSERT(result == SPV_REFLECT_RESULT_SUCCESS, "DescriptorSets enumeration failed!");
+					newSetLayoutData.CreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+					newSetLayoutData.CreateInfo.pNext = nullptr;
+					newSetLayoutData.SetNumber = reflSet.set;
 
-				PX_CORE_WARN("Descriptor Set count: '{0}'", count);
-				std::vector<SpvReflectDescriptorSet*> reflSets(count);
-				result = spvReflectEnumerateDescriptorSets(&module, &count, reflSets.data());
-				PX_CORE_ASSERT(result == SPV_REFLECT_RESULT_SUCCESS, "DescriptorSets querying failed!");
-
-				
-				struct DescriptorSetLayoutData {
-					uint32_t SetNumber = 0;
-					VkDescriptorSetLayoutCreateInfo CreateInfo{};
-					std::vector<VkDescriptorSetLayoutBinding> Bindings;
-				};
-
-				std::vector<DescriptorSetLayoutData> setLayouts(count);
-				for (size_t i = 0; i < reflSets.size(); i++)
-				{
-					const SpvReflectDescriptorSet& reflSet = *(reflSets[i]);
-					DescriptorSetLayoutData& layoutData = setLayouts[i];
-					layoutData.Bindings.resize(reflSet.binding_count);
-
+					//iterate through bindings of current set and add them (new set -> new bindings)
 					for (size_t j = 0; j < reflSet.binding_count; j++)
 					{
 						const SpvReflectDescriptorBinding& reflBinding = *(reflSet.bindings[j]);
-						
-						VkDescriptorSetLayoutBinding& binding = layoutData.Bindings[j];
-						binding.binding = reflBinding.binding;
-						binding.descriptorType = static_cast<VkDescriptorType>(reflBinding.descriptor_type);
-						binding.descriptorCount = 1;
 
+						VkDescriptorSetLayoutBinding binding{};
+						binding.binding = reflBinding.binding;
+						binding.descriptorType = VulkanShaderUtils::MapBindingToType(reflBinding.binding, static_cast<VkDescriptorType>(reflBinding.descriptor_type));
+						binding.descriptorCount = 1;
 						for (uint32_t dim = 0; dim < reflBinding.array.dims_count; dim++)
 						{
 							binding.descriptorCount *= reflBinding.array.dims[dim];
 						}
 						binding.stageFlags = static_cast<VkShaderStageFlagBits>(module.shader_stage);
+
 						if (VulkanUtils::IsImageBinding(binding.descriptorType))
 							m_DescriptorSetImageBindings.push_back(binding);
 						else
 							m_DescriptorSetBufferBindings.push_back(binding);
+
+						newSetLayoutData.Bindings.push_back(binding);
 					}
-					layoutData.SetNumber = reflSet.set;
-					layoutData.CreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-					layoutData.CreateInfo.pNext = nullptr;
-					layoutData.CreateInfo.bindingCount = reflSet.binding_count;
-					layoutData.CreateInfo.pBindings = layoutData.Bindings.data();
-					VkDescriptorSetLayout layout;
-					PX_CORE_VK_ASSERT(vkCreateDescriptorSetLayout(device, &layoutData.CreateInfo, nullptr, &layout), VK_SUCCESS, "Created descriptorSetLayout!");
-					m_DescriptorSetLayouts.push_back(layout);
-
-					PX_CORE_INFO("Set number: '{0}'", layoutData.SetNumber);
+					
+					newSetLayoutData.CreateInfo.bindingCount = static_cast<uint32_t>(newSetLayoutData.Bindings.size());
+					newSetLayoutData.CreateInfo.pBindings = newSetLayoutData.Bindings.data();
 				}
-
-				//Debug print Descriptors
-#ifdef PX_DEBUG
-				for (size_t i_sets = 0; i_sets < reflSets.size(); i_sets++)
+				else //set is in map
 				{
-					SpvReflectDescriptorSet* reflSet = reflSets[i_sets];
+					auto& currentSetLayoutData = descriptorSetsData[reflSet.set];
 
-					PX_CORE_INFO("Index: '{0}'", i_sets);
-					PX_CORE_INFO("Set: {0}", reflSet->set);
-					PX_CORE_INFO("BindingCount: {0}", reflSet->binding_count);
-
-					for (uint32_t i_bindings = 0; i_bindings < reflSet->binding_count; i_bindings++)
+					//for every binding
+					for (size_t j = 0; j < reflSet.binding_count; j++)
 					{
-						PX_CORE_INFO("layout(binding = {0}, set = {1}) {2} {3}", reflSet->bindings[i_bindings]->binding, reflSet->bindings[i_bindings]->set,
-							VulkanShaderUtils::ReflectDescriptorTypeToString(reflSet->bindings[i_bindings]->descriptor_type).c_str(),
-							reflSet->bindings[i_bindings]->name
-						);
-
-						//Array
-						if (reflSet->bindings[i_bindings]->array.dims_count > 0)
+						const SpvReflectDescriptorBinding& reflBinding = *(reflSet.bindings[j]);
+						//check if binding is already in Set
+						if (std::find_if(currentSetLayoutData.Bindings.begin(), currentSetLayoutData.Bindings.end(),
+							[=](const VkDescriptorSetLayoutBinding& binding) {return binding.binding == reflBinding.binding; }) == currentSetLayoutData.Bindings.end())
 						{
-							for (uint32_t k = 0; k < reflSet->bindings[i_bindings]->array.dims_count; k++)
+							//Not found -> add new binding
+							VkDescriptorSetLayoutBinding binding{};
+							binding.binding = reflBinding.binding;
+							binding.descriptorType = VulkanShaderUtils::MapBindingToType(reflBinding.binding, static_cast<VkDescriptorType>(reflBinding.descriptor_type));
+							binding.descriptorCount = 1;
+							for (uint32_t dim = 0; dim < reflBinding.array.dims_count; dim++)
 							{
-								PX_CORE_INFO("Array [{0}]", reflSet->bindings[i_bindings]->array.dims[k]);
+								binding.descriptorCount *= reflBinding.array.dims[dim];
+							}
+							binding.stageFlags = static_cast<VkShaderStageFlagBits>(module.shader_stage);
+
+							if (VulkanUtils::IsImageBinding(binding.descriptorType))
+								m_DescriptorSetImageBindings.push_back(binding);
+							else
+								m_DescriptorSetBufferBindings.push_back(binding);
+							currentSetLayoutData.Bindings.push_back(binding);
+						}
+						else
+						{
+							auto it = std::find_if(currentSetLayoutData.Bindings.begin(), currentSetLayoutData.Bindings.end(),
+								[=](const VkDescriptorSetLayoutBinding& binding) {return binding.binding == reflBinding.binding; });
+							if (it != currentSetLayoutData.Bindings.end())
+							{
+								auto index = std::distance(currentSetLayoutData.Bindings.begin(), it);
+								currentSetLayoutData.Bindings[index].stageFlags |= static_cast<VkShaderStageFlagBits>(module.shader_stage);
 							}
 						}
 
-						//Counter?
-						if (reflSet->bindings[i_bindings]->uav_counter_binding != nullptr)
+						currentSetLayoutData.CreateInfo.bindingCount = static_cast<uint32_t>(currentSetLayoutData.Bindings.size());
+						currentSetLayoutData.CreateInfo.pBindings = currentSetLayoutData.Bindings.data();
+
+						/*PX_CORE_WARN("Set already there, binding added or updated");
+						for (uint32_t k = 0; k < currentSetLayoutData.Bindings.size(); k++)
 						{
-							PX_CORE_INFO("Counter: (Set={0}, Binding={1}, Name={2})", 
-								reflSet->bindings[i_bindings]->uav_counter_binding->set, 
-								reflSet->bindings[i_bindings]->binding, 
-								reflSet->bindings[i_bindings]->name
-							);
+							auto& binding = currentSetLayoutData.Bindings[k];
+							PX_CORE_ERROR("Set: {0}", currentSetLayoutData.SetNumber);
+							PX_CORE_ERROR("Binding: {0}", binding.binding);
+							PX_CORE_ERROR("DescriptorCount: {0}", binding.descriptorCount);
+							PX_CORE_ERROR("DescriptorType: {0}", binding.descriptorType);
 						}
-					}
-				}//for-end DescriptorSet-debug 				
-#endif
-
-			}//if-ShaderStage Vertex
-
-			if (stage == VK_SHADER_STAGE_FRAGMENT_BIT)
-			{
-				PX_CORE_WARN("Reflecting Fragment Stage");
-
-
-				count = 0;
-				result = spvReflectEnumerateDescriptorSets(&module, &count, nullptr);
-				PX_CORE_ASSERT(result == SPV_REFLECT_RESULT_SUCCESS, "DescriptorSets enumeration failed!");
-
-				PX_CORE_WARN("Descriptor Set count: '{0}'", count);
-				std::vector<SpvReflectDescriptorSet*> reflSets(count);
-				result = spvReflectEnumerateDescriptorSets(&module, &count, reflSets.data());
-				PX_CORE_ASSERT(result == SPV_REFLECT_RESULT_SUCCESS, "DescriptorSets querying failed!");
-
-
-				struct DescriptorSetLayoutData {
-					uint32_t SetNumber = 0;
-					VkDescriptorSetLayoutCreateInfo CreateInfo{};
-					std::vector<VkDescriptorSetLayoutBinding> Bindings;
-				};
-
-				std::vector<DescriptorSetLayoutData> setLayouts(count);
-				for (size_t i = 0; i < reflSets.size(); i++)
-				{
-					const SpvReflectDescriptorSet& reflSet = *(reflSets[i]);
-					DescriptorSetLayoutData& layoutData = setLayouts[i];
-					layoutData.Bindings.resize(reflSet.binding_count);
-
-					for (size_t j = 0; j < reflSet.binding_count; j++)
-					{
-						const SpvReflectDescriptorBinding& reflBinding = *(reflSet.bindings[j]);
-
-						VkDescriptorSetLayoutBinding& binding = layoutData.Bindings[j];
-						binding.binding = reflBinding.binding;
-						binding.descriptorType = static_cast<VkDescriptorType>(reflBinding.descriptor_type);
-						binding.descriptorCount = 1;
-
-						for (uint32_t dim = 0; dim < reflBinding.array.dims_count; dim++)
+						for (uint32_t k = 0; k < currentSetLayoutData.CreateInfo.bindingCount; k++)
 						{
-							binding.descriptorCount *= reflBinding.array.dims[dim];
-						}
-						binding.stageFlags = static_cast<VkShaderStageFlagBits>(module.shader_stage);
-						if (VulkanUtils::IsImageBinding(binding.descriptorType))
-							m_DescriptorSetImageBindings.push_back(binding);
-						else
-							m_DescriptorSetBufferBindings.push_back(binding);
+							auto& binding = currentSetLayoutData.CreateInfo.pBindings[k];
+							PX_CORE_WARN("Set: {0}", currentSetLayoutData.SetNumber);
+							PX_CORE_WARN("Stage: {0}", binding.stageFlags);
+							PX_CORE_WARN("SetBinding: {0}", binding.binding);
+							PX_CORE_WARN("SetDescriptorCount: {0}", binding.descriptorCount);
+							PX_CORE_WARN("SetDescriptorType: {0}", binding.descriptorType);
+						}*/
 					}
-					layoutData.SetNumber = reflSet.set;
-					layoutData.CreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-					layoutData.CreateInfo.pNext = nullptr;
-					layoutData.CreateInfo.bindingCount = reflSet.binding_count;
-					layoutData.CreateInfo.pBindings = layoutData.Bindings.data();
-					VkDescriptorSetLayout layout;
-					PX_CORE_VK_ASSERT(vkCreateDescriptorSetLayout(device, &layoutData.CreateInfo, nullptr, &layout), VK_SUCCESS, "Created descriptorSetLayout!");
-					m_DescriptorSetLayouts.push_back(layout);
-
-					PX_CORE_INFO("Set number: '{0}'", layoutData.SetNumber);
 				}
+			}
+			//Debug print descriptors
+			#ifdef PX_DEBUG
+			if (debug)
+			{
 
-#ifdef PX_DEBUG
 				for (size_t i_sets = 0; i_sets < reflSets.size(); i_sets++)
 				{
 					SpvReflectDescriptorSet* reflSet = reflSets[i_sets];
 
-					PX_CORE_INFO("Index: '{0}'", i_sets);
 					PX_CORE_INFO("Set: {0}", reflSet->set);
 					PX_CORE_INFO("BindingCount: {0}", reflSet->binding_count);
 
 					for (uint32_t i_bindings = 0; i_bindings < reflSet->binding_count; i_bindings++)
 					{
-						PX_CORE_INFO("layout(binding = {0}, set = {1}) {2} {3}", reflSet->bindings[i_bindings]->binding, reflSet->bindings[i_bindings]->set,
+						PX_CORE_INFO("Layout(Binding = {0}, Set = {1}) {2} {3}", reflSet->bindings[i_bindings]->binding, reflSet->bindings[i_bindings]->set,
 							VulkanShaderUtils::ReflectDescriptorTypeToString(reflSet->bindings[i_bindings]->descriptor_type).c_str(),
 							reflSet->bindings[i_bindings]->name
 						);
@@ -521,79 +519,19 @@ namespace Povox {
 							);
 						}
 					}
-				}//for-end DescriptorSet-debug 				
-#endif
-
-			}//if-ShaderStage Fragment
-
+				}//for-end DescriptorSet-debug 	
+			}
+			#endif
 
 			spvReflectDestroyShaderModule(&module);
-		}//for-end module
-
-
-		// The layout it connected to the shader reflection. I need a way to compare different shaders and manage similarities, maybe store the layouts named? in some kind of pool?
-		// I definitely need a way to link the data with the respective DescriptorSetLayout. maybe via the ShaderObject, which should be attached to the material, which is
-		// attached to the object. It is also swapchain image dependent
-		//size_t sceneParameterBuffersize = PadUniformBuffer(sizeof(SceneUniformBufferD), physicalProps.limits.minUniformBufferOffsetAlignment) * Application::Get()->GetSpecification().MaxFramesInFlight;
-		//m_SceneParameterBuffer = VulkanBuffer::Create(sceneParameterBuffersize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
-		/*
-		for (int i = 0; i < Application::Get()->GetSpecification().MaxFramesInFlight; i++)
+		}//for-end stages		
+		m_DescriptorSetLayouts.reserve(descriptorSetsData.size());
+		for (auto const& [key, setLayoutData] : descriptorSetsData)
 		{
-			m_Frames[i].CamUniformBuffer = VulkanBuffer::Create(sizeof(CameraUniformBuffer), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
-			PX_CORE_WARN("Created Descriptor uniform buffer!");
-
-			const int MAX_OBJECTS = 10000;
-			m_Frames[i].ObjectBuffer = VulkanBuffer::Create(sizeof(GPUBufferObject) * MAX_OBJECTS, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
-
-			m_Frames[i].GlobalDescriptorSet = VulkanDescriptor::CreateSet(device, descPool, &m_GlobalDescriptorSetLayout);
-			m_Frames[i].ObjectDescriptorSet = VulkanDescriptor::CreateSet(device, descPool, &m_ObjectDescriptorSetLayout);
-			PX_CORE_WARN("Created Descriptor set!");
-
-			VkDescriptorBufferInfo camInfo{};
-			camInfo.buffer = m_Frames[i].CamUniformBuffer.Buffer;
-			camInfo.offset = 0;
-			camInfo.range = sizeof(CameraUniformBuffer);
-
-			VkDescriptorBufferInfo sceneInfo{};
-			sceneInfo.buffer = m_SceneParameterBuffer.Buffer;
-			sceneInfo.offset = 0;
-			sceneInfo.range = sizeof(SceneUniformBufferD);
-
-			VkDescriptorBufferInfo objInfo{};
-			objInfo.buffer = m_Frames[i].ObjectBuffer.Buffer;
-			objInfo.offset = 0;
-			objInfo.range = sizeof(GPUBufferObject) * MAX_OBJECTS;
-
-			VkDescriptorImageInfo imageInfo{};
-			imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-			imageInfo.imageView = m_Textures["Logo"].ImageView;
-			imageInfo.sampler = m_TextureSampler;
-
-			VkWriteDescriptorSet CreateDescriptorWrites(VkDescriptorType type, VkDescriptorSet dstSet, VkDescriptorBufferInfo* bufferInfo, VkDescriptorImageInfo* imageInfo, uint32_t dstBinding)
-			{
-				VkWriteDescriptorSet write{};
-				write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-				write.pNext = nullptr;
-
-				write.dstBinding = dstBinding;		// again, binding in the shader
-				write.dstSet = dstSet;
-				write.descriptorCount = 1;		// how many elements in the array
-				write.descriptorType = type;
-				write.pBufferInfo = bufferInfo;
-				write.pImageInfo = imageInfo;	// optional image data
-
-				return write;
-			}
-			std::array<VkWriteDescriptorSet, 4> descriptorWrites
-			{
-				VulkanInits::CreateDescriptorWrites(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, m_Frames[i].GlobalDescriptorSet, &camInfo, nullptr, 0),
-				VulkanInits::CreateDescriptorWrites(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, m_Frames[i].GlobalDescriptorSet, &sceneInfo, nullptr, 1),
-				VulkanInits::CreateDescriptorWrites(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, m_Frames[i].ObjectDescriptorSet, &objInfo, nullptr, 0),
-				VulkanInits::CreateDescriptorWrites(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, m_Frames[i].GlobalDescriptorSet, nullptr, &imageInfo, 2)
-			};
-
-			vkUpdateDescriptorSets(device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
-		}*/
+			VkDescriptorSetLayout layout;
+			PX_CORE_VK_ASSERT(vkCreateDescriptorSetLayout(device, &setLayoutData.CreateInfo, nullptr, &layout), VK_SUCCESS, "Created descriptorSetLayout!");
+			m_DescriptorSetLayouts.push_back(layout);
+		}
 	}
 
 	//From Chernos GL code

@@ -33,7 +33,6 @@ namespace Povox {
 		Ref<Buffer> QuadIndexBuffer;
 		Ref<Shader> TextureShader;
 		Ref<Texture2D> WhiteTexture;
-		Ref<Image2D> WhiteImage;
 
 		uint32_t QuadIndexCount = 0;
 		QuadVertex* QuadVertexBufferBase = nullptr;
@@ -103,10 +102,10 @@ namespace Povox {
 		s_QuadData.QuadIndexBuffer = Buffer::Create(indexBufferSpecs);
 		delete[] quadIndices;
 
-		//s_QuadData.WhiteTexture = Texture::Create(1, 1);
-		s_QuadData.WhiteImage = Image2D::Create(1, 1);
+
+		s_QuadData.WhiteTexture = Texture2D::Create(1, 1, 4);
 		uint32_t whiteTextureData = 0xffffffff;
-		s_QuadData.WhiteImage->SetData(&whiteTextureData, sizeof(uint32_t));
+		s_QuadData.WhiteTexture->SetData(&whiteTextureData);
 
 		
 		int32_t samplers[s_QuadData.MaxTextureSlots];
@@ -250,8 +249,8 @@ namespace Povox {
 		renderable.MeshData.IndexBuffer = Buffer::Create(indexBufferSpecs);
 
 		renderable.Material.Color = { 1.0f, 1.0f, 1.0f };
-		renderable.Material.Shader = Renderer::GetShaderLibrary()->Get("TextureShader");
-		renderable.Material.Texture = s_QuadData.WhiteImage;
+		renderable.Material.Shader = Renderer::GetShaderLibrary()->Get("FlatColorShader"); //Material: Shader/Pipeline connection!
+		renderable.Material.Texture = s_QuadData.WhiteTexture;
 		s_QuadData.RenderedObjects.push_back(renderable);
 		Renderer::DrawRenderable(renderable);
 

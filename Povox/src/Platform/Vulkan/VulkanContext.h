@@ -17,8 +17,6 @@
 
 
 #include <glm/glm.hpp>
-#include <imgui.h>
-#include <backends/imgui_impl_vulkan.h>
 
 
 
@@ -58,7 +56,6 @@ namespace Povox {
 		static Ref<VulkanDevice> s_Device;
 		static VkInstance s_Instance;
 		static VmaAllocator s_Allocator;
-		VkPhysicalDeviceProperties m_PhysicalDeviceProperties{};	
 		
 		//by Cherno
 		static std::vector<std::vector<std::function<void()>>> s_ResourceFreeQueue;
@@ -70,17 +67,5 @@ namespace Povox {
 		
 		const std::vector<const char*> m_ValidationLayers = { "VK_LAYER_KHRONOS_validation" };
 		std::vector<const char*> m_DeviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
-
-
-		VkDescriptorSetLayout m_GlobalDescriptorSetLayout = VK_NULL_HANDLE;
-		VkDescriptorSetLayout m_ObjectDescriptorSetLayout = VK_NULL_HANDLE;
-		VkDescriptorPool m_DescriptorPool = VK_NULL_HANDLE;
-
-
-
-		// all imgui will evantually be refactored out to use the normal engine render code instead of being inside the context
-		
-		VkDescriptorSet m_PresentImGuiSet{ VK_NULL_HANDLE };
-		ImTextureID m_PresentImGui = nullptr;
 	};
 }

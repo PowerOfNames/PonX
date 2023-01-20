@@ -34,15 +34,15 @@ namespace Povox {
 		PX_PROFILE_FUNCTION();
 
 
-
 		s_Props.Width = width;
 		s_Props.Height = height;
 
-		m_OldSwapchain = m_Swapchain;
 
 		Ref<VulkanDevice> devicePtr = VulkanContext::GetDevice();
 		VkDevice device = devicePtr->GetVulkanDevice();
 		vkDeviceWaitIdle(device);
+
+		Cleanup();
 
 		uint32_t maxFramesInFlight = Application::Get()->GetSpecification().MaxFramesInFlight;
 
@@ -57,12 +57,7 @@ namespace Povox {
 			imageCount = swapchainSupportDetails.Capabilities.maxImageCount;
 		PX_CORE_TRACE("Choosen SwapchainImageCount: '{0}'", imageCount);
 
-		if (m_Swapchain)
-		{
-			vkDestroySwapchainKHR(device, m_Swapchain, nullptr);
-			m_Swapchain = VK_NULL_HANDLE;
-		}
-
+		
 		VkSurfaceCapabilitiesKHR caps{};
 		vkGetPhysicalDeviceSurfaceCapabilitiesKHR(devicePtr->GetPhysicalDevice(), s_Surface, &caps);
 
@@ -105,7 +100,7 @@ namespace Povox {
 		createInfo.oldSwapchain = m_OldSwapchain;
 		PX_CORE_VK_ASSERT(vkCreateSwapchainKHR(device, &createInfo, nullptr, &m_Swapchain), VK_SUCCESS, "Failed to create logical device!");
 
-		// Images
+		// Images		
 		vkGetSwapchainImagesKHR(device, m_Swapchain, &imageCount, nullptr);
 		m_Images.resize(imageCount);
 		vkGetSwapchainImagesKHR(device, m_Swapchain, &imageCount, m_Images.data());
@@ -291,36 +286,54 @@ namespace Povox {
 		PX_CORE_INFO("Finished Swapchain creation with extent: '( {0} | {1} )', '{2}' Images and '{3}' Frames in Flight!", width, height, m_Images.size(), maxFramesInFlight);
 	}
 
-	void VulkanSwapchain::Destroy()
+	void VulkanSwapchain::Cleanup()
 	{
-		PX_PROFILE_FUNCTION();
-
-
 		VkDevice device = VulkanContext::GetDevice()->GetVulkanDevice();
 		vkDeviceWaitIdle(device);
+
+		vmaDestroyImage(VulkanContext::GetAllocator(), m_DepthImage, m_DepthImageAllocation);
+		vkDestroyImageView(device, m_DepthImageView, nullptr);
 
 		for (size_t i = 0; i < m_Framebuffers.size(); i++)
 		{
 			vkDestroyFramebuffer(device, m_Framebuffers[i], nullptr);
 		}
+		m_Framebuffers.clear();
 
 		if (m_RenderPass)
-			vkDestroyRenderPass(device, m_RenderPass, nullptr);
-
-		for (size_t i = 0; i < m_Images.size(); i++)
 		{
-			vkDestroyImage(device, m_Images[i], nullptr);
-			vkDestroyImageView(device, m_ImageViews[i], nullptr);
+			vkDestroyRenderPass(device, m_RenderPass, nullptr);
+			m_RenderPass = VK_NULL_HANDLE;
 		}
-		vmaDestroyImage(VulkanContext::GetAllocator(), m_DepthImage, m_DepthImageAllocation);
-		vkDestroyImageView(device, m_DepthImageView, nullptr);
 
-		if (m_Swapchain)
-			vkDestroySwapchainKHR(device, m_Swapchain, nullptr);
-		if(m_OldSwapchain)
+		for (auto& imageView : m_ImageViews)
+		{
+			vkDestroyImageView(device, imageView, nullptr);
+		}
+		m_ImageViews.clear();
+		m_Images.clear();
+
+		if (m_OldSwapchain != VK_NULL_HANDLE)
+		{
 			vkDestroySwapchainKHR(device, m_OldSwapchain, nullptr);
+		}
+		m_OldSwapchain = m_Swapchain;
+		m_Swapchain = VK_NULL_HANDLE;
+	}
+
+	void VulkanSwapchain::Destroy()
+	{
+		PX_PROFILE_FUNCTION();
+
+		VkDevice device = VulkanContext::GetDevice()->GetVulkanDevice();
+		vkDeviceWaitIdle(device);
+
+		Cleanup();		
+		vkDestroySwapchainKHR(device, m_OldSwapchain, nullptr);
+		m_OldSwapchain = VK_NULL_HANDLE;
 
 		vkDestroySurfaceKHR(VulkanContext::GetInstance(), s_Surface, nullptr);
+		s_Surface = VK_NULL_HANDLE;
 	}
 
 	SwapchainFrame* VulkanSwapchain::AcquireNextImageIndex(VkSemaphore presentSemaphore)
@@ -335,7 +348,7 @@ namespace Povox {
 		{
 			Recreate(Application::Get()->GetWindow().GetWidth(), Application::Get()->GetWindow().GetHeight()); // get the new size maybe from elsewhere -> might be that the size change caused the result!
 			//TODO: investigate if this works!
-			return AcquireNextImageIndex(presentSemaphore);
+			return nullptr;
 		}
 		else
 		{

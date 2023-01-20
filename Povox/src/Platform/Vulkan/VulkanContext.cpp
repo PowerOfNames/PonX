@@ -41,7 +41,6 @@ namespace Povox {
 		// Device picking and creation -> happens automatically
 		s_Device = CreateRef<VulkanDevice>();
 		s_Device->PickPhysicalDevice(m_DeviceExtensions);
-		m_PhysicalDeviceProperties = s_Device->GetPhysicalDeviceProperties();
 		s_Device->CreateLogicalDevice(m_DeviceExtensions, m_ValidationLayers);
 		PX_CORE_WARN("VulkanContext: Finished Core!");
 

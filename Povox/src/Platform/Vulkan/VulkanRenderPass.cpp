@@ -9,67 +9,6 @@
 
 namespace Povox {
 
-	VulkanRenderPassBuilder VulkanRenderPassBuilder::Begin()
-	{
-		VulkanRenderPassBuilder builder;
-
-		return builder;
-	}
-
-	VulkanRenderPassBuilder& VulkanRenderPassBuilder::AddAttachment(VkAttachmentDescription attachment)
-	{
-		m_Attachments.push_back(std::move(attachment));
-		return *this;
-	}
-
-	VulkanRenderPassBuilder& VulkanRenderPassBuilder::CreateAndAddSubpass(VkPipelineBindPoint pipelineBindpoint, const std::vector<VkAttachmentReference>& colorRefs, VkAttachmentReference depthRef)
-	{
-		VkSubpassDescription subpass{};
-		subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-		subpass.colorAttachmentCount = static_cast<uint32_t>(colorRefs.size());
-		subpass.pColorAttachments = colorRefs.data();
-		subpass.pDepthStencilAttachment = &depthRef;
-
-		m_Subpasses.push_back(std::move(subpass));
-		return *this;
-	}
-
-	VulkanRenderPassBuilder& VulkanRenderPassBuilder::CreateAndAddSubpass(VkPipelineBindPoint pipelineBindpoint, const std::vector<VkAttachmentReference>& colorRefs)
-	{
-		VkSubpassDescription subpass{};
-		subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-		subpass.colorAttachmentCount = static_cast<uint32_t>(colorRefs.size());
-		subpass.pColorAttachments = colorRefs.data();
-
-		m_Subpasses.push_back(std::move(subpass));
-		return *this;
-	}
-
-	VulkanRenderPassBuilder& VulkanRenderPassBuilder::AddDependency(VkSubpassDependency dependency)
-	{
-		m_Dependencies.push_back(std::move(dependency));
-		return *this;
-	}
-
-	VkRenderPass VulkanRenderPassBuilder::Build()
-	{
-		VkRenderPassCreateInfo renderPassInfo{};
-		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-		renderPassInfo.pNext = nullptr;
-
-		renderPassInfo.attachmentCount = static_cast<uint32_t>(m_Attachments.size());
-		renderPassInfo.pAttachments = m_Attachments.data();
-		renderPassInfo.subpassCount = static_cast<uint32_t>(m_Subpasses.size());
-		renderPassInfo.pSubpasses = m_Subpasses.data();
-		renderPassInfo.dependencyCount = static_cast<uint32_t>(m_Dependencies.size());
-		renderPassInfo.pDependencies = m_Dependencies.data();
-
-		VkRenderPass renderPass;
-		PX_CORE_VK_ASSERT(vkCreateRenderPass(VulkanContext::GetDevice()->GetVulkanDevice(), &renderPassInfo, nullptr, &renderPass), VK_SUCCESS, "Failed to create renderpass!");
-		return renderPass;
-	}
-
-
 	VulkanRenderPass::VulkanRenderPass(const RenderPassSpecification& spec)
 		: m_Specification(std::move(spec))
 	{
@@ -111,7 +50,7 @@ namespace Povox {
 			}
 			else
 			{
-				if (!spec.TargetFramebuffer->GetSpecification().SwapChainTarget)				
+				if (spec.TargetFramebuffer->GetSpecification().SwapChainTarget)				
 					attachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 				else
 					attachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
