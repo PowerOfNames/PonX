@@ -97,7 +97,7 @@ namespace Povox {
 		virtual void Destroy() override;
 
 		virtual const ImageSpecification& GetSpecification() const override { return m_Specification; }
-		virtual void* GetDescriptorSet() override { return nullptr; }
+		virtual void* GetDescriptorSet() override { return m_DescriptorSet; }
 		virtual void SetData(void* data) override;
 
 		static AllocatedImage CreateAllocation(VkExtent3D extent, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VmaMemoryUsage memUsage, VkImageLayout initialLayout = VK_IMAGE_LAYOUT_UNDEFINED);
@@ -140,8 +140,10 @@ namespace Povox {
 
 		virtual void SetData(void* data) override;
 
+		virtual const Ref<Image2D> GetImage() const override { return m_Image; }
+		virtual Ref<Image2D> GetImage() override { return m_Image; }
 
-		bool VulkanTexture2D::operator==(const Texture& other) const override
+		bool operator==(const Texture& other) const override
 		{
 			//when RendererID is implemented, compare those.
 			return false;

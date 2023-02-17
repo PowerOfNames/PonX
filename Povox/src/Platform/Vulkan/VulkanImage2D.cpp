@@ -190,9 +190,10 @@ namespace Povox {
 		{
 			switch (usage)
 			{
-			case ImageUsage::COLOR_ATTACHMENT: mask |= VK_IMAGE_ASPECT_COLOR_BIT; break;
-			case ImageUsage::DEPTH_ATTACHMENT: mask |= VK_IMAGE_ASPECT_DEPTH_BIT; break;
-			default: PX_CORE_ASSERT(true, "Usage not covered");
+				case ImageUsage::COLOR_ATTACHMENT:
+				case ImageUsage::SAMPLED:			mask |= VK_IMAGE_ASPECT_COLOR_BIT; break;
+				case ImageUsage::DEPTH_ATTACHMENT:	mask |= VK_IMAGE_ASPECT_DEPTH_BIT; break;
+				default: PX_CORE_ASSERT(true, "Usage not covered");
 			}
 		}
 
@@ -257,8 +258,8 @@ namespace Povox {
 
 		VulkanDescriptorBuilder builder = VulkanDescriptorBuilder::Begin(VulkanContext::GetDescriptorLayoutCache(), VulkanContext::GetDescriptorAllocator());
 		builder.BindImage(m_Binding, &m_DescImageInfo);
-		builder.Build(m_DescriptorSet);
-
+		builder.Build(m_DescriptorSet, "ImageDS");
+		PX_CORE_WARN("DescriptorSet: {0}", (uint64_t)m_DescriptorSet);
 	}
 
 	VulkanTexture2D::VulkanTexture2D(uint32_t width, uint32_t height, uint32_t channels)
@@ -275,18 +276,22 @@ namespace Povox {
 		PX_CORE_ASSERT(pixels, "Failed to load texture!");
 		PX_CORE_ASSERT(width > 0 && height > 0 && channels > 0, "Texture loading failed with insufficient dimensionality!");
 		
+		PX_CORE_WARN("Channels: {0}", channels);
+
 		ImageSpecification specs{};
 		specs.Width = static_cast<uint32_t>(width);
 		specs.Height = static_cast<uint32_t>(height);
-		specs.ChannelCount = static_cast<uint32_t>(channels);
-		switch (channels)
+		//specs.ChannelCount = static_cast<uint32_t>(channels);
+		specs.ChannelCount = 4;
+		/*switch (channels)
 		{
 			case 1: specs.Format = ImageFormat::RED_INTEGER; break;
 			case 2: specs.Format = ImageFormat::RG8; break;
 			case 3: specs.Format = ImageFormat::RGB8; break;
 			case 4: specs.Format = ImageFormat::RGBA8; break;
 			default: PX_CORE_ASSERT(true, "Unexpected channel count!");
-		}
+		}*/
+		specs.Format = ImageFormat::RGBA8;
 		specs.Memory = MemoryUtils::MemoryUsage::CPU_TO_GPU;
 		specs.MipLevels = 1;
 		specs.Tiling = ImageTiling::LINEAR;
@@ -295,7 +300,7 @@ namespace Povox {
 
 		PX_CORE_TRACE("Texture width : '{0}', height '{1}'", width, height);
 
-		size_t size = width * height * channels;
+		size_t size = width * height * 4; // stbi load iwth STBI_rgb_alpha always is in RGBA format, supposedly
 		SetData(pixels);
 		stbi_image_free(pixels);
 	}

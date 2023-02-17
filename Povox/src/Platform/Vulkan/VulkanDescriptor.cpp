@@ -304,7 +304,7 @@ namespace Povox
 	}
 
 
-	bool VulkanDescriptorBuilder::Build(VkDescriptorSet& set, VkDescriptorSetLayout& layout)
+	bool VulkanDescriptorBuilder::Build(VkDescriptorSet& set, VkDescriptorSetLayout& layout, const std::string& debugName)
 	{
 		VkDescriptorSetLayoutCreateInfo info{};
 		info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
@@ -328,7 +328,7 @@ namespace Povox
 		nameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
 		nameInfo.objectType = VK_OBJECT_TYPE_DESCRIPTOR_SET;
 		nameInfo.objectHandle = (uint64_t)set;
-		nameInfo.pObjectName = "DescriptorSet lololol";
+		nameInfo.pObjectName = debugName.c_str();
 		NameVkObject(VulkanContext::GetDevice()->GetVulkanDevice(), nameInfo);
 
 		vkUpdateDescriptorSets(VulkanContext::GetDevice()->GetVulkanDevice(), static_cast<uint32_t>(m_Writes.size()), m_Writes.data(), 0, nullptr);
@@ -336,7 +336,7 @@ namespace Povox
 	}
 
 
-	bool VulkanDescriptorBuilder::Build(VkDescriptorSet& set)
+	bool VulkanDescriptorBuilder::Build(VkDescriptorSet& set, const std::string& debugName)
 	{
 		VkDescriptorSetLayoutCreateInfo info{};
 		info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
@@ -360,7 +360,7 @@ namespace Povox
 		nameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
 		nameInfo.objectType = VK_OBJECT_TYPE_DESCRIPTOR_SET;
 		nameInfo.objectHandle = (uint64_t)set;
-		nameInfo.pObjectName = "DescriptorSet lololol";
+		nameInfo.pObjectName = debugName.c_str();
 		NameVkObject(VulkanContext::GetDevice()->GetVulkanDevice(), nameInfo);
 
 		vkUpdateDescriptorSets(VulkanContext::GetDevice()->GetVulkanDevice(), static_cast<uint32_t>(m_Writes.size()), m_Writes.data(), 0, nullptr);

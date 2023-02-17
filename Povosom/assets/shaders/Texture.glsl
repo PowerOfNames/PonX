@@ -87,6 +87,7 @@ void main()
 {
 	vec4 texColor = Input.Color;
 
+
 	/*switch(int(Input.TexID))
 	{
 		case 0: texColor *= texture(u_Textures[0], Input.TexCoord * Input.TilingFactor); break;
@@ -122,8 +123,10 @@ void main()
 		case 30: texColor *= texture(u_Textures[30], Input.TexCoord * Input.TilingFactor); break;
 		case 31: texColor *= texture(u_Textures[31], Input.TexCoord * Input.TilingFactor); break;
 	}*/
-	//texColor *= texture(u_Texture, Input.TexCoord * Input.TilingFactor);
-	//color = vec4(texColor.xyz + u_Scene.AmbientColor.xyz, texColor.a);
-	color = vec4(1.0, 1.0, 1.0, 1.0);
+
+	
+	texColor *= texture(u_Texture, Input.TexCoord * Input.TilingFactor);
+	
+	color = vec4(texColor.xyz + u_Scene.AmbientColor.xyz, texColor.a);	
 	entityID = v_EntityID;
 }

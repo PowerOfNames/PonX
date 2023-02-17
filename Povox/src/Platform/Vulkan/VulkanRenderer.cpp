@@ -196,7 +196,7 @@ namespace Povox {
 				sceneInfo.range = sizeof(SceneUniform);
 				builder.BindBuffer(sceneBinding, &sceneInfo);
 				
-				builder.Build(m_Frames[i].GlobalDescriptorSet, m_GlobalDescriptorSetLayout);
+				builder.Build(m_Frames[i].GlobalDescriptorSet, m_GlobalDescriptorSetLayout, "GlobalDS");
 				
 				
 				/*VkDescriptorImageInfo imageInfo{};
@@ -330,10 +330,18 @@ namespace Povox {
 
 		Ref<VulkanShader> vkShader = std::dynamic_pointer_cast<VulkanShader>(renderable.Material.Shader);
 
+
 		uint32_t frameIndex = m_CurrentFrameIndex % m_Specification.MaxFramesInFlight;
 		uint32_t uniformOffset = PadUniformBuffer(sizeof(SceneUniform), VulkanContext::GetDevice()->GetPhysicalDeviceProperties().limits.minUniformBufferOffsetAlignment) * (size_t)frameIndex;
 
 		vkCmdBindDescriptorSets(m_ActiveCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_ActivePipeline->GetLayout(), 0, 1, &GetCurrentFrame().GlobalDescriptorSet, 1, &uniformOffset);
+		if (renderable.Material.Texture)
+		{
+			Ref<VulkanImage2D> vkImage = std::dynamic_pointer_cast<VulkanImage2D>(renderable.Material.Texture->GetImage());
+			VkDescriptorSet textureSet = (VkDescriptorSet)vkImage->GetDescriptorSet();
+			PX_CORE_WARN("DescriptorSet: {0}", (uint64_t)textureSet);
+			vkCmdBindDescriptorSets(m_ActiveCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_ActivePipeline->GetLayout(), 1, 1, &textureSet, 0, nullptr);
+		}
 
 
 		VkBuffer vertexBuffer = std::dynamic_pointer_cast<VulkanBuffer>(renderable.MeshData.VertexBuffer)->GetAllocation().Buffer;
@@ -484,7 +492,7 @@ namespace Povox {
 		vmaUnmapMemory(VulkanContext::GetAllocator(), GetCurrentFrame().CamUniformBuffer.Allocation);
 
 
-		m_SceneParameter.AmbientColor = glm::vec4(0.1f, 0.2f, 1.0f, 0.5f);
+		m_SceneParameter.AmbientColor = glm::vec4(glm::cos(m_DebugInfo.TotalFrames /10.0f), 1.0f, glm::sin(m_DebugInfo.TotalFrames /10.0f), 0.5f);
 		char* sceneData;
 		vmaMapMemory(VulkanContext::GetAllocator(), m_SceneParameterBuffer.Allocation, (void**)&sceneData);
 		sceneData += PadUniformBuffer(sizeof(SceneUniform), VulkanContext::GetDevice()->GetPhysicalDeviceProperties().limits.minUniformBufferOffsetAlignment) * m_CurrentFrameIndex;

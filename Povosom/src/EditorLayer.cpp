@@ -24,6 +24,7 @@ namespace Povox {
     {
         PX_PROFILE_FUNCTION();
 
+		m_LogoTexture = Texture2D::Create("assets/textures/logo.png");
 
 		PX_CORE_TRACE("Started EditorLayer::OnAttach()");
 		//ImGuiOfflineRendering
@@ -121,9 +122,11 @@ namespace Povox {
 
 		Renderer::BindPipeline(m_FlatColorPipeline);// -> this will be moved into sceneRenderer -> sorts through materials of objects, then binds pipeline accordingly
 		Renderer2D::DrawQuad({ 0.0f, 0.0f, 0.0f }, { 1.0f, 1.0f }, { 0.56f, 0.24f, 0.5f, 0.7f });	
+		Renderer2D::DrawRotatedQuad({ 1.0f, 1.0f, 0.5f }, { 1.0f, 1.0f }, 0.5f, { 0.9f, 0.4f, 0.5f, 1.0f });	
+		Renderer2D::DrawQuad({ 0.0f, 0.0f, 4.0f }, { 1.0f, 1.0f }, { 1.0f, 1.0f, 0.5f, 0.2f });
 		
 		Renderer::BindPipeline(m_TexturePipeline);
-		//Renderer2D::DrawQuad({ 0.0f, 0.0f, 0.0f }, { 1.0f, 1.0f }, { 1.0f, 1.0f, 0.5f, 1.0f });
+		Renderer2D::DrawQuad({ 2.0f, 0.0f, 0.0f }, { 1.0f, 1.0f }, m_LogoTexture, 0.5f);
 
 		Renderer2D::EndScene(); //doesn't mess with renderer atm
 

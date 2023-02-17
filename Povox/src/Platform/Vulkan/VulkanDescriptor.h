@@ -74,6 +74,8 @@ namespace Povox {
 	};
 
 
+
+
 	class VulkanDescriptorBuilder
 	{
 	public:
@@ -85,8 +87,8 @@ namespace Povox {
 		VulkanDescriptorBuilder& BindImage(uint32_t binding, VkDescriptorImageInfo* imageInfo, VkDescriptorType type, VkShaderStageFlags stageFlags);
 		VulkanDescriptorBuilder& BindImage(VkDescriptorSetLayoutBinding newBinding, VkDescriptorImageInfo* imageInfo);
 
-		bool Build(VkDescriptorSet& set, VkDescriptorSetLayout& layout);
-		bool Build(VkDescriptorSet& set);
+		bool Build(VkDescriptorSet& set, VkDescriptorSetLayout& layout, const std::string& debugName = "");
+		bool Build(VkDescriptorSet& set, const std::string& debugName = "");
 
 	private:
 		std::vector<VkWriteDescriptorSet> m_Writes;

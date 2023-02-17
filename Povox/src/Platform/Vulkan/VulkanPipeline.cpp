@@ -113,6 +113,7 @@ namespace Povox {
 		Ref<VulkanShader> shader = std::dynamic_pointer_cast<VulkanShader>(specs.Shader);
 
 		std::vector<VkDescriptorSetLayout>& layouts = shader->GetDescriptorSetLayouts();
+		PX_CORE_WARN("Layouts: {0}", layouts.size());
 		VkPipelineLayoutCreateInfo layoutInfo{};
 		layoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 		layoutInfo.pNext = nullptr;

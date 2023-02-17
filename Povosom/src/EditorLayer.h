@@ -39,6 +39,9 @@ namespace Povox {
 		Ref<Pipeline> m_FlatColorPipeline;
 		Ref<Pipeline> m_TexturePipeline;
 
+		Ref<Texture2D> m_LogoTexture;
+		
+		
 		Ref<Scene> m_ActiveScene;
 		std::string m_CurrentScenePath;
 

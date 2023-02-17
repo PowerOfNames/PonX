@@ -22,7 +22,7 @@ namespace Povox {
 		
 		s_RendererAPI = CreateScope<VulkanRenderer>(specs);
 
-		// Initialize the subrenderers (2D, Voxel, PixelSimulation, RayCasting, Scene)
+		// Initialize the subrenderers (2D, Voxel, PixelSimulation, RayCasting, Scene etc.)
 		Renderer2D::Init();
 		
 		//Shader Loading

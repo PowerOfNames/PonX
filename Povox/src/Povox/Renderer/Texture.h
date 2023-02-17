@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Povox/Core/Core.h"
+#include "Povox/Renderer/Image2D.h"
 
 #include <string>
 
@@ -16,6 +17,8 @@ namespace Povox {
 
 		virtual void SetData(void* data) = 0;
 
+		virtual const Ref<Image2D> GetImage() const = 0;
+		virtual Ref<Image2D> GetImage() = 0;
 
 		virtual bool operator==(const Texture& other) const = 0;
 	};
@@ -30,6 +33,8 @@ namespace Povox {
 
 		virtual void SetData(void* data) = 0;
 
+		virtual const Ref<Image2D> GetImage() const = 0;
+		virtual Ref<Image2D> GetImage() = 0;
 
 		virtual bool operator==(const Texture& other) const = 0;
 
