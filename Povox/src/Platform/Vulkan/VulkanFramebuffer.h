@@ -47,7 +47,7 @@ namespace Povox {
 		VulkanFramebuffer(const FramebufferSpecification& specs);
 		virtual ~VulkanFramebuffer();
 				
-		virtual void Resize(uint32_t width = 0, uint32_t height = 0) override;
+		virtual void Recreate(uint32_t width = 0, uint32_t height = 0) override;
 		void Destroy();
 		
 		//move to image/texture/buffer

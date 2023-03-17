@@ -16,6 +16,8 @@
 #include "Povox/Renderer/RendererAPI.h"
 
 
+
+
 namespace Povox {
 
 	struct FrameData
@@ -52,7 +54,6 @@ namespace Povox {
 
 		void Init();
 		void Shutdown();
-		void OnResize(uint32_t width, uint32_t height);
 
 		virtual inline uint32_t GetCurrentFrameIndex() const override { return m_CurrentFrameIndex; }
 		
@@ -82,8 +83,7 @@ namespace Povox {
 
 		virtual void PrepareSwapchainImage(Ref<Image2D> finalImage) override;
 
-
-		virtual void SetViewport(uint32_t x, uint32_t y, uint32_t width, uint32_t height) override;
+		virtual void FramebufferResized(uint32_t x, uint32_t y, uint32_t width, uint32_t height) override;
 
 		virtual void UpdateCamera(const CameraUniform& cam) override;
 
@@ -100,10 +100,12 @@ namespace Povox {
 		FrameData& GetFrame(uint32_t index);
 		void InitCommandControl();
 		void InitFrameData();
+		void InitFinalImage(uint32_t width, uint32_t height);
 
 		void InitSamplers();
 
 		size_t PadUniformBuffer(size_t inputSize, size_t minGPUBufferOffsetAlignment);
+
 
 	private:
 		VkDevice m_Device = VK_NULL_HANDLE;
@@ -122,10 +124,13 @@ namespace Povox {
 		uint32_t m_CurrentFrameIndex = 0;
 		uint32_t m_CurrentSwapchainImageIndex = 0;
 
+		bool m_FramebufferResized = false;
+		uint32_t m_ViewportSizeX, m_ViewportSizeY = 0;
+
 		//-------------			Samplers		 ---------------
 		VkSampler m_TextureSampler = VK_NULL_HANDLE;
 
-		Ref<VulkanImage2D> m_FinalImage;
+		Ref<VulkanImage2D> m_FinalImage = nullptr;
 
 		//------------- Scene and Object related ---------------
 		VkDescriptorSetLayout m_GlobalDescriptorSetLayout = VK_NULL_HANDLE;

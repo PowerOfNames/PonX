@@ -14,12 +14,20 @@ namespace Povox {
 	{
 		PX_PROFILE_FUNCTION();
 
+		Recreate();
+	}
+	VulkanRenderPass::~VulkanRenderPass()
+	{
+	}
 
-		PX_CORE_TRACE("VulkanRenderPass::Construct Begin!");
+	void VulkanRenderPass::Recreate()
+	{
+		VkDevice device = VulkanContext::GetDevice()->GetVulkanDevice();
+		if (m_RenderPass)
+			vkDestroyRenderPass(device, m_RenderPass, nullptr);
 
-		Ref<VulkanFramebuffer> framebuffer = std::dynamic_pointer_cast<VulkanFramebuffer>(spec.TargetFramebuffer);
+		Ref<VulkanFramebuffer> framebuffer = std::dynamic_pointer_cast<VulkanFramebuffer>(m_Specification.TargetFramebuffer);
 		auto& fbspecs = framebuffer->GetSpecification();
-		VkDevice device = VulkanContext::GetDevice()->GetVulkanDevice();		
 
 
 		//TODO: maybe separate depth and color attachments at every step to reduce if calls
@@ -39,7 +47,7 @@ namespace Povox {
 			if (VulkanUtils::IsVulkanDepthFormat(format))
 			{
 				PX_CORE_ASSERT(!foundDepth, "Multiple depthAttachments not allowed!");
-				if (!spec.HasDepthAttachment)
+				if (!m_Specification.HasDepthAttachment)
 					PX_CORE_WARN("VulkanRenderPass::Init Initially no depth attachment, but found one!");
 				attachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 				attachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
@@ -50,7 +58,7 @@ namespace Povox {
 			}
 			else
 			{
-				if (spec.TargetFramebuffer->GetSpecification().SwapChainTarget)				
+				if (m_Specification.TargetFramebuffer->GetSpecification().SwapChainTarget)
 					attachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 				else
 					attachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
@@ -65,7 +73,7 @@ namespace Povox {
 		std::vector<VkAttachmentReference> colorRefs(colorCount);
 		VkAttachmentReference depthref{};
 		for (uint32_t i = 0; i < attachments.size(); i++)
-		{	
+		{
 			if (Utils::IsDepthFormat(fbspecs.Attachments.Attachments[i].Format))
 			{
 				VkAttachmentReference ref{};
@@ -80,7 +88,7 @@ namespace Povox {
 				ref.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 				colorRefs[i] = ref;
 			}
-			
+
 		}
 
 		//TODO: subpasses later come from framebuffer chains -> pack multiple renderpasses in one if possible
@@ -111,16 +119,9 @@ namespace Povox {
 		renderPassInfo.pDependencies = &dependency;
 
 		PX_CORE_VK_ASSERT(vkCreateRenderPass(device, &renderPassInfo, nullptr, &m_RenderPass), VK_SUCCESS, "Failed to create renderpass!");
+		PX_CORE_INFO("VulkanRenderpass::Recreate: Recreated Renderpass with AttachmentExtent of '{0}, {1}'", fbspecs.Width, fbspecs.Height);
 		//Now create the actual framebuffer with this render pass
 		framebuffer->Construct(m_RenderPass);
-
-		PX_CORE_TRACE("VulkanRenderPass::Construct Finished!");
-
-	}
-
-
-	VulkanRenderPass::~VulkanRenderPass()
-	{
 	}
 
 }

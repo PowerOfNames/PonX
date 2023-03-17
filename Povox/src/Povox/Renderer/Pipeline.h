@@ -69,6 +69,8 @@ namespace Povox {
 		virtual ~Pipeline() = default;
 		virtual PipelineSpecification& GetSpecification() = 0;
 
+		virtual void Recreate() = 0;
+
 		static Ref<Pipeline> Create(const PipelineSpecification& specs);
 	};
 }

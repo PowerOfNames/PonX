@@ -10,6 +10,8 @@ namespace Povox {
 		VulkanRenderPass(const RenderPassSpecification& spec);
 		virtual ~VulkanRenderPass();
 
+		virtual void Recreate() override;
+
 		virtual inline const RenderPassSpecification& GetSpecification() const override { return m_Specification; }
 
 		inline VkRenderPass GetVulkanObj() const { return m_RenderPass; }

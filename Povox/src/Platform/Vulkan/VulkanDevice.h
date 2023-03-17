@@ -23,6 +23,8 @@ namespace Povox {
 	struct PhysicalDeviceLimits
 	{
 		uint32_t MaxBoundDescriptorSets;
+
+		bool HasTransferQueue = false;
 	};
 
 	class VulkanDevice

@@ -15,7 +15,7 @@ namespace Povox {
 	{
 	public:
 		virtual ~RenderPass() = default;
-
+		virtual void Recreate() = 0;
 
 		virtual const RenderPassSpecification& GetSpecification() const = 0;
 

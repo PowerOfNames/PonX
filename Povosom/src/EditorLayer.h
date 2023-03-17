@@ -22,6 +22,8 @@ namespace Povox {
 		bool OnKeyPressed(KeyPressedEvent& e);
 		bool OnMouseButtonPressed(MouseButtonPressedEvent& e);
 
+		bool OnWindowResize(WindowResizeEvent& e);
+
 		void NewScene();
 		void OpenScene();
 		void SaveScene();

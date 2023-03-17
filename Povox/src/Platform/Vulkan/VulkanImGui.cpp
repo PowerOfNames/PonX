@@ -118,19 +118,17 @@ namespace Povox {
 
 	void VulkanImGui::BeginRenderPass(VkCommandBuffer cmd, uint32_t imageIndex, VkExtent2D swapchainExtent)
 	{
-		//vkResetCommandPool(VulkanContext::GetDevice()->GetVulkanDevice(), GetFrame(imageIndex).CommandPool, 0);
 		m_CurrentActiveCmd = cmd;
-		//m_CurrentActiveCmd = GetFrame(imageIndex).CommandBuffer;
+
 		VkCommandBufferBeginInfo cmdBegin{};
 		cmdBegin.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 		cmdBegin.pNext = nullptr;
 		cmdBegin.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-		//PX_CORE_VK_ASSERT(vkBeginCommandBuffer(m_CurrentActiveCmd, &cmdBegin), VK_SUCCESS, "Failed to begin command buffer!");
-		// Not needed as I start that in application explicitly
 
 		std::array<VkClearValue, 2> clearColor = {};
 		clearColor[0].color = { 0.25f, 0.25f, 0.25f, 1.0f };
 		clearColor[1].depthStencil = { 1.0f, 0 };
+
 		VkRenderPassBeginInfo info{};
 		info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 		info.pNext = nullptr;
@@ -138,8 +136,6 @@ namespace Povox {
 		info.framebuffer = m_Framebuffers[imageIndex];
 		info.renderArea.offset = { 0, 0 };
 		info.renderArea.extent = swapchainExtent;
-
-
 		info.clearValueCount = static_cast<uint32_t>(clearColor.size());
 		info.pClearValues = clearColor.data();
 
@@ -154,8 +150,6 @@ namespace Povox {
 	void VulkanImGui::EndRenderPass()
 	{
 		vkCmdEndRenderPass(m_CurrentActiveCmd);
-		//PX_CORE_VK_ASSERT(vkEndCommandBuffer(m_CurrentActiveCmd), VK_SUCCESS, "Failed to record graphics command buffer!");
-		//m_CurrentActiveCmd = VK_NULL_HANDLE;
 	}	
 
 	VkDescriptorSet VulkanImGui::GetImGUIDescriptorSet(VkImageView view, VkSampler sampler, VkImageLayout layout)
@@ -174,6 +168,10 @@ namespace Povox {
 
 	void VulkanImGui::InitRenderPass()
 	{
+		VkDevice device = VulkanContext::GetDevice()->GetVulkanDevice();
+		if (m_RenderPass)
+			vkDestroyRenderPass(device, m_RenderPass, nullptr);
+
 		VkAttachmentDescription colorAttachment{};
 		colorAttachment.format = m_SwapchainImageFormat;
 		colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
@@ -213,7 +211,7 @@ namespace Povox {
 		renderPassInfo.dependencyCount = 1;
 		renderPassInfo.pDependencies = &dependency;
 
-		PX_CORE_VK_ASSERT(vkCreateRenderPass(VulkanContext::GetDevice()->GetVulkanDevice(), &renderPassInfo, nullptr, &m_RenderPass), VK_SUCCESS, "Failed to create renderpass!");
+		PX_CORE_VK_ASSERT(vkCreateRenderPass(device, &renderPassInfo, nullptr, &m_RenderPass), VK_SUCCESS, "Failed to create renderpass!");
 	}
 	void VulkanImGui::InitCommandBuffers()
 	{
@@ -238,6 +236,12 @@ namespace Povox {
 	}
 	void VulkanImGui::InitFrameBuffers(const std::vector<VkImageView>& swapchainViews, uint32_t width, uint32_t height)
 	{
+		VkDevice device = VulkanContext::GetDevice()->GetVulkanDevice();
+		for (auto& fb : m_Framebuffers)
+		{
+			vkDestroyFramebuffer(device, fb, nullptr);
+		}
+		m_Framebuffers.clear();
 		m_Framebuffers.resize(swapchainViews.size());
 
 		VkFramebufferCreateInfo info{};
@@ -252,7 +256,7 @@ namespace Povox {
 		{
 			info.attachmentCount = 1;
 			info.pAttachments = &swapchainViews[i];
-			PX_CORE_VK_ASSERT(vkCreateFramebuffer(VulkanContext::GetDevice()->GetVulkanDevice(), &info, nullptr, &m_Framebuffers[i]), VK_SUCCESS, "Failed to create framebuffer!");
+			PX_CORE_VK_ASSERT(vkCreateFramebuffer(device, &info, nullptr, &m_Framebuffers[i]), VK_SUCCESS, "Failed to create framebuffer!");
 		}
 	}
 

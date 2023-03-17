@@ -54,8 +54,8 @@ namespace Povox {
 
 		virtual void PrepareSwapchainImage(Ref<Image2D> finalImage) = 0;
 
-		virtual void SetViewport(uint32_t x, uint32_t y, uint32_t width, uint32_t height) = 0;
-		virtual void OnResize(uint32_t width, uint32_t height) = 0;
+		virtual void FramebufferResized(uint32_t x, uint32_t y, uint32_t width, uint32_t height) = 0;
+
 		virtual void* GetGUIDescriptorSet(Ref<Image2D> image) = 0;
 
 

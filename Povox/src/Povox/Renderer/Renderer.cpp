@@ -157,20 +157,9 @@ namespace Povox {
 		return s_RendererAPI->GetGUIDescriptorSet(image);
 	}
 
-	void Renderer::OnWindowResize(uint32_t width, uint32_t height)
+	void Renderer::FramebufferResized(uint32_t width, uint32_t height)
 	{
-		PX_PROFILE_FUNCTION();
-
-
-		s_RendererAPI->SetViewport(0, 0, width, height);
-	}
-
-	void Renderer::OnFramebufferResize(uint32_t width, uint32_t height)
-	{
-		PX_PROFILE_FUNCTION();
-
-
-		s_RendererAPI->SetViewport(0, 0, width, height);
+		s_RendererAPI->FramebufferResized(0, 0, width, height);
 	}
 
 	

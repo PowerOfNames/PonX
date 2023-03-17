@@ -225,7 +225,7 @@ namespace Povox {
 
 	void WindowsWindow::OnResize(uint32_t width, uint32_t height)
 	{
-		m_Swapchain->Recreate((uint32_t)width, (uint32_t)height);
+		m_Swapchain->FramebufferResized();
 	}
 
 	void WindowsWindow::SetVSync(bool enabled)

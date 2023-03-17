@@ -8,10 +8,10 @@
 
 #include <vulkan/vulkan.h>
 
+
 #include <glm/glm.hpp>
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/gtc/matrix_transform.hpp>
-
 
 namespace Povox {
 
@@ -179,7 +179,6 @@ namespace Povox {
 			for (uint32_t i = 0; i < maxFrames; i++)
 			{
 				m_Frames[i].CamUniformBuffer = VulkanBuffer::CreateAllocation(sizeof(CameraUniform), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
-				PX_CORE_WARN("Created Descriptor uniform buffer!");
 
 				VulkanDescriptorBuilder builder = VulkanDescriptorBuilder::Begin(VulkanContext::GetDescriptorLayoutCache(), VulkanContext::GetDescriptorAllocator());
 
@@ -197,8 +196,7 @@ namespace Povox {
 				builder.BindBuffer(sceneBinding, &sceneInfo);
 				
 				builder.Build(m_Frames[i].GlobalDescriptorSet, m_GlobalDescriptorSetLayout, "GlobalDS");
-				
-				
+								
 				/*VkDescriptorImageInfo imageInfo{};
 				imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 				imageInfo.imageView = m_Textures["Logo"].ImageView;
@@ -207,25 +205,30 @@ namespace Povox {
 				
 				PX_CORE_WARN("Created Descriptor set!");
 			}
-
-			//Finale Image
-			ImageSpecification imageSpec{};
-			imageSpec.Width = Application::Get()->GetWindow().GetSwapchain()->GetProperties().Width;
-			imageSpec.Height = Application::Get()->GetWindow().GetSwapchain()->GetProperties().Height;
-			imageSpec.ChannelCount = 4;
-			imageSpec.Format = ImageFormat::RGBA8;
-			imageSpec.Memory = MemoryUtils::MemoryUsage::GPU_ONLY;
-			imageSpec.MipLevels = 1;
-			imageSpec.Tiling = ImageTiling::LINEAR;
-			imageSpec.Usages = { ImageUsage::SAMPLED, ImageUsage::COLOR_ATTACHMENT, ImageUsage::COPY_DST };
-			for (uint32_t i = 0; i < maxFrames; i++)
-			{
-				m_FinalImage = CreateRef<VulkanImage2D>(imageSpec);
-
-				PX_CORE_WARN("Created Final images!");
-			}
+			
+			m_ViewportSizeX = m_Swapchain->GetProperties().Width;
+			m_ViewportSizeY = m_Swapchain->GetProperties().Height;
 		}
 		PX_CORE_INFO("VulkanRenderer::InitFrameData: Finished!");
+	}
+
+	void VulkanRenderer::InitFinalImage(uint32_t width, uint32_t height)
+	{
+		if (m_FinalImage)
+		{
+			m_FinalImage->Destroy();
+			m_FinalImage = nullptr;
+		}
+		ImageSpecification imageSpec{};
+		imageSpec.Width = width;
+		imageSpec.Height = height;
+		imageSpec.ChannelCount = 4;
+		imageSpec.Format = ImageFormat::RGBA8;
+		imageSpec.Memory = MemoryUtils::MemoryUsage::GPU_ONLY;
+		imageSpec.MipLevels = 1;
+		imageSpec.Tiling = ImageTiling::LINEAR;
+		imageSpec.Usages = { ImageUsage::SAMPLED, ImageUsage::COLOR_ATTACHMENT, ImageUsage::COPY_DST };
+		m_FinalImage = CreateRef<VulkanImage2D>(imageSpec);
 	}
 
 	void VulkanRenderer::InitSamplers()
@@ -253,10 +256,7 @@ namespace Povox {
 			samplerInfo.maxLod = 0.0f;
 			samplerInfo.minLod = 0.0f;
 			PX_CORE_VK_ASSERT(vkCreateSampler(VulkanContext::GetDevice()->GetVulkanDevice(), &samplerInfo, nullptr, &m_TextureSampler), VK_SUCCESS, "Failed to create texture sampler!");
-		}
-		
-		
-	
+		}	
 	}
 
 	void VulkanRenderer::Shutdown()
@@ -283,7 +283,7 @@ namespace Povox {
 		vkDestroyCommandPool(m_Device, m_UploadContext->CmdPoolTrsf, nullptr);
 
 		m_ImGui->Destroy();
-
+		m_FinalImage->Destroy();
 		//This might be happening in the LayoutCache::Cleanup function during VulkanContext::Shutdown
 		//vkDestroyDescriptorSetLayout(m_Device, m_GlobalDescriptorSetLayout, nullptr);
 		//vkDestroyDescriptorSetLayout(m_Device, m_TextureDescriptorSetLayout, nullptr);
@@ -295,28 +295,28 @@ namespace Povox {
 
 	bool VulkanRenderer::BeginFrame()
 	{
-		PX_CORE_WARN("Start swap buffers!");
+		PX_CORE_WARN("VulkanRenderer::BeginFrame Start");
 
 
-		//ATTANTION: Possible, that I need to render before the clearing, maybe, possibly
+		//ATTENTION: Possible, that I need to render before the clearing, maybe, possibly
 		auto& currentFreeQueue = VulkanContext::GetResourceFreeQueue()[m_CurrentFrameIndex];
 		for (auto& func : currentFreeQueue)
 		//	func();
 		//currentFreeQueue.clear();
+
 		vkWaitForFences(m_Device, 1, &GetCurrentFrame().Fence, VK_TRUE, UINT64_MAX);
-		vkResetFences(m_Device, 1, &GetCurrentFrame().Fence);
-
-
 		vkResetCommandPool(m_Device, GetCurrentFrame().Commands.Pool, 0);
-
-
 		m_SwapchainFrame = m_Swapchain->AcquireNextImageIndex(GetCurrentFrame().Semaphores.PresentSemaphore);
-		m_CurrentSwapchainImageIndex = m_SwapchainFrame->CurrentImageIndex;
 		if (!m_SwapchainFrame)
 			return false;
+		vkResetFences(m_Device, 1, &GetCurrentFrame().Fence);
+
+		m_CurrentSwapchainImageIndex = m_SwapchainFrame->CurrentImageIndex;
 		m_SwapchainFrame->CurrentFence = GetCurrentFrame().Fence;
 		m_SwapchainFrame->PresentSemaphore = GetCurrentFrame().Semaphores.PresentSemaphore;
 		m_SwapchainFrame->RenderSemaphore = GetCurrentFrame().Semaphores.RenderSemaphore;
+		
+		PX_CORE_WARN("VulkanRenderer::BeginFrame End");
 
 		return true;
 	}
@@ -466,8 +466,8 @@ namespace Povox {
 
 	void VulkanRenderer::EndFrame()
 	{
-		// Now retrieve the final image from the last renderpass and copy it into the current swapchain image?
-		// Either here or in the Application/Layer -> maybe build a render flow manager
+		//Here???
+		m_FramebufferResized = false;
 
 		m_CurrentFrameIndex = (m_CurrentFrameIndex++) % m_Specification.MaxFramesInFlight;
 		m_DebugInfo.TotalFrames++;
@@ -556,7 +556,7 @@ namespace Povox {
 		info.renderPass = m_ActiveRenderPass->GetVulkanObj();
 		info.framebuffer = fb->GetVulkanObj();
 		info.renderArea.offset = { 0, 0 };
-		info.renderArea.extent = { m_Swapchain->GetProperties().Width, m_Swapchain->GetProperties().Height };
+		info.renderArea.extent = { fb->GetSpecification().Width, fb->GetSpecification().Height };
 
 		info.clearValueCount = static_cast<uint32_t>(clearColor.size());
 		info.pClearValues = clearColor.data();
@@ -571,6 +571,12 @@ namespace Povox {
 
 	void VulkanRenderer::BeginGUIRenderPass()
 	{
+		if (m_FramebufferResized)
+		{
+			VkExtent2D extent{ m_Swapchain->GetProperties().Width, m_Swapchain->GetProperties().Height };
+			PX_CORE_ERROR("Swapchain extent: '{0}, {1}", m_Swapchain->GetProperties().Width, m_Swapchain->GetProperties().Height);
+			m_ImGui->OnSwapchainRecreate(Application::Get()->GetWindow().GetSwapchain()->GetImageViews(), extent);
+		}
 		m_ImGui->BeginRenderPass(m_ActiveCommandBuffer, m_CurrentSwapchainImageIndex, { m_Swapchain->GetProperties().Width, m_Swapchain->GetProperties().Height });
 	}
 	void VulkanRenderer::EndGUIRenderPass()
@@ -611,9 +617,9 @@ namespace Povox {
 	}
 
 
-	void VulkanRenderer::PrepareSwapchainImage(Ref<Image2D> finalImage)
+	void VulkanRenderer::PrepareSwapchainImage(Ref<Image2D> sourceImage)
 	{
-		Ref<VulkanImage2D> finalImageVK = std::dynamic_pointer_cast<VulkanImage2D>(finalImage);
+		Ref<VulkanImage2D> sourceImageVK = std::dynamic_pointer_cast<VulkanImage2D>(sourceImage);
 
 		//Transition swapchain image
 		m_CommandControl->ImmidiateSubmit(VulkanCommandControl::SubmitType::SUBMIT_TYPE_GRAPHICS, [=](VkCommandBuffer cmd) {
@@ -644,7 +650,7 @@ namespace Povox {
 		m_CommandControl->ImmidiateSubmit(VulkanCommandControl::SubmitType::SUBMIT_TYPE_GRAPHICS, [=](VkCommandBuffer cmd) {
 			VkImageMemoryBarrier barrier{};
 			barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-			barrier.image = finalImageVK->GetImage();
+			barrier.image = sourceImageVK->GetImage();
 			barrier.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 			barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
 			barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
@@ -673,11 +679,11 @@ namespace Povox {
 				imageCopyRegion.srcSubresource.layerCount = 1;
 				imageCopyRegion.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 				imageCopyRegion.dstSubresource.layerCount = 1;
-				imageCopyRegion.extent.width = finalImageVK->GetSpecification().Width;
-				imageCopyRegion.extent.height = finalImageVK->GetSpecification().Height;
+				imageCopyRegion.extent.width = sourceImageVK->GetSpecification().Width;
+				imageCopyRegion.extent.height = sourceImageVK->GetSpecification().Height;
 				imageCopyRegion.extent.depth = 1;
 
-				vkCmdCopyImage(cmd, finalImageVK->GetImage(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, m_SwapchainFrame->CurrentImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &imageCopyRegion);
+				vkCmdCopyImage(cmd, sourceImageVK->GetImage(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, m_SwapchainFrame->CurrentImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &imageCopyRegion);
 			});
 		//Transition swapchain image back into present
 		m_CommandControl->ImmidiateSubmit(VulkanCommandControl::SubmitType::SUBMIT_TYPE_GRAPHICS, [=](VkCommandBuffer cmd) {
@@ -707,27 +713,16 @@ namespace Povox {
 			});
 	}
 
-	void VulkanRenderer::SetViewport(uint32_t x, uint32_t y, uint32_t width, uint32_t height)
+	void VulkanRenderer::CreateFinalImage(Ref<Image2D> sourceImage)
 	{
-		OnResize(width, height);
-	}
+		Ref<VulkanImage2D> sourceImageVK = std::dynamic_pointer_cast<VulkanImage2D>(sourceImage);
+		if (m_FramebufferResized || !m_FinalImage)
+		{
+			PX_CORE_WARN("Resized");
+			InitFinalImage(m_ViewportSizeX, m_ViewportSizeY);
+		}
 
-	void VulkanRenderer::OnResize(uint32_t width, uint32_t height)
-	{
-		PX_CORE_WARN("Start swapchain recreation!");
-
-
-		vkDeviceWaitIdle(m_Device);
-
-		VkExtent2D extent{ Application::Get()->GetWindow().GetSwapchain()->GetProperties().Width, Application::Get()->GetWindow().GetSwapchain()->GetProperties().Height };
-		m_ImGui->OnSwapchainRecreate(Application::Get()->GetWindow().GetSwapchain()->GetImageViews(), extent);
-	}
-
-	void VulkanRenderer::CreateFinalImage(Ref<Image2D> finalImage)
-	{
-		Ref<VulkanImage2D> finalImageVK = std::dynamic_pointer_cast<VulkanImage2D>(finalImage);
-
-		//Transition swapchain image
+		//Transition final image
 		m_CommandControl->ImmidiateSubmit(VulkanCommandControl::SubmitType::SUBMIT_TYPE_GRAPHICS, [=](VkCommandBuffer cmd) {
 			VkImageMemoryBarrier barrier{};
 			barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -752,11 +747,11 @@ namespace Povox {
 
 			vkCmdPipelineBarrier(cmd, srcStage, dstStage, 0, 0, nullptr, 0, nullptr, 1, &barrier);
 			});
-		//Transition final rendered image
+		//Transition source image
 		m_CommandControl->ImmidiateSubmit(VulkanCommandControl::SubmitType::SUBMIT_TYPE_GRAPHICS, [=](VkCommandBuffer cmd) {
 			VkImageMemoryBarrier barrier{};
 			barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-			barrier.image = finalImageVK->GetImage();
+			barrier.image = sourceImageVK->GetImage();
 			barrier.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 			barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
 			barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
@@ -785,11 +780,11 @@ namespace Povox {
 				imageCopyRegion.srcSubresource.layerCount = 1;
 				imageCopyRegion.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 				imageCopyRegion.dstSubresource.layerCount = 1;
-				imageCopyRegion.extent.width = finalImageVK->GetSpecification().Width;
-				imageCopyRegion.extent.height = finalImageVK->GetSpecification().Height;
+				imageCopyRegion.extent.width = sourceImageVK->GetSpecification().Width;
+				imageCopyRegion.extent.height = sourceImageVK->GetSpecification().Height;
 				imageCopyRegion.extent.depth = 1;
 
-				vkCmdCopyImage(cmd, finalImageVK->GetImage(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, m_FinalImage->GetImage(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &imageCopyRegion);
+				vkCmdCopyImage(cmd, sourceImageVK->GetImage(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, m_FinalImage->GetImage(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &imageCopyRegion);
 			});
 		//Transition swapchain image back into present
 		m_CommandControl->ImmidiateSubmit(VulkanCommandControl::SubmitType::SUBMIT_TYPE_GRAPHICS, [=](VkCommandBuffer cmd) {
@@ -823,6 +818,13 @@ namespace Povox {
 	{
 		PX_CORE_ASSERT(index < m_Frames.size(), "Index too big!");
 		return m_Frames[index];
+	}
+
+	void VulkanRenderer::FramebufferResized(uint32_t x, uint32_t y, uint32_t width, uint32_t height)
+	{
+		m_FramebufferResized = true;
+		m_ViewportSizeX = width;
+		m_ViewportSizeY = height;
 	}
 
 

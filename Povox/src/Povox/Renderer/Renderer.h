@@ -71,8 +71,7 @@ namespace Povox {
 
 		static void UpdateCamera(const CameraUniform& cam);
 
-		static void OnWindowResize(uint32_t width, uint32_t height);
-		static void OnFramebufferResize(uint32_t width, uint32_t height);
+		static void FramebufferResized(uint32_t width, uint32_t height);
 
 		static void Submit(const Renderable& object);
 

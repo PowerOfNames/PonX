@@ -57,6 +57,8 @@ namespace Povox {
 			vkDestroyImageView(device, m_View, nullptr);
 		if (m_Allocation.Image)
 			vmaDestroyImage(VulkanContext::GetAllocator(), m_Allocation.Image, m_Allocation.Allocation);
+
+		PX_CORE_WARN("VulkanImage2D::Destroy");
 	}
 
 	AllocatedImage VulkanImage2D::CreateAllocation(VkExtent3D extent, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VmaMemoryUsage memUsage, VkImageLayout initialLayout)
@@ -181,6 +183,8 @@ namespace Povox {
 	{
 		m_Allocation = CreateAllocation({ m_Specification.Width, m_Specification.Height, 1 }, VulkanUtils::GetVulkanImageFormat(m_Specification.Format), VulkanUtils::GetVulkanTiling(m_Specification.Tiling),
 			VulkanUtils::GetVulkanImageUsages(m_Specification.Usages), VulkanUtils::GetVmaUsage(m_Specification.Memory));
+
+		PX_CORE_INFO("VulkanImage2D::CreateImage: Created Image with extent '{0}, {1}'", m_Specification.Width, m_Specification.Height);
 	}
 
 	void VulkanImage2D::CreateImageView()

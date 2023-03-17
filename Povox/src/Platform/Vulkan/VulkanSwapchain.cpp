@@ -10,7 +10,6 @@
 
 namespace Povox {
 
-	SwapchainProperties VulkanSwapchain::s_Props{};
 	VkSurfaceKHR VulkanSwapchain::s_Surface = VK_NULL_HANDLE;
 
 	VulkanSwapchain::VulkanSwapchain(GLFWwindow* windowHandle)
@@ -34,8 +33,9 @@ namespace Povox {
 		PX_PROFILE_FUNCTION();
 
 
-		s_Props.Width = width;
-		s_Props.Height = height;
+		PX_CORE_WARN("Started SwapchainRecreation");
+		m_Properties.Width = width;
+		m_Properties.Height = height;
 
 
 		Ref<VulkanDevice> devicePtr = VulkanContext::GetDevice();
@@ -65,8 +65,8 @@ namespace Povox {
 		createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
 		createInfo.surface = s_Surface;
 		createInfo.minImageCount = imageCount;
-		createInfo.imageFormat = s_Props.SurfaceFormat.format;
-		createInfo.imageColorSpace = s_Props.SurfaceFormat.colorSpace;
+		createInfo.imageFormat = m_Properties.SurfaceFormat.format;
+		createInfo.imageColorSpace = m_Properties.SurfaceFormat.colorSpace;
 		createInfo.imageExtent = { width, height };
 		createInfo.imageArrayLayers = 1;
 		createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
@@ -74,7 +74,7 @@ namespace Povox {
 			createInfo.imageUsage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
 		if (caps.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_DST_BIT)
 			createInfo.imageUsage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
-		createInfo.presentMode = s_Props.PresentMode;
+		createInfo.presentMode = m_Properties.PresentMode;
 		QueueFamilyIndices queueFamIndices = devicePtr->FindQueueFamilies(VulkanContext::GetDevice()->GetPhysicalDevice());
 		uint32_t queueFamilyIndices[] = {
 						queueFamIndices.GraphicsFamily.value(),
@@ -95,7 +95,7 @@ namespace Povox {
 		}
 		createInfo.preTransform = swapchainSupportDetails.Capabilities.currentTransform;
 		createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-		createInfo.presentMode = s_Props.PresentMode;					// -> vsync
+		createInfo.presentMode = m_Properties.PresentMode;					// -> vsync
 		createInfo.clipped = VK_TRUE;
 		createInfo.oldSwapchain = m_OldSwapchain;
 		PX_CORE_VK_ASSERT(vkCreateSwapchainKHR(device, &createInfo, nullptr, &m_Swapchain), VK_SUCCESS, "Failed to create logical device!");
@@ -104,7 +104,7 @@ namespace Povox {
 		vkGetSwapchainImagesKHR(device, m_Swapchain, &imageCount, nullptr);
 		m_Images.resize(imageCount);
 		vkGetSwapchainImagesKHR(device, m_Swapchain, &imageCount, m_Images.data());
-		s_Props.ImageCount = imageCount;
+		m_Properties.ImageCount = imageCount;
 		m_ImageViews.resize(m_Images.size());
 		for (size_t i = 0; i < m_ImageViews.size(); i++)
 		{
@@ -112,7 +112,7 @@ namespace Povox {
 			info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 			info.image = m_Images[i];
 			info.viewType = VK_IMAGE_VIEW_TYPE_2D;
-			info.format = s_Props.SurfaceFormat.format;
+			info.format = m_Properties.SurfaceFormat.format;
 
 			info.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
 			info.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
@@ -131,8 +131,8 @@ namespace Povox {
 		{
 			m_DepthFormat = VulkanUtils::FindDepthFormat(devicePtr->GetPhysicalDevice());
 			VkExtent3D extent{};
-			extent.width = s_Props.Width;
-			extent.height = s_Props.Height;
+			extent.width = m_Properties.Width;
+			extent.height = m_Properties.Height;
 			extent.depth = 1;
 
 			VkImageCreateInfo info{};
@@ -210,7 +210,7 @@ namespace Povox {
 		if (!m_RenderPass)
 		{
 			VkAttachmentDescription colorAttachment{};
-			colorAttachment.format = s_Props.SurfaceFormat.format;
+			colorAttachment.format = m_Properties.SurfaceFormat.format;
 			colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
 			colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 			colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -346,6 +346,7 @@ namespace Povox {
 
 		if (result == VK_ERROR_OUT_OF_DATE_KHR)
 		{
+			PX_CORE_WARN("VulkanSwapchain::AcquireNextImageIndex Out Of Date -> Recreation!");
 			Recreate(Application::Get()->GetWindow().GetWidth(), Application::Get()->GetWindow().GetHeight()); // get the new size maybe from elsewhere -> might be that the size change caused the result!
 			//TODO: investigate if this works!
 			return nullptr;
@@ -370,7 +371,6 @@ namespace Povox {
 
 		QueueSubmit();
 		Present();
-		PX_CORE_WARN("Finished swap buffers!");
 	}	
 
 	void VulkanSwapchain::QueueSubmit()
@@ -412,8 +412,9 @@ namespace Povox {
 		result = vkQueuePresentKHR(VulkanContext::GetDevice()->GetQueueFamilies().PresentQueue, &presentInfo);
 
 		//check if the framebuffer resized
-		if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
+		if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || m_FramebufferResized)
 		{
+			m_FramebufferResized = false;
 			Recreate(Application::Get()->GetWindow().GetWidth(), Application::Get()->GetWindow().GetHeight());
 		}
 		else
@@ -432,28 +433,28 @@ namespace Povox {
 			{
 				result = format;
 				PX_CORE_INFO("Swapchain surface format:  {0}", result.format);
-				s_Props.SurfaceFormat = format;
+				m_Properties.SurfaceFormat = format;
 			}
 		}
 		result = availableFormats[0];
 		PX_CORE_INFO("Swapchain surface format:  {0}", result.format);
-		s_Props.SurfaceFormat = result;
+		m_Properties.SurfaceFormat = result;
 	}
 	void VulkanSwapchain::ChooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes)
 	{
 		for (const auto& mode : availablePresentModes)
 		{
 			if (mode == VK_PRESENT_MODE_MAILBOX_KHR) // on mobile, FIFO_KHR is more likely to be used because of lower enegry consumption
-				s_Props.PresentMode = mode;
+				m_Properties.PresentMode = mode;
 		}
-		s_Props.PresentMode = VK_PRESENT_MODE_FIFO_KHR;
+		m_Properties.PresentMode = VK_PRESENT_MODE_FIFO_KHR;
 	}
 	void VulkanSwapchain::ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities, uint32_t width, uint32_t height)
 	{
 		if (capabilities.currentExtent.width != UINT32_MAX)
 		{
-			s_Props.Width = capabilities.currentExtent.width;
-			s_Props.Height = capabilities.currentExtent.height;
+			m_Properties.Width = capabilities.currentExtent.width;
+			m_Properties.Height = capabilities.currentExtent.height;
 		}
 
 		else
@@ -463,9 +464,9 @@ namespace Povox {
 			actualExtend.width = std::max(capabilities.minImageExtent.width, std::min(capabilities.maxImageExtent.width, actualExtend.width));
 			actualExtend.height = std::max(capabilities.minImageExtent.height, std::min(capabilities.maxImageExtent.height, actualExtend.height));
 
-			s_Props.Width = actualExtend.width;
-			s_Props.Height = actualExtend.height;
+			m_Properties.Width = actualExtend.width;
+			m_Properties.Height = actualExtend.height;
 		}
-		PX_CORE_INFO("Swapchain extent: '[{0}|{1}]'", s_Props.Width, s_Props.Height);
+		PX_CORE_INFO("Swapchain extent: '[{0}|{1}]'", m_Properties.Width, m_Properties.Height);
 	}
 }

@@ -65,7 +65,7 @@ namespace Povox {
 
 			//Between Begin and EndFrame happens the CommandRecording of everything rendering related
 			if (!Renderer::BeginFrame())
-				return;
+				continue;
 
 			float time = (float)glfwGetTime();
 			Timestep timestep = time - m_DeltaTime;
@@ -77,32 +77,27 @@ namespace Povox {
 				{
 					layer->OnUpdate(timestep);//contains begin renderpass, begin commandbuffer, end rnderpass, end commandbuffer
 				}
-			}
 
-			//if the GUI rendering happens here, then I have to change the frame handling and end it AFTER ImGui or other GUI has been handled and rendered before buffer swapping
-			if (RendererAPI::GetAPI() == RendererAPI::API::Vulkan && m_Specification.ImGuiEnabled)
-			{
-				const void* imGuiCmd = Renderer::GetGUICommandBuffer(Renderer::GetCurrentFrameIndex());
-				Renderer::BeginCommandBuffer(imGuiCmd);
-				Renderer::BeginGUIRenderPass();
-				m_ImGuiVulkanLayer->Begin();
-				for (Layer* layer : m_Layerstack)
+				//if the GUI rendering happens here, then I have to change the frame handling and end it AFTER ImGui or other GUI has been handled and rendered before buffer swapping
+				if (RendererAPI::GetAPI() == RendererAPI::API::Vulkan && m_Specification.ImGuiEnabled)
 				{
-					layer->OnImGuiRender();
+					const void* imGuiCmd = Renderer::GetGUICommandBuffer(Renderer::GetCurrentFrameIndex());
+					Renderer::BeginCommandBuffer(imGuiCmd);
+					Renderer::BeginGUIRenderPass();
+					m_ImGuiVulkanLayer->Begin();
+					for (Layer* layer : m_Layerstack)
+					{
+						layer->OnImGuiRender();
+					}
+					m_ImGuiVulkanLayer->End(); // all the objects that got created during OnImgUiRender now are put into ImGuis DrawList 
+					Renderer::DrawGUI();
+					Renderer::EndGUIRenderPass();
+					Renderer::EndCommandBuffer();
 				}
-				m_ImGuiVulkanLayer->End(); // all the objects that got created during OnImgUiRender now are put into ImGuis DrawList 
-				Renderer::DrawGUI();
-				Renderer::EndGUIRenderPass();
-				Renderer::EndCommandBuffer();
 			}
-
 			Renderer::EndFrame();
 			
-			//The recorded commands now get processed in the swapchain, which lives in the window
 			m_Window->OnUpdate();
-
-
-			PX_CORE_WARN("Finished Run!");
 		}
 	}
 
@@ -148,6 +143,7 @@ namespace Povox {
 		EventDispatcher dispatcher(e);
 		dispatcher.Dispatch<WindowCloseEvent>(PX_BIND_EVENT_FN(Application::OnWindowClose)); 
 		dispatcher.Dispatch<WindowResizeEvent>(PX_BIND_EVENT_FN(Application::OnWindowResize));
+		//dispatcher.Dispatch<FramebufferResizeEvent>(PX_BIND_EVENT_FN(Application::OnFramebufferResize));
 
 		for (auto it = m_Layerstack.rbegin(); it != m_Layerstack.rend(); ++it)
 		{
@@ -175,11 +171,10 @@ namespace Povox {
 			m_Minimized = true;
 			return false;
 		}
-
 		m_Minimized = false;
-		m_Window->OnResize(e.GetWidth(), e.GetHeight());
-		Renderer::OnWindowResize(e.GetWidth(), e.GetHeight());
 
+		m_Window->OnResize(e.GetWidth(), e.GetHeight());
+		//Renderer::FramebufferResized(e.GetWidth(), e.GetHeight());
 		return false;
 	}
 
@@ -193,9 +188,9 @@ namespace Povox {
 			m_Minimized = true;
 			return false;
 		}
+		PX_CORE_ERROR("Application::OnFramebufferResize to {0};{1}", e.GetWidth(), e.GetHeight());
 
 		m_Minimized = false;
-		Renderer::OnFramebufferResize(e.GetWidth(), e.GetHeight());
 
 		return false;
 	}

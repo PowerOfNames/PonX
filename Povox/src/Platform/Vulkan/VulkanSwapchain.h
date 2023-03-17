@@ -44,19 +44,20 @@ namespace Povox {
 		
 
 		void Recreate(uint32_t width, uint32_t height);
+		inline void FramebufferResized() { m_FramebufferResized = true; }
 
 		inline VkSwapchainKHR Get() { return m_Swapchain; }
-		//inline VkSwapchainKHR GetOld() { return m_OldSwapchain; }
 
 		inline std::vector<VkImage>& GetImages() { return m_Images; }
 		inline std::vector<VkImageView>& GetImageViews() { return m_ImageViews; }
-		inline static VkFormat GetImageFormat() { return s_Props.SurfaceFormat.format; }
+		inline VkFormat GetImageFormat() { return m_Properties.SurfaceFormat.format; }
 
 		inline VkRenderPass GetRenderPass() { return m_RenderPass; }
 		inline std::vector<VkFramebuffer>& GetFramebuffers() { return m_Framebuffers; }
 
+		inline const SwapchainProperties& GetProperties() { return m_Properties; }
+		
 		inline static VkSurfaceKHR GetSurface() { return s_Surface; }
-		inline static const SwapchainProperties& GetProperties() { return s_Props; }
 
 		SwapchainFrame* AcquireNextImageIndex(VkSemaphore presentSemaphore);
 
@@ -70,8 +71,8 @@ namespace Povox {
 		void ChooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
 
 	private:
-		static SwapchainProperties s_Props;
 		static VkSurfaceKHR s_Surface;
+		SwapchainProperties m_Properties{};
 		
 		GLFWwindow* m_WindowHandle = nullptr;
 
@@ -88,6 +89,8 @@ namespace Povox {
 		VkFormat m_DepthFormat = VK_FORMAT_UNDEFINED;
 
 		std::vector<VkFramebuffer> m_Framebuffers;
+		bool m_FramebufferResized = false;
+
 
 		VkRenderPass m_RenderPass = VK_NULL_HANDLE;
 

@@ -103,7 +103,7 @@ namespace Povox {
 	};
 
 	VulkanPipeline::VulkanPipeline(const PipelineSpecification& specs)
-		:m_Specs(specs)
+		:m_Specification(specs)
 	{
 		PX_PROFILE_FUNCTION();
 
@@ -111,6 +111,43 @@ namespace Povox {
 		PX_CORE_TRACE("VulkanPipeline::Construct Begin!");
 		VkDevice device = VulkanContext::GetDevice()->GetVulkanDevice();
 		Ref<VulkanShader> shader = std::dynamic_pointer_cast<VulkanShader>(specs.Shader);
+
+		CreateLayout();
+		CreatePipeline();
+
+		PX_CORE_TRACE("VulkanPipeline::Construct Finished!");
+	}
+
+	VulkanPipeline::~VulkanPipeline()
+	{
+		VkDevice device = VulkanContext::GetDevice()->GetVulkanDevice();
+		if (m_Layout)
+		{
+			vkDestroyPipelineLayout(device, m_Layout, nullptr);
+			m_Layout = VK_NULL_HANDLE;
+		}
+		if (m_Pipeline)
+		{
+			vkDestroyPipeline(device, m_Pipeline, nullptr);
+			m_Pipeline = VK_NULL_HANDLE;
+		}
+	}	
+
+	void VulkanPipeline::Recreate()
+	{
+		VkDevice device = VulkanContext::GetDevice()->GetVulkanDevice();
+		if (m_Specification.DynamicViewAndScissors)
+			return;
+		
+		if (m_Pipeline)
+			vkDestroyPipeline(device, m_Pipeline, nullptr);
+		CreatePipeline();
+	}
+
+	void VulkanPipeline::CreateLayout()
+	{
+		VkDevice device = VulkanContext::GetDevice()->GetVulkanDevice();
+		Ref<VulkanShader> shader = std::dynamic_pointer_cast<VulkanShader>(m_Specification.Shader);
 
 		std::vector<VkDescriptorSetLayout>& layouts = shader->GetDescriptorSetLayouts();
 		PX_CORE_WARN("Layouts: {0}", layouts.size());
@@ -133,6 +170,12 @@ namespace Povox {
 		layoutInfo.pPushConstantRanges = &pushConstant;
 		PX_CORE_VK_ASSERT(vkCreatePipelineLayout(device, &layoutInfo, nullptr, &m_Layout), VK_SUCCESS, "Failed to create GraphicsPipelineLayout!");
 		PX_CORE_TRACE("VulkanPipeline::Construct Created PipelineLayout!");
+	}
+
+	void VulkanPipeline::CreatePipeline()
+	{
+		VkDevice device = VulkanContext::GetDevice()->GetVulkanDevice();
+		Ref<VulkanShader> shader = std::dynamic_pointer_cast<VulkanShader>(m_Specification.Shader);
 
 		{
 			VkPipelineVertexInputStateCreateInfo info{};
@@ -149,7 +192,7 @@ namespace Povox {
 		}
 		//TODO: Check what modules exist and iterate over them
 		VkShaderModule vertexShaderModule = shader->GetModule(VK_SHADER_STAGE_VERTEX_BIT);
- 		{
+		{
 			VkPipelineShaderStageCreateInfo info{};
 			info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 			info.pNext = nullptr;
@@ -175,15 +218,15 @@ namespace Povox {
 			info.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
 			info.pNext = nullptr;
 
-			info.topology = VulkanUtils::GetVulkanPrimitiveTopology(specs.Primitive);
+			info.topology = VulkanUtils::GetVulkanPrimitiveTopology(m_Specification.Primitive);
 			info.primitiveRestartEnable = VK_FALSE;
 			m_AssemblyStateInfo = info;
 		}
 		{
 			m_Viewport.x = 0.0f;
 			m_Viewport.y = 0.0f;
-			m_Viewport.width = (float)specs.TargetRenderPass->GetSpecification().TargetFramebuffer->GetSpecification().Width;
-			m_Viewport.height = (float)specs.TargetRenderPass->GetSpecification().TargetFramebuffer->GetSpecification().Height;
+			m_Viewport.width = (float)m_Specification.TargetRenderPass->GetSpecification().TargetFramebuffer->GetSpecification().Width;
+			m_Viewport.height = (float)m_Specification.TargetRenderPass->GetSpecification().TargetFramebuffer->GetSpecification().Height;
 			m_Viewport.minDepth = 0.0f;
 			m_Viewport.maxDepth = 1.0f;
 		}
@@ -194,10 +237,10 @@ namespace Povox {
 
 			info.depthClampEnable = VK_FALSE;								// if true, too near or too far fragments will be clamped instead of discareded
 			info.rasterizerDiscardEnable = VK_FALSE;								// if true, geometry will never be rasterized, so there will be no output to the framebuffer
-			info.polygonMode = VulkanUtils::GetVulkanPolygonMode(specs.FillMode);					// determines if filled, lines or point shall be rendered
+			info.polygonMode = VulkanUtils::GetVulkanPolygonMode(m_Specification.FillMode);					// determines if filled, lines or point shall be rendered
 			info.lineWidth = 1.0f;									// thicker then 1.0f requires wideLine GPU feature
-			info.cullMode = VulkanUtils::GetVulkanCullMode(specs.Culling);
-			info.frontFace = VulkanUtils::GetVulkanFrontFace(specs.Front);
+			info.cullMode = VulkanUtils::GetVulkanCullMode(m_Specification.Culling);
+			info.frontFace = VulkanUtils::GetVulkanFrontFace(m_Specification.Front);
 			info.depthBiasEnable = VK_FALSE;
 			m_RasterizationStateInfo = info;
 		}
@@ -219,8 +262,8 @@ namespace Povox {
 			info.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
 			info.pNext = nullptr;
 
-			info.depthTestEnable = specs.DepthTesting;
-			info.depthWriteEnable = specs.DepthWriting;
+			info.depthTestEnable = m_Specification.DepthTesting;
+			info.depthWriteEnable = m_Specification.DepthWriting;
 			info.depthCompareOp = VK_COMPARE_OP_LESS;
 			info.depthBoundsTestEnable = VK_FALSE;
 			info.minDepthBounds = 0.0f;		// optional
@@ -250,14 +293,14 @@ namespace Povox {
 			*/
 			//check http://andersriggelsen.dk/glblendfunc.php for testing and understanding more!
 
-			
-			m_ColorBlendAttachmentStateInfos.push_back(info);			
+
+			m_ColorBlendAttachmentStateInfos.push_back(info);
 			//TODO: work out how this works when writing to multiple attachments (color, identifier...) //can supposedly be done via the Attachment_Format -> some do not support blending
 			//check, if current device supports independent blending, if not -> create separate pipeline for the attachment ?!
 			info.blendEnable = VK_FALSE;
 			m_ColorBlendAttachmentStateInfos.push_back(info);
 		}
-		
+
 		{
 			VkPipelineViewportStateCreateInfo info{};
 			info.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
@@ -270,7 +313,7 @@ namespace Povox {
 			m_ViewportStateInfo = info;
 		}
 
-		Ref<VulkanRenderPass> rp = std::dynamic_pointer_cast<VulkanRenderPass>(m_Specs.TargetRenderPass);
+		Ref<VulkanRenderPass> rp = std::dynamic_pointer_cast<VulkanRenderPass>(m_Specification.TargetRenderPass);
 		{
 			VkPipelineColorBlendStateCreateInfo info{};
 			info.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
@@ -285,12 +328,12 @@ namespace Povox {
 			m_ColorBlendStateInfo = info;
 		}
 
-		
+
 		std::vector<VkDynamicState> dynamicStates =
-		{			
-			VK_DYNAMIC_STATE_LINE_WIDTH			
+		{
+			VK_DYNAMIC_STATE_LINE_WIDTH
 		};
-		if (m_Specs.DynamicViewAndScissors)
+		if (m_Specification.DynamicViewAndScissors)
 		{
 			dynamicStates.push_back(VK_DYNAMIC_STATE_VIEWPORT);
 			dynamicStates.push_back(VK_DYNAMIC_STATE_SCISSOR);
@@ -313,7 +356,7 @@ namespace Povox {
 		pipelineInfo.pDepthStencilState = &m_DepthStencilStateInfo;
 		pipelineInfo.pColorBlendState = &m_ColorBlendStateInfo;
 		pipelineInfo.pViewportState = &m_ViewportStateInfo;
-		if (specs.DynamicViewAndScissors)
+		if (m_Specification.DynamicViewAndScissors)
 			pipelineInfo.pDynamicState = &dynamicStateInfo;
 		else
 			pipelineInfo.pDynamicState = nullptr;
@@ -328,25 +371,6 @@ namespace Povox {
 		PX_CORE_VK_ASSERT(vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_Pipeline), VK_SUCCESS, "Failed to create Graphics pipeline!");
 		vkDestroyShaderModule(device, vertexShaderModule, nullptr);
 		vkDestroyShaderModule(device, fragmentShaderModule, nullptr);
-
-		PX_CORE_TRACE("VulkanPipeline::Construct Finished!");
 	}
-
-	VulkanPipeline::~VulkanPipeline()
-	{
-		VkDevice device = VulkanContext::GetDevice()->GetVulkanDevice();
-		if (m_Layout)
-		{
-			vkDestroyPipelineLayout(device, m_Layout, nullptr);
-			m_Layout = VK_NULL_HANDLE;
-		}
-		if (m_Pipeline)
-		{
-			vkDestroyPipeline(device, m_Pipeline, nullptr);
-			m_Pipeline = VK_NULL_HANDLE;
-		}
-	}
-
-	
 
 }

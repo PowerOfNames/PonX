@@ -218,6 +218,7 @@ namespace Povox {
 			if (queueFamily.queueFlags & VK_QUEUE_TRANSFER_BIT && !(queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) && !(queueFamily.queueFlags & VK_QUEUE_COMPUTE_BIT))
 			{
 				indices.TransferFamily = i;
+				m_PhysicalLimits.HasTransferQueue = true;
 				PX_CORE_TRACE("transfer Queue Family index : '{0}'", indices.TransferFamily.value());
 			}
 

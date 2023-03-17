@@ -51,7 +51,7 @@ namespace Povox {
 	public:
 		virtual ~Framebuffer() = default;
 
-		virtual void Resize(uint32_t width, uint32_t height) = 0;
+		virtual void Recreate(uint32_t width, uint32_t height) = 0;
 		virtual int ReadPixel(uint32_t attachmentIndex, int posX, int posY) = 0;
 
 

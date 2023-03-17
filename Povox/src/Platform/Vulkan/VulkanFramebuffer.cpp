@@ -38,7 +38,7 @@ namespace Povox {
 
 		for (auto& attachment : m_Specification.Attachments.Attachments)
 		{
-			//First check if images come from elsewhere, if so, use those, if not, create new
+			//First check if images come from elsewhere, if so, use those. If not, create new
 			if (!m_Specification.OriginalImages.empty())
 			{
 				PX_CORE_ASSERT(m_Specification.OriginalImages.size() == m_Specification.Attachments.Attachments.size(), "Framebuffer specification: Original images size does not match attachments size!");
@@ -75,11 +75,14 @@ namespace Povox {
 		}
 	}
 
-	//redo!
-	void VulkanFramebuffer::Resize(uint32_t width, uint32_t height)
+	
+	void VulkanFramebuffer::Recreate(uint32_t width, uint32_t height)
 	{	
 		PX_PROFILE_FUNCTION();
 
+
+		if (!m_Specification.Resizable)
+			return;
 
 		if (width == 0 || height == 0)
 			return;
@@ -93,11 +96,15 @@ namespace Povox {
 		if (m_Specification.OriginalImages.empty())
 		{
 			if (m_DepthAttachment)
+			{
 				m_DepthAttachment->Destroy();
+				m_DepthAttachment = nullptr;
+			}
 			for (uint32_t i = 0; i < m_ColorAttachments.size(); i++)
 			{
 				m_ColorAttachments[i]->Destroy();
 			}
+			m_ColorAttachments.clear();
 		}
 		if (m_Framebuffer)
 		{
@@ -106,7 +113,6 @@ namespace Povox {
 		}
 
 		CreateAttachments();
-		Construct();
 	}
 
 	void VulkanFramebuffer::Construct(VkRenderPass renderpass)
@@ -119,7 +125,6 @@ namespace Povox {
 			PX_CORE_ASSERT(true, "No Renderpass has been set yet for Framebuffer construction!");
 			return;
 		}
-
 
 		std::vector<VkImageView> attachments;
 		attachments.resize(m_ColorAttachments.size());
