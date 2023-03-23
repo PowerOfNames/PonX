@@ -547,7 +547,7 @@ namespace Povox {
 		//TODO: Get from the fb
 		std::array<VkClearValue, 3> clearColor = {};
 		clearColor[0].color = { 0.0f, 0.0f, 0.0f, 0.0f };
-		clearColor[1].color = { 0.0f, 0.0f, 0.0f, 0.0f };
+		clearColor[1].color.int32[0] = -1;
 		clearColor[2].depthStencil = { 1.0f, 0 };
 
 		VkRenderPassBeginInfo info{};

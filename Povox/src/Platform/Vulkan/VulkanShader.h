@@ -35,6 +35,7 @@ namespace Povox {
 
 
 		virtual const std::string& GetName() const { return m_DebugName; }
+		virtual uint64_t GetRendererID() const override { return m_RID; }
 
 		// Uniforms
 		virtual void SetInt(const std::string& name, int value) {}
@@ -62,12 +63,15 @@ namespace Povox {
 
 		VkShaderModule& GetModule(VkShaderStageFlagBits stage);
 
+		virtual bool operator==(const Shader& other) const override { return m_RID == ((VulkanShader&)other).m_RID; }
 	private:
 		std::unordered_map<VkShaderStageFlagBits, std::string> PreProcess(const std::string& sources);
 		void CompileOrGetVulkanBinaries(std::unordered_map<VkShaderStageFlagBits, std::string> sources);
 		void Reflect();
 
 	private:
+		RendererUID m_RID;
+
 		std::unordered_map<VkShaderStageFlagBits, std::vector<uint32_t>> m_SourceCodes;
 		std::unordered_map<VkShaderStageFlagBits, VkShaderModule> m_Modules;
 

@@ -30,7 +30,7 @@ namespace Povox {
 
 
 
-		PX_CORE_TRACE("Started EditorLayer::OnAttach()");
+		PX_CORE_TRACE("Started EditorLayer::OnAttach");
 		//ImGuiViewportRendering
 		{
 			FramebufferSpecification imGuiViewportFBSpecs{};
@@ -158,8 +158,9 @@ namespace Povox {
         
         if (mouseX >= 0 && mouseY >= 0 && mouseX < (int)viewportSize.x && mouseY < (int)viewportSize.y)
         {
-            //int pixelData = m_ImGuiViewportFB->GetColorAttachment(1)->ReadPixel(1, mouseX, mouseY);
-            //m_HoveredEntity = pixelData == -1 ? Entity() : Entity((entt::entity)pixelData, m_ActiveScene.get());
+            int pixelData = m_ImGuiViewportFB->GetColorAttachment(1)->ReadPixel(mouseX, mouseY);
+			PX_WARN("PixelData = {0}", pixelData);
+            //m_HoveredEntity = pixelData == 0 ? Entity() : Entity((entt::entity)pixelData, m_ActiveScene.get());
         }
 		PX_CORE_TRACE("EditorLayer::OnUpdate Finished!");
     }

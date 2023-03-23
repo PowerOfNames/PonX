@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Povox/Scene/SceneCamera.h"
-#include "Povox/Scene/ScriptableEntity.h"
+#include "Povox/Core/UUID.h"
 
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/quaternion.hpp>
@@ -10,6 +10,14 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 namespace Povox {
+
+	struct IDComponent
+	{
+		UUID ID;
+
+		IDComponent() = default;
+		IDComponent(const IDComponent&) = default;
+	};
 
 	struct TagComponent
 	{
@@ -59,6 +67,7 @@ namespace Povox {
 		CameraComponent(const CameraComponent&) = default;
 	};
 
+	class ScriptableEntity;
 	struct NativeScriptComponent
 	{
 		ScriptableEntity* Instance = nullptr;

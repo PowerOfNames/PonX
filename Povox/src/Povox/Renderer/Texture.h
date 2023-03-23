@@ -19,6 +19,7 @@ namespace Povox {
 
 		virtual const Ref<Image2D> GetImage() const = 0;
 		virtual Ref<Image2D> GetImage() = 0;
+		virtual uint64_t GetRendererID() const = 0;
 
 		virtual bool operator==(const Texture& other) const = 0;
 	};
@@ -35,6 +36,7 @@ namespace Povox {
 
 		virtual const Ref<Image2D> GetImage() const = 0;
 		virtual Ref<Image2D> GetImage() = 0;
+		virtual uint64_t GetRendererID() const = 0;
 
 		virtual bool operator==(const Texture& other) const = 0;
 

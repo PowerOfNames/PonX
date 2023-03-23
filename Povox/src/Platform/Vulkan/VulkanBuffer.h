@@ -22,6 +22,8 @@ namespace Povox {
 		VulkanBuffer(const BufferSpecification& specs);
 		~VulkanBuffer();
 
+		virtual uint64_t GetRendererID() const override { return m_RID; }
+
 		virtual void SetData(void* inputData, size_t size) override;
 		virtual inline BufferSpecification& GetSpecification() override { return m_Specification; }
 
@@ -30,7 +32,10 @@ namespace Povox {
 
 		static AllocatedBuffer CreateAllocation(size_t allocSize, VkBufferUsageFlags usage, VmaMemoryUsage memUsage);
 
+		virtual bool operator==(const Buffer& other) const override { return m_RID == ((VulkanBuffer&)other).m_RID; }
 	private:
+		RendererUID m_RID;
+
 		BufferSpecification m_Specification;
 		AllocatedBuffer m_Allocation{};
 	};

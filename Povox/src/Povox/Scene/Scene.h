@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Povox/Core/Timestep.h"
+#include "Povox/Core/UUID.h"
 #include "Povox/Renderer/EditorCamera.h"
 
 #include <entt.hpp>
@@ -16,6 +17,7 @@ namespace Povox {
 		~Scene();
 
 		Entity CreateEntity(const std::string& name = std::string());
+		Entity CreateEntity(UUID uuid, const std::string& name = std::string());
 		void DestroyEntity(Entity entity);
 
 

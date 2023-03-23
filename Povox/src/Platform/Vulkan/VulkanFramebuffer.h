@@ -50,9 +50,6 @@ namespace Povox {
 		virtual void Recreate(uint32_t width = 0, uint32_t height = 0) override;
 		void Destroy();
 		
-		//move to image/texture/buffer
-		virtual int ReadPixel(uint32_t attachmentIndex, int posX, int posY) override { return 0; };
-
 		virtual inline const FramebufferSpecification& GetSpecification() const override { return m_Specification; };
 
 		virtual inline std::vector<Ref<Image2D>>& GetColorAttachments() override { return m_ColorAttachments; }

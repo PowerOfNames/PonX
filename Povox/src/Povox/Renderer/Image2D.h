@@ -90,6 +90,8 @@ namespace Povox {
 		
 		virtual void SetData(void* data) = 0;
 
+		virtual int ReadPixel(int posX, int posY) = 0;
+
 		virtual void* GetDescriptorSet() = 0;
 
 		static Ref<Image2D> Create(const ImageSpecification& spec);

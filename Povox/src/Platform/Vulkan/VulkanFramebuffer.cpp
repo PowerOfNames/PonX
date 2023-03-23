@@ -182,7 +182,7 @@ namespace Povox {
 
 	const Ref<Image2D> VulkanFramebuffer::GetColorAttachment(size_t index)
 	{
-		PX_CORE_ASSERT(index < m_ColorAttachments.size(), "Indext out of range!");
+		PX_CORE_ASSERT(index < m_ColorAttachments.size(), "Index out of range!");
 		return m_ColorAttachments[index];
 	}
 }

@@ -100,6 +100,8 @@ namespace Povox {
 		virtual void* GetDescriptorSet() override { return m_DescriptorSet; }
 		virtual void SetData(void* data) override;
 
+		virtual int ReadPixel(int posX, int posY) override;
+
 		static AllocatedImage CreateAllocation(VkExtent3D extent, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VmaMemoryUsage memUsage, VkImageLayout initialLayout = VK_IMAGE_LAYOUT_UNDEFINED);
 
 		inline VkImageView GetImageView() const { return m_View; }
@@ -142,14 +144,12 @@ namespace Povox {
 
 		virtual const Ref<Image2D> GetImage() const override { return m_Image; }
 		virtual Ref<Image2D> GetImage() override { return m_Image; }
+		virtual uint64_t GetRendererID() const override { return m_RID; }
 
-		bool operator==(const Texture& other) const override
-		{
-			//when RendererID is implemented, compare those.
-			return false;
-		}
-
+		virtual bool operator==(const Texture& other) const override { return m_RID == ((VulkanTexture2D&)other).m_RID; }
 	private:
+		RendererUID m_RID;
+
 		Ref<VulkanImage2D> m_Image = nullptr;
 
 		std::string m_Path = "";

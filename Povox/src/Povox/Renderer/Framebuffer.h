@@ -52,7 +52,6 @@ namespace Povox {
 		virtual ~Framebuffer() = default;
 
 		virtual void Recreate(uint32_t width, uint32_t height) = 0;
-		virtual int ReadPixel(uint32_t attachmentIndex, int posX, int posY) = 0;
 
 
 		virtual const FramebufferSpecification& GetSpecification() const = 0;

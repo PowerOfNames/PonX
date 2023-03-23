@@ -1606,6 +1606,8 @@
       <Filter>vendor\yaml-cpp\src</Filter>
     </ClInclude>
     <ClInclude Include="src\Povox\ImGui\my_imgui_config.h" />
+    <ClInclude Include="src\Povox\Core\UUID.h" />
+    <ClInclude Include="src\Povox\Renderer\RendererUID.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Platform\OpenGL\OpenGLContext.cpp">
@@ -1866,5 +1868,7 @@
     <ClCompile Include="vendor\yaml-cpp\src\tag.cpp">
       <Filter>vendor\yaml-cpp\src</Filter>
     </ClCompile>
+    <ClCompile Include="src\Povox\Core\UUID.cpp" />
+    <ClCompile Include="src\Povox\Renderer\RendererUID.cpp" />
   </ItemGroup>
 </Project>

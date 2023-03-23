@@ -1,8 +1,10 @@
 #pragma once
 
+#include "Povox/Scene/Components.h"
 #include "Povox/Scene/Scene.h"
 
 #include <entt.hpp>
+
 
 namespace Povox {
 
@@ -43,6 +45,8 @@ namespace Povox {
 			PX_CORE_ASSERT(HasComponent<T>(), "Entity does not contain component");
 			m_Scene->m_Registry.remove<T>(m_EntityHandle);
 		}
+
+		UUID GetUUID() { return GetComponent<IDComponent>().ID; }
 
 		operator bool() const { return m_EntityHandle != entt::null; }
 		operator entt::entity() const { return m_EntityHandle; }

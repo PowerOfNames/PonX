@@ -6,6 +6,7 @@
 #include <glm/glm.hpp>
 
 #include "Povox/Scene/Entity.h"
+#include "Povox/Scene/ScriptableEntity.h"
 
 namespace Povox {
 
@@ -19,7 +20,13 @@ namespace Povox {
 
 	Entity Scene::CreateEntity(const std::string& name)
 	{
+		return CreateEntity(UUID(), name);
+	}
+
+	Entity Scene::CreateEntity(UUID uuid, const std::string& name)
+	{
 		Entity entity = Entity(m_Registry.create(), this);
+		entity.AddComponent<IDComponent>(uuid);
 		entity.AddComponent<TransformComponent>();
 		auto& tag = entity.AddComponent<TagComponent>(name);
 		tag.Tag = name.empty() ? "Unnamed Entity" : name;
@@ -131,6 +138,12 @@ namespace Povox {
 	void Scene::OnComponentAdded(Entity entity, T& component)
 	{
 		static_assert(false);
+	}
+
+	template<>
+	void Scene::OnComponentAdded<IDComponent>(Entity entity, IDComponent& component)
+	{
+
 	}
 
 	template<>

@@ -113,9 +113,10 @@ namespace Povox {
 
 	static void SerializeEntity(YAML::Emitter& out, Entity entity)
 	{
-		out << YAML::BeginMap; // Entity
-		out << YAML::Key << "Entity" << YAML::Value << 63725789201658; // TODO: entity ID goes here
+		PX_CORE_ASSERT(entity.HasComponent<IDComponent>(), "Entity has no UUID -> no serialization");
 
+		out << YAML::BeginMap; // Entity
+		out << YAML::Key << "Entity ID" << YAML::Value << entity.GetUUID();
 		// TODO: later implement some sort of global component list to iterate through 
 		SerializeComponent<TagComponent>(out, "TagComponent", entity, [&](auto& tagComp)
 		{
@@ -234,7 +235,7 @@ namespace Povox {
 		{
 			for (auto entityNode : entities)
 			{
-				uint64_t uuid = entityNode["Entity"].as<uint64_t>(); // TODO: universal unique identifier;
+				uint64_t uuid = entityNode["Entity ID"].as<uint64_t>();
 
 				std::string name;
 				auto tagComponent = entityNode["TagComponent"];
@@ -244,7 +245,7 @@ namespace Povox {
 				PX_CORE_TRACE("Deserializing entity with ID '{0}' and name '{1}'", uuid, name);
 
 
-				Entity deserializedEntity = m_Scene->CreateEntity(name);
+				Entity deserializedEntity = m_Scene->CreateEntity(uuid, name);
 				DeserializeEntity(entityNode, deserializedEntity);
 			}
 		}

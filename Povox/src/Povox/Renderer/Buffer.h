@@ -1,5 +1,6 @@
 #pragma once
 #include "Povox/Core/Log.h"
+#include "Povox/Renderer/RendererUID.h"
 #include "Povox/Renderer/Utilities.h"
 
 namespace Povox {
@@ -121,6 +122,10 @@ namespace Povox {
 		//virtual void SetLayout(const BufferLayout& vertexLayout) = 0;
 		virtual BufferSpecification& GetSpecification() = 0;
 
+		virtual uint64_t GetRendererID() const = 0;
+
 		static Ref<Buffer> Create(const BufferSpecification& specs);
+
+		virtual bool operator==(const Buffer& other) const = 0;
 	};
 }

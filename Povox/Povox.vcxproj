@@ -176,6 +176,7 @@
     <ClInclude Include="src\Povox\Core\MouseCodes.h" />
     <ClInclude Include="src\Povox\Core\Time.h" />
     <ClInclude Include="src\Povox\Core\Timestep.h" />
+    <ClInclude Include="src\Povox\Core\UUID.h" />
     <ClInclude Include="src\Povox\Core\Window.h" />
     <ClInclude Include="src\Povox\Debugging\Instrumentor.h" />
     <ClInclude Include="src\Povox\Events\ApplicationEvent.h" />
@@ -197,6 +198,7 @@
     <ClInclude Include="src\Povox\Renderer\PerspectiveCamera.h" />
     <ClInclude Include="src\Povox\Renderer\PerspectiveCameraController.h" />
     <ClInclude Include="src\Povox\Renderer\Pipeline.h" />
+    <ClInclude Include="src\Povox\Renderer\RendererUID.h" />
     <ClInclude Include="src\Povox\Renderer\RenderPass.h" />
     <ClInclude Include="src\Povox\Renderer\Renderable.h" />
     <ClInclude Include="src\Povox\Renderer\Renderer.h" />
@@ -673,6 +675,7 @@
     <ClCompile Include="src\Povox\Core\Layer.cpp" />
     <ClCompile Include="src\Povox\Core\LayerStack.cpp" />
     <ClCompile Include="src\Povox\Core\Log.cpp" />
+    <ClCompile Include="src\Povox\Core\UUID.cpp" />
     <ClCompile Include="src\Povox\Core\Window.cpp" />
     <ClCompile Include="src\Povox\ImGui\ImGuiBuild.cpp" />
     <ClCompile Include="src\Povox\ImGui\ImGuiLayer.cpp" />
@@ -688,6 +691,7 @@
     <ClCompile Include="src\Povox\Renderer\PerspectiveCamera.cpp" />
     <ClCompile Include="src\Povox\Renderer\PerspectiveCameraController.cpp" />
     <ClCompile Include="src\Povox\Renderer\Pipeline.cpp" />
+    <ClCompile Include="src\Povox\Renderer\RendererUID.cpp" />
     <ClCompile Include="src\Povox\Renderer\RenderPass.cpp" />
     <ClCompile Include="src\Povox\Renderer\Renderer.cpp" />
     <ClCompile Include="src\Povox\Renderer\Renderer2D.cpp" />

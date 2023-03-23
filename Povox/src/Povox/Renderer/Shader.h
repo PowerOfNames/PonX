@@ -1,4 +1,5 @@
 #pragma once
+#include "Povox/Renderer/RendererUID.h"
 
 #include <unordered_map>
 #include <string>
@@ -13,6 +14,7 @@ namespace Povox {
 		virtual ~Shader() = default;
 
 		virtual const std::string& GetName() const = 0;
+		virtual uint64_t GetRendererID() const = 0;
 
 	// Uniforms
 		virtual void SetInt(const std::string& name, int value) = 0;
@@ -27,6 +29,8 @@ namespace Povox {
 		virtual void SetMat4(const std::string& name, const glm::mat4& matrix) = 0;
 
 		static Ref<Shader> Create(const std::string& filepath);
+
+		virtual bool operator==(const Shader& other) const = 0;
 	};
 
 	class ShaderLibrary
