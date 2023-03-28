@@ -29,7 +29,7 @@ namespace Povox {
 		m_LogoTexture = std::dynamic_pointer_cast<Texture2D>(Renderer::GetTextureSystem()->GetTexture("DefaultPXTexture"));
 
 
-		PX_CORE_TRACE("Started EditorLayer::OnAttach");
+		//PX_TRACE("Started EditorLayer::OnAttach");
 		//ImGuiViewportRendering
 		{
 			FramebufferSpecification imGuiViewportFBSpecs{};
@@ -72,7 +72,7 @@ namespace Povox {
         m_EditorCamera = EditorCamera(60.0f, 1.778f, 0.1f, 1000.0f);
         m_SceneHierarchyPanel.SetContext(m_ActiveScene);
 
-		PX_CORE_TRACE("Finished EditorLayer::OnAttach()");
+		//PX_TRACE("Finished EditorLayer::OnAttach()");
     }
 
 
@@ -90,15 +90,15 @@ namespace Povox {
         PX_PROFILE_FUNCTION();
 
 
-		PX_CORE_TRACE("EditorLayer::OnUpdate Started!");
-        m_Deltatime = deltatime;
+		//PX_TRACE("EditorLayer::OnUpdate Started!");
+        
+		m_Deltatime = deltatime;
 
         //Resize
         if (FramebufferSpecification spec = m_ImGuiViewportFB->GetSpecification();
             m_ViewportSize.x > 0.0f && m_ViewportSize.y > 0.0f && //zero sized framebuffer is invalid
             (spec.Width != m_ViewportSize.x || spec.Height != m_ViewportSize.y))
         {
-			PX_CORE_WARN("Hello?");
 			Renderer::FramebufferResized(m_ViewportSize.x, m_ViewportSize.y);
 			m_ImGuiViewportFB->Recreate((uint32_t)m_ViewportSize.x, (uint32_t)m_ViewportSize.y); //better resize all pipelines here -> can then recursively
 			m_ImGuiRenderpass->Recreate();
@@ -158,17 +158,20 @@ namespace Povox {
         if (mouseX >= 0 && mouseY >= 0 && mouseX < (int)viewportSize.x && mouseY < (int)viewportSize.y)
         {
             int pixelData = m_ImGuiViewportFB->GetColorAttachment(1)->ReadPixel(mouseX, mouseY);
-			PX_WARN("PixelData = {0}", pixelData);
+			PX_WARN("EntityID = {0}", pixelData);
             //m_HoveredEntity = pixelData == 0 ? Entity() : Entity((entt::entity)pixelData, m_ActiveScene.get());
         }
-		PX_CORE_TRACE("EditorLayer::OnUpdate Finished!");
+		
+		
+		//PX_TRACE("EditorLayer::OnUpdate Finished!");
     }
 
     void EditorLayer::OnImGuiRender()
     {
         PX_PROFILE_FUNCTION();
 
-		PX_CORE_TRACE("EditorLayer::OnImguiRender Started!");
+
+		//PX_TRACE("EditorLayer::OnImguiRender Started!");
 
         auto stats = Renderer2D::GetStats();
 
@@ -290,7 +293,6 @@ namespace Povox {
 		ImTextureID texID = Renderer::GetGUIDescriptorSet(Renderer::GetFinalImage());
         ImGui::Image(texID, ImVec2(m_ViewportSize.x, m_ViewportSize.y), ImVec2{ 0, 1 }, ImVec2{ 1, 0 });
         
-		PX_CORE_WARN("OnImGuiRender: ViewportSize: '{0}, {1}", m_ViewportSize.x, m_ViewportSize.y);
 
      // Gizmos
         Entity selectedEntity = m_SceneHierarchyPanel.GetSelectedEntity();
@@ -374,7 +376,7 @@ namespace Povox {
 
         ImGui::End(); //Dockspace end
 
-		PX_CORE_TRACE("EditorLayer::OnImguiRender Finished!");
+		//PX_TRACE("EditorLayer::OnImguiRender Finished!");
     }
 
     void EditorLayer::OnEvent(Event& e)

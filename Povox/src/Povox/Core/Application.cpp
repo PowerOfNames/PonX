@@ -19,6 +19,8 @@ namespace Povox {
 		PX_PROFILE_FUNCTION();
 
 
+		PX_CORE_WARN("Application::Application: Starting initialization...");
+
 		PX_CORE_ASSERT(!s_Instance, "Application already exists!");
 		s_Instance = this;
 
@@ -33,24 +35,44 @@ namespace Povox {
 
 		m_Window = Window::Create();
 		m_Window->SetEventCallback(PX_BIND_EVENT_FN(Application::OnEvent));
+		PX_CORE_ASSERT(m_Window, "Failed to create Window!");
+
+		PX_CORE_INFO("Initializing Renderer...");
 
 		RendererSpecification rendererSpecs{};
 		rendererSpecs.MaxSceneObjects = 20000;
 		rendererSpecs.MaxFramesInFlight = specs.MaxFramesInFlight;
 		Renderer::Init(rendererSpecs);
 
+		PX_CORE_INFO("Completed Renderer initialization.");
+		PX_CORE_INFO("Pushing (Im)GUI Layer...");
+
 		//The ImGui stuff should not be in the application -> GUI Renderer should take care of this stuff
 		switch (RendererAPI::GetAPI())
 		{
+			case RendererAPI::API::NONE:
+			{
+				PX_CORE_WARN("RendererAPI:None -> No GUI Layer can be pushed!");
+				PX_CORE_ASSERT(true, "Failed to push GUI Layer -> No API selected.")
+			}
 			case RendererAPI::API::Vulkan:
 			{
+				PX_CORE_INFO("Selected API: Vulkan -> Pushing ImGuiVulkanLayer...");
+				
 				m_ImGuiVulkanLayer = new ImGuiVulkanLayer();
+				PX_CORE_ASSERT(m_ImGuiVulkanLayer, "Failed to create ImGuiVulkanLayer");
 				PushOverlay(m_ImGuiVulkanLayer);
+
+				PX_CORE_INFO("Selected API: Vulkan -> Pushed ImGuiVulkanLayer.");
 				break;
 			}
 			default:
 			PX_CORE_ASSERT(false, "This API is not supported!");
 		}		
+		
+
+		PX_CORE_INFO("Pushed (Im)GUI Layer.");
+		PX_CORE_WARN("Application::Application: Completed initialization.");
 	}
 
 
@@ -59,6 +81,7 @@ namespace Povox {
 		PX_PROFILE_FUNCTION();
 
 
+		PX_CORE_INFO("Application::Run: Starting Main-Loop...");
 		while (m_Running)
 		{
 			PX_PROFILE_SCOPE("Application Run-Loop");
@@ -99,13 +122,14 @@ namespace Povox {
 			
 			m_Window->OnUpdate();
 		}
+		PX_CORE_INFO("Application::Run: Stopped Main-Loop.");
 	}
 
 	Application::~Application() 
 	{
 		PX_PROFILE_FUNCTION();
 
-
+		PX_CORE_INFO("Application::~Application: Starting shutdown...");
 		/* Shutdown routine:
 		 * end last rendering
 		 * shutdown the RendererAPI -> automatic
@@ -113,8 +137,14 @@ namespace Povox {
 		 * shutdown window
 		 * close app
 		 */
-
+		delete m_ImGuiVulkanLayer;
+		
+		PX_CORE_INFO("Starting Renderer shutdown...");
+		
 		Renderer::Shutdown();
+
+		PX_CORE_INFO("Completed Renderer shutdown.");
+		PX_CORE_INFO("Application::~Application: Completed shutdown...");
 	}
 
 	void Application::PushLayer(Layer* layer)
@@ -122,8 +152,16 @@ namespace Povox {
 		PX_PROFILE_FUNCTION();
 
 
+		PX_CORE_INFO("Application::PushLayer: Pushing '{0}' on layerStack...", layer->GetDebugName());
+		
 		m_Layerstack.PushLayer(layer);
+		
+		PX_CORE_INFO("Application::PushLayer: Performing OnAttach of '{0}'...", layer->GetDebugName());		
+		
 		layer->OnAttach();
+
+		PX_CORE_INFO("Application::PushLayer: Attached '{0}'.", layer->GetDebugName());
+		PX_CORE_INFO("Application::PushLayer: Pushed '{0}'.", layer->GetDebugName());
 	}
 
 	void Application::PushOverlay(Layer* overlay)
@@ -131,8 +169,16 @@ namespace Povox {
 		PX_PROFILE_FUNCTION();
 
 
+		PX_CORE_INFO("Application::PushOverlay: Pushing '{0}' on layerStack...", overlay->GetDebugName());
+
 		m_Layerstack.PushOverlay(overlay);
+
+		PX_CORE_INFO("Application::PushOverlay: Performing OnAttach of '{0}'...", overlay->GetDebugName());
+
 		overlay->OnAttach();
+
+		PX_CORE_INFO("Application::PushOverlay: Attached '{0}'.", overlay->GetDebugName());
+		PX_CORE_INFO("Application::PushOverlay: Pushed '{0}'.", overlay->GetDebugName());
 	}
 
 	void Application::OnEvent(Event& e)

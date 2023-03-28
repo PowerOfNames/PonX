@@ -39,7 +39,8 @@ namespace Povox {
 		m_Data.Width = props.Width;
 		m_Data.Height = props.Height;
 
-		PX_CORE_INFO("Creating window '{0}' ({1}, {2})", m_Data.Title, m_Data.Width, m_Data.Height);
+		PX_CORE_INFO("WindowsWindow::Init: Starting initialization...");
+		PX_CORE_INFO("Window name: '{0}'; Initial size: ({1}, {2})", m_Data.Title, m_Data.Width, m_Data.Height);
 
 		if (s_GLFWwindowCount == 0)
 		{
@@ -62,8 +63,11 @@ namespace Povox {
 			}
 		}
 
+		PX_CORE_INFO("Creating glfwWindow handle...");
 		m_Window = glfwCreateWindow(static_cast<int>(props.Width), static_cast<int>(props.Height), props.Title.c_str(), nullptr, nullptr);
-		++s_GLFWwindowCount;		
+		++s_GLFWwindowCount;	
+		PX_CORE_INFO("Window count: {0}", s_GLFWwindowCount);
+		PX_CORE_INFO("Completed glfwWindow handle creation.");
 		
 		//Create Context with vkinstance 
 		m_Context = GraphicsContext::Create();
@@ -197,6 +201,8 @@ namespace Povox {
 				MouseMovedEvent event((float)xPos, (float)yPos);
 				data.EventCallback(event);
 			});
+
+		PX_CORE_INFO("WindowsWindow::Init: Completed initialization.");
 	}
 
 	void WindowsWindow::Shutdown()

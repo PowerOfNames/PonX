@@ -49,7 +49,7 @@ namespace Povox {
 		VkFormat m_SwapchainImageFormat = VK_FORMAT_UNDEFINED;
 
 		VkDescriptorPool m_DescriptorPool = VK_NULL_HANDLE;
-		VkDescriptorSetLayout m_DescriptorSetLayout;
+		VkDescriptorSetLayout m_DescriptorSetLayout = VK_NULL_HANDLE;
 
 		uint8_t m_MaxFramesInFlight = 0;
 		std::vector<VulkanImGui::FrameData> m_FrameData ;

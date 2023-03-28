@@ -36,28 +36,36 @@ namespace Povox {
 		PX_PROFILE_FUNCTION();
 
 
-		PX_CORE_TRACE("VulkanContext: Startet Initialization!");
-
-		// Device picking and creation -> happens automatically
+		PX_CORE_INFO("VulkanContext: Starting initialization...");
+		PX_CORE_INFO("Creating VulkanDevice...");
+		
+		//TODO: Make Queue selection more verbose; add crude support for Engine demands
 		s_Device = CreateRef<VulkanDevice>();
 		s_Device->PickPhysicalDevice(m_DeviceExtensions);
 		s_Device->CreateLogicalDevice(m_DeviceExtensions, m_ValidationLayers);
-		PX_CORE_WARN("VulkanContext: Finished Core!");
-
+		
+		PX_CORE_INFO("Completed VulkanDevice creation.");
+		PX_CORE_INFO("Creating VmaAllocator...");
+		
 		VmaAllocatorCreateInfo vmaAllocatorInfo = {};
 		vmaAllocatorInfo.physicalDevice = s_Device->GetPhysicalDevice();
 		vmaAllocatorInfo.device = s_Device->GetVulkanDevice();
 		vmaAllocatorInfo.instance = s_Instance;
 		vmaCreateAllocator(&vmaAllocatorInfo, &s_Allocator);
-		PX_CORE_WARN("VulkanContext: Finished MemAllocator!");
-
+		
+		PX_CORE_INFO("Completed VmaAllocator creation.");
+		PX_CORE_INFO("Creating DescriptorAllocator and DescriptorLayoutCache...");
+		
 		s_DescriptorAllocator = CreateRef<VulkanDescriptorAllocator>();
+		PX_CORE_ASSERT(s_DescriptorAllocator, "Failed to create DescriptorAllocator!");			
 		s_DescriptorLayoutCache = CreateRef<VulkanDescriptorLayoutCache>();
-		PX_CORE_TRACE("VulkanContext: created DecriptorAllocator and Layout Cache");
+		PX_CORE_ASSERT(s_DescriptorLayoutCache, "Failed to create DescriptorLayoutCache!");			
+		
+		PX_CORE_INFO("Completed DescriptorAllocator and DescriptorLayoutCache creation.");
 
 		s_ResourceFreeQueue.resize(Application::Get()->GetSpecification().MaxFramesInFlight);
 
-		PX_CORE_TRACE("VulkanContext: Finished Initialization!");
+		PX_CORE_INFO("VulkanContext: Completed initialization.");
 	}
 
 	void VulkanContext::Shutdown()
@@ -74,7 +82,8 @@ namespace Povox {
 		
 		s_DescriptorAllocator->Cleanup();		
 		s_DescriptorLayoutCache->Cleanup();
-		
+
+		//TODO: Destroy Devices
 
 		if (PX_ENABLE_VK_VALIDATION_LAYERS)
 			DestroyDebugUtilsMessengerEXT(s_Instance, m_DebugMessenger, nullptr);
@@ -84,6 +93,8 @@ namespace Povox {
 
 	void VulkanContext::CreateInstance()
 	{
+		PX_CORE_INFO("VulkanContext::CreateInstance: Starting...");
+
 		if (PX_ENABLE_VK_VALIDATION_LAYERS && !CheckValidationLayerSupport())
 		{
 			PX_CORE_WARN("Validation layers requested, but not available!");
@@ -122,6 +133,7 @@ namespace Povox {
 		createInfo.ppEnabledExtensionNames = extensions.data();
 
 		PX_CORE_VK_ASSERT(vkCreateInstance(&createInfo, nullptr, &s_Instance), VK_SUCCESS, "Failed to create Vulkan Instance");
+		PX_CORE_INFO("VulkanContext::CreateInstance: Completed.");
 	}
 
 	// Extensions and layers
@@ -210,7 +222,11 @@ namespace Povox {
 	{
 		createInfo = {};
 		createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
-		createInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+		VkDebugUtilsMessageSeverityFlagsEXT messageSeverityFlags = VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+#ifdef PX_DEBUG
+		messageSeverityFlags |= VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT;
+#endif
+		createInfo.messageSeverity = messageSeverityFlags;
 		createInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT | VK_DEBUG_REPORT_ERROR_BIT_EXT;
 		createInfo.pfnUserCallback = DebugCallback;
 	}

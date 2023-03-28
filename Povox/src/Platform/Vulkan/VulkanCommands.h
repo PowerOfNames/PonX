@@ -9,9 +9,17 @@
 
 namespace Povox {
 
+	struct CommandControlState
+	{
+		bool IsInitialized = false;
+	};
+
 	class VulkanCommandControl
 	{
 	public:
+		VulkanCommandControl() = default;
+		~VulkanCommandControl() = default;
+
 		enum class SubmitType
 		{
 			SUBMIT_TYPE_UNDEFINED,
@@ -21,10 +29,14 @@ namespace Povox {
 
 		static void ImmidiateSubmit(SubmitType submitType, std::function<void(VkCommandBuffer cmd)>&& function);
 
-		inline const Ref<UploadContext> GetUploadContext() { return m_UploadContext; }
+		inline const Ref<UploadContext> GetUploadContext() { return s_UploadContext; }
 		Ref<UploadContext> CreateUploadContext();
 
+		static inline CommandControlState& GetState() { return s_CommandControlState; }
+		static inline bool IsInitialized() { return s_CommandControlState.IsInitialized; }
+
 	private:
-		static Ref<UploadContext> m_UploadContext;
+		static CommandControlState s_CommandControlState;
+		static Ref<UploadContext> s_UploadContext;
 	};
 }

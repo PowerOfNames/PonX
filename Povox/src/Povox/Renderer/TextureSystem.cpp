@@ -22,20 +22,31 @@ namespace Povox {
 	{
 		PX_PROFILE_FUNCTION();
 
+
+		PX_CORE_INFO("TextureSystem::Init: Initializing...");
+
 		m_SystemState.Config.TexturesPath = "assets/textures/";
 		m_SystemState.RegisteredTextures.reserve(m_SystemState.Config.MaxTextures);
 
 		CreateDefaultTexture();
+
+		PX_CORE_INFO("TextureSystem::Init: Initialization complete.");
 	}
 
 
 	void TextureSystem::Shutdown()
 	{
+		PX_CORE_INFO("TextureSystem::Shutdown: Starting...");
+		
+		
 		// TODO: Clean all textures upon shutdown by calling destroy texture? Or let smart pointers handle the cleanup -> clear the pixel array(s)
 		/*for (auto& texture : s_SystemState.m_RegisteredTextures)
 		{
 			texture.second->Destroy();
 		}*/
+
+
+		PX_CORE_INFO("TextureSystem::Shutdown: Completed.");
 	}
 
 	// TODO: Alternatively, use the whole path here instead of name in case textures exist in multiple files
@@ -50,7 +61,6 @@ namespace Povox {
 		texture = Texture2D::Create(m_SystemState.Config.TexturesPath + name + ".png");
 		if (!texture)
 		{
-			PX_CORE_WARN("TextureSystem::RegisterTexture: Failed to register texture '{0}'. Returning DefaultTexture if set!", name);
 			return m_SystemState.DefaultTexture != nullptr ? m_SystemState.DefaultTexture : nullptr;
 		}
 		m_SystemState.RegisteredTextures[name] = texture;
@@ -77,8 +87,7 @@ namespace Povox {
 		if (RegisteredTexturesContains(name))
 			return m_SystemState.RegisteredTextures[name];
 
-		PX_CORE_WARN("TextureSystem::GetTexture: Texture '{0}' not found. Attempting to register from '{1}{0}.png'", name, m_SystemState.Config.TexturesPath);
-		
+		PX_CORE_WARN("TextureSystem::GetTexture: Texture '{0}' not found. Attempting to register from '{1}{0}.png'", name, m_SystemState.Config.TexturesPath);		
 		return RegisterTexture(name);
 	}
 
@@ -94,7 +103,6 @@ namespace Povox {
 		PX_CORE_ASSERT(texture, "Tried to bind unknown texture! Register Texture before please!");
 		for (uint32_t i = 0; i < m_SystemState.NextTextureSlot; i++)
 		{
-			PX_CORE_WARN("TextureSystem::BindTexture: i = {0}, nextSlot = {1}", i, m_SystemState.NextTextureSlot);
 			if (*texture.get() == *m_SystemState.ActiveTextures[i].get())
 			{
 				m_SystemState.ActiveTexturesCounter[i]++;

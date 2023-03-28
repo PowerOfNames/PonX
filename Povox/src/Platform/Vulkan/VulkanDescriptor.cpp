@@ -7,7 +7,6 @@
 
 namespace Povox
 {
-
 	VulkanDescriptorAllocator::~VulkanDescriptorAllocator()
 	{
 		Cleanup();

@@ -15,17 +15,45 @@ namespace Povox {
 		PX_PROFILE_FUNCTION();
 
 
-		//Initialize main API
+		PX_CORE_INFO("Renderer::Init: Starting initialization...");
+		PX_CORE_INFO("Creating ShaderLibrary...");
+		
 		s_Data.ShaderLibrary = CreateRef<ShaderLibrary>();
 		s_Data.ShaderLibrary->Add("TextureShader", Shader::Create("assets/shaders/Texture.glsl"));
 		s_Data.ShaderLibrary->Add("FlatColorShader", Shader::Create("assets/shaders/FlatColor.glsl"));
 		
+		PX_CORE_INFO("Completed ShaderLibrary creation.");
+		PX_CORE_INFO("Creating RendererBackend...");
+		
+		switch (Renderer::GetAPI())
+		{
+			case RendererAPI::API::NONE:
+			{	
+				PX_CORE_ERROR("RendererAPI:None -> No RendererAPI selection!");
+				PX_CORE_ASSERT(true, "RendererAPI has not been set yes!");
+			}
+			case RendererAPI::API::Vulkan:
+			{
+				PX_CORE_INFO("RendererBackend creation: Selected API: Vulkan -> Creating VulkanRenderer.");
+				s_RendererAPI = CreateScope<VulkanRenderer>(specs);
+			}
+		}
+		
+		PX_CORE_INFO("Completed RendererBackend creation.");
+		PX_CORE_INFO("Creating TextureSystem...");
+
+		//TextureSystem Init depends on UploadContext, which is created during CommandControl init during VulkanRenderer::Init()
 		s_Data.TextureSystem = CreateRef<TextureSystem>();
 
-		s_RendererAPI = CreateScope<VulkanRenderer>(specs);
+		PX_CORE_INFO("Completed TextureSystem creation.");
+		PX_CORE_INFO("Initializing SubRenderers...");
 
 		// Initialize the subrenderers (2D, Voxel, PixelSimulation, RayCasting, Scene etc.)
 		Renderer2D::Init();
+
+
+		PX_CORE_INFO("Completed SubRenderer initializations.");
+		PX_CORE_INFO("Renderer::Init: Completed initialization.");
 	}
 
 	void Renderer::Shutdown()
@@ -33,10 +61,28 @@ namespace Povox {
 		PX_PROFILE_FUNCTION();
 
 
-		//clear libs, shutdown the renderers
+		PX_CORE_INFO("Renderer::Shutdown: Starting...");
+		PX_CORE_INFO("Starting SubRenderers shutdown...");
+
 		Renderer2D::Shutdown();
 
+		PX_CORE_INFO("Completed SubRenderers shutdown.");
+		PX_CORE_INFO("Starting TextureSystem shutdown...");
 
+		s_Data.TextureSystem->Shutdown();
+
+		PX_CORE_INFO("Completed TextureSystem shutdown.");
+		PX_CORE_INFO("Starting RendererBackend shutdown...");
+
+		s_RendererAPI->Shutdown();
+
+		PX_CORE_INFO("Completed RendererBackend shutdown.");
+		PX_CORE_INFO("Starting ShaderLibrary shutdown...");
+
+		s_Data.ShaderLibrary->Shutdown();
+
+		PX_CORE_INFO("Completed ShaderLibrary shutdown.");
+		PX_CORE_INFO("Renderer::Shutdown: Completed.");
 	}
 
 	bool Renderer::BeginFrame()

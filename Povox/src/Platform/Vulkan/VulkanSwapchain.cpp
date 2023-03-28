@@ -14,18 +14,24 @@ namespace Povox {
 
 	VulkanSwapchain::VulkanSwapchain(GLFWwindow* windowHandle)
 	{
+		PX_CORE_INFO("VulkanSwapchain::VulkanSwapchain: Creating...");
+
 		PX_CORE_ASSERT(windowHandle, "Window handle is null");
 		m_WindowHandle = windowHandle;
 
 
 		//TODO: Potetialy move somewhere else BUT window handle is needed...
 		PX_CORE_VK_ASSERT(glfwCreateWindowSurface(VulkanContext::GetInstance(), m_WindowHandle, nullptr, &s_Surface), VK_SUCCESS, "Failed to create window surface!");
-		PX_CORE_TRACE("VulkanSurface created!");
+		PX_CORE_INFO("VulkanSurface created.");
+		
+		PX_CORE_INFO("VulkanSwapchain::VulkanSwapchain: Complete.");
 	}
 
 	void VulkanSwapchain::Init(uint32_t width, uint32_t height)
 	{
+		PX_CORE_INFO("VulkanSwapchain::Init: Starting initialization...");
 		Recreate(width, height);
+		PX_CORE_INFO("VulkanSwapchain::Init: Completed initialization.");
 	}
 
 	void VulkanSwapchain::Recreate(uint32_t width, uint32_t height)
@@ -33,7 +39,7 @@ namespace Povox {
 		PX_PROFILE_FUNCTION();
 
 
-		PX_CORE_WARN("Started SwapchainRecreation");
+		PX_CORE_INFO("VulkanSwapchain::Recreate: Starting...");
 		m_Properties.Width = width;
 		m_Properties.Height = height;
 
@@ -283,8 +289,9 @@ namespace Povox {
 			PX_CORE_VK_ASSERT(vkCreateFramebuffer(device, &fbInfo, nullptr, &m_Framebuffers[i]), VK_SUCCESS, "Failed to create framebuffer!");
 		}
 
-		PX_CORE_INFO("Finished Swapchain creation with extent: '( {0} | {1} )', '{2}' Images and '{3}' Frames in Flight!", width, height, m_Images.size(), maxFramesInFlight);
-	}
+		PX_CORE_INFO("Swapchain (re)creation with: '({0}|{1})', '{2}' Images and '{3}' FramesInFlight!", width, height, m_Images.size(), maxFramesInFlight);
+		PX_CORE_INFO("VulkanSwapchain::Recreate: Completed.");
+		}
 
 	void VulkanSwapchain::Cleanup()
 	{

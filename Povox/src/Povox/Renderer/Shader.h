@@ -39,6 +39,8 @@ namespace Povox {
 		ShaderLibrary();
 		~ShaderLibrary() = default;
 
+		void Shutdown();
+
 		void Add(const std::string& name, const Ref<Shader>& shader);
 		void Add(const Ref<Shader>& shader);
 

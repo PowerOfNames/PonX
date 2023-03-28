@@ -9,6 +9,22 @@
 namespace Povox {
 
 	namespace VulkanUtils {
+		static VkImageAspectFlags GetAspectFlagsFromUsages(ImageUsages usages)
+		{
+			VkImageAspectFlags mask = 0;
+			for (auto& usage : usages.Usages)
+			{
+				switch (usage)
+				{
+				case ImageUsage::COLOR_ATTACHMENT:
+				case ImageUsage::SAMPLED:			mask |= VK_IMAGE_ASPECT_COLOR_BIT; break;
+				case ImageUsage::DEPTH_ATTACHMENT:	mask |= VK_IMAGE_ASPECT_DEPTH_BIT; break;
+				default: PX_CORE_ASSERT(true, "Usage not covered");
+				}
+			}
+			return mask;
+		}
+
 		static VkFormat GetVulkanImageFormat(ImageFormat format)
 		{
 			switch (format)
@@ -104,6 +120,9 @@ namespace Povox {
 
 		static AllocatedImage CreateAllocation(VkExtent3D extent, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VmaMemoryUsage memUsage, VkImageLayout initialLayout = VK_IMAGE_LAYOUT_UNDEFINED);
 
+		void TransitionImageLayout(VkImageLayout initialLayout, VkImageLayout finalLayout, VkAccessFlags srcMask, VkAccessFlags dstMask, 
+			VkPipelineStageFlags srcStage, VkPipelineStageFlags dstStage);
+
 		inline VkImageView GetImageView() const { return m_View; }
 		inline VkSampler GetSampler() const { return m_Sampler; }
 		inline VkImage GetImage() { return m_Allocation.Image; }
@@ -147,6 +166,7 @@ namespace Povox {
 		virtual uint64_t GetRendererID() const override { return m_RID; }
 
 		virtual bool operator==(const Texture& other) const override { return m_RID == ((VulkanTexture2D&)other).m_RID; }
+
 	private:
 		RendererUID m_RID;
 

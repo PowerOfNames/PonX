@@ -63,12 +63,27 @@ namespace Povox {
 				{
 					imageSpec.Usages = { ImageUsage::DEPTH_ATTACHMENT };
 					m_DepthAttachment = Image2D::Create(imageSpec);
+					std::dynamic_pointer_cast<VulkanImage2D>(m_DepthAttachment)->TransitionImageLayout(
+						VK_IMAGE_LAYOUT_UNDEFINED,
+						VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
+						0,
+						VK_ACCESS_MEMORY_READ_BIT,
+						VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+						VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT);
 					PX_CORE_TRACE("FB: Creating DepthAttachment");
 				}
 				else
 				{
 					imageSpec.Usages = { ImageUsage::COLOR_ATTACHMENT, ImageUsage::COPY_SRC };
-					m_ColorAttachments.emplace_back(Image2D::Create(imageSpec));
+					Ref<Image2D> colorImage = Image2D::Create(imageSpec);
+					std::dynamic_pointer_cast<VulkanImage2D>(colorImage)->TransitionImageLayout(
+						VK_IMAGE_LAYOUT_UNDEFINED,
+						VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+						0,
+						VK_ACCESS_MEMORY_READ_BIT,
+						VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+						VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT);
+					m_ColorAttachments.emplace_back(colorImage);
 					PX_CORE_TRACE("FB: Creating ColorAttachment");
 				}
 			}

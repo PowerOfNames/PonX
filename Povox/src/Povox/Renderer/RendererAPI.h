@@ -18,10 +18,20 @@ namespace Povox {
 		{
 			NONE = 0, Vulkan = 1
 		};
-
+		static const std::string APIAsString(API api)
+		{
+			std::string apiName;
+			switch (api)
+			{
+			case API::NONE : return "None";
+			case API::Vulkan: return "Vulkan";
+			}
+			PX_CORE_ASSERT(true, "No valid API selected!");
+		}
 	public:
 		virtual ~RendererAPI() = default;
 
+		virtual void Shutdown() = 0;
 
 		virtual bool BeginFrame() = 0;
 		//virtual void Draw(const std::vector<Renderable>& drawList) = 0;
@@ -59,7 +69,7 @@ namespace Povox {
 		virtual void* GetGUIDescriptorSet(Ref<Image2D> image) = 0;
 
 
-		inline static void SetAPI(API api) { s_API = api; std::cout << "Changed API to " << (int)s_API << std::endl; }
+		inline static void SetAPI(API api) { s_API = api; std::cout << "Changed API to " << RendererAPI::APIAsString(s_API) << std::endl; }
 		inline static RendererAPI::API GetAPI() { return s_API; }
 
 	private:

@@ -58,7 +58,8 @@ namespace Povox {
 		PX_PROFILE_FUNCTION();
 
 
-		PX_CORE_TRACE("Starting Renderer2D::Init!");
+		PX_CORE_TRACE("Renderer2D::Init: Starting...");
+
 		BufferSpecification vertexBufferSpecs{};
 		vertexBufferSpecs.Usage = BufferUsage::VERTEX_BUFFER;
 		vertexBufferSpecs.ElementCount = s_QuadData.MaxVertices;
@@ -123,14 +124,15 @@ namespace Povox {
 
 		//s_QuadData.TextureShader->Bind();
 
-		PX_CORE_TRACE("Finished Renderer2D::Init!");
+
+		PX_CORE_TRACE("Renderer2D::Init: Completed.");
 	}
 
 	void Renderer2D::Shutdown()
 	{
 		PX_PROFILE_FUNCTION();
 
-
+		//TODO: Investigate shutdown read access error here!
 		delete[] s_QuadData.QuadVertexBufferBase;
 	}
 
@@ -179,7 +181,7 @@ namespace Povox {
 		uint32_t dataSize = (uint32_t)((uint8_t*)s_QuadData.QuadVertexBufferPtr - (uint8_t*)s_QuadData.QuadVertexBufferBase);
 		//s_QuadData.QuadVertexBuffer->SetData(s_QuadData.QuadVertexBufferBase, dataSize);
 
-		//Draw must use the nextTextureSlot to know until which texture it needs to update the descriptor sets
+		//TODO: Draw must use the nextTextureSlot to know until which texture it needs to update the descriptor sets
 		//Renderer::Draw();
 
 		Renderer::GetTextureSystem()->ResetActiveTextures();
@@ -312,7 +314,6 @@ namespace Povox {
 		std::vector<VertexData> vertexData;
 		vertexData.resize(4);
 
-		UUID id;
 		for (uint32_t i = 0; i < 4; i++)
 		{
 			vertexData[i].Position = transform * s_QuadData.QuadVertexPositions[i];
@@ -320,7 +321,7 @@ namespace Povox {
 			vertexData[i].TexCoord = textureCoords[i];
 			vertexData[i].TexID = 0.0f;
 			vertexData[i].TilingFactor = 1.0f;
-			vertexData[i].EntityID = id;
+			vertexData[i].EntityID = 2;
 		}
 		BufferSpecification vertexBufferSpecs{};
 		vertexBufferSpecs.Usage = BufferUsage::VERTEX_BUFFER;
@@ -385,7 +386,7 @@ namespace Povox {
 			vertexData[i].TexCoord = textureCoords[i];
 			vertexData[i].TexID = 0.0f;
 			vertexData[i].TilingFactor = 1.0f;
-			vertexData[i].EntityID = 1;
+			vertexData[i].EntityID = 3;
 		}
 		BufferSpecification vertexBufferSpecs{};
 		vertexBufferSpecs.Usage = BufferUsage::VERTEX_BUFFER;

@@ -53,7 +53,7 @@ namespace Povox {
 		~VulkanRenderer();
 
 		void Init();
-		void Shutdown();
+		virtual void Shutdown();
 
 		virtual inline uint32_t GetCurrentFrameIndex() const override { return m_CurrentFrameIndex; }
 		

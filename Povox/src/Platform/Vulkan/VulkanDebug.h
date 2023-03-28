@@ -1,19 +1,14 @@
 #pragma once
 
 #include <vulkan/vulkan.h>
-#define PX_VK_VALIDATION_ALLOWED true
 #ifdef PX_DEBUG
-	#if PX_VK_VALIDATION_ALLOWED
-		#define PX_ENABLE_VK_VALIDATION_LAYERS true
-	#else
-		#define PX_ENABLE_VK_VALIDATION_LAYERS false
-	#endif //PX_VK_VALIDATION_ALLOWED
+	#define PX_ENABLE_VK_VALIDATION_LAYERS true
 	#ifdef PX_ENABLE_ASSERT
 		#define PX_ENABLE_VK_ASSERT
 	#endif //PX_ENABLE_ASSERT
+#else 
+	#define PX_ENABLE_VK_VALIDATION_LAYERS false
 #endif //PX_DEBUG
-
-	
 
 
 #ifdef PX_ENABLE_VK_ASSERT
