@@ -29,7 +29,7 @@ namespace Povox {
 		InitRenderPass();
 		InitCommandBuffers();
 		InitFrameBuffers(swapchainViews, width, height);
-		PX_CORE_ERROR("VulkanImGui::Init with width: '{0}' and height '{1}'", width, height);
+		PX_CORE_INFO("VulkanImGui::Init with width: '{0}' and height '{1}'", width, height);
 
 		VkDescriptorPoolSize pool_sizes[] =
 		{

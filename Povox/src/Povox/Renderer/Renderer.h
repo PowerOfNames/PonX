@@ -6,6 +6,7 @@
 #include "Povox/Renderer/RendererAPI.h"
 #include "Povox/Renderer/RenderPass.h"
 #include "Povox/Renderer/Shader.h"
+#include "Povox/Renderer/TextureSystem.h"
 
 
 
@@ -21,6 +22,7 @@ namespace Povox {
 	struct RendererData
 	{
 		Ref<ShaderLibrary> ShaderLibrary;
+		Ref<TextureSystem> TextureSystem;
 	};
 
 	struct CameraUniform
@@ -80,7 +82,8 @@ namespace Povox {
 		static void* GetGUIDescriptorSet(Ref<Image2D> image);
 
 		inline static RendererAPI::API GetAPI() { return RendererAPI::GetAPI(); }
-		inline static Ref<ShaderLibrary>& GetShaderLibrary() { return s_Data.ShaderLibrary; }
+		inline static Ref<ShaderLibrary> GetShaderLibrary() { return s_Data.ShaderLibrary; }
+		inline static Ref<TextureSystem> GetTextureSystem() { return s_Data.TextureSystem; }
 
 		static void CreateAPI(const RendererSpecification& specs);
 

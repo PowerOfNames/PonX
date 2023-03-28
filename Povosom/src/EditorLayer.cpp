@@ -26,8 +26,7 @@ namespace Povox {
 
 		m_ViewportSize = { Application::Get()->GetWindow().GetWidth(), Application::Get()->GetWindow().GetHeight() };		
 		
-		m_LogoTexture = Texture2D::Create("assets/textures/logo.png");
-
+		m_LogoTexture = std::dynamic_pointer_cast<Texture2D>(Renderer::GetTextureSystem()->GetTexture("DefaultPXTexture"));
 
 
 		PX_CORE_TRACE("Started EditorLayer::OnAttach");

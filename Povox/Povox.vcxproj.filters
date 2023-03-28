@@ -1608,6 +1608,7 @@
     <ClInclude Include="src\Povox\ImGui\my_imgui_config.h" />
     <ClInclude Include="src\Povox\Core\UUID.h" />
     <ClInclude Include="src\Povox\Renderer\RendererUID.h" />
+    <ClInclude Include="src\Povox\Renderer\TextureSystem.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Platform\OpenGL\OpenGLContext.cpp">
@@ -1870,5 +1871,6 @@
     </ClCompile>
     <ClCompile Include="src\Povox\Core\UUID.cpp" />
     <ClCompile Include="src\Povox\Renderer\RendererUID.cpp" />
+    <ClCompile Include="src\Povox\Renderer\TextureSystem.cpp" />
   </ItemGroup>
 </Project>

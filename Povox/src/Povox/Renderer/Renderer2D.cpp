@@ -113,7 +113,8 @@ namespace Povox {
 			samplers[i] = i;
 		
 		s_QuadData.TextureShader = Renderer::GetShaderLibrary()->Get("TextureShader");
-		s_QuadData.TextureSlots[0] = s_QuadData.WhiteTexture;
+		Renderer::GetTextureSystem()->RegisterTexture("WhiteTexture", s_QuadData.WhiteTexture);
+		Renderer::GetTextureSystem()->BindTexture(s_QuadData.WhiteTexture);
 
 		s_QuadData.QuadVertexPositions[0] = { -0.5f, -0.5f, 0.0f, 1.0f };
 		s_QuadData.QuadVertexPositions[1] = { 0.5f, -0.5f, 0.0f, 1.0f };
@@ -178,11 +179,10 @@ namespace Povox {
 		uint32_t dataSize = (uint32_t)((uint8_t*)s_QuadData.QuadVertexBufferPtr - (uint8_t*)s_QuadData.QuadVertexBufferBase);
 		//s_QuadData.QuadVertexBuffer->SetData(s_QuadData.QuadVertexBufferBase, dataSize);
 
-
-		//for (uint32_t i = 0; i < s_QuadData.TextureSlotIndex; i++)
-		//	s_QuadData.TextureSlots[i]->Bind(i);
-
+		//Draw must use the nextTextureSlot to know until which texture it needs to update the descriptor sets
 		//Renderer::Draw();
+
+		Renderer::GetTextureSystem()->ResetActiveTextures();
 		s_QuadData.Stats.DrawCalls++;
 	}
 
@@ -294,10 +294,25 @@ namespace Povox {
 	void Renderer2D::DrawQuad(const glm::mat4& transform, const Ref<Texture2D>& texture, float tilingFactor, const glm::vec4& tintingColor, int entityID)
 	{
 		constexpr glm::vec2 textureCoords[4] = { {0.0f, 0.0f}, {1.0f, 0.0f}, {1.0f, 1.0f}, {0.0f, 1.0f} };
+		
+		if (s_QuadData.QuadIndexCount >= Renderer2DData::MaxIndices)
+			NextBatch();
+
+
 		Renderable renderable;
+
+		float textureIndex = 0.0f;
+
+		//Will return the first slot possible if allSlotsFull is true
+		textureIndex = Renderer::GetTextureSystem()->BindTexture(texture);
+		if (textureIndex >= s_QuadData.MaxTextureSlots)
+			NextBatch();
+		textureIndex = Renderer::GetTextureSystem()->BindTexture(texture);
 
 		std::vector<VertexData> vertexData;
 		vertexData.resize(4);
+
+		UUID id;
 		for (uint32_t i = 0; i < 4; i++)
 		{
 			vertexData[i].Position = transform * s_QuadData.QuadVertexPositions[i];
@@ -305,7 +320,7 @@ namespace Povox {
 			vertexData[i].TexCoord = textureCoords[i];
 			vertexData[i].TexID = 0.0f;
 			vertexData[i].TilingFactor = 1.0f;
-			vertexData[i].EntityID = 1;
+			vertexData[i].EntityID = id;
 		}
 		BufferSpecification vertexBufferSpecs{};
 		vertexBufferSpecs.Usage = BufferUsage::VERTEX_BUFFER;
@@ -334,43 +349,9 @@ namespace Povox {
 		s_QuadData.RenderedObjects.push_back(renderable);
 		Renderer::DrawRenderable(renderable);
 		
-		//if (s_QuadData.QuadIndexCount >= Renderer2DData::MaxIndices)
-		//	NextBatch();
-
-		//float textureIndex = 0.0f;
-		//for (uint32_t i = 1; i < s_QuadData.TextureSlotIndex; i++)
-		//{
-		//	if (*s_QuadData.TextureSlots[i].get() == *texture.get()) // s_QuadData.TextureSlots[i] == texture -> compares the shared ptr, so .get() gives the ptr and * dereferences is to the fnc uses the boolean == operator defined in the openGLTexture2D class
-		//	{
-		//		textureIndex = (float)i;
-		//		break;
-		//	}
-
-		//}
-
-		//if (textureIndex == 0.0f)
-		//{
-		//	if (s_QuadData.TextureSlotIndex >= Renderer2DData::MaxTextureSlots)
-		//		NextBatch();
-
-		//	textureIndex = (float)s_QuadData.TextureSlotIndex;
-		//	s_QuadData.TextureSlots[s_QuadData.TextureSlotIndex] = texture;
-		//	s_QuadData.TextureSlotIndex++;
-		//}
-
-		//for (uint32_t i = 0; i < 4; i++)
-		//{
-		//	s_QuadData.QuadVertexBufferPtr->Position = transform * s_QuadData.QuadVertexPositions[i];
-		//	s_QuadData.QuadVertexBufferPtr->Color = tintingColor;
-		//	s_QuadData.QuadVertexBufferPtr->TexCoord = textureCoords[i];
-		//	s_QuadData.QuadVertexBufferPtr->TexID = textureIndex;
-		//	s_QuadData.QuadVertexBufferPtr->TilingFactor = tilingFactor;
-		//	s_QuadData.QuadVertexBufferPtr->EntityID = entityID;
-		//	s_QuadData.QuadVertexBufferPtr++;
-		//}
-		//s_QuadData.QuadIndexCount += 6;
-
-		//s_QuadData.Stats.QuadCount++;
+		
+		s_QuadData.QuadIndexCount += 6;
+		s_QuadData.Stats.QuadCount++;
 	}
 
 // Quads Subtexture

@@ -20,16 +20,12 @@ namespace Povox {
 		s_Data.ShaderLibrary->Add("TextureShader", Shader::Create("assets/shaders/Texture.glsl"));
 		s_Data.ShaderLibrary->Add("FlatColorShader", Shader::Create("assets/shaders/FlatColor.glsl"));
 		
+		s_Data.TextureSystem = CreateRef<TextureSystem>();
+
 		s_RendererAPI = CreateScope<VulkanRenderer>(specs);
 
 		// Initialize the subrenderers (2D, Voxel, PixelSimulation, RayCasting, Scene etc.)
 		Renderer2D::Init();
-		
-		//Shader Loading
-		//s_Data->ShaderLibrary->Add("GeometryShader", Shader::Create("assets/shaders/geometryShader.glsl"));
-		//s_Data->ShaderLibrary->Add("CompositeShader", Shader::Create("assets/shaders/geometryShader.glsl"));
-
-		//Texture Loading here or in specific Renderer
 	}
 
 	void Renderer::Shutdown()

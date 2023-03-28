@@ -327,7 +327,7 @@ namespace Povox {
 	{
 		PX_PROFILE_FUNCTION();
 
-
+		PX_CORE_WARN("Draw renderable!");
 		Ref<VulkanShader> vkShader = std::dynamic_pointer_cast<VulkanShader>(renderable.Material.Shader);
 
 

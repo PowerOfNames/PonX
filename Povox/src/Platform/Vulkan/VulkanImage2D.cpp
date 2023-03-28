@@ -181,6 +181,7 @@ namespace Povox {
 
 	int VulkanImage2D::ReadPixel(int posX, int posY)
 	{
+		// TODO: Check if the image I want to read from is readable (was downloaded from GPU after rendering)
 		size_t imageSize = m_Specification.Width * m_Specification.Height * m_Specification.ChannelCount;
 		AllocatedBuffer stagingBuffer = VulkanBuffer::CreateAllocation(imageSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_CPU_ONLY);
 
@@ -353,6 +354,11 @@ namespace Povox {
 		builder.Build(m_DescriptorSet, "ImageDS");
 		PX_CORE_WARN("DescriptorSet: {0}", (uint64_t)m_DescriptorSet);
 	}
+
+
+
+// ----------------- Texture2D -----------------
+
 
 	VulkanTexture2D::VulkanTexture2D(uint32_t width, uint32_t height, uint32_t channels)
 	{

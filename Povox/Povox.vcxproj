@@ -207,6 +207,7 @@
     <ClInclude Include="src\Povox\Renderer\Shader.h" />
     <ClInclude Include="src\Povox\Renderer\SubTexture2D.h" />
     <ClInclude Include="src\Povox\Renderer\Texture.h" />
+    <ClInclude Include="src\Povox\Renderer\TextureSystem.h" />
     <ClInclude Include="src\Povox\Renderer\Utilities.h" />
     <ClInclude Include="src\Povox\Scene\Components.h" />
     <ClInclude Include="src\Povox\Scene\Entity.h" />
@@ -699,6 +700,7 @@
     <ClCompile Include="src\Povox\Renderer\Shader.cpp" />
     <ClCompile Include="src\Povox\Renderer\SubTexture2D.cpp" />
     <ClCompile Include="src\Povox\Renderer\Texture.cpp" />
+    <ClCompile Include="src\Povox\Renderer\TextureSystem.cpp" />
     <ClCompile Include="src\Povox\Scene\Entity.cpp" />
     <ClCompile Include="src\Povox\Scene\Scene.cpp" />
     <ClCompile Include="src\Povox\Scene\SceneCamera.cpp" />
