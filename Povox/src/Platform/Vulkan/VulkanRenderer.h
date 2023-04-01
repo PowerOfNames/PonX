@@ -14,6 +14,8 @@
 #include "Povox/Renderer/Renderable.h"
 #include "Povox/Renderer/Renderer.h"
 #include "Povox/Renderer/RendererAPI.h"
+#include "Povox/Renderer/Shader.h"
+#include "Povox/Renderer/TextureSystem.h"
 
 
 
@@ -57,14 +59,16 @@ namespace Povox {
 
 		virtual inline uint32_t GetCurrentFrameIndex() const override { return m_CurrentFrameIndex; }
 		
-		virtual void CreateFinalImage(Ref<Image2D> finalImage) override;
-
 		virtual bool BeginFrame() override;
-		//virtual void Draw(const std::vector<Renderable>& drawList) override;
 		virtual void DrawRenderable(const Renderable& renderable) override;
-		virtual void Draw() override;
+		virtual void Draw(Ref<Buffer> vertices, Ref<Buffer> indices, size_t indexCount) override;
 		virtual void DrawGUI() override;
 		virtual void EndFrame() override;
+
+		virtual Ref<ShaderLibrary> GetShaderLibrary() override { return m_ShaderLibrary; }
+		virtual Ref<TextureSystem> GetTextureSystem() override { return m_TextureSystem; }
+				
+		virtual void CreateFinalImage(Ref<Image2D> finalImage) override;
 
 		virtual inline const void* GetCommandBuffer(uint32_t index) override { return (const void*)GetFrame(index).Commands.Buffer; }
 		virtual inline const void* GetGUICommandBuffer(uint32_t index) override { return (const void*)(m_ImGui->GetFrame(index).CommandBuffer); }
@@ -94,15 +98,15 @@ namespace Povox {
 		static void EndImGuiFrame();
 		virtual void* GetGUIDescriptorSet(Ref<Image2D> image) override;
 
-
 	private:
 		inline FrameData& GetCurrentFrame() { return m_Frames[m_CurrentFrameIndex]; }
 		FrameData& GetFrame(uint32_t index);
 		void InitCommandControl();
 		void InitFrameData();
 		void InitFinalImage(uint32_t width, uint32_t height);
-
-		void InitSamplers();
+		
+		void CreateDescriptors();
+		void CreateSamplers();
 
 		size_t PadUniformBuffer(size_t inputSize, size_t minGPUBufferOffsetAlignment);
 
@@ -144,6 +148,9 @@ namespace Povox {
 		//Scene stuff
 		Renderable* m_SceneObjects = nullptr;
 		Renderable* m_SceneObjectPtr = nullptr;
+
+		Ref<ShaderLibrary> m_ShaderLibrary;
+		Ref<TextureSystem> m_TextureSystem;
 
 
 		SceneUniform m_SceneParameter;

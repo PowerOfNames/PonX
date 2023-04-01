@@ -16,20 +16,30 @@ namespace Povox {
 
 	void VulkanDevice::CreateLogicalDevice(const std::vector<const char*>& deviceExtensions, const std::vector<const char*> validationLayers)
 	{
-		QueueFamilyIndices indices = FindQueueFamilies(m_PhysicalDevice);
+		PX_CORE_INFO("VulkanDevice::CreateLogicalDevice: Starting creation...");
+
+		m_QueueFamilies = FindQueueFamilies(m_PhysicalDevice);
+		PX_CORE_TRACE("GraphicsQueueIndex: '{1}' | TransferQueueIndex '{2}' | Present'Queue'Index: '{0}'", m_QueueFamilies.PresentFamilyIndex, m_QueueFamilies.GraphicsFamilyIndex, m_QueueFamilies.TransferFamilyIndex);
+
+
 		std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
-		std::set<uint32_t> uniqueQueueFamilies = {
-									indices.GraphicsFamily.value(),
-									indices.PresentFamily.value(),
-									indices.TransferFamily.value() };
+		queueCreateInfos.reserve(m_QueueFamilies.UniqueQueueFamilies);
+
+		//These should be all the same if there is only one queueFamily
+		std::set<uint32_t> queueFamilyIndices = {
+									static_cast<uint32_t>(m_QueueFamilies.GraphicsFamilyIndex),
+									static_cast<uint32_t>(m_QueueFamilies.PresentFamilyIndex),
+									static_cast<uint32_t>(m_QueueFamilies.TransferFamilyIndex) };
 
 		float queuePriority = 1.0f;
-		for (uint32_t queueFamily : uniqueQueueFamilies)
+		for (uint32_t queueIndex : queueFamilyIndices)
 		{
 			VkDeviceQueueCreateInfo queueCreateInfo{};
 			queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-			queueCreateInfo.queueFamilyIndex = queueFamily;
+			queueCreateInfo.queueFamilyIndex = queueIndex;
 			queueCreateInfo.queueCount = 1;
+			if (m_QueueFamilies.UniqueQueueFamilies == 1 && queueIndex == m_QueueFamilies.GraphicsFamilyIndex)
+				queueCreateInfo.queueCount = m_QueueFamilies.Queues.GraphicsQueueCount;
 			queueCreateInfo.pQueuePriorities = &queuePriority;
 
 			queueCreateInfos.push_back(queueCreateInfo);
@@ -65,23 +75,19 @@ namespace Povox {
 			createInfo.enabledLayerCount = 0;
 		}
 		PX_CORE_VK_ASSERT(vkCreateDevice(m_PhysicalDevice, &createInfo, nullptr, &m_Device), VK_SUCCESS, "Failed to create logical device!");
-		PX_CORE_TRACE("Logical Device has been created!");
-
-
-		vkGetDeviceQueue(m_Device, indices.GraphicsFamily.value(), 0, &m_QueueFamilies.GraphicsQueue);
-		vkGetDeviceQueue(m_Device, indices.PresentFamily.value(), 0, &m_QueueFamilies.PresentQueue);
-		vkGetDeviceQueue(m_Device, indices.TransferFamily.value(), 0, &m_QueueFamilies.TransferQueue);
-		PX_CORE_TRACE("Queues have been set up!");
-	}
-
-	VkPhysicalDeviceProperties VulkanDevice::GetPhysicalDeviceProperties()
-	{
-		VkPhysicalDeviceProperties properties;
-		PX_CORE_ASSERT(m_PhysicalDevice != VK_NULL_HANDLE, "Physical device has not been picked yet!");
-		vkGetPhysicalDeviceProperties(m_PhysicalDevice, &properties);
 
 		
-		return properties;
+		//TODO: Maybe get rid of the present queue altogether -> just querey for presentSupport and get one of them handles instead
+		vkGetDeviceQueue(m_Device, m_QueueFamilies.GraphicsFamilyIndex, 0, &m_QueueFamilies.Queues.GraphicsQueue);
+		vkGetDeviceQueue(m_Device, m_QueueFamilies.PresentFamilyIndex, 0, &m_QueueFamilies.Queues.PresentQueue);
+		if (m_QueueFamilies.TransferFamilyIndex == m_QueueFamilies.GraphicsFamilyIndex && m_QueueFamilies.Queues.GraphicsQueueCount > 1 )
+			vkGetDeviceQueue(m_Device, m_QueueFamilies.TransferFamilyIndex, 1, &m_QueueFamilies.Queues.TransferQueue);
+		else
+			vkGetDeviceQueue(m_Device, m_QueueFamilies.TransferFamilyIndex, 0, &m_QueueFamilies.Queues.TransferQueue);
+
+
+
+		PX_CORE_INFO("VulkanDevice::CreateLogicalDevice: Completed creation.");
 	}
 
 	int VulkanDevice::RatePhysicalDevice(const std::vector<const char*>& deviceExtensions, VkPhysicalDevice physicalDevice)
@@ -139,10 +145,9 @@ namespace Povox {
 			m_PhysicalDevice = candidates.rbegin()->second;
 		}
 		PX_CORE_ASSERT(m_PhysicalDevice != VK_NULL_HANDLE, "Failed to find suitable GPU!");
-		VkPhysicalDeviceProperties deviceProperties;
-		vkGetPhysicalDeviceProperties(m_PhysicalDevice, &deviceProperties);
+		vkGetPhysicalDeviceProperties(m_PhysicalDevice, &m_PhysicalLimits.Properties);
 
-		PX_CORE_TRACE("Physical Device '{0}' has been picked!", deviceProperties.deviceName);
+		PX_CORE_TRACE("Physical Device '{0}' has been picked!", m_PhysicalLimits.Properties.deviceName);
 	}
 
 	SwapchainSupportDetails VulkanDevice::QuerySwapchainSupport(VkPhysicalDevice physicalDevice)
@@ -191,44 +196,57 @@ namespace Povox {
 		return requiredExtensions.empty();
 	}
 
-	QueueFamilyIndices VulkanDevice::FindQueueFamilies(VkPhysicalDevice physicalDevice)
+	//TODO: ComputeQueueQuery
+	/**
+	 * 1. Queries the supported QueueFamilyCount of physicalDevice
+	 * 2. Checks for PresentSupport
+	 * 3. Tries to find dedicated TransferQueue
+	 * 4. Returns most fitting Index for TransferQueue if no dedicated found
+	 */
+	QueueFamilies VulkanDevice::FindQueueFamilies(VkPhysicalDevice physicalDevice)
 	{
-		QueueFamilyIndices indices;
+		QueueFamilies indices;
 
-		uint32_t queueFamilyCount;
-		vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, nullptr);
-		std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
-		vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, &queueFamilies[0]);
+		vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &indices.UniqueQueueFamilies, nullptr);
+		std::vector<VkQueueFamilyProperties> queueFamilies(indices.UniqueQueueFamilies);
+		vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &indices.UniqueQueueFamilies, &queueFamilies[0]);
 
 		int i = 0;
 		bool presentFound = false;
 		for (const auto& queueFamily : queueFamilies)
 		{
 			if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT)
-				indices.GraphicsFamily = i;
+			{
+				indices.GraphicsFamilyIndex = i;
+				indices.Queues.GraphicsQueueCount = queueFamilies[i].queueCount;
+			}
 
 			VkBool32 presentSupport = false;
 			vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, i, VulkanSwapchain::GetSurface(), &presentSupport);
 			if (presentSupport && !presentFound)
 			{
-				indices.PresentFamily = i;
+				indices.PresentFamilyIndex = i;
 				presentFound = true;
 			}
 
 			if (queueFamily.queueFlags & VK_QUEUE_TRANSFER_BIT && !(queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) && !(queueFamily.queueFlags & VK_QUEUE_COMPUTE_BIT))
 			{
-				indices.TransferFamily = i;
-				m_PhysicalLimits.HasTransferQueue = true;
-				PX_CORE_TRACE("transfer Queue Family index : '{0}'", indices.TransferFamily.value());
+				indices.TransferFamilyIndex = i;
+				m_PhysicalLimits.HasDedicatedTransferQueue = true;
 			}
 
 			if (indices.IsComplete() && indices.HasTransfer())
 			{
-				PX_CORE_INFO("Present, Graphics and Transfer index set to: \n Present Family : '{0}' \n Graphics Family: '{1}' \n Transfer Family: '{2}'", indices.PresentFamily.value(), indices.GraphicsFamily.value(), indices.TransferFamily.value());
 				break;
 			}
 			i++;
 		}
+		PX_CORE_ASSERT(presentFound, "No presentSupport on this device!");
+		if (!m_PhysicalLimits.HasDedicatedTransferQueue)
+		{
+			indices.TransferFamilyIndex = indices.GraphicsFamilyIndex;
+		}
+
 		return indices;
 	}
 }

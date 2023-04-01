@@ -11,6 +11,7 @@
 
 namespace Povox {
 
+	//TODO: read about padding and alignment!
 	struct QuadVertex {
 		glm::vec3 Position;
 		glm::vec4 Color;
@@ -122,8 +123,6 @@ namespace Povox {
 		s_QuadData.QuadVertexPositions[2] = { 0.5f, 0.5f, 0.0f, 1.0f };
 		s_QuadData.QuadVertexPositions[3] = { -0.5f, 0.5f, 0.0f, 1.0f };
 
-		//s_QuadData.TextureShader->Bind();
-
 
 		PX_CORE_TRACE("Renderer2D::Init: Completed.");
 	}
@@ -170,6 +169,7 @@ namespace Povox {
 		s_QuadData.QuadVertexBufferPtr = s_QuadData.QuadVertexBufferBase;
 
 		s_QuadData.TextureSlotIndex = 1;
+		Renderer::GetTextureSystem()->ResetActiveTextures();
 		s_QuadData.RenderedObjects.clear();
 	}
 
@@ -179,12 +179,12 @@ namespace Povox {
 			return; // nothing to draw
 
 		uint32_t dataSize = (uint32_t)((uint8_t*)s_QuadData.QuadVertexBufferPtr - (uint8_t*)s_QuadData.QuadVertexBufferBase);
-		//s_QuadData.QuadVertexBuffer->SetData(s_QuadData.QuadVertexBufferBase, dataSize);
+		s_QuadData.QuadVertexBuffer->SetData(s_QuadData.QuadVertexBufferBase, dataSize);
 
 		//TODO: Draw must use the nextTextureSlot to know until which texture it needs to update the descriptor sets
-		//Renderer::Draw();
+		Renderer::Draw(s_QuadData.QuadVertexBuffer, s_QuadData.QuadIndexBuffer, s_QuadData.QuadIndexCount);
 
-		Renderer::GetTextureSystem()->ResetActiveTextures();
+		
 		s_QuadData.Stats.DrawCalls++;
 	}
 
@@ -219,7 +219,10 @@ namespace Povox {
 	}
 	void Renderer2D::DrawQuad(const glm::mat4& transform, const glm::vec4& color, int entityID)
 	{
+		constexpr float whiteTextureID = 0.0f;
+		constexpr float tilingFactor = 1.0f;
 		constexpr glm::vec2 textureCoords[4] = { {0.0f, 0.0f}, {1.0f, 0.0f}, {1.0f, 1.0f}, {0.0f, 1.0f} };
+
 		Renderable renderable;
 
 		std::vector<VertexData> vertexData;
@@ -229,7 +232,7 @@ namespace Povox {
 			vertexData[i].Position = transform * s_QuadData.QuadVertexPositions[i];
 			vertexData[i].Color = color;
 			vertexData[i].TexCoord = textureCoords[i];
-			vertexData[i].TexID = 0.0f;
+			vertexData[i].TexID = whiteTextureID;
 			vertexData[i].TilingFactor = 1.0f;
 			vertexData[i].EntityID = 1;
 		}
@@ -258,13 +261,9 @@ namespace Povox {
 		renderable.Material.Shader = Renderer::GetShaderLibrary()->Get("FlatColorShader"); //Material: Shader/Pipeline connection!
 		renderable.Material.Texture = nullptr;
 		s_QuadData.RenderedObjects.push_back(renderable);
-		Renderer::DrawRenderable(renderable);
-		/*if (s_QuadData.QuadIndexCount >= Renderer2DData::MaxIndices)
+		//Renderer::DrawRenderable(renderable);
+		if (s_QuadData.QuadIndexCount >= Renderer2DData::MaxIndices)
 			NextBatch();
-
-		constexpr float whiteTextureID = 0.0f;
-		constexpr float tilingFactor = 1.0f;
-		constexpr glm::vec2 textureCoords[4] = { {0.0f, 0.0f}, {1.0f, 0.0f}, {1.0f, 1.0f}, {0.0f, 1.0f} };
 
 		for (uint32_t i = 0; i < 4; i++)
 		{
@@ -278,7 +277,7 @@ namespace Povox {
 		}
 		s_QuadData.QuadIndexCount += 6;
 
-		s_QuadData.Stats.QuadCount++;*/
+		s_QuadData.Stats.QuadCount++;
 	}
 
 // Quads Texture

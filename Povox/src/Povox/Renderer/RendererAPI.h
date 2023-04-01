@@ -3,6 +3,8 @@
 #include "Povox/Renderer/Pipeline.h"
 #include "Povox/Renderer/Renderable.h"
 #include "Povox/Renderer/RenderPass.h"
+#include "Povox/Renderer/Shader.h"
+#include "Povox/Renderer/TextureSystem.h"
 
 #include <glm/glm.hpp>
 #include <iostream>
@@ -36,11 +38,14 @@ namespace Povox {
 		virtual bool BeginFrame() = 0;
 		//virtual void Draw(const std::vector<Renderable>& drawList) = 0;
 		virtual void DrawRenderable(const Renderable& renderable) = 0;
-		virtual void Draw() = 0;
+		virtual void Draw(Ref<Buffer> vertices, Ref<Buffer> indices, size_t indexCount) = 0;
 		virtual void DrawGUI() = 0;
 		virtual void EndFrame() = 0;
 
 		virtual void UpdateCamera(const CameraUniform& cam) = 0;
+
+		virtual Ref<ShaderLibrary> GetShaderLibrary() = 0;
+		virtual Ref<TextureSystem> GetTextureSystem() = 0;
 
 		virtual void Submit(const Renderable& object) = 0;
 

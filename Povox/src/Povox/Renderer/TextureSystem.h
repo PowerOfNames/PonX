@@ -7,7 +7,7 @@
 
 namespace Povox {
 
-#define MAX_TEXTURE_SLOTS 32
+#define MAX_TEXTURE_SLOTS 2
 #define MAX_TEXTURES 1024
 
 	struct TextureSystemConfig
@@ -50,7 +50,10 @@ namespace Povox {
 
 		void ResetActiveTextures();
 
-		inline const std::array<Ref<Texture>, MAX_TEXTURE_SLOTS>& GetActiveTextures() { return m_SystemState.ActiveTextures; }
+		const std::array<Ref<Texture>, MAX_TEXTURE_SLOTS>& GetActiveTextures();
+
+		inline const TextureSystemState& GetState() const { return m_SystemState; }
+		inline const TextureSystemConfig& GetConfig() const { return m_SystemState.Config; }
 
 	private:
 		void CreateDefaultTexture();
@@ -58,7 +61,7 @@ namespace Povox {
 		const std::string& RegisteredTexturesContains(Ref<Texture> texture);
 
 	private:
-		TextureSystemState m_SystemState{};
+		TextureSystemState m_SystemState = {};
 	};
 
 }

@@ -49,7 +49,7 @@ namespace Povox {
 
 		static bool BeginFrame();
 		static void DrawRenderable(const Renderable& renderable);
-		static void Draw();
+		static void Draw(Ref<Buffer> vertices, Ref<Buffer> indices, size_t indexCount);
 		static void DrawGUI();
 		static void EndFrame();
 
@@ -82,13 +82,12 @@ namespace Povox {
 		static void* GetGUIDescriptorSet(Ref<Image2D> image);
 
 		inline static RendererAPI::API GetAPI() { return RendererAPI::GetAPI(); }
-		inline static Ref<ShaderLibrary> GetShaderLibrary() { return s_Data.ShaderLibrary; }
-		inline static Ref<TextureSystem> GetTextureSystem() { return s_Data.TextureSystem; }
+		static Ref<ShaderLibrary> GetShaderLibrary();
+		static Ref<TextureSystem> GetTextureSystem();
 
 		static void CreateAPI(const RendererSpecification& specs);
 
 	private:
 		static Scope<RendererAPI> s_RendererAPI;
-		static RendererData s_Data;
 	};
 }

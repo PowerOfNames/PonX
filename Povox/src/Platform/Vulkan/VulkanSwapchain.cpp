@@ -81,13 +81,13 @@ namespace Povox {
 		if (caps.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_DST_BIT)
 			createInfo.imageUsage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 		createInfo.presentMode = m_Properties.PresentMode;
-		QueueFamilyIndices queueFamIndices = devicePtr->FindQueueFamilies(VulkanContext::GetDevice()->GetPhysicalDevice());
+		QueueFamilies queueFamIndices = devicePtr->GetQueueFamilies();
 		uint32_t queueFamilyIndices[] = {
-						queueFamIndices.GraphicsFamily.value(),
-						queueFamIndices.PresentFamily.value(),
-						queueFamIndices.TransferFamily.value()
+						queueFamIndices.GraphicsFamilyIndex,
+						queueFamIndices.PresentFamilyIndex,
+						queueFamIndices.TransferFamilyIndex
 		};
-		if (queueFamIndices.GraphicsFamily != queueFamIndices.PresentFamily)
+		if (queueFamIndices.GraphicsFamilyIndex != queueFamIndices.PresentFamilyIndex)
 		{
 			createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
 			createInfo.queueFamilyIndexCount = 2;
@@ -398,7 +398,7 @@ namespace Povox {
 		submitInfo.signalSemaphoreCount = 1;
 		submitInfo.pSignalSemaphores = &m_CurrentFrame.RenderSemaphore;
 
-		PX_CORE_VK_ASSERT(vkQueueSubmit(VulkanContext::GetDevice()->GetQueueFamilies().GraphicsQueue, 1, &submitInfo, m_CurrentFrame.CurrentFence), VK_SUCCESS, "Failed to submit draw render buffer!");
+		PX_CORE_VK_ASSERT(vkQueueSubmit(VulkanContext::GetDevice()->GetQueueFamilies().Queues.GraphicsQueue, 1, &submitInfo, m_CurrentFrame.CurrentFence), VK_SUCCESS, "Failed to submit draw render buffer!");
 	}
 
 	void VulkanSwapchain::Present()
@@ -416,7 +416,7 @@ namespace Povox {
 		presentInfo.pResults = nullptr;
 
 		VkResult result;
-		result = vkQueuePresentKHR(VulkanContext::GetDevice()->GetQueueFamilies().PresentQueue, &presentInfo);
+		result = vkQueuePresentKHR(VulkanContext::GetDevice()->GetQueueFamilies().Queues.PresentQueue, &presentInfo);
 
 		//check if the framebuffer resized
 		if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || m_FramebufferResized)

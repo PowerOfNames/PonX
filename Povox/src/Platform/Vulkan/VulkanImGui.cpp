@@ -58,7 +58,7 @@ namespace Povox {
 		init_info.Instance = VulkanContext::GetInstance();
 		init_info.PhysicalDevice = VulkanContext::GetDevice()->GetPhysicalDevice();
 		init_info.Device = device;
-		init_info.Queue = VulkanContext::GetDevice()->GetQueueFamilies().GraphicsQueue;
+		init_info.Queue = VulkanContext::GetDevice()->GetQueueFamilies().Queues.GraphicsQueue;
 		init_info.DescriptorPool = m_DescriptorPool;
 		init_info.MinImageCount = (uint32_t)swapchainViews.size();
 		init_info.ImageCount = (uint32_t)swapchainViews.size();
@@ -217,7 +217,7 @@ namespace Povox {
 		VkCommandPoolCreateInfo poolci{};
 		poolci.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
 		poolci.pNext = nullptr;
-		poolci.queueFamilyIndex = VulkanContext::GetDevice()->FindQueueFamilies(VulkanContext::GetDevice()->GetPhysicalDevice()).GraphicsFamily.value();
+		poolci.queueFamilyIndex = VulkanContext::GetDevice()->GetQueueFamilies().GraphicsFamilyIndex;
 		poolci.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 
 		VkCommandBufferAllocateInfo bufferci{};

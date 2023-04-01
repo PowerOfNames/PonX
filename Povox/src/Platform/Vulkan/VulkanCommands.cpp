@@ -28,14 +28,14 @@ namespace Povox {
 			{
 				pool = s_UploadContext->CmdPoolGfx;
 				buffer = s_UploadContext->CmdBufferGfx;
-				queue = VulkanContext::GetDevice()->GetQueueFamilies().GraphicsQueue;
+				queue = VulkanContext::GetDevice()->GetQueueFamilies().Queues.GraphicsQueue;
 				break;
 			}
 			case SubmitType::SUBMIT_TYPE_TRANSFER:
 			{
 				pool = s_UploadContext->CmdPoolTrsf;
 				buffer = s_UploadContext->CmdBufferTrsf;
-				queue = VulkanContext::GetDevice()->GetQueueFamilies().TransferQueue;
+				queue = VulkanContext::GetDevice()->GetQueueFamilies().Queues.TransferQueue;
 				break;
 			}
 		}
@@ -83,13 +83,13 @@ namespace Povox {
 		
 		s_UploadContext = CreateRef<UploadContext>();
 		VkDevice device = VulkanContext::GetDevice()->GetVulkanDevice();
-		auto& families = VulkanContext::GetDevice()->FindQueueFamilies(VulkanContext::GetDevice()->GetPhysicalDevice());
+		auto& families = VulkanContext::GetDevice()->GetQueueFamilies();
 
 		VkCommandPoolCreateInfo uploadPoolInfoTrsf = {};
 		uploadPoolInfoTrsf.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
 		uploadPoolInfoTrsf.pNext = nullptr;
 
-		uploadPoolInfoTrsf.queueFamilyIndex = families.TransferFamily.value();
+		uploadPoolInfoTrsf.queueFamilyIndex = families.TransferFamilyIndex;
 		uploadPoolInfoTrsf.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
 		PX_CORE_VK_ASSERT(vkCreateCommandPool(device, &uploadPoolInfoTrsf, nullptr, &s_UploadContext->CmdPoolTrsf), VK_SUCCESS, "Failed to create graphics command pool!");
 
@@ -109,7 +109,7 @@ namespace Povox {
 		uploadPoolInfoGfx.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
 		uploadPoolInfoGfx.pNext = nullptr;
 
-		uploadPoolInfoGfx.queueFamilyIndex = families.GraphicsFamily.value();
+		uploadPoolInfoGfx.queueFamilyIndex = families.GraphicsFamilyIndex;
 		uploadPoolInfoGfx.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
 		PX_CORE_VK_ASSERT(vkCreateCommandPool(device, &uploadPoolInfoGfx, nullptr, &s_UploadContext->CmdPoolGfx), VK_SUCCESS, "Failed to create graphics command pool!");
 

@@ -2,6 +2,7 @@
 #include "Povox/Renderer/TextureSystem.h"
 
 #include "Povox/Core/Log.h"
+#include "Povox/Renderer/Renderer.h"
 
 namespace Povox {
 
@@ -29,6 +30,8 @@ namespace Povox {
 		m_SystemState.RegisteredTextures.reserve(m_SystemState.Config.MaxTextures);
 
 		CreateDefaultTexture();
+		m_SystemState.ActiveTextures[0] = m_SystemState.DefaultTexture; //Whiote texture has not been set yet -> maybe move this out as well
+		ResetActiveTextures();
 
 		PX_CORE_INFO("TextureSystem::Init: Initialization complete.");
 	}
@@ -44,7 +47,6 @@ namespace Povox {
 		{
 			texture.second->Destroy();
 		}*/
-
 
 		PX_CORE_INFO("TextureSystem::Shutdown: Completed.");
 	}
@@ -127,9 +129,35 @@ namespace Povox {
 
 	void TextureSystem::ResetActiveTextures()
 	{
-		m_SystemState.ActiveTextures;
-		m_SystemState.ActiveTexturesCounter;
+		if (!m_SystemState.DefaultTexture)
+			PX_CORE_WARN("TextureSystem::ResetActiveTextures: No DefaultTexture has been set!");
+
+		for (uint32_t i = 1; i < m_SystemState.Config.MaxTextureSlots; i++)
+		{
+			m_SystemState.ActiveTextures[i] = m_SystemState.DefaultTexture;
+			m_SystemState.ActiveTexturesCounter[i] = 0;
+		}
+		m_SystemState.ActiveTexturesCounter[0] = 0;
 		m_SystemState.NextTextureSlot = 1; // 1, so the white texture can stay in slot 0
+	}
+
+
+	const std::array<Ref<Texture>, MAX_TEXTURE_SLOTS>& TextureSystem::GetActiveTextures()
+	{
+		for (uint32_t i = 0; i < MAX_TEXTURE_SLOTS; i++)
+		{
+			PX_CORE_WARN("Texture: {0}", m_SystemState.ActiveTextures[i]->GetRendererID());
+		}
+
+		return m_SystemState.ActiveTextures;
+
+		/*for (uint32_t i = m_SystemState.NextTextureSlot; i < MAX_TEXTURE_SLOTS; i++)
+		{
+			m_SystemState.ActiveTextures[i] = m_SystemState.DefaultTexture;
+			m_SystemState.NextTextureSlot++;
+		}
+
+		return m_SystemState.ActiveTextures;*/
 	}
 
 	void TextureSystem::CreateDefaultTexture()
