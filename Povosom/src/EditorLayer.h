@@ -42,6 +42,7 @@ namespace Povox {
 		Ref<Pipeline> m_TexturePipeline;
 
 		Ref<Texture2D> m_LogoTexture;
+		Ref<Texture2D> m_GreenTexture;
 		
 		
 		Ref<Scene> m_ActiveScene;

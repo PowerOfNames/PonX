@@ -6,13 +6,13 @@
 
 namespace Povox {
 
-	Ref<Texture2D> Texture2D::Create(uint32_t width, uint32_t height, uint32_t channels)
+	Ref<Texture2D> Texture2D::Create(uint32_t width, uint32_t height, uint32_t channels, const std::string& debugName)
 	{
 		switch (Renderer::GetAPI())
 		{
 		case RendererAPI::API::Vulkan:
 		{
-			return CreateRef<VulkanTexture2D>(width, height, channels);
+			return CreateRef<VulkanTexture2D>(width, height, channels, debugName);
 		}
 		case RendererAPI::API::NONE:
 		{
@@ -24,13 +24,13 @@ namespace Povox {
 		return nullptr;
 	}
 
-	Ref<Texture2D> Texture2D::Create(const std::string& path)
+	Ref<Texture2D> Texture2D::Create(const std::string& path, const std::string& debugName)
 	{
 		switch (Renderer::GetAPI())
 		{
 			case RendererAPI::API::Vulkan:
 			{
-				return CreateRef<VulkanTexture2D>(path);
+				return CreateRef<VulkanTexture2D>(path, debugName);
 			}
 			case RendererAPI::API::NONE:
 			{

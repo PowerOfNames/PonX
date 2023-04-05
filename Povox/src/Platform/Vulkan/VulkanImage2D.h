@@ -153,12 +153,13 @@ namespace Povox {
 	class VulkanTexture2D : public Texture2D
 	{
 	public:
-		VulkanTexture2D(uint32_t width, uint32_t height, uint32_t channels);
-		VulkanTexture2D(const std::string& path);
+		VulkanTexture2D(uint32_t width, uint32_t height, uint32_t channels = 4, const std::string& debugName = "DebugName");
+		VulkanTexture2D(const std::string& path, const std::string& debugName = "DebugName");
 		virtual ~VulkanTexture2D() = default;
 
 		virtual inline uint32_t GetWidth() const override { return m_Image->GetSpecification().Width; };
 		virtual inline uint32_t GetHeight() const override { return m_Image->GetSpecification().Height; };
+		virtual inline const std::string& GetDebugName() const override { return m_DebugName; }
 
 		virtual void SetData(void* data) override;
 
@@ -174,5 +175,6 @@ namespace Povox {
 		Ref<VulkanImage2D> m_Image = nullptr;
 
 		std::string m_Path = "";
+		std::string m_DebugName = "";
 	};
 }

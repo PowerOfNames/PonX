@@ -123,6 +123,17 @@ namespace Povox {
 		return score;
 	}
 
+	PhysicalDeviceLimits VulkanDevice::QueryPhysicalDeviceLimits(VkPhysicalDevice physicalDevice)
+	{
+		PhysicalDeviceLimits limits{};
+		vkGetPhysicalDeviceProperties(m_PhysicalDevice, &limits.Properties);
+		limits.MaxBoundDescriptorSets = limits.Properties.limits.maxBoundDescriptorSets;
+		limits.MinBufferAlign = limits.Properties.limits.minUniformBufferOffsetAlignment;
+
+
+		return limits;
+	}
+
 	void VulkanDevice::PickPhysicalDevice(const std::vector<const char*>& deviceExtensions)
 	{
 		uint32_t deviceCount = 0;
@@ -145,9 +156,10 @@ namespace Povox {
 			m_PhysicalDevice = candidates.rbegin()->second;
 		}
 		PX_CORE_ASSERT(m_PhysicalDevice != VK_NULL_HANDLE, "Failed to find suitable GPU!");
-		vkGetPhysicalDeviceProperties(m_PhysicalDevice, &m_PhysicalLimits.Properties);
+
 
 		PX_CORE_TRACE("Physical Device '{0}' has been picked!", m_PhysicalLimits.Properties.deviceName);
+		m_PhysicalLimits = QueryPhysicalDeviceLimits(m_PhysicalDevice);
 	}
 
 	SwapchainSupportDetails VulkanDevice::QuerySwapchainSupport(VkPhysicalDevice physicalDevice)

@@ -27,6 +27,8 @@ namespace Povox {
 		m_ViewportSize = { Application::Get()->GetWindow().GetWidth(), Application::Get()->GetWindow().GetHeight() };		
 		
 		m_LogoTexture = std::dynamic_pointer_cast<Texture2D>(Renderer::GetTextureSystem()->GetTexture("DefaultPXTexture"));
+		Renderer::GetTextureSystem()->RegisterTexture("green");
+		m_GreenTexture = std::dynamic_pointer_cast<Texture2D>(Renderer::GetTextureSystem()->GetTexture("green"));
 
 
 		//PX_TRACE("Started EditorLayer::OnAttach");
@@ -129,7 +131,11 @@ namespace Povox {
 		Renderer2D::BeginScene(m_OrthoCamControl.GetCamera()); //doesn't mess with renderer atm
 
 		Renderer::BindPipeline(m_TexturePipeline);
-		Renderer2D::DrawQuad({ 2.0f, 0.0f, 0.0f }, { 1.0f, 1.0f }, m_LogoTexture, 0.5f);
+		Renderer2D::DrawQuad({ 2.0f, 0.0f, 1.0f }, { 1.0f, 1.0f }, m_LogoTexture, 0.5f);
+		Renderer2D::DrawQuad({ -2.0f, 2.0f, -2.0f }, { 2.0f, 3.0f }, m_GreenTexture, 2.0f);
+		Renderer2D::DrawQuad({ -2.0f, 1.0f, -3.0f }, { 1.0f, 3.0f }, m_GreenTexture, 2.0f);
+		Renderer2D::DrawQuad({ 2.0f, 3.0f, 0.0f }, { 0.8f, 0.5f }, m_LogoTexture, 0.5f);
+		Renderer2D::DrawQuad({ -2.0f, 1.5f, 2.0f }, { 0.2f, 3.0f }, m_GreenTexture, 2.0f);
 
 		Renderer::BindPipeline(m_FlatColorPipeline);// -> this will be moved into sceneRenderer -> sorts through materials of objects, then binds pipeline accordingly
 		Renderer2D::DrawQuad({ 0.0f, 0.0f, 0.0f }, { 1.0f, 1.0f }, { 0.56f, 0.24f, 0.5f, 0.7f });	

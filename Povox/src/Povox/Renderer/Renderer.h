@@ -41,6 +41,13 @@ namespace Povox {
 		glm::vec4 SunlightColor;
 	};
 
+	struct ObjectUniform
+	{
+		//glm::mat4 ModelMatrix;
+		uint32_t TexID;
+		float TilingFactor;
+	};
+
 	class Renderer
 	{
 	public:

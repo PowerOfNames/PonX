@@ -579,6 +579,7 @@ namespace Povox {
 
 		options.SetTargetEnvironment(shaderc_target_env_vulkan, shaderc_env_version_vulkan_1_2);
 		options.SetTargetSpirv(shaderc_spirv_version_1_5);
+
 		const bool optimize = false;
 
 #ifdef PX_DEBUG

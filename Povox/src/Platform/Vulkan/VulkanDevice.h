@@ -28,6 +28,7 @@ namespace Povox {
 	struct PhysicalDeviceLimits
 	{
 		uint32_t MaxBoundDescriptorSets;
+		uint32_t MinBufferAlign;
 		VkPhysicalDeviceProperties Properties;
 
 		bool HasDedicatedTransferQueue = false;
@@ -54,6 +55,8 @@ namespace Povox {
 	private:
 		QueueFamilies FindQueueFamilies(VkPhysicalDevice physicalDevice);
 		int RatePhysicalDevice(const std::vector<const char*>& deviceExtensions, VkPhysicalDevice physicalDevice);
+		PhysicalDeviceLimits QueryPhysicalDeviceLimits(VkPhysicalDevice physicalDevice);
+		
 		bool CheckDeviceExtensionSupport(const std::vector<const char*>& deviceExtensions, VkPhysicalDevice physicalDevice);
 
 	private:

@@ -18,6 +18,8 @@ namespace Povox {
 
 	Scope<VulkanImGui> VulkanRenderer::m_ImGui = nullptr;
 
+	static constexpr uint32_t MAX_OBJECTS = 10000;
+
 	VulkanRenderer::VulkanRenderer(const RendererSpecification& specs)
 		:m_Specification(specs)
 	{
@@ -59,6 +61,7 @@ namespace Povox {
 
 		PX_CORE_INFO("Completed TextureSystem creation.");
 
+		CreateSamplers();
 		CreateDescriptors();
 
 		m_ImGui = CreateScope<VulkanImGui>(Application::Get()->GetWindow().GetSwapchain()->GetImageFormat(), (uint8_t)m_Specification.MaxFramesInFlight);
@@ -153,6 +156,9 @@ namespace Povox {
 			for (uint32_t i = 0; i < maxFrames; i++)
 			{
 				m_Frames[i].CamUniformBuffer = VulkanBuffer::CreateAllocation(sizeof(CameraUniform), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+				
+				//TODO: Track these buffers sizes
+				m_Frames[i].ObjectBuffer = VulkanBuffer::CreateAllocation(sizeof(ObjectUniform) * MAX_OBJECTS, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 			}
 			
 			PX_CORE_INFO("Completed (global) UBO creation for {0} frames.", maxFrames);
@@ -245,6 +251,10 @@ namespace Povox {
 
 		vmaDestroyBuffer(VulkanContext::GetAllocator(), m_SceneParameterBuffer.Buffer, m_SceneParameterBuffer.Allocation);
 
+		vkDestroyDescriptorSetLayout(m_Device, m_TextureDescriptorSetLayout, nullptr);
+		vkDestroyDescriptorSetLayout(m_Device, m_ObjectDescriptorSetLayout, nullptr);
+		vkDestroyDescriptorSetLayout(m_Device, m_GlobalDescriptorSetLayout, nullptr);
+
 		vkDestroyCommandPool(m_Device, m_UploadContext->CmdPoolGfx, nullptr);
 		vkDestroyCommandPool(m_Device, m_UploadContext->CmdPoolTrsf, nullptr);				
 
@@ -312,52 +322,8 @@ namespace Povox {
 
 
 		uint32_t frameIndex = m_CurrentFrameIndex % m_Specification.MaxFramesInFlight;
-		uint32_t uniformOffset = PadUniformBuffer(sizeof(SceneUniform), VulkanContext::GetDevice()->GetPhysicalDeviceProperties().limits.minUniformBufferOffsetAlignment) * (size_t)frameIndex;
+		uint32_t camUniformOffset = PadUniformBuffer(sizeof(SceneUniform), VulkanContext::GetDevice()->GetPhysicalDeviceProperties().limits.minUniformBufferOffsetAlignment) * (size_t)frameIndex;
 
-		vkCmdBindDescriptorSets(m_ActiveCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_ActivePipeline->GetLayout(), 0, 1, &GetCurrentFrame().GlobalDescriptorSet, 1, &uniformOffset);
-		if (renderable.Material.Texture)
-		{
-			Ref<VulkanImage2D> vkImage = std::dynamic_pointer_cast<VulkanImage2D>(renderable.Material.Texture->GetImage());
-			VkDescriptorSet textureSet = (VkDescriptorSet)vkImage->GetDescriptorSet();
-			vkCmdBindDescriptorSets(m_ActiveCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_ActivePipeline->GetLayout(), 1, 1, &textureSet, 0, nullptr);
-		}
-
-
-		VkBuffer vertexBuffer = std::dynamic_pointer_cast<VulkanBuffer>(renderable.MeshData.VertexBuffer)->GetAllocation().Buffer;
-		VkBuffer indexBuffer = std::dynamic_pointer_cast<VulkanBuffer>(renderable.MeshData.IndexBuffer)->GetAllocation().Buffer;
-		VkDeviceSize offsets[] = { 0 };
-		vkCmdBindVertexBuffers(m_ActiveCommandBuffer, 0, 1, &vertexBuffer, offsets);
-		vkCmdBindIndexBuffer(m_ActiveCommandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
-
-		//vkCmdBindDescriptorSets(m_ActiveCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_ActivePipeline->GetLayout(), 1, 1, &m_Frames[m_CurrentFrame].ObjectDescriptorSet, 0, nullptr);
-
-
-		static auto startTime = std::chrono::high_resolution_clock::now();
-		auto currentTime = std::chrono::high_resolution_clock::now();
-		float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
-		float x = 0.0f + time;
-		//glm::mat4 model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(x, 0.0f, 1.0f));
-		//PushConstants pushConstant;
-		//pushConstant.ModelMatrix = model;
-		//vkCmdPushConstants(cmd, m_GraphicsPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PushConstants), &pushConstant);
-
-		//mapping of model data into the SSBO object buffer
-		/* Instead of using memcpy here, we are doing a different trick. It is possible to cast the void* from mapping the buffer into another type, and write into it normally.
-		 * This will work completely fine, and makes it easier to write complex types into a buffer.
-		 **/
-		 /*
-		 void* objData;
-		 vmaMapMemory(VulkanContext::GetAllocator(), m_Frames[m_CurrentFrame].ObjectBuffer.Allocation, &objData);
-		 GPUBufferObject* objectSSBO = (GPUBufferObject*)objData;
-		 int count = 5;
-		 for (int i = 0; i < count; i++)
-		 {
-			 objectSSBO[i].ModelMatrix = model;
-		 }
-		 vmaUnmapMemory(VulkanContext::GetAllocator(), m_Frames[m_CurrentFrame].ObjectBuffer.Allocation);
-		 vkCmdBindDescriptorSets(m_ActiveCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_ActivePipeline->GetLayout(), 1, 1, &m_Frames[m_CurrentFrame].ObjectDescriptorSet, 0, nullptr);
-		 //the pipeline layout is later part of the obj material
-		 */
 		uint32_t height = m_Swapchain->GetProperties().Height;
 		uint32_t width = m_Swapchain->GetProperties().Width;
 		VkViewport viewport{};
@@ -375,6 +341,64 @@ namespace Povox {
 		vkCmdSetScissor(m_ActiveCommandBuffer, 0, 1, &scissor);
 
 
+		vkCmdBindDescriptorSets(m_ActiveCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_ActivePipeline->GetLayout(), 0, 1, &GetCurrentFrame().GlobalDescriptorSet, 1, &camUniformOffset);
+				
+		/* Instead of using memcpy here, we are doing a different trick. It is possible to cast the void* from mapping the buffer into another type, and write into it normally.
+		* This will work completely fine, and makes it easier to write complex types into a buffer.
+		**/
+		//mapping of model data into the SSBO object buffer
+		uint32_t objectUniformOffset = PadUniformBuffer(sizeof(ObjectUniform), VulkanContext::GetDevice()->GetPhysicalDeviceProperties().limits.minUniformBufferOffsetAlignment) * (size_t)frameIndex;
+		
+		ObjectUniform objectUniform;
+		//objectUniform.ModelMatrix = renderable.ModelMatrix;
+		objectUniform.TexID = renderable.Material.TexID;
+		objectUniform.TilingFactor = renderable.Material.TilingFactor;
+
+		void* data;
+		vmaMapMemory(VulkanContext::GetAllocator(), GetCurrentFrame().ObjectBuffer.Allocation, &data);
+		memcpy(data, &objectUniform, sizeof(ObjectUniform));
+		vmaUnmapMemory(VulkanContext::GetAllocator(), GetCurrentFrame().ObjectBuffer.Allocation);
+		
+		vkCmdBindDescriptorSets(m_ActiveCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_ActivePipeline->GetLayout(), 1, 1, &GetCurrentFrame().ObjectDescriptorSet, 0, &objectUniformOffset);
+
+		if (renderable.Material.Texture)
+		{		
+			auto& activeTextures = m_TextureSystem->GetActiveTextures();
+			//TODO: Get maxImageSlots form config as const
+			std::array<VkDescriptorImageInfo, 32> imageInfos;
+			for (uint32_t i = 0; i < activeTextures.size(); i++)
+			{
+				imageInfos[i] = std::dynamic_pointer_cast<VulkanImage2D>(activeTextures[i]->GetImage())->GetImageInfo();
+			}
+			VkWriteDescriptorSet setWrites{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
+			setWrites.dstBinding = 1;
+			setWrites.dstArrayElement = 0;
+			setWrites.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+			setWrites.descriptorCount = imageInfos.size();
+			setWrites.pBufferInfo = 0;
+			setWrites.dstSet = GetCurrentFrame().TextureDescriptorSet;
+			setWrites.pImageInfo = imageInfos.data();
+
+			vkUpdateDescriptorSets(m_Device, 1, &setWrites, 0, nullptr);
+			vkCmdBindDescriptorSets(m_ActiveCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_ActivePipeline->GetLayout(), 2, 1, &GetCurrentFrame().TextureDescriptorSet, 0, nullptr);
+		}
+		
+		VkBuffer vertexBuffer = std::dynamic_pointer_cast<VulkanBuffer>(renderable.MeshData.VertexBuffer)->GetAllocation().Buffer;
+		VkBuffer indexBuffer = std::dynamic_pointer_cast<VulkanBuffer>(renderable.MeshData.IndexBuffer)->GetAllocation().Buffer;
+		VkDeviceSize offsets[] = { 0 };
+		vkCmdBindVertexBuffers(m_ActiveCommandBuffer, 0, 1, &vertexBuffer, offsets);
+		vkCmdBindIndexBuffer(m_ActiveCommandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+
+
+		static auto startTime = std::chrono::high_resolution_clock::now();
+		auto currentTime = std::chrono::high_resolution_clock::now();
+		float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
+		float x = 0.0f + time;
+		//glm::mat4 model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(x, 0.0f, 1.0f));
+		//PushConstants pushConstant;
+		//pushConstant.ModelMatrix = model;
+		//vkCmdPushConstants(cmd, m_GraphicsPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PushConstants), &pushConstant);
+			
 		vkCmdDrawIndexed(m_ActiveCommandBuffer, 6, 1, 0, 0, 0);
 	}
 
@@ -471,7 +495,7 @@ namespace Povox {
 
 	void VulkanRenderer::CreateDescriptors()
 	{
-		PX_CORE_INFO("VulkanRenderer::CreateTextureDescriptors: Starting TextureDescriptor creation...");
+		PX_CORE_INFO("VulkanRenderer::CreateDescriptors: Starting...");
 
 
 		PX_CORE_INFO("Creating (global) DescriptorLayouts... ");
@@ -508,47 +532,9 @@ namespace Povox {
 
 			m_GlobalDescriptorSetLayout = VulkanContext::GetDescriptorLayoutCache()->CreateDescriptorLayout(&globalInfo);
 		}
-
-		//TextureDescriptorLayoutCreation
-		VkDescriptorSetLayoutBinding samplerBinding{};
-		{
-			samplerBinding.binding = 0;
-			samplerBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-			samplerBinding.descriptorCount = m_TextureSystem->GetConfig().MaxTextureSlots;
-			samplerBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-			samplerBinding.pImmutableSamplers = nullptr;
-
-			std::vector<VkDescriptorSetLayoutBinding> textureBindings = { samplerBinding };
-
-			VkDescriptorSetLayoutCreateInfo textureInfo{};
-			textureInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-			textureInfo.pNext = nullptr;
-
-			textureInfo.flags = 0;
-			textureInfo.bindingCount = static_cast<uint32_t>(textureBindings.size());
-			textureInfo.pBindings = textureBindings.data();
-
-			m_TextureDescriptorSetLayout = VulkanContext::GetDescriptorLayoutCache()->CreateDescriptorLayout(&textureInfo);
-		}
-
-		auto& activeTextures = m_TextureSystem->GetActiveTextures();
-		//TODO: Get maxImageSlots form config as const
-		std::vector<VkDescriptorImageInfo> imageInfos;		
-		imageInfos.resize(m_TextureSystem->GetConfig().MaxTextureSlots);
-
-		VulkanDescriptorBuilder builder = VulkanDescriptorBuilder::Begin(VulkanContext::GetDescriptorLayoutCache(), VulkanContext::GetDescriptorAllocator());
-
-		for (uint32_t i = 0; i < activeTextures.size(); i++)
-		{
-			Ref<Image2D> image = activeTextures[i]->GetImage();
-			//TODO: Define BindImages for arrays of image infos!
-			Ref<VulkanImage2D> vkimage = std::dynamic_pointer_cast<VulkanImage2D>(activeTextures[i]->GetImage());
-			samplerBinding.binding = i;
-			builder.BindImage(samplerBinding, &vkimage->GetImageInfo());
-		}
-
 		for (uint32_t i = 0; i < m_Specification.MaxFramesInFlight; i++)
 		{
+			VulkanDescriptorBuilder builder = VulkanDescriptorBuilder::Begin(VulkanContext::GetDescriptorLayoutCache(), VulkanContext::GetDescriptorAllocator());
 			VkDescriptorBufferInfo camInfo{};
 			camInfo.buffer = m_Frames[i].CamUniformBuffer.Buffer;
 			camInfo.offset = 0;
@@ -563,20 +549,107 @@ namespace Povox {
 			builder.BindBuffer(sceneBinding, &sceneInfo);
 
 			builder.Build(m_Frames[i].GlobalDescriptorSet, m_GlobalDescriptorSetLayout, "GlobalDS");
+		}
 
-			/*VkDescriptorImageInfo imageInfo{};
-			imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-			imageInfo.imageView = m_Textures["Logo"].ImageView;
-			imageInfo.sampler = m_TextureSampler;
-			builder.BindImage(samplerBinding, &imageInfo);*/
+		PX_CORE_INFO("Completed (global) DescriptorLayouts creation. ");
+		PX_CORE_INFO("Creating Object DescriptorLayouts... ");
+		
+		VkDescriptorSetLayoutBinding objectBinding{};
+		{
+			objectBinding.binding = 0;
+			objectBinding.descriptorCount = 1;
+			objectBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+			objectBinding.pImmutableSamplers = nullptr;
+			objectBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+		
+			VkDescriptorSetLayoutCreateInfo objectInfo{};
+			objectInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+			objectInfo.pNext = nullptr;
 
-			builder.Build(m_Frames[i].TextureDescriptorSet, m_TextureDescriptorSetLayout, "GlobalDS");
+			objectInfo.flags = 0;
+			objectInfo.bindingCount = 0;
+			objectInfo.pBindings = &objectBinding;
+
+			m_ObjectDescriptorSetLayout = VulkanContext::GetDescriptorLayoutCache()->CreateDescriptorLayout(&objectInfo);
+		}
+		for (uint32_t i = 0; i < m_Specification.MaxFramesInFlight; i++)
+		{
+			VulkanDescriptorBuilder builder = VulkanDescriptorBuilder::Begin(VulkanContext::GetDescriptorLayoutCache(), VulkanContext::GetDescriptorAllocator());
+			VkDescriptorBufferInfo objectInfo{};
+			objectInfo.buffer = m_Frames[i].ObjectBuffer.Buffer;
+			objectInfo.offset = 0;
+			objectInfo.range = sizeof(ObjectUniform) * MAX_OBJECTS;
+			builder.BindBuffer(objectBinding, &objectInfo);
+
+			builder.Build(m_Frames[i].ObjectDescriptorSet, m_ObjectDescriptorSetLayout, "ObjectDS");
+		}
+
+
+		PX_CORE_INFO("Completed Object DescriptorLayouts creation. ");
+		PX_CORE_INFO("Creating TextureArray DescriptorLayouts... ");
+
+		//TextureDescriptorLayoutCreation
+		VkDescriptorSetLayoutBinding samplerBinding{};
+		VkDescriptorSetLayoutBinding textureArrayBinding{};
+		{
+			samplerBinding.binding = 0;
+			samplerBinding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
+			samplerBinding.descriptorCount = 1;
+			samplerBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+			samplerBinding.pImmutableSamplers = nullptr;
+		
+
+			textureArrayBinding.binding = 1;
+			textureArrayBinding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+			textureArrayBinding.descriptorCount = m_TextureSystem->GetConfig().MaxTextureSlots;
+			textureArrayBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+			textureArrayBinding.pImmutableSamplers = nullptr;
+
+			std::vector<VkDescriptorSetLayoutBinding> textureBindings = { samplerBinding, textureArrayBinding };
+
+			VkDescriptorSetLayoutCreateInfo textureInfo{};
+			textureInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+			textureInfo.pNext = nullptr;
+
+			textureInfo.flags = 0;
+			textureInfo.bindingCount = static_cast<uint32_t>(textureBindings.size());
+			textureInfo.pBindings = textureBindings.data();
+
+			m_TextureDescriptorSetLayout = VulkanContext::GetDescriptorLayoutCache()->CreateDescriptorLayout(&textureInfo);
+		}
+
+		auto& activeTextures = m_TextureSystem->GetActiveTextures();
+		//TODO: Get maxImageSlots from config as const
+		std::vector<VkDescriptorImageInfo> imageInfos;	
+		imageInfos.resize(m_TextureSystem->GetConfig().MaxTextureSlots);
+		for (uint32_t i = 0; i < imageInfos.size(); i++)
+		{
+			Ref<Image2D> image = activeTextures[i]->GetImage();
+			//TODO: Define BindImages for arrays of image infos!
+			Ref<VulkanImage2D> vkimage = std::dynamic_pointer_cast<VulkanImage2D>(activeTextures[i]->GetImage());
+			imageInfos[i].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+			imageInfos[i].imageView = vkimage->GetImageView();
+			imageInfos[i].sampler = nullptr;
+		}
+
+		for (uint32_t i = 0; i < m_Specification.MaxFramesInFlight; i++)
+		{	
+			VulkanDescriptorBuilder builder = VulkanDescriptorBuilder::Begin(VulkanContext::GetDescriptorLayoutCache(), VulkanContext::GetDescriptorAllocator());
+
+			VkDescriptorImageInfo samplerInfo{};
+			samplerInfo.sampler = m_TextureSampler;
+
+			builder.BindImage(samplerBinding, &samplerInfo);
+			builder.BindImage(textureArrayBinding, imageInfos.data());
+
+			builder.Build(m_Frames[i].TextureDescriptorSet, m_TextureDescriptorSetLayout, "TextureArrayDS");
 		}
 
 
 
-		PX_CORE_INFO("VulkanRenderer::CreateTextureDescriptors: Completed TextureDescriptor creation.");
-		PX_CORE_INFO("Completed (global) DescriptorLayout creations.");
+
+		PX_CORE_INFO("Completed textureArray DescriptorLayouts creation. ");
+		PX_CORE_INFO("VulkanRenderer::CreateDescriptors: Completed.");
 	}
 
 	void VulkanRenderer::UpdateCamera(const CameraUniform& cam)
@@ -804,7 +877,7 @@ namespace Povox {
 
 			VkPipelineStageFlags srcStage;
 			VkPipelineStageFlags dstStage;
-			barrier.srcAccessMask = VK_ACCESS_MEMORY_WRITE_BIT;
+			barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT; //memory_write
 			barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 
 			srcStage = VK_PIPELINE_STAGE_TRANSFER_BIT;

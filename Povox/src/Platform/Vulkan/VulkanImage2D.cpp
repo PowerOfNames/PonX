@@ -312,7 +312,8 @@ namespace Povox {
 // ----------------- Texture2D -----------------
 
 
-	VulkanTexture2D::VulkanTexture2D(uint32_t width, uint32_t height, uint32_t channels)
+	VulkanTexture2D::VulkanTexture2D(uint32_t width, uint32_t height, uint32_t channels, const std::string& debugName)
+		: m_DebugName(debugName)
 	{
 		m_Path = "No Path";
 
@@ -338,7 +339,8 @@ namespace Povox {
 		PX_CORE_TRACE("Texture width : '{0}', height '{1}', RID: {2}", width, height, std::to_string(m_RID).c_str());
 	}
 
-	VulkanTexture2D::VulkanTexture2D(const std::string& path)
+	VulkanTexture2D::VulkanTexture2D(const std::string& path, const std::string& debugName)
+		: m_DebugName(debugName)
 	{
 		m_Path = path;
 		int width, height, channels;

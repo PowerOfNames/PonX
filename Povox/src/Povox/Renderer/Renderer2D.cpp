@@ -17,7 +17,6 @@ namespace Povox {
 		glm::vec4 Color;
 		glm::vec2 TexCoord;
 		float TexID;
-		float TilingFactor;
 
 		//Editor only
 		int EntityID;
@@ -72,8 +71,6 @@ namespace Povox {
 			{ ShaderUtils::ShaderDataType::Float3, "a_Position" },
 			{ ShaderUtils::ShaderDataType::Float4, "a_Color" },
 			{ ShaderUtils::ShaderDataType::Float2, "a_TexCoord" },
-			{ ShaderUtils::ShaderDataType::Float, "a_TexID" },
-			{ ShaderUtils::ShaderDataType::Float, "a_TilingFactor" },
 			{ ShaderUtils::ShaderDataType::Int, "a_EntityID" }
 			});
 		*/
@@ -105,7 +102,7 @@ namespace Povox {
 		delete[] quadIndices;
 
 
-		s_QuadData.WhiteTexture = Texture2D::Create(1, 1, 4);
+		s_QuadData.WhiteTexture = Texture2D::Create(1, 1, 4, "WhiteTexture");
 		uint32_t whiteTextureData = 0xffffffff;
 		s_QuadData.WhiteTexture->SetData(&whiteTextureData);
 
@@ -116,7 +113,7 @@ namespace Povox {
 		
 		s_QuadData.TextureShader = Renderer::GetShaderLibrary()->Get("TextureShader");
 		Renderer::GetTextureSystem()->RegisterTexture("WhiteTexture", s_QuadData.WhiteTexture);
-		Renderer::GetTextureSystem()->BindTexture(s_QuadData.WhiteTexture);
+		Renderer::GetTextureSystem()->BindFixedTexture(s_QuadData.WhiteTexture);
 
 		s_QuadData.QuadVertexPositions[0] = { -0.5f, -0.5f, 0.0f, 1.0f };
 		s_QuadData.QuadVertexPositions[1] = { 0.5f, -0.5f, 0.0f, 1.0f };
@@ -132,7 +129,7 @@ namespace Povox {
 		PX_PROFILE_FUNCTION();
 
 		//TODO: Investigate shutdown read access error here!
-		delete[] s_QuadData.QuadVertexBufferBase;
+		//delete[] s_QuadData.QuadVertexBufferBase;
 	}
 
 	void Renderer2D::BeginScene(const OrthographicCamera& camera)
@@ -179,10 +176,10 @@ namespace Povox {
 			return; // nothing to draw
 
 		uint32_t dataSize = (uint32_t)((uint8_t*)s_QuadData.QuadVertexBufferPtr - (uint8_t*)s_QuadData.QuadVertexBufferBase);
-		s_QuadData.QuadVertexBuffer->SetData(s_QuadData.QuadVertexBufferBase, dataSize);
+		//s_QuadData.QuadVertexBuffer->SetData(s_QuadData.QuadVertexBufferBase, dataSize);
 
 		//TODO: Draw must use the nextTextureSlot to know until which texture it needs to update the descriptor sets
-		Renderer::Draw(s_QuadData.QuadVertexBuffer, s_QuadData.QuadIndexBuffer, s_QuadData.QuadIndexCount);
+		//Renderer::Draw(s_QuadData.QuadVertexBuffer, s_QuadData.QuadIndexBuffer, s_QuadData.QuadIndexCount);
 
 		
 		s_QuadData.Stats.DrawCalls++;
@@ -219,7 +216,7 @@ namespace Povox {
 	}
 	void Renderer2D::DrawQuad(const glm::mat4& transform, const glm::vec4& color, int entityID)
 	{
-		constexpr float whiteTextureID = 0.0f;
+		constexpr float whiteTextureID = 0;
 		constexpr float tilingFactor = 1.0f;
 		constexpr glm::vec2 textureCoords[4] = { {0.0f, 0.0f}, {1.0f, 0.0f}, {1.0f, 1.0f}, {0.0f, 1.0f} };
 
@@ -233,7 +230,6 @@ namespace Povox {
 			vertexData[i].Color = color;
 			vertexData[i].TexCoord = textureCoords[i];
 			vertexData[i].TexID = whiteTextureID;
-			vertexData[i].TilingFactor = 1.0f;
 			vertexData[i].EntityID = 1;
 		}
 		BufferSpecification vertexBufferSpecs{};
@@ -259,10 +255,12 @@ namespace Povox {
 
 		renderable.Material.Color = { color.x, color.y, color.z };
 		renderable.Material.Shader = Renderer::GetShaderLibrary()->Get("FlatColorShader"); //Material: Shader/Pipeline connection!
+		renderable.Material.TexID = whiteTextureID;
+		renderable.Material.TilingFactor = 1.0f;
 		renderable.Material.Texture = nullptr;
 		s_QuadData.RenderedObjects.push_back(renderable);
-		//Renderer::DrawRenderable(renderable);
-		if (s_QuadData.QuadIndexCount >= Renderer2DData::MaxIndices)
+		Renderer::DrawRenderable(renderable);
+		/*if (s_QuadData.QuadIndexCount >= Renderer2DData::MaxIndices)
 			NextBatch();
 
 		for (uint32_t i = 0; i < 4; i++)
@@ -270,11 +268,9 @@ namespace Povox {
 			s_QuadData.QuadVertexBufferPtr->Position = transform * s_QuadData.QuadVertexPositions[i];
 			s_QuadData.QuadVertexBufferPtr->Color = color;
 			s_QuadData.QuadVertexBufferPtr->TexCoord = textureCoords[i];
-			s_QuadData.QuadVertexBufferPtr->TexID = whiteTextureID;
-			s_QuadData.QuadVertexBufferPtr->TilingFactor = tilingFactor;
 			s_QuadData.QuadVertexBufferPtr->EntityID = entityID;
 			s_QuadData.QuadVertexBufferPtr++;
-		}
+		}*/
 		s_QuadData.QuadIndexCount += 6;
 
 		s_QuadData.Stats.QuadCount++;
@@ -302,10 +298,11 @@ namespace Povox {
 
 		Renderable renderable;
 
-		float textureIndex = 0.0f;
+		uint32_t textureIndex = 0;
 
 		//Will return the first slot possible if allSlotsFull is true
 		textureIndex = Renderer::GetTextureSystem()->BindTexture(texture);
+		PX_CORE_TRACE("TextureID of texture {0}: {1}", texture->GetDebugName(), textureIndex);
 		if (textureIndex >= s_QuadData.MaxTextureSlots)
 			NextBatch();
 		textureIndex = Renderer::GetTextureSystem()->BindTexture(texture);
@@ -318,8 +315,7 @@ namespace Povox {
 			vertexData[i].Position = transform * s_QuadData.QuadVertexPositions[i];
 			vertexData[i].Color = tintingColor;
 			vertexData[i].TexCoord = textureCoords[i];
-			vertexData[i].TexID = 0.0f;
-			vertexData[i].TilingFactor = 1.0f;
+			vertexData[i].TexID = textureIndex;
 			vertexData[i].EntityID = 2;
 		}
 		BufferSpecification vertexBufferSpecs{};
@@ -345,6 +341,8 @@ namespace Povox {
 
 		renderable.Material.Color = { tintingColor.x, tintingColor.y, tintingColor.z };
 		renderable.Material.Shader = Renderer::GetShaderLibrary()->Get("TextureShader"); //Material: Shader/Pipeline connection!
+		renderable.Material.TexID = textureIndex;
+		renderable.Material.TilingFactor = tilingFactor;
 		renderable.Material.Texture = texture;
 		s_QuadData.RenderedObjects.push_back(renderable);
 		Renderer::DrawRenderable(renderable);
@@ -383,8 +381,7 @@ namespace Povox {
 			vertexData[i].Position = transform * s_QuadData.QuadVertexPositions[i];
 			vertexData[i].Color = tintingColor;
 			vertexData[i].TexCoord = textureCoords[i];
-			vertexData[i].TexID = 0.0f;
-			vertexData[i].TilingFactor = 1.0f;
+			vertexData[i].TexID = 5.0f;
 			vertexData[i].EntityID = 3;
 		}
 		BufferSpecification vertexBufferSpecs{};
@@ -410,6 +407,8 @@ namespace Povox {
 
 		renderable.Material.Color = { tintingColor.x, tintingColor.y, tintingColor.z };
 		renderable.Material.Shader = Renderer::GetShaderLibrary()->Get("TextureShader"); //Material: Shader/Pipeline connection!
+		renderable.Material.TexID = 1;
+		renderable.Material.TilingFactor = 1.0f;
 		renderable.Material.Texture = texture;
 		s_QuadData.RenderedObjects.push_back(renderable);
 		Renderer::DrawRenderable(renderable);
