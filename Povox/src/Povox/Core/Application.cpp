@@ -104,6 +104,7 @@ namespace Povox {
 				//if the GUI rendering happens here, then I have to change the frame handling and end it AFTER ImGui or other GUI has been handled and rendered before buffer swapping
 				if (RendererAPI::GetAPI() == RendererAPI::API::Vulkan && m_Specification.ImGuiEnabled)
 				{
+					PX_PROFILE_SCOPE("ImGui Update and render loop");
 					const void* imGuiCmd = Renderer::GetGUICommandBuffer(Renderer::GetCurrentFrameIndex());
 					Renderer::BeginCommandBuffer(imGuiCmd);
 					Renderer::BeginGUIRenderPass();
@@ -121,6 +122,7 @@ namespace Povox {
 			Renderer::EndFrame();
 			
 			m_Window->OnUpdate();
+			//Renderer::GetQueryResults();
 		}
 		PX_CORE_INFO("Application::Run: Stopped Main-Loop.");
 	}
@@ -137,7 +139,7 @@ namespace Povox {
 		 * shutdown window
 		 * close app
 		 */
-		delete m_ImGuiVulkanLayer;
+		//delete m_ImGuiVulkanLayer;
 		
 		PX_CORE_INFO("Starting Renderer shutdown...");
 		

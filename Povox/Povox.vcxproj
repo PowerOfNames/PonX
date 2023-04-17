@@ -157,6 +157,7 @@
     <ClInclude Include="src\Platform\Vulkan\VulkanFramebuffer.h" />
     <ClInclude Include="src\Platform\Vulkan\VulkanImGui.h" />
     <ClInclude Include="src\Platform\Vulkan\VulkanImage2D.h" />
+    <ClInclude Include="src\Platform\Vulkan\VulkanMaterial.h" />
     <ClInclude Include="src\Platform\Vulkan\VulkanPipeline.h" />
     <ClInclude Include="src\Platform\Vulkan\VulkanRenderPass.h" />
     <ClInclude Include="src\Platform\Vulkan\VulkanRenderer.h" />
@@ -193,6 +194,7 @@
     <ClInclude Include="src\Povox\Renderer\Framebuffer.h" />
     <ClInclude Include="src\Povox\Renderer\GraphicsContext.h" />
     <ClInclude Include="src\Povox\Renderer\Image2D.h" />
+    <ClInclude Include="src\Povox\Renderer\Material.h" />
     <ClInclude Include="src\Povox\Renderer\OrthographicCamera.h" />
     <ClInclude Include="src\Povox\Renderer\OrthographicCameraController.h" />
     <ClInclude Include="src\Povox\Renderer\PerspectiveCamera.h" />
@@ -664,6 +666,7 @@
     <ClCompile Include="src\Platform\Vulkan\VulkanFramebuffer.cpp" />
     <ClCompile Include="src\Platform\Vulkan\VulkanImGui.cpp" />
     <ClCompile Include="src\Platform\Vulkan\VulkanImage2D.cpp" />
+    <ClCompile Include="src\Platform\Vulkan\VulkanMaterial.cpp" />
     <ClCompile Include="src\Platform\Vulkan\VulkanPipeline.cpp" />
     <ClCompile Include="src\Platform\Vulkan\VulkanRenderPass.cpp" />
     <ClCompile Include="src\Platform\Vulkan\VulkanRenderer.cpp" />
@@ -687,6 +690,7 @@
     <ClCompile Include="src\Povox\Renderer\Framebuffer.cpp" />
     <ClCompile Include="src\Povox\Renderer\GraphicsContext.cpp" />
     <ClCompile Include="src\Povox\Renderer\Image2D.cpp" />
+    <ClCompile Include="src\Povox\Renderer\Material.cpp" />
     <ClCompile Include="src\Povox\Renderer\OrthographicCamera.cpp" />
     <ClCompile Include="src\Povox\Renderer\OrthographicCameraController.cpp" />
     <ClCompile Include="src\Povox\Renderer\PerspectiveCamera.cpp" />

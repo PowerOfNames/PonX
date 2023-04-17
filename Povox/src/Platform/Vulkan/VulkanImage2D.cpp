@@ -21,7 +21,8 @@ namespace Povox {
 
 		if(m_Specification.Usages.ContainsUsage(ImageUsage::SAMPLED))
 		{
-			CreateSampler();
+			if(m_Specification.DedicatedSampler)
+				CreateSampler();
 			CreateDescriptorSet();
 		}
 	}
@@ -38,7 +39,8 @@ namespace Povox {
 
 		CreateImage();
 		CreateImageView();
-		CreateSampler();
+		if (m_Specification.DedicatedSampler)
+			CreateSampler();
 		CreateDescriptorSet();
 	}
 
@@ -291,7 +293,10 @@ namespace Povox {
 	void VulkanImage2D::CreateDescriptorSet()
 	{
 		m_Binding.binding = 0;
-		m_Binding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		m_Binding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+		if (m_Specification.DedicatedSampler)
+			m_Binding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+			
 		m_Binding.descriptorCount = 1;
 		m_Binding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 		m_Binding.pImmutableSamplers = nullptr;
@@ -336,7 +341,7 @@ namespace Povox {
 		nameInfo.pObjectName = "White";
 		NameVkObject(VulkanContext::GetDevice()->GetVulkanDevice(), nameInfo);
 
-		PX_CORE_TRACE("Texture width : '{0}', height '{1}', RID: {2}", width, height, std::to_string(m_RID).c_str());
+		PX_CORE_TRACE("Texture width : '{0}', height '{1}', RID: {2}", width, height, std::to_string(m_RUID).c_str());
 	}
 
 	VulkanTexture2D::VulkanTexture2D(const std::string& path, const std::string& debugName)
@@ -375,7 +380,7 @@ namespace Povox {
 		nameInfo.pObjectName = path.c_str();
 		NameVkObject(VulkanContext::GetDevice()->GetVulkanDevice(), nameInfo);
 
-		PX_CORE_TRACE("Texture width : '{0}', height '{1}', RID: {2}", width, height, std::to_string(m_RID).c_str());
+		PX_CORE_TRACE("Texture width : '{0}', height '{1}', RID: {2}", width, height, std::to_string(m_RUID).c_str());
 
 		SetData(pixels);
 		stbi_image_free(pixels);

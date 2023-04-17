@@ -27,7 +27,6 @@ namespace Povox {
 				MousePan(delta);
 			else if (Input::IsMouseButtonPressed(Mouse::ButtonLeft))
 			{
-				PX_CORE_WARN("Mouse Position ({0}, {1})", mousePos.x, mousePos.y);
 				MouseRotate(delta);
 			}
 			else if (Input::IsMouseButtonPressed(Mouse::ButtonRight))

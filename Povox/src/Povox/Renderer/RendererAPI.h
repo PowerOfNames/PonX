@@ -1,5 +1,6 @@
 #pragma once
 #include "Povox/Renderer/Buffer.h"
+#include "Povox/Renderer/Material.h"
 #include "Povox/Renderer/Pipeline.h"
 #include "Povox/Renderer/Renderable.h"
 #include "Povox/Renderer/RenderPass.h"
@@ -13,6 +14,7 @@
 namespace Povox {
 
 	struct CameraUniform;
+	struct RendererSpecification;
 	class RendererAPI
 	{
 	public:
@@ -38,7 +40,7 @@ namespace Povox {
 		virtual bool BeginFrame() = 0;
 		//virtual void Draw(const std::vector<Renderable>& drawList) = 0;
 		virtual void DrawRenderable(const Renderable& renderable) = 0;
-		virtual void Draw(Ref<Buffer> vertices, Ref<Buffer> indices, size_t indexCount) = 0;
+		virtual void Draw(Ref<Buffer> vertices, Ref<Material> material, Ref<Buffer> indices, size_t indexCount) = 0;
 		virtual void DrawGUI() = 0;
 		virtual void EndFrame() = 0;
 
@@ -46,6 +48,8 @@ namespace Povox {
 
 		virtual Ref<ShaderLibrary> GetShaderLibrary() = 0;
 		virtual Ref<TextureSystem> GetTextureSystem() = 0;
+
+		virtual const RendererSpecification& GetSpecification() = 0;
 
 		virtual void Submit(const Renderable& object) = 0;
 
@@ -73,6 +77,8 @@ namespace Povox {
 
 		virtual void* GetGUIDescriptorSet(Ref<Image2D> image) = 0;
 
+		virtual void GetPipelineStats(std::vector<std::string>& names, std::vector<uint64_t>& values) = 0;
+		virtual void GetQueryResults() = 0;
 
 		inline static void SetAPI(API api) { s_API = api; std::cout << "Changed API to " << RendererAPI::APIAsString(s_API) << std::endl; }
 		inline static RendererAPI::API GetAPI() { return s_API; }

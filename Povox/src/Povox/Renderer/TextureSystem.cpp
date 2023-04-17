@@ -38,6 +38,9 @@ namespace Povox {
 
 	void TextureSystem::Shutdown()
 	{
+		PX_PROFILE_FUNCTION();
+
+
 		PX_CORE_INFO("TextureSystem::Shutdown: Starting...");
 		
 		
@@ -53,6 +56,9 @@ namespace Povox {
 	// TODO: Alternatively, use the whole path here instead of name in case textures exist in multiple files
 	Ref<Texture> TextureSystem::RegisterTexture(const std::string& name)
 	{
+		PX_PROFILE_FUNCTION();
+
+
 		Ref<Texture> texture = RegisteredTexturesContains(name);
 		if (texture)
 			return texture;
@@ -71,6 +77,9 @@ namespace Povox {
 
 	Ref<Texture> TextureSystem::RegisterTexture(const std::string& name, Ref<Texture> newTexture)
 	{
+		PX_PROFILE_FUNCTION();
+
+
 		Ref<Texture> texture = RegisteredTexturesContains(name);
 		if (texture)
 		{
@@ -88,6 +97,9 @@ namespace Povox {
 	 */
 	Ref<Texture> TextureSystem::GetTexture(const std::string& name)
 	{
+		PX_PROFILE_FUNCTION();
+
+
 		if (RegisteredTexturesContains(name))
 			return m_SystemState.RegisteredTextures[name];
 
@@ -99,6 +111,9 @@ namespace Povox {
 	 */
 	Ref<Texture> TextureSystem::GetOrRegisterTexture(const std::string& name)
 	{
+		PX_PROFILE_FUNCTION();
+
+
 		if (Ref<Texture> texture = GetTexture(name))
 			return texture;
 
@@ -111,8 +126,11 @@ namespace Povox {
 	 */
 	const uint32_t TextureSystem::BindTexture(Ref<Texture> texture)
 	{
+		PX_PROFILE_FUNCTION();
+
+
 		PX_CORE_ASSERT(texture, "No texture set");
-		for (uint32_t i = m_SystemState.LastFixedSlot; i < m_SystemState.NextTextureSlot; i++)
+		for (uint32_t i = 0; i < m_SystemState.NextTextureSlot; i++)
 		{
 			if (*texture.get() == *m_SystemState.ActiveTextures[i].get())
 			{
@@ -145,12 +163,23 @@ namespace Povox {
 	 */
 	const uint32_t TextureSystem::BindFixedTexture(Ref<Texture> texture)
 	{
+		PX_PROFILE_FUNCTION();
+
+
 		PX_CORE_ASSERT(texture, "No texture set");
+		if(RegisteredTexturesContains(texture).empty())
+		{
+			PX_CORE_WARN("Texture {} not registered!", texture);
+		}
 
-		PX_CORE_ASSERT(m_SystemState.LastFixedSlot <= m_SystemState.Config.MaxTextureSlots, "No more Textures can be bound into ActiveTextures!");
-		m_SystemState.ActiveTextures[++m_SystemState.LastFixedSlot] = texture;
+		PX_CORE_ASSERT(m_SystemState.NextFixedSlot < m_SystemState.Config.MaxTextureSlots, "No more Textures can be bound into ActiveTextures!");
+		m_SystemState.ActiveTextures[m_SystemState.NextFixedSlot] = texture;
+		m_SystemState.ActiveTexturesCounter[m_SystemState.NextFixedSlot] = 0;
 
-		return m_SystemState.LastFixedSlot;
+		m_SystemState.NextFixedSlot++;
+		m_SystemState.NextTextureSlot = m_SystemState.NextFixedSlot;
+
+		return m_SystemState.NextFixedSlot - 1;
 	}
 	const uint32_t TextureSystem::BindFixedTexture(const std::string& name)
 	{
@@ -159,19 +188,27 @@ namespace Povox {
 	}
 
 
-
+	/*
+	* This only resets the texture slots that are not persistently bound, but resets all active textures counters to 0
+	*/
 	void TextureSystem::ResetActiveTextures()
 	{
+		PX_PROFILE_FUNCTION();
+
+
 		if (!m_SystemState.DefaultTexture)
 			PX_CORE_WARN("TextureSystem::ResetActiveTextures: No DefaultTexture has been set!");
 
-		for (uint32_t i = m_SystemState.LastFixedSlot; i < m_SystemState.Config.MaxTextureSlots; i++)
+		for (uint32_t i = m_SystemState.NextFixedSlot; i < m_SystemState.Config.MaxTextureSlots; i++)
 		{
 			m_SystemState.ActiveTextures[i] = m_SystemState.DefaultTexture;
 			m_SystemState.ActiveTexturesCounter[i] = 0;
 		}
-		m_SystemState.ActiveTexturesCounter[0] = 0;
-		m_SystemState.NextTextureSlot = m_SystemState.LastFixedSlot + 1; // 1, so the white texture can stay in slot 0
+		for (uint32_t i = 0; i < m_SystemState.Config.MaxTextureSlots; i++)
+		{
+			m_SystemState.ActiveTexturesCounter[i] = 0;
+		}
+		m_SystemState.NextTextureSlot = m_SystemState.NextFixedSlot;
 	}
 
 	/**
@@ -179,12 +216,15 @@ namespace Povox {
 	 */
 	void TextureSystem::ResetFixedTextures()
 	{
-		m_SystemState.LastFixedSlot = 0;
+		m_SystemState.NextFixedSlot = 0;
 		ResetActiveTextures();
 	}
 
 	const std::array<Ref<Texture>, MAX_TEXTURE_SLOTS>& TextureSystem::GetActiveTextures()
 	{
+		PX_PROFILE_FUNCTION();
+
+
 		for (uint32_t i = m_SystemState.NextTextureSlot; i < MAX_TEXTURE_SLOTS; i++)
 		{
 			m_SystemState.ActiveTextures[i] = m_SystemState.DefaultTexture;
@@ -215,7 +255,7 @@ namespace Povox {
 			if (*entry.second.get() == *texture.get())
 				return entry.first;
 		}
-		return "";
+		return std::string();
 	}
 
 }

@@ -49,7 +49,9 @@ namespace Povox {
 		VkPhysicalDeviceFeatures deviceFeatures{};
 		deviceFeatures.fillModeNonSolid = VK_TRUE;
 		deviceFeatures.samplerAnisotropy = VK_TRUE;
-		deviceFeatures.independentBlend = VK_TRUE;	//check if supported
+		deviceFeatures.independentBlend = VK_TRUE;
+		deviceFeatures.pipelineStatisticsQuery = VK_TRUE;
+		
 
 		VkPhysicalDeviceShaderDrawParametersFeatures shaderDrawParametersFeatures{};
 		shaderDrawParametersFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_DRAW_PARAMETERS_FEATURES;

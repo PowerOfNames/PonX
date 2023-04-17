@@ -24,6 +24,7 @@ namespace Povox {
     {
         PX_PROFILE_FUNCTION();
 
+
 		m_ViewportSize = { Application::Get()->GetWindow().GetWidth(), Application::Get()->GetWindow().GetHeight() };		
 		
 		m_LogoTexture = std::dynamic_pointer_cast<Texture2D>(Renderer::GetTextureSystem()->GetTexture("DefaultPXTexture"));
@@ -49,23 +50,13 @@ namespace Povox {
 			m_ImGuiRenderpass = RenderPass::Create(imGuiViewportRPSpecs);
 		}
 
-		//Flatcolored Pipeline
-		{
-			PipelineSpecification flatColoredPipelineSpecs{};
-			flatColoredPipelineSpecs.DynamicViewAndScissors = true;
-			flatColoredPipelineSpecs.Culling = PipelineUtils::CullMode::NONE;
-			flatColoredPipelineSpecs.TargetRenderPass = m_ImGuiRenderpass;
-			flatColoredPipelineSpecs.Shader = Renderer::GetShaderLibrary()->Get("FlatColorShader");
-			m_FlatColorPipeline = Pipeline::Create(flatColoredPipelineSpecs);
-		}
-
 		//Textured Pipeline
 		{
 			PipelineSpecification texturedPipelineSpecs{};
 			texturedPipelineSpecs.DynamicViewAndScissors = true;
-			texturedPipelineSpecs.Culling = PipelineUtils::CullMode::NONE;
+			texturedPipelineSpecs.Culling = PipelineUtils::CullMode::BACK;
 			texturedPipelineSpecs.TargetRenderPass = m_ImGuiRenderpass;
-			texturedPipelineSpecs.Shader = Renderer::GetShaderLibrary()->Get("TextureShader");
+			texturedPipelineSpecs.Shader = Renderer::GetShaderLibrary()->Get("Renderer2D_Quad");
 			m_TexturePipeline = Pipeline::Create(texturedPipelineSpecs);
 		}
 
@@ -105,7 +96,6 @@ namespace Povox {
 			m_ImGuiViewportFB->Recreate((uint32_t)m_ViewportSize.x, (uint32_t)m_ViewportSize.y); //better resize all pipelines here -> can then recursively
 			m_ImGuiRenderpass->Recreate();
 			m_TexturePipeline->Recreate();
-			m_FlatColorPipeline->Recreate();
 
             m_EditorCamera.SetViewportSize(m_ViewportSize.x, m_ViewportSize.y);
 
@@ -120,27 +110,31 @@ namespace Povox {
         Renderer2D::ResetStats();
 
         // Update Scene
-        m_ActiveScene->OnUpdateEditor(deltatime, m_EditorCamera);
 
 		uint32_t currentFrameIndex = Renderer::GetCurrentFrameIndex();
 		auto cmd = Renderer::GetCommandBuffer(currentFrameIndex);
 		Renderer::BeginCommandBuffer(cmd);
 		Renderer::BeginRenderPass(m_ImGuiRenderpass);
 
-		//Renderer2D::BeginScene(m_EditorCamera); //doesn't mess with renderer atm
-		Renderer2D::BeginScene(m_OrthoCamControl.GetCamera()); //doesn't mess with renderer atm
+		Renderer2D::BeginScene(m_EditorCamera); //doesn't mess with renderer atm
+		//Renderer2D::BeginScene(m_OrthoCamControl.GetCamera()); //doesn't mess with renderer atm
 
 		Renderer::BindPipeline(m_TexturePipeline);
-		Renderer2D::DrawQuad({ 2.0f, 0.0f, 1.0f }, { 1.0f, 1.0f }, m_LogoTexture, 0.5f);
-		Renderer2D::DrawQuad({ -2.0f, 2.0f, -2.0f }, { 2.0f, 3.0f }, m_GreenTexture, 2.0f);
-		Renderer2D::DrawQuad({ -2.0f, 1.0f, -3.0f }, { 1.0f, 3.0f }, m_GreenTexture, 2.0f);
-		Renderer2D::DrawQuad({ 2.0f, 3.0f, 0.0f }, { 0.8f, 0.5f }, m_LogoTexture, 0.5f);
-		Renderer2D::DrawQuad({ -2.0f, 1.5f, 2.0f }, { 0.2f, 3.0f }, m_GreenTexture, 2.0f);
-
-		Renderer::BindPipeline(m_FlatColorPipeline);// -> this will be moved into sceneRenderer -> sorts through materials of objects, then binds pipeline accordingly
-		Renderer2D::DrawQuad({ 0.0f, 0.0f, 0.0f }, { 1.0f, 1.0f }, { 0.56f, 0.24f, 0.5f, 0.7f });	
-		Renderer2D::DrawRotatedQuad({ 1.0f, 1.0f, 0.5f }, { 1.0f, 1.0f }, 0.5f, { 0.9f, 0.4f, 0.5f, 1.0f });	
-		Renderer2D::DrawQuad({ 0.0f, 0.0f, 4.0f }, { 1.0f, 1.0f }, { 1.0f, 1.0f, 0.5f, 0.2f });		
+		Renderer2D::DrawQuad({ -2.0f, -3.0f,-4.0f }, { 1.0f, 1.0f }, m_LogoTexture, 0.5f);
+		Renderer2D::DrawQuad({ 0.0f, 0.0f, -2.0f }, { 2.0f, 3.0f }, m_GreenTexture, 2.0f);
+		{
+			PX_PROFILE_SCOPE("DrawQuadLoop");
+			int quads = 10;
+			float dquads = quads * 2.0f;
+			for (int i = -quads; i <= quads; i++)
+			{
+				for (int j = -quads; j <= quads; j++)
+				{
+					Renderer2D::DrawQuad({ i, j, 0.0f }, { 0.9f, 0.9f }, { (i + quads) / dquads, (j + quads) / dquads, 0.1f, 1.0f });
+				}
+			}
+		}
+		//m_ActiveScene->OnUpdateEditor(deltatime, m_EditorCamera);
 
 		Renderer2D::EndScene(); //doesn't mess with renderer atm
 
@@ -164,7 +158,7 @@ namespace Povox {
         if (mouseX >= 0 && mouseY >= 0 && mouseX < (int)viewportSize.x && mouseY < (int)viewportSize.y)
         {
             int pixelData = m_ImGuiViewportFB->GetColorAttachment(1)->ReadPixel(mouseX, mouseY);
-			PX_WARN("EntityID = {0}", pixelData);
+			//PX_WARN("EntityID = {0}", pixelData);
             //m_HoveredEntity = pixelData == 0 ? Entity() : Entity((entt::entity)pixelData, m_ActiveScene.get());
         }
 		
@@ -268,6 +262,12 @@ namespace Povox {
         ImGui::Text("Vertices: %d", stats.GetTotalVertexCount());
         ImGui::Text("Indices: %d", stats.GetTotalIndexCount());
         ImGui::Text("Deltatime: %f", m_Deltatime);
+		ImGui::Separator();		
+		for (uint32_t i = 0; i < stats.PipelineStats.size(); i++)
+		{
+			std::string caption = stats.PipelineStatNames[i] + ": %llu";
+			ImGui::Text(caption.c_str(), stats.PipelineStats[i]);
+		}
 
         std::string name = "None";
         if (m_HoveredEntity)

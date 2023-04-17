@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Povox/Renderer/Buffer.h"
+#include "Povox/Renderer/Material.h"
 #include "Povox/Renderer/OrthographicCamera.h"
 #include "Povox/Renderer/Renderable.h"
 #include "Povox/Renderer/RendererAPI.h"
@@ -56,11 +57,16 @@ namespace Povox {
 
 		static bool BeginFrame();
 		static void DrawRenderable(const Renderable& renderable);
-		static void Draw(Ref<Buffer> vertices, Ref<Buffer> indices, size_t indexCount);
+		static void Draw(Ref<Buffer> vertices, Ref<Material> material, Ref<Buffer> indices, size_t indexCount);
 		static void DrawGUI();
 		static void EndFrame();
 
 		static uint32_t GetCurrentFrameIndex();
+
+		static Ref<ShaderLibrary> GetShaderLibrary();
+		static Ref<TextureSystem> GetTextureSystem();
+
+		static const RendererSpecification& GetSpecification();
 
 		static void CreateFinalImage(Ref<Image2D> finalImage);
 		static Ref<Image2D> GetFinalImage();
@@ -88,9 +94,11 @@ namespace Povox {
 
 		static void* GetGUIDescriptorSet(Ref<Image2D> image);
 
+		static void GetPipelineStats(std::vector<std::string>& names, std::vector<uint64_t>& values);
+		static void GetQueryResults();
+
+
 		inline static RendererAPI::API GetAPI() { return RendererAPI::GetAPI(); }
-		static Ref<ShaderLibrary> GetShaderLibrary();
-		static Ref<TextureSystem> GetTextureSystem();
 
 		static void CreateAPI(const RendererSpecification& specs);
 

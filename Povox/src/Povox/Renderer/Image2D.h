@@ -77,6 +77,8 @@ namespace Povox {
 		ImageUsages Usages;
 		ImageTiling Tiling = ImageTiling::LINEAR; //check whether this is supported or not upon startup end set it then globally
 		uint32_t MipLevels = 1;
+
+		bool DedicatedSampler = false;
 	};
 
 

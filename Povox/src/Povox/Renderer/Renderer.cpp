@@ -1,4 +1,5 @@
 #include "pxpch.h"
+#include "Povox/Renderer/Material.h"
 #include "Povox/Renderer/Renderer.h"
 #include "Povox/Renderer/Renderer2D.h"
 #include "Platform/Vulkan/VulkanRenderer.h"
@@ -73,10 +74,10 @@ namespace Povox {
 		s_RendererAPI->Submit(object);
 	}
 	void Renderer::DrawRenderable(const Renderable& renderable) { s_RendererAPI->DrawRenderable(renderable); }
-	void Renderer::Draw(Ref<Buffer> vertices, Ref<Buffer> indices, size_t indexCount)
+	void Renderer::Draw(Ref<Buffer> vertices, Ref<Material> material, Ref<Buffer> indices, size_t indexCount)
 	{
 		PX_PROFILE_FUNCTION();
-		s_RendererAPI->Draw(vertices, indices, indexCount);
+		s_RendererAPI->Draw(vertices, material, indices, indexCount);
 	}
 	void Renderer::DrawGUI()
 	{
@@ -92,7 +93,9 @@ namespace Povox {
 	
 	uint32_t Renderer::GetCurrentFrameIndex() { return s_RendererAPI->GetCurrentFrameIndex(); }
 
-	void Renderer::CreateFinalImage(Ref<Image2D> finalImage) { s_RendererAPI->CreateFinalImage(finalImage);	}
+	const RendererSpecification& Renderer::GetSpecification() { return s_RendererAPI->GetSpecification(); }
+
+	void Renderer::CreateFinalImage(Ref<Image2D> finalImage) { s_RendererAPI->CreateFinalImage(finalImage); }
 
 	Ref<Image2D> Renderer::GetFinalImage() { return s_RendererAPI->GetFinalImage(); }
 
@@ -115,6 +118,15 @@ namespace Povox {
 	void Renderer::PrepareSwapchainImage(Ref<Image2D> finalImage) { s_RendererAPI->PrepareSwapchainImage(finalImage); }
 
 	void* Renderer::GetGUIDescriptorSet(Ref<Image2D> image)	{ return s_RendererAPI->GetGUIDescriptorSet(image); }
+
+	void Renderer::GetPipelineStats(std::vector<std::string>& names, std::vector<uint64_t>& values)
+	{
+		s_RendererAPI->GetPipelineStats(names, values);
+	}
+	void Renderer::GetQueryResults()
+	{
+		s_RendererAPI->GetQueryResults();
+	}
 
 	Ref<ShaderLibrary> Renderer::GetShaderLibrary() { return s_RendererAPI->GetShaderLibrary(); }
 

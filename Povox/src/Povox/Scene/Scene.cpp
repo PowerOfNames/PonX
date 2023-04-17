@@ -91,16 +91,16 @@ namespace Povox {
 
 	void Scene::OnUpdateEditor(Timestep deltatime, EditorCamera& editorCamera)
 	{
-		Renderer2D::BeginScene(editorCamera);
+		//Renderer2D::BeginScene(editorCamera);
 
 		auto group = m_Registry.group<SpriteRendererComponent>(entt::get<TransformComponent>);
 		for (auto entity : group)
 		{
 			auto [spriteComp, transformComp] = group.get<SpriteRendererComponent, TransformComponent>(entity);
 
-			Renderer2D::DrawSprite(transformComp.GetTransform(), spriteComp, (int)entity);
+			Renderer2D::DrawSprite(transformComp.GetTransform(), spriteComp, UUID());
 		}
-		Renderer2D::EndScene();
+		//Renderer2D::EndScene();
 	}
 
 	void Scene::OnViewportResize(uint32_t width, uint32_t height)

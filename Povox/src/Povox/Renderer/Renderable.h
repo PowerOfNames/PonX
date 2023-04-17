@@ -8,7 +8,7 @@ namespace Povox {
 
 	class Shader;
 	class Texture2D;
-	struct SimpleMaterial
+	struct SimpleMaterial // -> Material
 	{
 		glm::vec3 Color{ 1.0f, 1.0f, 1.0f };
 		uint32_t TexID;
@@ -19,12 +19,12 @@ namespace Povox {
 		Ref<Texture2D> Texture = nullptr;
 	};
 
-	struct VertexData
+	struct QuadVertex
 	{
 		glm::vec3 Position;
 		glm::vec4 Color;
 		glm::vec2 TexCoord;
-		float TexID;
+		float TexID; // -> MaterialID after MaterialSystem//DescriptorManager implementation
 
 		//Editor only
 		int EntityID;

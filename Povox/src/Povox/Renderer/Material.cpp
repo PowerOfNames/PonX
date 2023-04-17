@@ -1,19 +1,22 @@
 #include "pxpch.h"
-#include "Povox/Renderer/Buffer.h"
-#include "Platform/Vulkan/VulkanBuffer.h"
+#include "Povox/Renderer/Material.h"
+
+#include "Platform/Vulkan/VulkanMaterial.h"
 
 #include "Povox/Renderer/RendererAPI.h"
 #include "Povox/Renderer/Renderer.h"
 
 namespace Povox {
 
-	Ref<Buffer> Buffer::Create(const BufferSpecification& specs)
+
+
+	Ref<Material> Material::Create(Ref<Shader> shader, const std::string& name)
 	{
 		switch (Renderer::GetAPI())
 		{
 			case RendererAPI::API::Vulkan:
 			{
-				return CreateRef<VulkanBuffer>(specs);
+				return CreateRef<VulkanMaterial>(shader, name);
 			}
 			case RendererAPI::API::NONE:
 			{
@@ -24,4 +27,5 @@ namespace Povox {
 		PX_CORE_ASSERT(false, "Unknown RendererAPI");
 		return nullptr;
 	}
+
 }

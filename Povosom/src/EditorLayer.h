@@ -38,7 +38,6 @@ namespace Povox {
 
 		Ref<Framebuffer> m_ImGuiViewportFB;
 		Ref<RenderPass> m_ImGuiRenderpass;
-		Ref<Pipeline> m_FlatColorPipeline;
 		Ref<Pipeline> m_TexturePipeline;
 
 		Ref<Texture2D> m_LogoTexture;

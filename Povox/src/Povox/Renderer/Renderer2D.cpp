@@ -5,48 +5,41 @@
 #include "Povox/Renderer/Renderer.h"
 
 #include "Povox/Renderer/Buffer.h"
+#include "Povox/Renderer/Material.h"
 #include "Povox/Renderer/Shader.h"
 
 #include <glm/gtc/matrix_transform.hpp>
 
 namespace Povox {
 
-	//TODO: read about padding and alignment!
-	struct QuadVertex {
-		glm::vec3 Position;
-		glm::vec4 Color;
-		glm::vec2 TexCoord;
-		float TexID;
-
-		//Editor only
-		int EntityID;
-	};
-
 	struct Renderer2DData
 	{
-		static const uint32_t MaxQuads = 20000;
+		static const uint32_t MaxQuads = 60000;
 		static const uint32_t MaxVertices = MaxQuads * 4;
 		static const uint32_t MaxIndices = MaxQuads * 6;
 		static const uint32_t MaxTextureSlots = 32; //TODO: needs to be dynamic to the GPU, comes from Renderer Capabilities
 
-		Ref<Buffer> QuadVertexBuffer;
-		Ref<Buffer> QuadIndexBuffer;
-		Ref<Shader> TextureShader;
+		// Common
 		Ref<Texture2D> WhiteTexture;
+		uint32_t WhiteTextureSlot;
 
-		uint32_t QuadIndexCount = 0;
-		QuadVertex* QuadVertexBufferBase = nullptr;
+		// Quads
+		std::vector<Ref<Buffer>> QuadVertexBuffers;
+		std::vector<QuadVertex*> QuadVertexBufferBases;
 		QuadVertex* QuadVertexBufferPtr = nullptr;
 
-		std::array<Ref<Texture2D>, MaxTextureSlots> TextureSlots;
-		uint32_t TextureSlotIndex = 1; // 0 is reserved for whiteTexture
+		std::vector<Ref<Buffer>> QuadIndexBuffers;
+		uint32_t QuadIndexCount = 0;
 
+		Ref<Material> QuadMaterial;
 		glm::vec4 QuadVertexPositions[4];
 
-		Renderer2D::Statistics Stats;
+		// Lines
 
 		CameraUniform CameraData;
 
+
+		Renderer2D::Statistics Stats;
 
 		std::vector<Renderable> RenderedObjects;
 	};
@@ -59,25 +52,26 @@ namespace Povox {
 
 
 		PX_CORE_TRACE("Renderer2D::Init: Starting...");
+		// TODO: Instead of taking a name and a path, just take in a name and pass the path upon ShaderLib creation inside the RendererBackend, pointing to root/.../assets/shaders/
+		Renderer::GetShaderLibrary()->Add("TextureShader", Shader::Create("assets/shaders/Texture.glsl"));
+		Renderer::GetShaderLibrary()->Add("FlatColorShader", Shader::Create("assets/shaders/FlatColor.glsl"));
+		Renderer::GetShaderLibrary()->Add("Renderer2D_Quad", Shader::Create("assets/shaders/Renderer2D_Quad.glsl"));
+		
+
 
 		BufferSpecification vertexBufferSpecs{};
 		vertexBufferSpecs.Usage = BufferUsage::VERTEX_BUFFER;
+		vertexBufferSpecs.MemUsage = MemoryUtils::MemoryUsage::GPU_ONLY;
 		vertexBufferSpecs.ElementCount = s_QuadData.MaxVertices;
 		vertexBufferSpecs.ElementSize = sizeof(QuadVertex);
-		vertexBufferSpecs.Size = s_QuadData.MaxVertices * sizeof(QuadVertex);
-		s_QuadData.QuadVertexBuffer = Buffer::Create(vertexBufferSpecs);
-		/*
-		s_QuadData.QuadVertexBuffer->SetLayout({
-			{ ShaderUtils::ShaderDataType::Float3, "a_Position" },
-			{ ShaderUtils::ShaderDataType::Float4, "a_Color" },
-			{ ShaderUtils::ShaderDataType::Float2, "a_TexCoord" },
-			{ ShaderUtils::ShaderDataType::Int, "a_EntityID" }
-			});
-		*/
-		s_QuadData.QuadVertexBufferBase = new QuadVertex[s_QuadData.MaxVertices];
+		vertexBufferSpecs.Size = sizeof(QuadVertex) * s_QuadData.MaxVertices;
+
+		s_QuadData.QuadVertexPositions[0] = { -0.5f, -0.5f, 0.0f, 1.0f };
+		s_QuadData.QuadVertexPositions[1] = { 0.5f, -0.5f, 0.0f, 1.0f };
+		s_QuadData.QuadVertexPositions[2] = { 0.5f, 0.5f, 0.0f, 1.0f };
+		s_QuadData.QuadVertexPositions[3] = { -0.5f, 0.5f, 0.0f, 1.0f };
 
 		uint32_t* quadIndices = new uint32_t[s_QuadData.MaxIndices];
-
 		uint32_t offset = 0;
 		for (uint32_t index = 0; index < s_QuadData.MaxIndices; index += 6)
 		{
@@ -91,35 +85,45 @@ namespace Povox {
 
 			offset += 4;
 		}
-
 		BufferSpecification indexBufferSpecs{};
 		indexBufferSpecs.Usage = BufferUsage::INDEX_BUFFER;
+		indexBufferSpecs.MemUsage = MemoryUtils::MemoryUsage::GPU_ONLY;
 		indexBufferSpecs.ElementCount = s_QuadData.MaxIndices;
 		indexBufferSpecs.ElementSize = sizeof(uint32_t);
-		indexBufferSpecs.Size = s_QuadData.MaxIndices * sizeof(uint32_t);
+		indexBufferSpecs.Size = sizeof(uint32_t) * s_QuadData.MaxIndices;
 		indexBufferSpecs.Data = quadIndices;
-		s_QuadData.QuadIndexBuffer = Buffer::Create(indexBufferSpecs);
-		delete[] quadIndices;
 
+		uint32_t maxFrames = Renderer::GetSpecification().MaxFramesInFlight;
+		s_QuadData.QuadVertexBuffers.resize(maxFrames);
+		s_QuadData.QuadVertexBufferBases.resize(maxFrames);
+
+		s_QuadData.QuadIndexBuffers.resize(maxFrames);
+		for (uint32_t i = 0; i < maxFrames; i++)
+		{
+			s_QuadData.QuadVertexBuffers[i] = Buffer::Create(vertexBufferSpecs);
+			s_QuadData.QuadVertexBufferBases[i] = new QuadVertex[s_QuadData.MaxVertices];
+
+			s_QuadData.QuadIndexBuffers[i] = Buffer::Create(indexBufferSpecs);
+		}
+		delete[] quadIndices;
+		s_QuadData.QuadMaterial = Material::Create(Renderer::GetShaderLibrary()->Get("Renderer2D_Quad"), "Quad");
+
+		/* -> move to Pipeline.Layout to check against Pipeline.Shader.Layout -> For VertexInput checkup
+		s_QuadData.QuadVertexBuffer->SetLayout({
+			{ ShaderUtils::ShaderDataType::Float3, "a_Position" },
+			{ ShaderUtils::ShaderDataType::Float4, "a_Color" },
+			{ ShaderUtils::ShaderDataType::Float2, "a_TexCoord" },
+			{ ShaderUtils::ShaderDataType::Int, "a_EntityID" }
+			});
+		*/
 
 		s_QuadData.WhiteTexture = Texture2D::Create(1, 1, 4, "WhiteTexture");
 		uint32_t whiteTextureData = 0xffffffff;
 		s_QuadData.WhiteTexture->SetData(&whiteTextureData);
-
-		
-		int32_t samplers[s_QuadData.MaxTextureSlots];
-		for (uint32_t i = 0; i < s_QuadData.MaxTextureSlots; i++)
-			samplers[i] = i;
-		
-		s_QuadData.TextureShader = Renderer::GetShaderLibrary()->Get("TextureShader");
 		Renderer::GetTextureSystem()->RegisterTexture("WhiteTexture", s_QuadData.WhiteTexture);
-		Renderer::GetTextureSystem()->BindFixedTexture(s_QuadData.WhiteTexture);
 
-		s_QuadData.QuadVertexPositions[0] = { -0.5f, -0.5f, 0.0f, 1.0f };
-		s_QuadData.QuadVertexPositions[1] = { 0.5f, -0.5f, 0.0f, 1.0f };
-		s_QuadData.QuadVertexPositions[2] = { 0.5f, 0.5f, 0.0f, 1.0f };
-		s_QuadData.QuadVertexPositions[3] = { -0.5f, 0.5f, 0.0f, 1.0f };
-
+		s_QuadData.WhiteTextureSlot = Renderer::GetTextureSystem()->BindFixedTexture(s_QuadData.WhiteTexture);
+		
 
 		PX_CORE_TRACE("Renderer2D::Init: Completed.");
 	}
@@ -162,24 +166,29 @@ namespace Povox {
 
 	void Renderer2D::StartBatch()
 	{
-		s_QuadData.QuadIndexCount = 0;
-		s_QuadData.QuadVertexBufferPtr = s_QuadData.QuadVertexBufferBase;
+		PX_PROFILE_FUNCTION();
 
-		s_QuadData.TextureSlotIndex = 1;
+
+		uint32_t currentFrame = Renderer::GetCurrentFrameIndex();
+		s_QuadData.QuadIndexCount = 0;
+		s_QuadData.QuadVertexBufferPtr = s_QuadData.QuadVertexBufferBases[currentFrame];
+
 		Renderer::GetTextureSystem()->ResetActiveTextures();
 		s_QuadData.RenderedObjects.clear();
 	}
 
 	void Renderer2D::Flush()
 	{
+		PX_PROFILE_FUNCTION();
+
+
+		uint32_t currentFrame = Renderer::GetCurrentFrameIndex();
 		if (s_QuadData.QuadIndexCount == 0)
 			return; // nothing to draw
 
-		uint32_t dataSize = (uint32_t)((uint8_t*)s_QuadData.QuadVertexBufferPtr - (uint8_t*)s_QuadData.QuadVertexBufferBase);
-		//s_QuadData.QuadVertexBuffer->SetData(s_QuadData.QuadVertexBufferBase, dataSize);
-
-		//TODO: Draw must use the nextTextureSlot to know until which texture it needs to update the descriptor sets
-		//Renderer::Draw(s_QuadData.QuadVertexBuffer, s_QuadData.QuadIndexBuffer, s_QuadData.QuadIndexCount);
+		uint32_t dataSize = (uint32_t)((uint8_t*)s_QuadData.QuadVertexBufferPtr - (uint8_t*)s_QuadData.QuadVertexBufferBases[currentFrame]);
+		s_QuadData.QuadVertexBuffers[currentFrame]->SetData(s_QuadData.QuadVertexBufferBases[currentFrame], dataSize);		
+		Renderer::Draw(s_QuadData.QuadVertexBuffers[currentFrame], s_QuadData.QuadMaterial, s_QuadData.QuadIndexBuffers[currentFrame], s_QuadData.QuadIndexCount);
 
 		
 		s_QuadData.Stats.DrawCalls++;
@@ -191,6 +200,7 @@ namespace Povox {
 
 
 		Flush();
+		Renderer::GetPipelineStats(s_QuadData.Stats.PipelineStatNames, s_QuadData.Stats.PipelineStats);
 	}
 
 	void Renderer2D::NextBatch()
@@ -214,53 +224,15 @@ namespace Povox {
 
 		DrawQuad(transform, color);
 	}
-	void Renderer2D::DrawQuad(const glm::mat4& transform, const glm::vec4& color, int entityID)
+	void Renderer2D::DrawQuad(const glm::mat4& transform, const glm::vec4& color, UUID entityID)
 	{
-		constexpr float whiteTextureID = 0;
-		constexpr float tilingFactor = 1.0f;
-		constexpr glm::vec2 textureCoords[4] = { {0.0f, 0.0f}, {1.0f, 0.0f}, {1.0f, 1.0f}, {0.0f, 1.0f} };
+		//PX_PROFILE_FUNCTION();
 
-		Renderable renderable;
 
-		std::vector<VertexData> vertexData;
-		vertexData.resize(4);
-		for (uint32_t i = 0; i < 4; i++)
-		{
-			vertexData[i].Position = transform * s_QuadData.QuadVertexPositions[i];
-			vertexData[i].Color = color;
-			vertexData[i].TexCoord = textureCoords[i];
-			vertexData[i].TexID = whiteTextureID;
-			vertexData[i].EntityID = 1;
-		}
-		BufferSpecification vertexBufferSpecs{};
-		vertexBufferSpecs.Usage = BufferUsage::VERTEX_BUFFER;
-		vertexBufferSpecs.MemUsage = MemoryUtils::MemoryUsage::GPU_ONLY;
-		vertexBufferSpecs.ElementCount = vertexData.size();
-		vertexBufferSpecs.ElementSize = sizeof(VertexData);
-		vertexBufferSpecs.ElementOffset = sizeof(VertexData);
-		vertexBufferSpecs.Size = vertexData.size() * sizeof(VertexData);
-		vertexBufferSpecs.Data = (void*)vertexData.data();
-		renderable.MeshData.VertexBuffer = Buffer::Create(vertexBufferSpecs);
+		constexpr glm::vec2 textureCoords[4] = { {1.0f, 1.0f}, {1.0f, 0.0f}, {0.0f, 0.0f}, {0.0f, 1.0f} };
 
-		const std::vector<uint32_t> quadIndices = { 0, 1, 2, 2, 3, 0 };
-		BufferSpecification indexBufferSpecs{};
-		indexBufferSpecs.Usage = BufferUsage::INDEX_BUFFER;
-		indexBufferSpecs.MemUsage = MemoryUtils::MemoryUsage::GPU_ONLY;
-		indexBufferSpecs.ElementCount = quadIndices.size();
-		indexBufferSpecs.ElementSize = sizeof(uint32_t);
-		indexBufferSpecs.ElementOffset = sizeof(uint32_t);
-		indexBufferSpecs.Size = quadIndices.size() * sizeof(uint32_t);
-		indexBufferSpecs.Data = (void*)quadIndices.data();
-		renderable.MeshData.IndexBuffer = Buffer::Create(indexBufferSpecs);
-
-		renderable.Material.Color = { color.x, color.y, color.z };
-		renderable.Material.Shader = Renderer::GetShaderLibrary()->Get("FlatColorShader"); //Material: Shader/Pipeline connection!
-		renderable.Material.TexID = whiteTextureID;
-		renderable.Material.TilingFactor = 1.0f;
-		renderable.Material.Texture = nullptr;
-		s_QuadData.RenderedObjects.push_back(renderable);
-		Renderer::DrawRenderable(renderable);
-		/*if (s_QuadData.QuadIndexCount >= Renderer2DData::MaxIndices)
+		uint32_t currentFrame = Renderer::GetCurrentFrameIndex();
+		if (s_QuadData.QuadIndexCount >= Renderer2DData::MaxIndices)
 			NextBatch();
 
 		for (uint32_t i = 0; i < 4; i++)
@@ -268,11 +240,11 @@ namespace Povox {
 			s_QuadData.QuadVertexBufferPtr->Position = transform * s_QuadData.QuadVertexPositions[i];
 			s_QuadData.QuadVertexBufferPtr->Color = color;
 			s_QuadData.QuadVertexBufferPtr->TexCoord = textureCoords[i];
+			s_QuadData.QuadVertexBufferPtr->TexID = s_QuadData.WhiteTextureSlot;
 			s_QuadData.QuadVertexBufferPtr->EntityID = entityID;
 			s_QuadData.QuadVertexBufferPtr++;
-		}*/
+		}
 		s_QuadData.QuadIndexCount += 6;
-
 		s_QuadData.Stats.QuadCount++;
 	}
 
@@ -288,66 +260,32 @@ namespace Povox {
 
 		DrawQuad(transform, texture, tilingFactor, tintingColor);
 	}
-	void Renderer2D::DrawQuad(const glm::mat4& transform, const Ref<Texture2D>& texture, float tilingFactor, const glm::vec4& tintingColor, int entityID)
+	void Renderer2D::DrawQuad(const glm::mat4& transform, const Ref<Texture2D>& texture, float tilingFactor, const glm::vec4& tintingColor, UUID entityID)
 	{
+		PX_PROFILE_FUNCTION();
+
+
 		constexpr glm::vec2 textureCoords[4] = { {0.0f, 0.0f}, {1.0f, 0.0f}, {1.0f, 1.0f}, {0.0f, 1.0f} };
 		
+		uint32_t currentFrame = Renderer::GetCurrentFrameIndex();
 		if (s_QuadData.QuadIndexCount >= Renderer2DData::MaxIndices)
 			NextBatch();
 
-
-		Renderable renderable;
-
-		uint32_t textureIndex = 0;
-
 		//Will return the first slot possible if allSlotsFull is true
-		textureIndex = Renderer::GetTextureSystem()->BindTexture(texture);
-		PX_CORE_TRACE("TextureID of texture {0}: {1}", texture->GetDebugName(), textureIndex);
+		uint32_t textureIndex = Renderer::GetTextureSystem()->BindTexture(texture);
 		if (textureIndex >= s_QuadData.MaxTextureSlots)
 			NextBatch();
 		textureIndex = Renderer::GetTextureSystem()->BindTexture(texture);
 
-		std::vector<VertexData> vertexData;
-		vertexData.resize(4);
-
 		for (uint32_t i = 0; i < 4; i++)
 		{
-			vertexData[i].Position = transform * s_QuadData.QuadVertexPositions[i];
-			vertexData[i].Color = tintingColor;
-			vertexData[i].TexCoord = textureCoords[i];
-			vertexData[i].TexID = textureIndex;
-			vertexData[i].EntityID = 2;
+			s_QuadData.QuadVertexBufferPtr->Position = transform * s_QuadData.QuadVertexPositions[i];
+			s_QuadData.QuadVertexBufferPtr->Color = tintingColor;
+			s_QuadData.QuadVertexBufferPtr->TexCoord = textureCoords[i];
+			s_QuadData.QuadVertexBufferPtr->TexID = textureIndex;
+			s_QuadData.QuadVertexBufferPtr->EntityID = entityID;
+			s_QuadData.QuadVertexBufferPtr++;
 		}
-		BufferSpecification vertexBufferSpecs{};
-		vertexBufferSpecs.Usage = BufferUsage::VERTEX_BUFFER;
-		vertexBufferSpecs.MemUsage = MemoryUtils::MemoryUsage::GPU_ONLY;
-		vertexBufferSpecs.ElementCount = vertexData.size();
-		vertexBufferSpecs.ElementSize = sizeof(VertexData);
-		vertexBufferSpecs.ElementOffset = sizeof(VertexData);
-		vertexBufferSpecs.Size = vertexData.size() * sizeof(VertexData);
-		vertexBufferSpecs.Data = (void*)vertexData.data();
-		renderable.MeshData.VertexBuffer = Buffer::Create(vertexBufferSpecs);
-
-		const std::vector<uint32_t> quadIndices = { 0, 1, 2, 2, 3, 0 };
-		BufferSpecification indexBufferSpecs{};
-		indexBufferSpecs.Usage = BufferUsage::INDEX_BUFFER;
-		indexBufferSpecs.MemUsage = MemoryUtils::MemoryUsage::GPU_ONLY;
-		indexBufferSpecs.ElementCount = quadIndices.size();
-		indexBufferSpecs.ElementSize = sizeof(uint32_t);
-		indexBufferSpecs.ElementOffset = sizeof(uint32_t);
-		indexBufferSpecs.Size = quadIndices.size() * sizeof(uint32_t);
-		indexBufferSpecs.Data = (void*)quadIndices.data();
-		renderable.MeshData.IndexBuffer = Buffer::Create(indexBufferSpecs);
-
-		renderable.Material.Color = { tintingColor.x, tintingColor.y, tintingColor.z };
-		renderable.Material.Shader = Renderer::GetShaderLibrary()->Get("TextureShader"); //Material: Shader/Pipeline connection!
-		renderable.Material.TexID = textureIndex;
-		renderable.Material.TilingFactor = tilingFactor;
-		renderable.Material.Texture = texture;
-		s_QuadData.RenderedObjects.push_back(renderable);
-		Renderer::DrawRenderable(renderable);
-		
-		
 		s_QuadData.QuadIndexCount += 6;
 		s_QuadData.Stats.QuadCount++;
 	}
@@ -364,59 +302,15 @@ namespace Povox {
 
 		DrawQuad(transform, subTexture, tilingFactor, tintingColor);
 	}
-	void Renderer2D::DrawQuad(const glm::mat4& transform, const Ref<SubTexture2D>& subTexture, float tilingFactor, const glm::vec4& tintingColor, int entityID)
+	void Renderer2D::DrawQuad(const glm::mat4& transform, const Ref<SubTexture2D>& subTexture, float tilingFactor, const glm::vec4& tintingColor, UUID entityID)
 	{
-		PX_PROFILE_FUNCTION();
-
-
 		const glm::vec2* textureCoords = subTexture->GetTexCoords();
 		const Ref<Texture2D> texture = subTexture->GetTexture();
 
-		Renderable renderable;
+		uint32_t currentFrame = Renderer::GetCurrentFrameIndex();
 
-		std::vector<VertexData> vertexData;
-		vertexData.resize(4);
-		for (uint32_t i = 0; i < 4; i++)
-		{
-			vertexData[i].Position = transform * s_QuadData.QuadVertexPositions[i];
-			vertexData[i].Color = tintingColor;
-			vertexData[i].TexCoord = textureCoords[i];
-			vertexData[i].TexID = 5.0f;
-			vertexData[i].EntityID = 3;
-		}
-		BufferSpecification vertexBufferSpecs{};
-		vertexBufferSpecs.Usage = BufferUsage::VERTEX_BUFFER;
-		vertexBufferSpecs.MemUsage = MemoryUtils::MemoryUsage::GPU_ONLY;
-		vertexBufferSpecs.ElementCount = vertexData.size();
-		vertexBufferSpecs.ElementSize = sizeof(VertexData);
-		vertexBufferSpecs.ElementOffset = sizeof(VertexData);
-		vertexBufferSpecs.Size = vertexData.size() * sizeof(VertexData);
-		vertexBufferSpecs.Data = (void*)vertexData.data();
-		renderable.MeshData.VertexBuffer = Buffer::Create(vertexBufferSpecs);
-
-		const std::vector<uint32_t> quadIndices = { 0, 1, 2, 2, 3, 0 };
-		BufferSpecification indexBufferSpecs{};
-		indexBufferSpecs.Usage = BufferUsage::INDEX_BUFFER;
-		indexBufferSpecs.MemUsage = MemoryUtils::MemoryUsage::GPU_ONLY;
-		indexBufferSpecs.ElementCount = quadIndices.size();
-		indexBufferSpecs.ElementSize = sizeof(uint32_t);
-		indexBufferSpecs.ElementOffset = sizeof(uint32_t);
-		indexBufferSpecs.Size = quadIndices.size() * sizeof(uint32_t);
-		indexBufferSpecs.Data = (void*)quadIndices.data();
-		renderable.MeshData.IndexBuffer = Buffer::Create(indexBufferSpecs);
-
-		renderable.Material.Color = { tintingColor.x, tintingColor.y, tintingColor.z };
-		renderable.Material.Shader = Renderer::GetShaderLibrary()->Get("TextureShader"); //Material: Shader/Pipeline connection!
-		renderable.Material.TexID = 1;
-		renderable.Material.TilingFactor = 1.0f;
-		renderable.Material.Texture = texture;
-		s_QuadData.RenderedObjects.push_back(renderable);
-		Renderer::DrawRenderable(renderable);
-
-
-
-		//if (s_QuadData.QuadIndexCount >= Renderer2DData::MaxIndices)
-		//	NextBatch();
+		if (s_QuadData.QuadIndexCount >= Renderer2DData::MaxIndices)
+			NextBatch();
 
 		//float textureIndex = 0.0f;
 		//for (uint32_t i = 1; i < s_QuadData.TextureSlotIndex; i++)
@@ -491,7 +385,7 @@ namespace Povox {
 
 
 //Sprite
-	void Renderer2D::DrawSprite(const glm::mat4& transform, SpriteRendererComponent& src, int entityID)
+	void Renderer2D::DrawSprite(const glm::mat4& transform, SpriteRendererComponent& src, UUID entityID)
 	{
 		DrawQuad(transform, src.Color, entityID);
 	}

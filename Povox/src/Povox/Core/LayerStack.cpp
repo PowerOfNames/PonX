@@ -12,7 +12,8 @@ namespace Povox {
 		for (Layer* layer : m_Layers)
 		{
 			layer->OnDetach();
-			delete layer;
+			//TODO: fix
+			//delete layer;
 		}
 	}
 

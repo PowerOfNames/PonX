@@ -61,12 +61,14 @@ namespace Povox {
 		
 		virtual bool BeginFrame() override;
 		virtual void DrawRenderable(const Renderable& renderable) override;
-		virtual void Draw(Ref<Buffer> vertices, Ref<Buffer> indices, size_t indexCount) override;
+		virtual void Draw(Ref<Buffer> vertices, Ref<Material> material, Ref<Buffer> indices, size_t indexCount) override;
 		virtual void DrawGUI() override;
 		virtual void EndFrame() override;
 
 		virtual Ref<ShaderLibrary> GetShaderLibrary() override { return m_ShaderLibrary; }
 		virtual Ref<TextureSystem> GetTextureSystem() override { return m_TextureSystem; }
+
+		virtual inline const RendererSpecification& GetSpecification() override { return m_Specification; }
 				
 		virtual void CreateFinalImage(Ref<Image2D> finalImage) override;
 
@@ -98,15 +100,21 @@ namespace Povox {
 		static void EndImGuiFrame();
 		virtual void* GetGUIDescriptorSet(Ref<Image2D> image) override;
 
+		virtual void GetPipelineStats(std::vector<std::string>& names, std::vector<uint64_t>& values) override;
+		virtual void GetQueryResults() override;
+
 	private:
 		inline FrameData& GetCurrentFrame() { return m_Frames[m_CurrentFrameIndex]; }
 		FrameData& GetFrame(uint32_t index);
 		void InitCommandControl();
+		void InitPerformanceQueryPools();
 		void InitFrameData();
 		void InitFinalImage(uint32_t width, uint32_t height);
 		
 		void CreateDescriptors();
 		void CreateSamplers();
+
+		void ResetQuerys(VkCommandBuffer cmd);
 
 		size_t PadUniformBuffer(size_t inputSize, size_t minGPUBufferOffsetAlignment);
 
@@ -130,6 +138,14 @@ namespace Povox {
 
 		bool m_FramebufferResized = false;
 		uint32_t m_ViewportSizeX, m_ViewportSizeY = 0;
+
+		//-------------	  Performance Querying   ---------------
+		VkQueryPool m_TimestampQueryPool = VK_NULL_HANDLE;
+
+		VkQueryPool m_PipelineStatisticsQueryPool = VK_NULL_HANDLE;
+		std::vector<uint64_t> m_PipelineStats;
+		std::vector<std::string> m_PipelineStatNames;
+
 
 		//-------------			Samplers		 ---------------
 		VkSampler m_TextureSampler = VK_NULL_HANDLE;

@@ -24,8 +24,8 @@ namespace Povox {
 
 		std::array<Ref<Texture>, MAX_TEXTURE_SLOTS> ActiveTextures;
 		std::array<uint32_t, MAX_TEXTURE_SLOTS> ActiveTexturesCounter; // index equal the active textures vector, entry is counter
+		uint32_t NextFixedSlot = 0;
 		uint32_t NextTextureSlot = 0;
-		uint32_t LastFixedSlot = 0;
 
 		std::unordered_map<std::string, Ref<Texture>> RegisteredTextures;
 

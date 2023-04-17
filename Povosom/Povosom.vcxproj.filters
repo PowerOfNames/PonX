@@ -18,4 +18,7 @@
     </ClCompile>
     <ClCompile Include="src\PovosomApp.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="assets\shaders\Renderer2D_Quad.glsl" />
+  </ItemGroup>
 </Project>

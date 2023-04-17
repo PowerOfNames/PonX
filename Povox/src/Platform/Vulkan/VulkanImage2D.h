@@ -165,12 +165,12 @@ namespace Povox {
 
 		virtual const Ref<Image2D> GetImage() const override { return m_Image; }
 		virtual Ref<Image2D> GetImage() override { return m_Image; }
-		virtual uint64_t GetRendererID() const override { return m_RID; }
+		virtual uint64_t GetRendererID() const override { return m_RUID; }
 
-		virtual bool operator==(const Texture& other) const override { return m_RID == ((VulkanTexture2D&)other).m_RID; }
+		virtual bool operator==(const Texture& other) const override { return m_RUID == ((VulkanTexture2D&)other).m_RUID; }
 
 	private:
-		RendererUID m_RID;
+		RendererUID m_RUID;
 
 		Ref<VulkanImage2D> m_Image = nullptr;
 

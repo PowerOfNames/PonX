@@ -63,7 +63,7 @@ namespace Povox {
 
 	struct VulkanVertexData
 	{
-		VertexData VertexProperties;
+		QuadVertex VertexProperties;
 
 		static VertexInputDescription GetVertexDescription()
 		{

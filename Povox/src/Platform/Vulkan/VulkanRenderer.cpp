@@ -44,13 +44,13 @@ namespace Povox {
 		PX_CORE_ASSERT(m_Device, "No VulkanSwapchain was set!");
 
 		InitCommandControl();
+		InitPerformanceQueryPools();
 		InitFrameData();
 
 		PX_CORE_INFO("Creating ShaderLibrary...");
 
 		m_ShaderLibrary = CreateRef<ShaderLibrary>();
-		m_ShaderLibrary->Add("TextureShader", Shader::Create("assets/shaders/Texture.glsl"));
-		m_ShaderLibrary->Add("FlatColorShader", Shader::Create("assets/shaders/FlatColor.glsl"));
+		
 
 		PX_CORE_INFO("Completed ShaderLibrary creation.");
 
@@ -73,8 +73,79 @@ namespace Povox {
 		PX_CORE_INFO("VulkanRenderer::Init: Completed initialization.");
 	}
 
+	void VulkanRenderer::Shutdown()
+	{
+		PX_PROFILE_FUNCTION();
+
+
+		PX_CORE_INFO("VulkanRenderer::Shutdown: Starting...");
+
+		vkDeviceWaitIdle(m_Device);
+
+		PX_CORE_INFO("Started destruction of performance pools...");
+
+		vkDestroyQueryPool(m_Device, m_PipelineStatisticsQueryPool, nullptr);
+		vkDestroyQueryPool(m_Device, m_TimestampQueryPool, nullptr);
+
+		PX_CORE_INFO("Started destruction of performance pools...");
+		PX_CORE_INFO("Started destruction of FrameObjects (Synch, Commands, UBOs) for {0} frames...", m_Frames.size());
+
+		for (size_t i = 0; i < m_Frames.size(); i++)
+		{
+			vkDestroySemaphore(m_Device, m_Frames[i].Semaphores.PresentSemaphore, nullptr);
+			vkDestroySemaphore(m_Device, m_Frames[i].Semaphores.RenderSemaphore, nullptr);
+
+			vkDestroyFence(m_Device, m_Frames[i].Fence, nullptr);
+
+			vkDestroyCommandPool(m_Device, m_Frames[i].Commands.Pool, nullptr);
+
+			vmaDestroyBuffer(VulkanContext::GetAllocator(), m_Frames[i].CamUniformBuffer.Buffer, m_Frames[i].CamUniformBuffer.Allocation);
+			vmaDestroyBuffer(VulkanContext::GetAllocator(), m_Frames[i].ObjectBuffer.Buffer, m_Frames[i].ObjectBuffer.Allocation);
+		}
+
+		PX_CORE_INFO("Completed FrameObjects (Synch, Commands, UBOs) destruction for {0} frames...", m_Frames.size());
+		PX_CORE_WARN("Started destruction of leftovers and other things...");
+
+		//TODO:: Move UploadContext cleanup to respective place!!!
+		vkDestroyFence(m_Device, m_UploadContext->Fence, nullptr);
+
+		vmaDestroyBuffer(VulkanContext::GetAllocator(), m_SceneParameterBuffer.Buffer, m_SceneParameterBuffer.Allocation);
+
+		//Layouts get destroyed by LayoutCache
+
+		vkDestroyCommandPool(m_Device, m_UploadContext->CmdPoolGfx, nullptr);
+		vkDestroyCommandPool(m_Device, m_UploadContext->CmdPoolTrsf, nullptr);
+
+		m_ImGui->Destroy();
+
+		m_FinalImage->Destroy();
+		//This might be happening in the LayoutCache::Cleanup function during VulkanContext::Shutdown
+		//vkDestroyDescriptorSetLayout(m_Device, m_GlobalDescriptorSetLayout, nullptr);
+		//vkDestroyDescriptorSetLayout(m_Device, m_TextureDescriptorSetLayout, nullptr);
+
+		vkDestroySampler(m_Device, m_TextureSampler, nullptr);
+
+		PX_CORE_INFO("Starting ShaderLibrary shutdown...");
+
+		m_ShaderLibrary->Shutdown();
+
+		PX_CORE_INFO("Completed ShaderLibrary shutdown.");
+
+		PX_CORE_INFO("Starting TextureSystem shutdown...");
+
+		m_TextureSystem->Shutdown();
+
+		PX_CORE_INFO("Completed TextureSystem shutdown.");
+
+		PX_CORE_WARN("Completed leftover and other things' destruction.");
+		PX_CORE_INFO("VulkanRenderer::Shutdown: Completed.");
+	}
+
 	void VulkanRenderer::InitCommandControl()
 	{
+		PX_PROFILE_FUNCTION();
+
+
 		PX_CORE_INFO("VulkanRenderer::InitCommandControl: Starting...");
 
 		m_CommandControl = CreateScope<VulkanCommandControl>();
@@ -91,9 +162,63 @@ namespace Povox {
 		PX_CORE_INFO("VulkanRenderer::InitCommandControl: Completed.");
 	}
 
+	void VulkanRenderer::InitPerformanceQueryPools()
+	{
+		PX_PROFILE_FUNCTION();
+
+		Ref<VulkanDevice> device = VulkanContext::GetDevice();
+
+		PX_CORE_INFO("VulkanRenderer::InitPerfromanceQueryPools: Starting...");
+		PX_CORE_INFO("Starting TimestampPool creation...");
+		{
+			VkQueryPoolCreateInfo info{};
+			info.sType = VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO;
+			info.pNext = nullptr;
+			info.flags = 0;
+			info.queryType = VK_QUERY_TYPE_TIMESTAMP;
+			// TODO: get this dynamically maybe OR save it and create larger pool when needed?
+			info.queryCount = 32;
+			info.pipelineStatistics = 0;
+
+			PX_CORE_VK_ASSERT(vkCreateQueryPool(m_Device, &info, nullptr, &m_TimestampQueryPool), VK_SUCCESS, "Failed to create TimeStamp pool!");
+
+
+		}
+		PX_CORE_INFO("Completed TimestampPool creation.");
+		// TODO: Check if PieplienStatistics feature has been successfully enabled during device creation
+		PX_CORE_INFO("Starting PipelineStaticsticsPool creation...");
+		{
+			VkQueryPoolCreateInfo info{};
+			info.sType = VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO;
+			info.pNext = nullptr;
+			info.flags = 0;
+			info.queryType = VK_QUERY_TYPE_PIPELINE_STATISTICS;
+			// TODO: get this dynamically maybe OR save it and create larger pool when needed?
+			info.queryCount = 3;
+			info.pipelineStatistics = 
+				VK_QUERY_PIPELINE_STATISTIC_INPUT_ASSEMBLY_VERTICES_BIT | 
+				VK_QUERY_PIPELINE_STATISTIC_VERTEX_SHADER_INVOCATIONS_BIT |
+				VK_QUERY_PIPELINE_STATISTIC_FRAGMENT_SHADER_INVOCATIONS_BIT;
+
+			PX_CORE_VK_ASSERT(vkCreateQueryPool(m_Device, &info, nullptr, &m_PipelineStatisticsQueryPool), VK_SUCCESS, "Failed to create Pipeline stats pool!");
+
+
+			m_PipelineStatNames = { "Input assembly vertex count (indices) ",
+									"Vertex shader invocations ",
+									"Fragment shader invocations " };
+			m_PipelineStats.resize(m_PipelineStatNames.size());
+
+		}
+		PX_CORE_INFO("Completed PipelineStaticsticsPool creation.");		
+		PX_CORE_INFO("VulkanRenderer::InitPerfromanceQueryPools: Completed.");
+	}
+
 	//content should maybe get seperated out into functions that set up the frame data according to the used shaders? potentially 
 	void VulkanRenderer::InitFrameData()
 	{
+		PX_PROFILE_FUNCTION();
+
+
 		PX_CORE_INFO("VulkanRenderer::InitFrameData: Starting initialization...");
 
 		uint32_t maxFrames = m_Specification.MaxFramesInFlight;
@@ -177,6 +302,9 @@ namespace Povox {
 
 	void VulkanRenderer::InitFinalImage(uint32_t width, uint32_t height)
 	{
+		PX_PROFILE_FUNCTION();
+
+
 		if (m_FinalImage)
 		{
 			m_FinalImage->Destroy();
@@ -191,11 +319,15 @@ namespace Povox {
 		imageSpec.MipLevels = 1;
 		imageSpec.Tiling = ImageTiling::LINEAR;
 		imageSpec.Usages = { ImageUsage::SAMPLED, ImageUsage::COLOR_ATTACHMENT, ImageUsage::COPY_DST };
+		imageSpec.DedicatedSampler = true;
 		m_FinalImage = CreateRef<VulkanImage2D>(imageSpec);
 	}
 
 	void VulkanRenderer::CreateSamplers()
 	{
+		PX_PROFILE_FUNCTION();
+
+
 		// Texture Sampler
 		{
 			VkSamplerCreateInfo samplerInfo{};
@@ -222,71 +354,22 @@ namespace Povox {
 		}	
 	}
 
-	void VulkanRenderer::Shutdown()
+	void VulkanRenderer::GetQueryResults()
 	{
-		PX_CORE_INFO("VulkanRenderer::Shutdown: Starting...");
-
-		vkDeviceWaitIdle(m_Device);
-		
-		PX_CORE_INFO("Started destruction of FrameObjects (Synch, Commands, UBOs) for {0} frames...", m_Frames.size());
-
-		for (size_t i = 0; i < m_Frames.size(); i++)
-		{
-			vkDestroySemaphore(m_Device, m_Frames[i].Semaphores.PresentSemaphore, nullptr);
-			vkDestroySemaphore(m_Device, m_Frames[i].Semaphores.RenderSemaphore, nullptr);
-			
-			vkDestroyFence(m_Device, m_Frames[i].Fence, nullptr);
-			
-			vkDestroyCommandPool(m_Device, m_Frames[i].Commands.Pool, nullptr);
-
-			vmaDestroyBuffer(VulkanContext::GetAllocator(), m_Frames[i].CamUniformBuffer.Buffer, m_Frames[i].CamUniformBuffer.Allocation);
-			vmaDestroyBuffer(VulkanContext::GetAllocator(), m_Frames[i].ObjectBuffer.Buffer, m_Frames[i].ObjectBuffer.Allocation);
-		}
-
-		PX_CORE_INFO("Completed FrameObjects (Synch, Commands, UBOs) destruction for {0} frames...", m_Frames.size());
-		PX_CORE_WARN("Started destruction of leftovers and other things...");
-
-		//TODO:: Move UploadContext cleanup to respective place!!!
-		vkDestroyFence(m_Device, m_UploadContext->Fence, nullptr);
-
-		vmaDestroyBuffer(VulkanContext::GetAllocator(), m_SceneParameterBuffer.Buffer, m_SceneParameterBuffer.Allocation);
-
-		vkDestroyDescriptorSetLayout(m_Device, m_TextureDescriptorSetLayout, nullptr);
-		vkDestroyDescriptorSetLayout(m_Device, m_ObjectDescriptorSetLayout, nullptr);
-		vkDestroyDescriptorSetLayout(m_Device, m_GlobalDescriptorSetLayout, nullptr);
-
-		vkDestroyCommandPool(m_Device, m_UploadContext->CmdPoolGfx, nullptr);
-		vkDestroyCommandPool(m_Device, m_UploadContext->CmdPoolTrsf, nullptr);				
-
-		m_ImGui->Destroy();		
-		
-		m_FinalImage->Destroy();
-		//This might be happening in the LayoutCache::Cleanup function during VulkanContext::Shutdown
-		//vkDestroyDescriptorSetLayout(m_Device, m_GlobalDescriptorSetLayout, nullptr);
-		//vkDestroyDescriptorSetLayout(m_Device, m_TextureDescriptorSetLayout, nullptr);
-		
-		vkDestroySampler(m_Device, m_TextureSampler, nullptr);
-
-		PX_CORE_INFO("Starting ShaderLibrary shutdown...");
-
-		m_ShaderLibrary->Shutdown();
-
-		PX_CORE_INFO("Completed ShaderLibrary shutdown.");
-
-		PX_CORE_INFO("Starting TextureSystem shutdown...");
-
-		m_TextureSystem->Shutdown();
-
-		PX_CORE_INFO("Completed TextureSystem shutdown.");
-
-		PX_CORE_WARN("Completed leftover and other things' destruction.");
-		PX_CORE_INFO("VulkanRenderer::Shutdown: Completed.");
+		uint32_t count = static_cast<uint32_t>(m_PipelineStats.size());
+		vkGetQueryPoolResults(m_Device, m_PipelineStatisticsQueryPool, 0, 1, count * sizeof(uint64_t), m_PipelineStats.data(), sizeof(uint64_t), VK_QUERY_RESULT_64_BIT);	
 	}
 
-
+	void VulkanRenderer::ResetQuerys(VkCommandBuffer cmd)
+	{
+		vkCmdResetQueryPool(cmd, m_PipelineStatisticsQueryPool, 0, static_cast<uint32_t>(m_PipelineStats.size()));
+	}
 
 	bool VulkanRenderer::BeginFrame()
 	{
+		PX_PROFILE_FUNCTION();
+
+
 		//PX_CORE_WARN("VulkanRenderer::BeginFrame Start");
 
 
@@ -317,6 +400,7 @@ namespace Povox {
 	void VulkanRenderer::DrawRenderable(const Renderable& renderable)
 	{
 		PX_PROFILE_FUNCTION();
+
 
 		Ref<VulkanShader> vkShader = std::dynamic_pointer_cast<VulkanShader>(renderable.Material.Shader);
 
@@ -363,12 +447,12 @@ namespace Povox {
 
 		if (renderable.Material.Texture)
 		{		
-			auto& activeTextures = m_TextureSystem->GetActiveTextures();
+			auto& activeTextures = m_TextureSystem->GetActiveTextures(); 
 			//TODO: Get maxImageSlots form config as const
 			std::array<VkDescriptorImageInfo, 32> imageInfos;
 			for (uint32_t i = 0; i < activeTextures.size(); i++)
 			{
-				imageInfos[i] = std::dynamic_pointer_cast<VulkanImage2D>(activeTextures[i]->GetImage())->GetImageInfo();
+				imageInfos[i] = std::dynamic_pointer_cast<VulkanImage2D>(activeTextures[i]->GetImage())->GetImageInfo(); 
 			}
 			VkWriteDescriptorSet setWrites{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
 			setWrites.dstBinding = 1;
@@ -402,56 +486,16 @@ namespace Povox {
 		vkCmdDrawIndexed(m_ActiveCommandBuffer, 6, 1, 0, 0, 0);
 	}
 
-	void VulkanRenderer::Draw(Ref<Buffer> vertices, Ref<Buffer> indices, size_t indexCount)
+	void VulkanRenderer::Draw(Ref<Buffer> vertices, Ref<Material> material, Ref<Buffer> indices, size_t indexCount)
 	{
 		PX_PROFILE_FUNCTION();
 
 
+		Ref<VulkanShader> vkShader = std::dynamic_pointer_cast<VulkanShader>(material->GetShader());
+
+
 		uint32_t frameIndex = m_CurrentFrameIndex % m_Specification.MaxFramesInFlight;
-		uint32_t uniformOffset = PadUniformBuffer(sizeof(SceneUniform), 
-			VulkanContext::GetDevice()->GetPhysicalDeviceProperties().limits.minUniformBufferOffsetAlignment) * (size_t)frameIndex;
-
-		vkCmdBindDescriptorSets(m_ActiveCommandBuffer, 
-			VK_PIPELINE_BIND_POINT_GRAPHICS, 
-			m_ActivePipeline->GetLayout(), 
-			0, 
-			1, 
-			&GetCurrentFrame().GlobalDescriptorSet, 
-			1, 
-			&uniformOffset);
-
-		auto& activeTextures = m_TextureSystem->GetActiveTextures();
-		//TODO: Get maxImageSlots form config as const
-		std::array<VkDescriptorImageInfo, 32> imageInfos;
-		for (uint32_t i = 0; i < activeTextures.size(); i++)
-		{			
-			imageInfos[i] = std::dynamic_pointer_cast<VulkanImage2D>(activeTextures[i]->GetImage())->GetImageInfo();
-		}
-		VkWriteDescriptorSet setWrites{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
-		setWrites.dstBinding = 1;
-		setWrites.dstArrayElement = 0;
-		setWrites.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		setWrites.descriptorCount = imageInfos.size();
-		setWrites.pBufferInfo = 0;
-		setWrites.dstSet = GetCurrentFrame().TextureDescriptorSet;
-		setWrites.pImageInfo = imageInfos.data();
-
-		vkUpdateDescriptorSets(m_Device, 1, &setWrites, 0, nullptr);
-		vkCmdBindDescriptorSets(m_ActiveCommandBuffer, 
-			VK_PIPELINE_BIND_POINT_GRAPHICS, 
-			m_ActivePipeline->GetLayout(), 
-			1, 
-			1, 
-			&GetCurrentFrame().TextureDescriptorSet,
-			0,
-			nullptr);
-
-		VkBuffer vertexBuffer = std::dynamic_pointer_cast<VulkanBuffer>(vertices)->GetAllocation().Buffer;
-		VkBuffer indexBuffer = std::dynamic_pointer_cast<VulkanBuffer>(indices)->GetAllocation().Buffer;
-		VkDeviceSize offsets[] = { 0 };
-		vkCmdBindVertexBuffers(m_ActiveCommandBuffer, 0, 1, &vertexBuffer, offsets);
-		vkCmdBindIndexBuffer(m_ActiveCommandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
-
+		uint32_t camUniformOffset = PadUniformBuffer(sizeof(SceneUniform), VulkanContext::GetDevice()->GetPhysicalDeviceProperties().limits.minUniformBufferOffsetAlignment) * (size_t)frameIndex;
 
 		uint32_t height = m_Swapchain->GetProperties().Height;
 		uint32_t width = m_Swapchain->GetProperties().Width;
@@ -470,10 +514,103 @@ namespace Povox {
 		vkCmdSetScissor(m_ActiveCommandBuffer, 0, 1, &scissor);
 
 
+		vkCmdBindDescriptorSets(
+			m_ActiveCommandBuffer, 
+			VK_PIPELINE_BIND_POINT_GRAPHICS, 
+			m_ActivePipeline->GetLayout(), 
+			0, 
+			1, 
+			&GetCurrentFrame().GlobalDescriptorSet, 
+			1, 
+			&camUniformOffset
+		);
+
+		/* Instead of using memcpy here, we are doing a different trick. It is possible to cast the void* from mapping the buffer into another type, and write into it normally.
+		* This will work completely fine, and makes it easier to write complex types into a buffer.
+		**/
+		//mapping of model data into the SSBO object buffer
+		uint32_t objectUniformOffset = PadUniformBuffer(sizeof(ObjectUniform), VulkanContext::GetDevice()->GetPhysicalDeviceProperties().limits.minUniformBufferOffsetAlignment) * (size_t)frameIndex;
+
+		ObjectUniform objectUniform;
+		//objectUniform.ModelMatrix = renderable.ModelMatrix;
+		objectUniform.TexID = 0;
+		objectUniform.TilingFactor = 1.0f;
+
+		void* data;
+		vmaMapMemory(VulkanContext::GetAllocator(), GetCurrentFrame().ObjectBuffer.Allocation, &data);
+		memcpy(data, &objectUniform, sizeof(ObjectUniform));
+		vmaUnmapMemory(VulkanContext::GetAllocator(), GetCurrentFrame().ObjectBuffer.Allocation);
+
+		vkCmdBindDescriptorSets(
+			m_ActiveCommandBuffer, 
+			VK_PIPELINE_BIND_POINT_GRAPHICS, 
+			m_ActivePipeline->GetLayout(), 
+			1, 
+			1, 
+			&GetCurrentFrame().ObjectDescriptorSet, 
+			0, 
+			&objectUniformOffset);
+		
+		
+		VkWriteDescriptorSet samplerWrite{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
+		samplerWrite.dstBinding = 0;
+		samplerWrite.dstArrayElement = 0;
+		samplerWrite.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
+		samplerWrite.descriptorCount = 1;
+		samplerWrite.dstSet = GetCurrentFrame().TextureDescriptorSet;
+
+		VkDescriptorImageInfo samplerInfo{};
+		samplerInfo.sampler = m_TextureSampler;
+		samplerWrite.pImageInfo = &samplerInfo;
+
+		auto& activeTextures = m_TextureSystem->GetActiveTextures();
+		//TODO: Get maxImageSlots from config as const
+		std::array<VkDescriptorImageInfo, 32> imageInfos;
+		for (uint32_t i = 0; i < activeTextures.size(); i++)
+		{
+			imageInfos[i] = std::dynamic_pointer_cast<VulkanImage2D>(activeTextures[i]->GetImage())->GetImageInfo();
+		}
+		VkWriteDescriptorSet setWrites{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
+		setWrites.dstBinding = 1;
+		setWrites.dstArrayElement = 0;
+		setWrites.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+		setWrites.descriptorCount = imageInfos.size();
+		setWrites.pBufferInfo = 0;
+		setWrites.dstSet = GetCurrentFrame().TextureDescriptorSet;
+		setWrites.pImageInfo = imageInfos.data();
+
+
+		VkWriteDescriptorSet writes[2] = {samplerWrite, setWrites};
+
+		vkUpdateDescriptorSets(m_Device, 2, writes, 0, nullptr);
+
+		vkCmdBindDescriptorSets(
+			m_ActiveCommandBuffer, 
+			VK_PIPELINE_BIND_POINT_GRAPHICS, 
+			m_ActivePipeline->GetLayout(), 
+			2, 
+			1, 
+			&GetCurrentFrame().TextureDescriptorSet, 
+			0, 
+			nullptr
+		);
+		
+
+		VkBuffer vertexBuffer = std::dynamic_pointer_cast<VulkanBuffer>(vertices)->GetAllocation().Buffer;
+		VkBuffer indexBuffer = std::dynamic_pointer_cast<VulkanBuffer>(indices)->GetAllocation().Buffer;
+		VkDeviceSize offsets[] = { 0 };
+		vkCmdBindVertexBuffers(m_ActiveCommandBuffer, 0, 1, &vertexBuffer, offsets);
+		vkCmdBindIndexBuffer(m_ActiveCommandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+
 		vkCmdDrawIndexed(m_ActiveCommandBuffer, indexCount, 1, 0, 0, 0);
+
+		vkCmdEndQuery(m_ActiveCommandBuffer, m_PipelineStatisticsQueryPool, 0);
 	}
 	void VulkanRenderer::DrawGUI()
 	{
+		PX_PROFILE_FUNCTION();
+
+
 		m_ImGui->RenderDrawData();
 	}
 
@@ -495,9 +632,10 @@ namespace Povox {
 
 	void VulkanRenderer::CreateDescriptors()
 	{
+		PX_PROFILE_FUNCTION();
+
+
 		PX_CORE_INFO("VulkanRenderer::CreateDescriptors: Starting...");
-
-
 		PX_CORE_INFO("Creating (global) DescriptorLayouts... ");
 		//TODO:: refactor global descriptor set (layout) creation to MaterialSystem?
 
@@ -654,6 +792,8 @@ namespace Povox {
 
 	void VulkanRenderer::UpdateCamera(const CameraUniform& cam)
 	{
+		PX_PROFILE_FUNCTION();
+
 
 		CameraUniform camOut;
 		camOut.ViewMatrix = cam.ViewMatrix;
@@ -667,7 +807,8 @@ namespace Povox {
 		vmaUnmapMemory(VulkanContext::GetAllocator(), GetCurrentFrame().CamUniformBuffer.Allocation);
 
 
-		m_SceneParameter.AmbientColor = glm::vec4(glm::cos(m_DebugInfo.TotalFrames /10.0f), 1.0f, glm::sin(m_DebugInfo.TotalFrames /10.0f), 0.5f);
+		//m_SceneParameter.AmbientColor = glm::vec4(glm::cos(m_DebugInfo.TotalFrames /10.0f), 1.0f, glm::sin(m_DebugInfo.TotalFrames /10.0f), 0.5f);
+		m_SceneParameter.AmbientColor = glm::vec4(1.0f, 1.0f, 1.0f, 0.1f);
 		char* sceneData;
 		vmaMapMemory(VulkanContext::GetAllocator(), m_SceneParameterBuffer.Allocation, (void**)&sceneData);
 		sceneData += PadUniformBuffer(sizeof(SceneUniform), VulkanContext::GetDevice()->GetPhysicalDeviceProperties().limits.minUniformBufferOffsetAlignment) * m_CurrentFrameIndex;
@@ -689,6 +830,9 @@ namespace Povox {
 
 	void VulkanRenderer::BeginCommandBuffer(const void* commBuf)
 	{
+		PX_PROFILE_FUNCTION();
+
+
 		m_ActiveCommandBuffer = (VkCommandBuffer)commBuf;
 		m_SwapchainFrame->Commands.push_back(m_ActiveCommandBuffer);
 		
@@ -714,6 +858,11 @@ namespace Povox {
 
 	void VulkanRenderer::BeginRenderPass(Ref<RenderPass> renderPass)
 	{
+		PX_PROFILE_FUNCTION();
+
+
+		//TEMP:
+		ResetQuerys(m_ActiveCommandBuffer);
 
 		m_ActiveRenderPass = std::dynamic_pointer_cast<VulkanRenderPass>(renderPass);
 		Ref<VulkanFramebuffer> fb = std::dynamic_pointer_cast<VulkanFramebuffer>(m_ActiveRenderPass->GetSpecification().TargetFramebuffer);
@@ -761,6 +910,8 @@ namespace Povox {
 
 	void VulkanRenderer::BindPipeline(Ref<Pipeline> pipeline)
 	{
+		PX_PROFILE_FUNCTION();
+
 
 		m_ActivePipeline = std::dynamic_pointer_cast<VulkanPipeline>(pipeline);
 
@@ -782,6 +933,7 @@ namespace Povox {
 			vkCmdSetViewport(m_ActiveCommandBuffer, 0, 1, &viewport);
 		}
 
+		vkCmdBeginQuery(m_ActiveCommandBuffer, m_PipelineStatisticsQueryPool, 0, 0);
 		vkCmdBindPipeline(m_ActiveCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_ActivePipeline->GetVulkanObj());
 	}
 
@@ -793,6 +945,9 @@ namespace Povox {
 
 	void VulkanRenderer::PrepareSwapchainImage(Ref<Image2D> sourceImage)
 	{
+		PX_PROFILE_FUNCTION();
+
+
 		Ref<VulkanImage2D> sourceImageVK = std::dynamic_pointer_cast<VulkanImage2D>(sourceImage);
 
 		//Transition swapchain image
@@ -889,6 +1044,9 @@ namespace Povox {
 
 	void VulkanRenderer::CreateFinalImage(Ref<Image2D> sourceImage)
 	{
+		PX_PROFILE_FUNCTION();
+
+
 		Ref<VulkanImage2D> sourceImageVK = std::dynamic_pointer_cast<VulkanImage2D>(sourceImage);
 		if (m_FramebufferResized || !m_FinalImage)
 		{
@@ -979,6 +1137,17 @@ namespace Povox {
 			VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT
 		);
 		return m_ImGui->GetImGUIDescriptorSet(vkImage->GetImageView(), vkImage->GetSampler(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+	}
+
+	void VulkanRenderer::GetPipelineStats(std::vector<std::string>& names, std::vector<uint64_t>& values)
+	{
+		names.clear();
+		values.clear();
+		for (uint32_t i = 0; i < m_PipelineStats.size(); i++)
+		{
+			names.push_back(m_PipelineStatNames[i]);
+			values.push_back(m_PipelineStats[i]);
+		}
 	}
 
 }
