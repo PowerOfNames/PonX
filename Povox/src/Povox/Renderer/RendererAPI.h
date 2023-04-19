@@ -15,6 +15,7 @@ namespace Povox {
 
 	struct CameraUniform;
 	struct RendererSpecification;
+	struct RendererStatistics;
 	class RendererAPI
 	{
 	public:
@@ -38,7 +39,6 @@ namespace Povox {
 		virtual void Shutdown() = 0;
 
 		virtual bool BeginFrame() = 0;
-		//virtual void Draw(const std::vector<Renderable>& drawList) = 0;
 		virtual void DrawRenderable(const Renderable& renderable) = 0;
 		virtual void Draw(Ref<Buffer> vertices, Ref<Material> material, Ref<Buffer> indices, size_t indexCount) = 0;
 		virtual void DrawGUI() = 0;
@@ -77,8 +77,10 @@ namespace Povox {
 
 		virtual void* GetGUIDescriptorSet(Ref<Image2D> image) = 0;
 
-		virtual void GetPipelineStats(std::vector<std::string>& names, std::vector<uint64_t>& values) = 0;
-		virtual void GetQueryResults() = 0;
+		virtual const RendererStatistics& GetStatistics() const = 0;
+		virtual void StartTimestampQuery(const std::string& name) = 0;
+		virtual void StopTimestampQuery(const std::string& name) = 0;
+
 
 		inline static void SetAPI(API api) { s_API = api; std::cout << "Changed API to " << RendererAPI::APIAsString(s_API) << std::endl; }
 		inline static RendererAPI::API GetAPI() { return s_API; }

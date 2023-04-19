@@ -29,9 +29,12 @@ namespace Povox {
 	{
 		uint32_t MaxBoundDescriptorSets;
 		uint32_t MinBufferAlign;
-		VkPhysicalDeviceProperties Properties;
+
+		float TimestampPeriod;
 
 		bool HasDedicatedTransferQueue = false;
+
+		VkPhysicalDeviceProperties Properties;
 	};
 
 	class VulkanDevice
@@ -48,6 +51,7 @@ namespace Povox {
 		inline const QueueFamilies& GetQueueFamilies() { return m_QueueFamilies; }
 
 		inline VkPhysicalDeviceProperties GetPhysicalDeviceProperties() const { return m_PhysicalLimits.Properties; }
+		inline const PhysicalDeviceLimits& GetLimits() const { return m_PhysicalLimits; }
 
 		inline VkDevice GetVulkanDevice() { return m_Device; }
 		inline VkPhysicalDevice GetPhysicalDevice() const { return m_PhysicalDevice; }

@@ -122,7 +122,6 @@ namespace Povox {
 			Renderer::EndFrame();
 			
 			m_Window->OnUpdate();
-			//Renderer::GetQueryResults();
 		}
 		PX_CORE_INFO("Application::Run: Stopped Main-Loop.");
 	}

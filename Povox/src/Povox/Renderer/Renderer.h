@@ -49,6 +49,22 @@ namespace Povox {
 		float TilingFactor;
 	};
 
+	struct RendererStatistics
+	{
+		uint32_t CurrentSwapchainImageIndex = 0;
+		uint32_t CurrentFrameIndex = 0;
+		uint32_t LastFrameIndex = 0;
+		uint64_t TotalFrames = 0;
+
+		// PipelineStatistics
+		std::vector<uint64_t> PipelineStats;
+		std::vector<std::string> PipelineStatNames;
+
+		// Timestamps
+		std::unordered_map<std::string, uint64_t> TimestampResults; //per 		
+	};
+
+
 	class Renderer
 	{
 	public:
@@ -94,9 +110,9 @@ namespace Povox {
 
 		static void* GetGUIDescriptorSet(Ref<Image2D> image);
 
-		static void GetPipelineStats(std::vector<std::string>& names, std::vector<uint64_t>& values);
-		static void GetQueryResults();
-
+		static const RendererStatistics& Renderer::GetStatistics();
+		static void StartTimestampQuery(const std::string& name);
+		static void StopTimestampQuery(const std::string& name);
 
 		inline static RendererAPI::API GetAPI() { return RendererAPI::GetAPI(); }
 

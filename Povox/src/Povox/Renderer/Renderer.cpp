@@ -119,14 +119,10 @@ namespace Povox {
 
 	void* Renderer::GetGUIDescriptorSet(Ref<Image2D> image)	{ return s_RendererAPI->GetGUIDescriptorSet(image); }
 
-	void Renderer::GetPipelineStats(std::vector<std::string>& names, std::vector<uint64_t>& values)
-	{
-		s_RendererAPI->GetPipelineStats(names, values);
-	}
-	void Renderer::GetQueryResults()
-	{
-		s_RendererAPI->GetQueryResults();
-	}
+	const RendererStatistics& Renderer::GetStatistics() { return s_RendererAPI->GetStatistics(); }
+
+	void Renderer::StartTimestampQuery(const std::string& name) { s_RendererAPI->StartTimestampQuery(name); };
+	void Renderer::StopTimestampQuery(const std::string& name) { s_RendererAPI->StopTimestampQuery(name); };
 
 	Ref<ShaderLibrary> Renderer::GetShaderLibrary() { return s_RendererAPI->GetShaderLibrary(); }
 

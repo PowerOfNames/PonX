@@ -7,8 +7,6 @@
 #include "Platform/Vulkan/VulkanContext.h"
 #include "Platform/Vulkan/VulkanDebug.h"
 
-#include "Povox/Renderer/Renderer.h"
-
 
 namespace Povox {
 
@@ -379,7 +377,6 @@ namespace Povox {
 		//Commandstuff NOW
 
 		QueueSubmit();
-		Renderer::GetQueryResults();
 		Present();
 	}	
 

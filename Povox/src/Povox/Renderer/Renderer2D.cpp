@@ -200,7 +200,6 @@ namespace Povox {
 
 
 		Flush();
-		Renderer::GetPipelineStats(s_QuadData.Stats.PipelineStatNames, s_QuadData.Stats.PipelineStats);
 	}
 
 	void Renderer2D::NextBatch()

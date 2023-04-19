@@ -51,12 +51,18 @@ namespace Povox {
 		deviceFeatures.samplerAnisotropy = VK_TRUE;
 		deviceFeatures.independentBlend = VK_TRUE;
 		deviceFeatures.pipelineStatisticsQuery = VK_TRUE;
+
 		
 
 		VkPhysicalDeviceShaderDrawParametersFeatures shaderDrawParametersFeatures{};
 		shaderDrawParametersFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_DRAW_PARAMETERS_FEATURES;
 		shaderDrawParametersFeatures.pNext = nullptr;
 		shaderDrawParametersFeatures.shaderDrawParameters = VK_TRUE;
+
+		VkPhysicalDeviceHostQueryResetFeatures resetFeature{};
+		resetFeature.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_HOST_QUERY_RESET_FEATURES;
+		resetFeature.pNext = &shaderDrawParametersFeatures;
+		resetFeature.hostQueryReset = VK_TRUE;
 
 		VkDeviceCreateInfo createInfo{};
 		createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
@@ -65,7 +71,7 @@ namespace Povox {
 		createInfo.pEnabledFeatures = &deviceFeatures;
 		createInfo.enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size());
 		createInfo.ppEnabledExtensionNames = deviceExtensions.data();
-		createInfo.pNext = &shaderDrawParametersFeatures;
+		createInfo.pNext = &resetFeature;
 
 		if (PX_ENABLE_VK_VALIDATION_LAYERS)
 		{
@@ -128,10 +134,10 @@ namespace Povox {
 	PhysicalDeviceLimits VulkanDevice::QueryPhysicalDeviceLimits(VkPhysicalDevice physicalDevice)
 	{
 		PhysicalDeviceLimits limits{};
-		vkGetPhysicalDeviceProperties(m_PhysicalDevice, &limits.Properties);
+		vkGetPhysicalDeviceProperties(physicalDevice, &limits.Properties);
 		limits.MaxBoundDescriptorSets = limits.Properties.limits.maxBoundDescriptorSets;
 		limits.MinBufferAlign = limits.Properties.limits.minUniformBufferOffsetAlignment;
-
+		limits.TimestampPeriod = limits.Properties.limits.timestampPeriod;
 
 		return limits;
 	}
@@ -162,6 +168,14 @@ namespace Povox {
 
 		PX_CORE_TRACE("Physical Device '{0}' has been picked!", m_PhysicalLimits.Properties.deviceName);
 		m_PhysicalLimits = QueryPhysicalDeviceLimits(m_PhysicalDevice);
+
+		PX_CORE_INFO("");
+		PX_CORE_INFO("---- Picked Phsical Device Limits ----");
+		PX_CORE_INFO("MaxBoundDescriptorSets	: {0}", m_PhysicalLimits.MaxBoundDescriptorSets);
+		PX_CORE_INFO("MinBufferAlignment		: {0}", m_PhysicalLimits.MinBufferAlign);
+		PX_CORE_INFO("TimestampPeriod		: {0}", m_PhysicalLimits.TimestampPeriod);
+		PX_CORE_INFO("--------------------------------------");
+		PX_CORE_INFO("");
 	}
 
 	SwapchainSupportDetails VulkanDevice::QuerySwapchainSupport(VkPhysicalDevice physicalDevice)

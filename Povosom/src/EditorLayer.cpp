@@ -114,6 +114,7 @@ namespace Povox {
 		uint32_t currentFrameIndex = Renderer::GetCurrentFrameIndex();
 		auto cmd = Renderer::GetCommandBuffer(currentFrameIndex);
 		Renderer::BeginCommandBuffer(cmd);
+		Renderer::StartTimestampQuery("ImguiRenderpass");
 		Renderer::BeginRenderPass(m_ImGuiRenderpass);
 
 		Renderer2D::BeginScene(m_EditorCamera); //doesn't mess with renderer atm
@@ -139,6 +140,7 @@ namespace Povox {
 		Renderer2D::EndScene(); //doesn't mess with renderer atm
 
 		Renderer::EndRenderPass();
+		Renderer::StopTimestampQuery("ImguiRenderpass");
 		Renderer::EndCommandBuffer();
 
 		//CopyFinalImage into current SwapchainImage
@@ -262,11 +264,19 @@ namespace Povox {
         ImGui::Text("Vertices: %d", stats.GetTotalVertexCount());
         ImGui::Text("Indices: %d", stats.GetTotalIndexCount());
         ImGui::Text("Deltatime: %f", m_Deltatime);
-		ImGui::Separator();		
-		for (uint32_t i = 0; i < stats.PipelineStats.size(); i++)
+		ImGui::Separator();
+		RendererStatistics rendererStats = Renderer::GetStatistics();
+		for (uint32_t i = 0; i < rendererStats.PipelineStats.size(); i++)
 		{
-			std::string caption = stats.PipelineStatNames[i] + ": %llu";
-			ImGui::Text(caption.c_str(), stats.PipelineStats[i]);
+			std::string caption = rendererStats.PipelineStatNames[i] + ": %llu";
+			ImGui::Text(caption.c_str(), rendererStats.PipelineStats[i]);
+		}
+		ImGui::Separator();
+		for (auto& [name, value] : rendererStats.TimestampResults)
+		{
+			double timeInMS = value / 1000000.0;
+			const std::string caption = name + ": %fms";
+			ImGui::Text(caption.c_str(), timeInMS);
 		}
 
         std::string name = "None";
