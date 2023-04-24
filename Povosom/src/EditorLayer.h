@@ -19,10 +19,10 @@ namespace Povox {
 		virtual void OnImGuiRender() override;
 		void OnEvent(Event& e) override;
 	private:
+		bool OnFramebufferResize(FramebufferResizeEvent& e);
+
 		bool OnKeyPressed(KeyPressedEvent& e);
 		bool OnMouseButtonPressed(MouseButtonPressedEvent& e);
-
-		bool OnWindowResize(WindowResizeEvent& e);
 
 		void NewScene();
 		void OpenScene();
@@ -51,7 +51,10 @@ namespace Povox {
 
 		float m_Deltatime = 0.0f;
 
+		bool m_GUICollapsed = false;
 		bool m_ViewportIsFocused = false, m_ViewportIsHovered = false;
+		glm::vec2 m_WindowSize = { 0.0f, 0.0f };
+		bool m_WindowResized, m_ViewportResized = false;
 		glm::vec2 m_ViewportSize = { 0.0f, 0.0f };
 		glm::vec2 m_ViewportBounds[2];
 

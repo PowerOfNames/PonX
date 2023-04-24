@@ -36,6 +36,7 @@ namespace Povox {
 		void EndRenderPass();
 
 		VkDescriptorSet GetImGUIDescriptorSet(VkImageView view, VkSampler sampler, VkImageLayout layout);
+		void FreeImGuiDescriptorSet(VkDescriptorSet set);
 
 		FrameData& GetFrame(uint32_t index);
 		inline VkDescriptorPool GetDescriptorPool() { return m_DescriptorPool; }

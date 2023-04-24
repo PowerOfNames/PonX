@@ -27,7 +27,22 @@ namespace Povox {
 
 	WindowsWindow::~WindowsWindow() 
 	{
-		Shutdown();
+	}
+
+	void WindowsWindow::Close()
+	{
+		PX_PROFILE_FUNCTION();
+
+
+		if (m_Swapchain)
+			m_Swapchain->Destroy(); // check if this should happen after windowCountCheck -> mutliple swapchains for multiple windows possibly?
+		glfwDestroyWindow(m_Window);
+		--s_GLFWwindowCount;
+
+		if (s_GLFWwindowCount == 0)
+		{
+			m_Context->Shutdown();
+		}
 	}
 
 	void WindowsWindow::Init(const WindowProps& props)
@@ -203,21 +218,6 @@ namespace Povox {
 			});
 
 		PX_CORE_INFO("WindowsWindow::Init: Completed initialization.");
-	}
-
-	void WindowsWindow::Shutdown()
-	{
-		PX_PROFILE_FUNCTION();
-
-		if(m_Swapchain)
-			m_Swapchain->Destroy(); // check if this should happen after windowCountCheck -> mutliple swapchains for multiple windows possibly?
-		glfwDestroyWindow(m_Window);
-		--s_GLFWwindowCount;
-
-		if (s_GLFWwindowCount == 0)
-		{
-			m_Context->Shutdown();
-		}
 	}
 
 	void WindowsWindow::OnUpdate()

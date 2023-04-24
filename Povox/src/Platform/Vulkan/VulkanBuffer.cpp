@@ -31,27 +31,34 @@ namespace Povox {
 		PX_CORE_ASSERT(specs.Size > 0, "A size needs to be defined!");
 		m_Allocation = CreateAllocation(specs.Size, VulkanUtils::GetVulkanBufferUsage(specs.Usage) | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VulkanUtils::GetVmaUsage(specs.MemUsage));
 
-		VkDebugUtilsObjectNameInfoEXT nameInfo{};
-		nameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
-		nameInfo.objectType = VK_OBJECT_TYPE_BUFFER;
-		nameInfo.objectHandle = (uint64_t)m_Allocation.Buffer;
-		char name[100] = "Buffer ";
-		nameInfo.pObjectName = strcat(name, EnumToString::BufferUsageString(specs.Usage));
-		NameVkObject(VulkanContext::GetDevice()->GetVulkanDevice(), nameInfo);
-		//delete[] name;
+#ifdef PX_DEBUG
+		VkDebugUtilsObjectNameInfoEXT bufInfo{};
+		bufInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+		bufInfo.objectType = VK_OBJECT_TYPE_BUFFER;
+		bufInfo.objectHandle = (uint64_t)m_Allocation.Buffer;
+		bufInfo.pObjectName = m_Specification.DebugName.c_str();
+		NameVkObject(VulkanContext::GetDevice()->GetVulkanDevice(), bufInfo);
+#endif // DEBUG
 
 		if(specs.Data != nullptr)
 			SetData(specs.Data, specs.Size);
-
-		VulkanContext::SubmitResourceFree([=]()
-			{
-				vmaDestroyBuffer(VulkanContext::GetAllocator(), m_Allocation.Buffer, m_Allocation.Allocation);
-			});
+// 
+// 		VulkanContext::SubmitResourceFree([=]()
+// 			{
+// 				vmaDestroyBuffer(VulkanContext::GetAllocator(), m_Allocation.Buffer, m_Allocation.Allocation);
+// 			});
 	}
 
-	VulkanBuffer::~VulkanBuffer()
+	void VulkanBuffer::Free()
 	{
-		vmaDestroyBuffer(VulkanContext::GetAllocator(), m_Allocation.Buffer, m_Allocation.Allocation);
+		PX_CORE_WARN("VulkanBuffer::Free Buffer {}", m_Specification.DebugName);
+
+		VulkanContext::SubmitResourceFree([=]() 
+			{
+				PX_CORE_WARN("VulkanBuffer Destroying Buffer {}", m_Specification.DebugName);
+
+				vmaDestroyBuffer(VulkanContext::GetAllocator(), m_Allocation.Buffer, m_Allocation.Allocation);
+			});
 	}
 
 	void VulkanBuffer::SetData(void* inputData, const size_t size)
@@ -81,7 +88,7 @@ namespace Povox {
 		vmaDestroyBuffer(allocator, stagingBuffer.Buffer, stagingBuffer.Allocation);
 	}
 
-	AllocatedBuffer VulkanBuffer::CreateAllocation(size_t allocSize, VkBufferUsageFlags usage, VmaMemoryUsage memUsage)
+	AllocatedBuffer VulkanBuffer::CreateAllocation(size_t allocSize, VkBufferUsageFlags usage, VmaMemoryUsage memUsage, std::string debugName)
 	{
 		VkBufferCreateInfo bufferInfo{};
 		bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -96,6 +103,18 @@ namespace Povox {
 		AllocatedBuffer newBuffer;
 
 		PX_CORE_VK_ASSERT(vmaCreateBuffer(VulkanContext::GetAllocator(), &bufferInfo, &vmaAllocInfo, &newBuffer.Buffer, &newBuffer.Allocation, nullptr), VK_SUCCESS, "Failed to create Buffer!");
+
+#ifdef PX_DEBUG
+		if (!debugName.empty())
+		{
+			VkDebugUtilsObjectNameInfoEXT bufInfo{};
+			bufInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+			bufInfo.objectType = VK_OBJECT_TYPE_BUFFER;
+			bufInfo.objectHandle = (uint64_t)newBuffer.Buffer;
+			bufInfo.pObjectName = debugName.c_str();
+			NameVkObject(VulkanContext::GetDevice()->GetVulkanDevice(), bufInfo);
+		}
+#endif // DEBUG
 
 		return newBuffer;
 	}

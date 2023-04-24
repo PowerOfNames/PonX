@@ -25,18 +25,18 @@ namespace Povox {
         PX_PROFILE_FUNCTION();
 
 
-		m_ViewportSize = { Application::Get()->GetWindow().GetWidth(), Application::Get()->GetWindow().GetHeight() };		
+		m_WindowSize = m_ViewportSize = { Application::Get()->GetWindow().GetWidth(), Application::Get()->GetWindow().GetHeight() };		
 		
 		m_LogoTexture = std::dynamic_pointer_cast<Texture2D>(Renderer::GetTextureSystem()->GetTexture("DefaultPXTexture"));
 		Renderer::GetTextureSystem()->RegisterTexture("green");
 		m_GreenTexture = std::dynamic_pointer_cast<Texture2D>(Renderer::GetTextureSystem()->GetTexture("green"));
 
 
-		//PX_TRACE("Started EditorLayer::OnAttach");
 		//ImGuiViewportRendering
 		{
 			FramebufferSpecification imGuiViewportFBSpecs{};
-			imGuiViewportFBSpecs.Attachments = { {ImageFormat::RGBA8}, {ImageFormat::RED_INTEGER, MemoryUtils::MemoryUsage::GPU_TO_CPU}, {ImageFormat::Depth} };
+			imGuiViewportFBSpecs.DebugName = "RenderFramebuffer";
+			imGuiViewportFBSpecs.Attachments = { {ImageFormat::RGBA8}, {ImageFormat::Depth} };
 			imGuiViewportFBSpecs.Width = m_ViewportSize.x;
 			imGuiViewportFBSpecs.Height = m_ViewportSize.y;
 			imGuiViewportFBSpecs.SwapChainTarget = false;
@@ -44,8 +44,9 @@ namespace Povox {
 
 
 			RenderPassSpecification imGuiViewportRPSpecs{};
+			imGuiViewportRPSpecs.DebugName = "RenderRenderpass";
 			imGuiViewportRPSpecs.TargetFramebuffer = m_ImGuiViewportFB;
-			imGuiViewportRPSpecs.ColorAttachmentCount = 2;
+			imGuiViewportRPSpecs.ColorAttachmentCount = 1;
 			imGuiViewportRPSpecs.HasDepthAttachment = true;
 			m_ImGuiRenderpass = RenderPass::Create(imGuiViewportRPSpecs);
 		}
@@ -53,6 +54,7 @@ namespace Povox {
 		//Textured Pipeline
 		{
 			PipelineSpecification texturedPipelineSpecs{};
+			texturedPipelineSpecs.DebugName = "TexturePipeline";
 			texturedPipelineSpecs.DynamicViewAndScissors = true;
 			texturedPipelineSpecs.Culling = PipelineUtils::CullMode::BACK;
 			texturedPipelineSpecs.TargetRenderPass = m_ImGuiRenderpass;
@@ -65,7 +67,6 @@ namespace Povox {
         m_EditorCamera = EditorCamera(60.0f, 1.778f, 0.1f, 1000.0f);
         m_SceneHierarchyPanel.SetContext(m_ActiveScene);
 
-		//PX_TRACE("Finished EditorLayer::OnAttach()");
     }
 
 
@@ -74,7 +75,6 @@ namespace Povox {
         PX_PROFILE_FUNCTION();
 
 
-        Renderer2D::Shutdown();
     }
 
 
@@ -88,11 +88,13 @@ namespace Povox {
 		m_Deltatime = deltatime;
 
         //Resize
-        if (FramebufferSpecification spec = m_ImGuiViewportFB->GetSpecification();
-            m_ViewportSize.x > 0.0f && m_ViewportSize.y > 0.0f && //zero sized framebuffer is invalid
-            (spec.Width != m_ViewportSize.x || spec.Height != m_ViewportSize.y))
+		FramebufferSpecification spec = m_ImGuiViewportFB->GetSpecification();
+        if ( m_ViewportSize.x > 0.0f && m_ViewportSize.y > 0.0f
+			&& (m_ViewportResized) )
         {
-			Renderer::FramebufferResized(m_ViewportSize.x, m_ViewportSize.y);
+			Renderer::WaitForDeviceFinished();
+			Renderer::OnViewportResize(m_ViewportSize.x, m_ViewportSize.y);
+
 			m_ImGuiViewportFB->Recreate((uint32_t)m_ViewportSize.x, (uint32_t)m_ViewportSize.y); //better resize all pipelines here -> can then recursively
 			m_ImGuiRenderpass->Recreate();
 			m_TexturePipeline->Recreate();
@@ -100,16 +102,13 @@ namespace Povox {
             m_EditorCamera.SetViewportSize(m_ViewportSize.x, m_ViewportSize.y);
 
             m_ActiveScene->OnViewportResize((uint32_t)m_ViewportSize.x, (uint32_t)m_ViewportSize.y);
+			m_ViewportResized = false;
         }
 
-        //Update
         m_EditorCamera.OnUpdate(deltatime);
 		m_OrthoCamControl.OnUpdate(deltatime);
 
-        //Renderer Stats
         Renderer2D::ResetStats();
-
-        // Update Scene
 
 		uint32_t currentFrameIndex = Renderer::GetCurrentFrameIndex();
 		auto cmd = Renderer::GetCommandBuffer(currentFrameIndex);
@@ -135,35 +134,38 @@ namespace Povox {
 				}
 			}
 		}
-		//m_ActiveScene->OnUpdateEditor(deltatime, m_EditorCamera);
+		m_ActiveScene->OnUpdateEditor(deltatime, m_EditorCamera);
 
-		Renderer2D::EndScene(); //doesn't mess with renderer atm
+		Renderer2D::EndScene();
 
 		Renderer::EndRenderPass();
 		Renderer::StopTimestampQuery("ImguiRenderpass");
 		Renderer::EndCommandBuffer();
 
 		//CopyFinalImage into current SwapchainImage
-		if (!Application::Get()->GetSpecification().ImGuiEnabled)
+		if (m_GUICollapsed || !Application::Get()->GetSpecification().ImGuiEnabled)
 			Renderer::PrepareSwapchainImage(m_ImGuiViewportFB->GetColorAttachment(0));
 		else
 			Renderer::CreateFinalImage(m_ImGuiViewportFB->GetColorAttachment(0));
 
-        auto [mx, my] = ImGui::GetMousePos();
-        mx -= m_ViewportBounds[0].x;
-        my -= m_ViewportBounds[0].y;
-        glm::vec2 viewportSize = m_ViewportBounds[1] - m_ViewportBounds[0];
-        my = viewportSize.y - my;
-        int mouseX = (int)mx;
-        int mouseY = (int)my;
-        
-        if (mouseX >= 0 && mouseY >= 0 && mouseX < (int)viewportSize.x && mouseY < (int)viewportSize.y)
-        {
-            int pixelData = m_ImGuiViewportFB->GetColorAttachment(1)->ReadPixel(mouseX, mouseY);
-			//PX_WARN("EntityID = {0}", pixelData);
-            //m_HoveredEntity = pixelData == 0 ? Entity() : Entity((entt::entity)pixelData, m_ActiveScene.get());
-        }
-		
+
+
+		// TODO: Move to MousePicking system
+		{
+			auto [mx, my] = ImGui::GetMousePos();
+			mx -= m_ViewportBounds[0].x;
+			my -= m_ViewportBounds[0].y;
+			glm::vec2 viewportSize = m_ViewportBounds[1] - m_ViewportBounds[0];
+			my = viewportSize.y - my;
+			int mouseX = (int)mx;
+			int mouseY = (int)my;
+
+			if (mouseX >= 0 && mouseY >= 0 && mouseX < (int)viewportSize.x && mouseY < (int)viewportSize.y)
+			{
+				//uint64_t pixelData = (uint64_t)m_ImGuiViewportFB->GetColorAttachment(1)->ReadPixel(mouseX, mouseY);
+				//m_HoveredEntity = pixelData == 0 ? Entity() : Entity((entt::entity)pixelData, m_ActiveScene.get());
+			}
+		}		
 		
 		//PX_TRACE("EditorLayer::OnUpdate Finished!");
     }
@@ -174,10 +176,6 @@ namespace Povox {
 
 
 		//PX_TRACE("EditorLayer::OnImguiRender Started!");
-
-        auto stats = Renderer2D::GetStats();
-
-
         static bool dockspaceOpen = true;
         static bool opt_fullscreen_persistant = true;
         bool opt_fullscreen = opt_fullscreen_persistant;
@@ -258,6 +256,8 @@ namespace Povox {
         }
 
      // Renderer Stats
+		auto stats = Renderer2D::GetStats();
+
         ImGui::Begin(" Stats ");
         ImGui::Text("DrawCalls: %d", stats.DrawCalls);
         ImGui::Text("Quads: %d", stats.QuadCount);
@@ -265,6 +265,7 @@ namespace Povox {
         ImGui::Text("Indices: %d", stats.GetTotalIndexCount());
         ImGui::Text("Deltatime: %f", m_Deltatime);
 		ImGui::Separator();
+
 		RendererStatistics rendererStats = Renderer::GetStatistics();
 		for (uint32_t i = 0; i < rendererStats.PipelineStats.size(); i++)
 		{
@@ -278,6 +279,10 @@ namespace Povox {
 			const std::string caption = name + ": %fms";
 			ImGui::Text(caption.c_str(), timeInMS);
 		}
+		ImGui::Separator();
+		ImGui::Text("TotalFrames: %u", rendererStats.State->TotalFrames);
+
+
 
         std::string name = "None";
         if (m_HoveredEntity)
@@ -303,7 +308,12 @@ namespace Povox {
 
 
         ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail();
-        m_ViewportSize = { viewportPanelSize.x, viewportPanelSize.y };
+		if (viewportPanelSize.x > 0.0f && viewportPanelSize.y > 0.0f
+			&& viewportPanelSize.x != m_ViewportSize.x || viewportPanelSize.y != m_ViewportSize.y)
+		{
+			m_ViewportSize = { viewportPanelSize.x, viewportPanelSize.y };
+			m_ViewportResized = true;
+		}
 
 
 		ImTextureID texID = Renderer::GetGUIDescriptorSet(Renderer::GetFinalImage());
@@ -403,9 +413,20 @@ namespace Povox {
         dispatcher.Dispatch<KeyPressedEvent>(PX_BIND_EVENT_FN(EditorLayer::OnKeyPressed));
         dispatcher.Dispatch<MouseButtonPressedEvent>(PX_BIND_EVENT_FN(EditorLayer::OnMouseButtonPressed));
 
-		dispatcher.Dispatch<WindowResizeEvent>(PX_BIND_EVENT_FN(EditorLayer::OnWindowResize));
+		dispatcher.Dispatch<FramebufferResizeEvent>(PX_BIND_EVENT_FN(EditorLayer::OnFramebufferResize));
     }
 
+	bool EditorLayer::OnFramebufferResize(FramebufferResizeEvent& e)
+	{
+		m_WindowResized = true;
+		m_ViewportResized = true;
+
+		m_WindowSize = { e.GetWidth(), e.GetHeight() };
+		if (m_GUICollapsed)
+			m_ViewportSize = m_WindowSize;
+
+		return false;
+	}
     bool EditorLayer::OnKeyPressed(KeyPressedEvent& e)
     {
         //shortcuts
@@ -464,6 +485,10 @@ namespace Povox {
                 m_GizmoType = ImGuizmo::OPERATION::SCALE;
                 break;
             }
+			case Key::C:
+			{
+				m_GUICollapsed != m_GUICollapsed;
+			}
             case Key::Escape:
             {
                 if (controlPressed)
@@ -474,7 +499,6 @@ namespace Povox {
             }
         }
     }
-
     bool EditorLayer::OnMouseButtonPressed(MouseButtonPressedEvent& e)
     {
         bool isAltPressed = Input::IsKeyPressed(Key::LeftAlt) || Input::IsKeyPressed(Key::RightAlt);
@@ -490,18 +514,6 @@ namespace Povox {
 
         return false;
     }
-
-	bool EditorLayer::OnWindowResize(WindowResizeEvent& e)
-	{
-		if (!Application::Get()->GetSpecification().ImGuiEnabled)
-		{
-			m_ViewportSize = { e.GetWidth(), e.GetHeight() };
-		}
-		else
-			Renderer::FramebufferResized(m_ViewportSize.x, m_ViewportSize.y);
-
-		return false;
-	}
 
 	void EditorLayer::NewScene()
     {

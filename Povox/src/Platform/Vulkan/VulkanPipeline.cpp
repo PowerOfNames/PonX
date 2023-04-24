@@ -117,10 +117,13 @@ namespace Povox {
 
 		PX_CORE_TRACE("VulkanPipeline::Construct Finished!");
 	}
+	VulkanPipeline::~VulkanPipeline() {}
 
-	VulkanPipeline::~VulkanPipeline()
+	void VulkanPipeline::Free()
 	{
-		VkDevice device = VulkanContext::GetDevice()->GetVulkanDevice();
+		VulkanContext::SubmitResourceFree([=]() {
+
+			VkDevice device = VulkanContext::GetDevice()->GetVulkanDevice();
 		if (m_Layout)
 		{
 			vkDestroyPipelineLayout(device, m_Layout, nullptr);
@@ -131,7 +134,9 @@ namespace Povox {
 			vkDestroyPipeline(device, m_Pipeline, nullptr);
 			m_Pipeline = VK_NULL_HANDLE;
 		}
-	}	
+			});
+
+	}
 
 	void VulkanPipeline::Recreate()
 	{
@@ -169,6 +174,16 @@ namespace Povox {
 		layoutInfo.pushConstantRangeCount = 1;
 		layoutInfo.pPushConstantRanges = &pushConstant;
 		PX_CORE_VK_ASSERT(vkCreatePipelineLayout(device, &layoutInfo, nullptr, &m_Layout), VK_SUCCESS, "Failed to create GraphicsPipelineLayout!");
+
+#ifdef PX_DEBUG
+		VkDebugUtilsObjectNameInfoEXT nameInfo{};
+		nameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+		nameInfo.objectType = VK_OBJECT_TYPE_PIPELINE_LAYOUT;
+		nameInfo.objectHandle = (uint64_t)m_Layout;
+		nameInfo.pObjectName = m_Specification.DebugName.c_str();
+		NameVkObject(VulkanContext::GetDevice()->GetVulkanDevice(), nameInfo);
+#endif // DEBUG
+
 		PX_CORE_TRACE("VulkanPipeline::Construct Created PipelineLayout!");
 	}
 
@@ -369,6 +384,16 @@ namespace Povox {
 
 
 		PX_CORE_VK_ASSERT(vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_Pipeline), VK_SUCCESS, "Failed to create Graphics pipeline!");
+
+#ifdef PX_DEBUG
+		VkDebugUtilsObjectNameInfoEXT nameInfo{};
+		nameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+		nameInfo.objectType = VK_OBJECT_TYPE_PIPELINE;
+		nameInfo.objectHandle = (uint64_t)m_Pipeline;
+		nameInfo.pObjectName = m_Specification.DebugName.c_str();
+		NameVkObject(VulkanContext::GetDevice()->GetVulkanDevice(), nameInfo);
+#endif // DEBUG
+
 		vkDestroyShaderModule(device, vertexShaderModule, nullptr);
 		vkDestroyShaderModule(device, fragmentShaderModule, nullptr);
 	}

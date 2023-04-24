@@ -72,18 +72,21 @@ namespace Povox {
 	{
 		PX_PROFILE_FUNCTION();
 
-		for (auto& queue : s_ResourceFreeQueue)
+
+		vkDeviceWaitIdle(s_Device->GetVulkanDevice());
+
+		for (uint32_t frame = 0; frame < s_ResourceFreeQueue.size(); frame++)
 		{
-			for (auto& func : queue)
-				func();
+			FreeFrameResources(frame);
 		}
 		s_ResourceFreeQueue.clear();
 
 		
-		s_DescriptorAllocator->Cleanup();		
+		s_DescriptorAllocator->Cleanup();
 		s_DescriptorLayoutCache->Cleanup();
 
 		//TODO: Destroy Devices
+		
 
 		if (PX_ENABLE_VK_VALIDATION_LAYERS)
 			DestroyDebugUtilsMessengerEXT(s_Instance, m_DebugMessenger, nullptr);
@@ -106,7 +109,7 @@ namespace Povox {
 		appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
 		appInfo.pEngineName = "Povox";
 		appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-		appInfo.apiVersion = VK_API_VERSION_1_2;
+		appInfo.apiVersion = VK_API_VERSION_1_3;
 
 		VkInstanceCreateInfo createInfo{};
 		createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
@@ -236,4 +239,16 @@ namespace Povox {
 	{
 		s_ResourceFreeQueue[Renderer::GetCurrentFrameIndex()].push_back(func);
 	}
+
+	void VulkanContext::FreeFrameResources(uint32_t frameIndex)
+	{
+		PX_CORE_ASSERT(frameIndex < s_ResourceFreeQueue.size(), "Invalid FrameIndex passed!");
+
+		vkDeviceWaitIdle(s_Device->GetVulkanDevice());
+		auto& queue = s_ResourceFreeQueue[frameIndex];
+		for (auto& func : queue)
+			func();
+		queue.clear();
+	}
+
 }

@@ -61,15 +61,21 @@ namespace Povox {
 
 
 		bool DynamicViewAndScissors = true;
+
+		std::string DebugName = "Pipeline";
 	};
 
 	class Pipeline
 	{
 	public:
 		virtual ~Pipeline() = default;
+		virtual void Free() = 0;
+
 		virtual PipelineSpecification& GetSpecification() = 0;
 
 		virtual void Recreate() = 0;
+
+		virtual const std::string& GetDebugName() const = 0;
 
 		static Ref<Pipeline> Create(const PipelineSpecification& specs);
 	};

@@ -67,6 +67,8 @@ namespace Povox {
 		
 		//helper for renderpass to actually create the framebuffer
 		void Construct(VkRenderPass renderpass = VK_NULL_HANDLE);
+
+		virtual const std::string& GetDebugName() const override { return m_Specification.DebugName; }
 	private:
 		void CreateAttachments();
 	private:

@@ -111,12 +111,15 @@ namespace Povox {
 
 		size_t Size = ElementCount * ElementSize;
 		void* Data;
+
+		std::string DebugName = "Buffer";
 	};
 
 	class Buffer
 	{
 	public:
 		virtual ~Buffer() = default;
+		virtual void Free() = 0;
 
 		virtual void SetData(void* data, size_t size) = 0;
 		//virtual void SetLayout(const BufferLayout& vertexLayout) = 0;
@@ -125,6 +128,8 @@ namespace Povox {
 		virtual uint64_t GetRendererID() const = 0;
 
 		static Ref<Buffer> Create(const BufferSpecification& specs);
+
+		virtual const std::string& GetDebugName() const = 0;
 
 		virtual bool operator==(const Buffer& other) const = 0;
 	};

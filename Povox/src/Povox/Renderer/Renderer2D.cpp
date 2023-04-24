@@ -100,9 +100,12 @@ namespace Povox {
 		s_QuadData.QuadIndexBuffers.resize(maxFrames);
 		for (uint32_t i = 0; i < maxFrames; i++)
 		{
+			vertexBufferSpecs.DebugName = "Renderer2D Vertexbuffer Frame: " + std::to_string(i);
+
 			s_QuadData.QuadVertexBuffers[i] = Buffer::Create(vertexBufferSpecs);
 			s_QuadData.QuadVertexBufferBases[i] = new QuadVertex[s_QuadData.MaxVertices];
 
+			indexBufferSpecs.DebugName = "Renderer2D Indices Frame: " + std::to_string(i);
 			s_QuadData.QuadIndexBuffers[i] = Buffer::Create(indexBufferSpecs);
 		}
 		delete[] quadIndices;
@@ -133,7 +136,20 @@ namespace Povox {
 		PX_PROFILE_FUNCTION();
 
 		//TODO: Investigate shutdown read access error here!
-		//delete[] s_QuadData.QuadVertexBufferBase;
+		uint32_t maxFrames = Renderer::GetSpecification().MaxFramesInFlight;
+		for (uint32_t i = 0; i < maxFrames; i++)
+		{
+			delete[] s_QuadData.QuadVertexBufferBases[i];
+		}
+	}
+
+	void Renderer2D::OnResize(uint32_t width, uint32_t height)
+	{
+		PX_PROFILE_FUNCTION();
+
+
+		// TODO: Recreate Renderer2D resources here if needed!
+
 	}
 
 	void Renderer2D::BeginScene(const OrthographicCamera& camera)
@@ -240,7 +256,6 @@ namespace Povox {
 			s_QuadData.QuadVertexBufferPtr->Color = color;
 			s_QuadData.QuadVertexBufferPtr->TexCoord = textureCoords[i];
 			s_QuadData.QuadVertexBufferPtr->TexID = s_QuadData.WhiteTextureSlot;
-			s_QuadData.QuadVertexBufferPtr->EntityID = entityID;
 			s_QuadData.QuadVertexBufferPtr++;
 		}
 		s_QuadData.QuadIndexCount += 6;
@@ -282,7 +297,6 @@ namespace Povox {
 			s_QuadData.QuadVertexBufferPtr->Color = tintingColor;
 			s_QuadData.QuadVertexBufferPtr->TexCoord = textureCoords[i];
 			s_QuadData.QuadVertexBufferPtr->TexID = textureIndex;
-			s_QuadData.QuadVertexBufferPtr->EntityID = entityID;
 			s_QuadData.QuadVertexBufferPtr++;
 		}
 		s_QuadData.QuadIndexCount += 6;

@@ -35,7 +35,7 @@ namespace Povox {
 
 		if (m_Specification.SwapChainTarget && (m_Specification.Attachments.Attachments.size() > 2 || Utils::IsDepthFormat(m_Specification.Attachments.Attachments[0].Format)))
 			PX_CORE_ASSERT(true, "Framebuffer as Swapchain target is only allowed to hold ONE COLOR attachment and ONE DEPTH attachment for now!");
-
+		uint32_t index = 0;
 		for (auto& attachment : m_Specification.Attachments.Attachments)
 		{
 			//First check if images come from elsewhere, if so, use those. If not, create new
@@ -61,6 +61,8 @@ namespace Povox {
 				imageSpec.Tiling = ImageTiling::OPTIMAL;
 				if (Utils::IsDepthFormat(attachment.Format))
 				{
+
+					imageSpec.DebugName = m_Specification.DebugName + "-DepthAttachment";
 					imageSpec.Usages = { ImageUsage::DEPTH_ATTACHMENT };
 					m_DepthAttachment = Image2D::Create(imageSpec);
 					std::dynamic_pointer_cast<VulkanImage2D>(m_DepthAttachment)->TransitionImageLayout(
@@ -74,6 +76,7 @@ namespace Povox {
 				}
 				else
 				{
+					imageSpec.DebugName = m_Specification.DebugName + "-ColorAttachment " + std::to_string(index);
 					imageSpec.Usages = { ImageUsage::COLOR_ATTACHMENT, ImageUsage::COPY_SRC };
 					Ref<Image2D> colorImage = Image2D::Create(imageSpec);
 					std::dynamic_pointer_cast<VulkanImage2D>(colorImage)->TransitionImageLayout(
@@ -87,6 +90,7 @@ namespace Povox {
 					PX_CORE_TRACE("FB: Creating ColorAttachment");
 				}
 			}
+			index++;
 		}
 	}
 
@@ -112,12 +116,12 @@ namespace Povox {
 		{
 			if (m_DepthAttachment)
 			{
-				m_DepthAttachment->Destroy();
+				m_DepthAttachment->Free();
 				m_DepthAttachment = nullptr;
 			}
 			for (uint32_t i = 0; i < m_ColorAttachments.size(); i++)
 			{
-				m_ColorAttachments[i]->Destroy();
+				m_ColorAttachments[i]->Free();
 			}
 			m_ColorAttachments.clear();
 		}
@@ -160,6 +164,15 @@ namespace Povox {
 		fbCI.renderPass = m_RenderPass;
 		fbCI.layers = 1; //number of layers in images
 		PX_CORE_VK_ASSERT(vkCreateFramebuffer(VulkanContext::GetDevice()->GetVulkanDevice(), &fbCI, nullptr, &m_Framebuffer), VK_SUCCESS, "Failed to create Framebuffer!");
+
+#ifdef PX_DEBUG
+		VkDebugUtilsObjectNameInfoEXT nameInfo{};
+		nameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+		nameInfo.objectType = VK_OBJECT_TYPE_FRAMEBUFFER;
+		nameInfo.objectHandle = (uint64_t)m_Framebuffer;
+		nameInfo.pObjectName = m_Specification.DebugName.c_str();
+		NameVkObject(VulkanContext::GetDevice()->GetVulkanDevice(), nameInfo);
+#endif // DEBUG
 	}
 
 	void VulkanFramebuffer::Destroy()
@@ -174,12 +187,12 @@ namespace Povox {
 		{
 			for (uint32_t i = 0; i < m_ColorAttachments.size(); i++)
 			{
-				m_ColorAttachments[i]->Destroy();
+				m_ColorAttachments[i]->Free();
 				m_ColorAttachments.clear();
 			}
 			if (m_DepthAttachment)
 			{
-				m_DepthAttachment->Destroy();
+				m_DepthAttachment->Free();
 				m_DepthAttachment = nullptr;
 			}
 		}

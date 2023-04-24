@@ -59,7 +59,7 @@ namespace Povox {
 
 	struct CameraComponent
 	{
-		Povox::SceneCamera Camera;
+		SceneCamera Camera;
 		bool Primary = true; //the scene may be responsible to know which the active camera is instead of the cameracomponent itself
 		bool FixedAspectRatio = false;
 

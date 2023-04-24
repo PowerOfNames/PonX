@@ -38,6 +38,8 @@ namespace Povox {
 	{
 		PX_PROFILE_FUNCTION();
 
+		if (width <= 0 || height <= 0)
+			return;
 
 		PX_CORE_INFO("VulkanSwapchain::Recreate: Starting...");
 		m_Properties.Width = width;
@@ -335,8 +337,9 @@ namespace Povox {
 		VkDevice device = VulkanContext::GetDevice()->GetVulkanDevice();
 		vkDeviceWaitIdle(device);
 
-		Cleanup();		
-		vkDestroySwapchainKHR(device, m_OldSwapchain, nullptr);
+		Cleanup();
+		if(m_OldSwapchain)
+			vkDestroySwapchainKHR(device, m_OldSwapchain, nullptr);
 		m_OldSwapchain = VK_NULL_HANDLE;
 
 		vkDestroySurfaceKHR(VulkanContext::GetInstance(), s_Surface, nullptr);

@@ -119,6 +119,16 @@ namespace Povox {
 		renderPassInfo.pDependencies = &dependency;
 
 		PX_CORE_VK_ASSERT(vkCreateRenderPass(device, &renderPassInfo, nullptr, &m_RenderPass), VK_SUCCESS, "Failed to create renderpass!");
+
+#ifdef PX_DEBUG
+		VkDebugUtilsObjectNameInfoEXT nameInfo{};
+		nameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+		nameInfo.objectType = VK_OBJECT_TYPE_RENDER_PASS;
+		nameInfo.objectHandle = (uint64_t)m_RenderPass;
+		nameInfo.pObjectName = m_Specification.DebugName.c_str();
+		NameVkObject(VulkanContext::GetDevice()->GetVulkanDevice(), nameInfo);
+#endif // DEBUG
+
 		PX_CORE_INFO("VulkanRenderpass::Recreate: Recreated Renderpass with AttachmentExtent of '{0}, {1}'", fbspecs.Width, fbspecs.Height);
 		//Now create the actual framebuffer with this render pass
 		framebuffer->Construct(m_RenderPass);

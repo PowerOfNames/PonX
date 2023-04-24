@@ -12,11 +12,16 @@ namespace Povox {
 	{
 	public:
 		virtual ~Shader() = default;
+		virtual void Free() = 0;
 
-		virtual const std::string& GetName() const = 0;
 		virtual uint64_t GetRendererID() const = 0;
+		virtual const std::string& GetDebugName() const = 0;
 
-	// Uniforms
+		virtual bool operator==(const Shader& other) const = 0;
+		
+		static Ref<Shader> Create(const std::string& filepath);		
+		
+		// Uniforms
 		virtual void SetInt(const std::string& name, int value) = 0;
 		virtual void SetIntArray(const std::string& name, int* values, uint32_t count) = 0;
 
@@ -27,10 +32,6 @@ namespace Povox {
 
 		virtual void SetMat3(const std::string& name, const glm::mat3& matrix) = 0;
 		virtual void SetMat4(const std::string& name, const glm::mat4& matrix) = 0;
-
-		static Ref<Shader> Create(const std::string& filepath);
-
-		virtual bool operator==(const Shader& other) const = 0;
 	};
 
 	class ShaderLibrary

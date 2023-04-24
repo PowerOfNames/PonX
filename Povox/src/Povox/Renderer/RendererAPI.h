@@ -36,47 +36,55 @@ namespace Povox {
 	public:
 		virtual ~RendererAPI() = default;
 
+		// Core
 		virtual void Shutdown() = 0;
 
+		// Render
 		virtual bool BeginFrame() = 0;
+		virtual void EndFrame() = 0;
 		virtual void DrawRenderable(const Renderable& renderable) = 0;
 		virtual void Draw(Ref<Buffer> vertices, Ref<Material> material, Ref<Buffer> indices, size_t indexCount) = 0;
-		virtual void DrawGUI() = 0;
-		virtual void EndFrame() = 0;
-
-		virtual void UpdateCamera(const CameraUniform& cam) = 0;
-
-		virtual Ref<ShaderLibrary> GetShaderLibrary() = 0;
-		virtual Ref<TextureSystem> GetTextureSystem() = 0;
-
-		virtual const RendererSpecification& GetSpecification() = 0;
-
-		virtual void Submit(const Renderable& object) = 0;
 
 		virtual uint32_t GetCurrentFrameIndex() const = 0;
 
 		virtual void CreateFinalImage(Ref<Image2D> finalImage) = 0;
 		virtual Ref<Image2D> GetFinalImage() = 0;
+		virtual void PrepareSwapchainImage(Ref<Image2D> finalImage) = 0;
 
+		// State
+		virtual void OnResize(uint32_t width, uint32_t height) = 0;
+		virtual void OnViewportResize(uint32_t width, uint32_t height) = 0;
+		virtual void WaitForDeviceFinished() = 0;
+
+		virtual void UpdateCamera(const CameraUniform& cam) = 0;
+
+
+		// Resources
+		virtual Ref<ShaderLibrary> GetShaderLibrary() = 0;
+		virtual Ref<TextureSystem> GetTextureSystem() = 0;
+		virtual const RendererSpecification& GetSpecification() = 0;
+		virtual void* GetGUIDescriptorSet(Ref<Image2D> image) = 0;
+
+		// Commands 
 		virtual const void* GetCommandBuffer(uint32_t index) = 0;
 		virtual const void* GetGUICommandBuffer(uint32_t index) = 0;
 		virtual void BeginCommandBuffer(const void* cmd) = 0;
 		virtual void EndCommandBuffer() = 0;
 
+		// Renderpass
 		virtual void BeginRenderPass(Ref<RenderPass> renderPass) = 0;
 		virtual void EndRenderPass() = 0;
 
+		// GUI
+		virtual void DrawGUI() = 0;
 		virtual void BeginGUIRenderPass() = 0;
 		virtual void EndGUIRenderPass() = 0;
 
+		// Pipeline
 		virtual void BindPipeline(Ref<Pipeline> pipeline) = 0;
 
-		virtual void PrepareSwapchainImage(Ref<Image2D> finalImage) = 0;
 
-		virtual void FramebufferResized(uint32_t x, uint32_t y, uint32_t width, uint32_t height) = 0;
-
-		virtual void* GetGUIDescriptorSet(Ref<Image2D> image) = 0;
-
+		// Debugging and Statistics
 		virtual const RendererStatistics& GetStatistics() const = 0;
 		virtual void StartTimestampQuery(const std::string& name) = 0;
 		virtual void StopTimestampQuery(const std::string& name) = 0;

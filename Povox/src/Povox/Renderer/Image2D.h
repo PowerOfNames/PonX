@@ -13,7 +13,8 @@ namespace Povox {
 		RGB8,
 		RG8,
 
-		RED_INTEGER,
+		RED_INTEGER_U32,
+		RED_INTEGER_U64,
 		RED_FLOAT,
 
 		//Depth
@@ -79,6 +80,9 @@ namespace Povox {
 		uint32_t MipLevels = 1;
 
 		bool DedicatedSampler = false;
+		bool CreateDescriptorOnInit = true;
+
+		std::string DebugName = "Image";
 	};
 
 
@@ -86,8 +90,8 @@ namespace Povox {
 	{
 	public:
 		virtual ~Image2D() = default;
+		virtual void Free() = 0;
 
-		virtual void Destroy() = 0;
 		virtual const ImageSpecification& GetSpecification() const = 0;
 		
 		virtual void SetData(void* data) = 0;
@@ -95,6 +99,8 @@ namespace Povox {
 		virtual int ReadPixel(int posX, int posY) = 0;
 
 		virtual void* GetDescriptorSet() = 0;
+
+		virtual const std::string& GetDebugName() const = 0;
 
 		static Ref<Image2D> Create(const ImageSpecification& spec);
 		static Ref<Image2D> Create(uint32_t width, uint32_t height, uint32_t channels = 4);

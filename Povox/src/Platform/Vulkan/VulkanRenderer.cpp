@@ -69,7 +69,9 @@ namespace Povox {
 		
 
 		
-		
+		m_Specification.State.IsInitialized = true;
+
+		m_Statistics.State = &m_Specification.State;
 		PX_CORE_INFO("VulkanRenderer::Init: Completed initialization.");
 	}
 
@@ -81,6 +83,18 @@ namespace Povox {
 		PX_CORE_INFO("VulkanRenderer::Shutdown: Starting...");
 
 		vkDeviceWaitIdle(m_Device);
+
+		PX_CORE_INFO("Starting ShaderLibrary shutdown...");
+
+		m_ShaderLibrary->Shutdown();
+
+		PX_CORE_INFO("Completed ShaderLibrary shutdown.");
+
+		PX_CORE_INFO("Starting TextureSystem shutdown...");
+
+		m_TextureSystem->Shutdown();
+
+		PX_CORE_INFO("Completed TextureSystem shutdown.");
 
 		PX_CORE_INFO("Started destruction of performance pools...");
 
@@ -124,42 +138,32 @@ namespace Povox {
 
 		m_ImGui->Destroy();
 
-		m_FinalImage->Destroy();
-		//This might be happening in the LayoutCache::Cleanup function during VulkanContext::Shutdown
-		//vkDestroyDescriptorSetLayout(m_Device, m_GlobalDescriptorSetLayout, nullptr);
-		//vkDestroyDescriptorSetLayout(m_Device, m_TextureDescriptorSetLayout, nullptr);
+		m_FinalImage->Free();
+
 
 		vkDestroySampler(m_Device, m_TextureSampler, nullptr);
 
-		PX_CORE_INFO("Starting ShaderLibrary shutdown...");
-
-		m_ShaderLibrary->Shutdown();
-
-		PX_CORE_INFO("Completed ShaderLibrary shutdown.");
-
-		PX_CORE_INFO("Starting TextureSystem shutdown...");
-
-		m_TextureSystem->Shutdown();
-
-		PX_CORE_INFO("Completed TextureSystem shutdown.");
+		
 
 		PX_CORE_WARN("Completed leftover and other things' destruction.");
 		PX_CORE_INFO("VulkanRenderer::Shutdown: Completed.");
 	}
 	
+	void VulkanRenderer::WaitForDeviceFinished()
+	{
+		vkDeviceWaitIdle(m_Device);
+	}
+
 	//FrameData
 	bool VulkanRenderer::BeginFrame()
 	{
 		PX_PROFILE_FUNCTION();
 
 
-		GetQueryResults();		
+		GetQueryResults();
 
-		//ATTENTION: Possible, that I need to render before the clearing, maybe, possibly
-		auto& currentFreeQueue = VulkanContext::GetResourceFreeQueue()[m_CurrentFrameIndex];
-		for (auto& func : currentFreeQueue)
-		//	func();
-		//currentFreeQueue.clear();
+		//VulkanContext::FreeFrameResources(m_CurrentFrameIndex);
+
 
 		vkWaitForFences(m_Device, 1, &GetCurrentFrame().Fence, VK_TRUE, UINT64_MAX);
 		vkResetCommandPool(m_Device, GetCurrentFrame().Commands.Pool, 0);
@@ -168,7 +172,7 @@ namespace Povox {
 			return false;
 		vkResetFences(m_Device, 1, &GetCurrentFrame().Fence);
 
-		m_Statistics.CurrentSwapchainImageIndex = m_CurrentSwapchainImageIndex = m_SwapchainFrame->CurrentImageIndex;
+		m_Specification.State.CurrentSwapchainImageIndex = m_CurrentSwapchainImageIndex = m_SwapchainFrame->CurrentImageIndex;
 		m_SwapchainFrame->CurrentFence = GetCurrentFrame().Fence;
 		m_SwapchainFrame->PresentSemaphore = GetCurrentFrame().Semaphores.PresentSemaphore;
 		m_SwapchainFrame->RenderSemaphore = GetCurrentFrame().Semaphores.RenderSemaphore;
@@ -178,16 +182,9 @@ namespace Povox {
 	}
 	void VulkanRenderer::EndFrame()
 	{
-		//Here???
-		m_FramebufferResized = false;
-
-		m_Statistics.LastFrameIndex = m_CurrentFrameIndex;
-		m_Statistics.CurrentFrameIndex = m_CurrentFrameIndex = (++m_CurrentFrameIndex) % m_Specification.MaxFramesInFlight;
-		m_Statistics.TotalFrames++;
-		
-		//TODO: Move to VulkanRendererStats!
-		//PX_CORE_TRACE("VulkanRenderer::EndFrame: Current Frame: '{0}'", m_CurrentFrameIndex);
-		//PX_CORE_TRACE("VulkanRenderer::EndFrame: Total Frames: '{0}'", m_Statistics.TotalFrames);
+		m_Specification.State.LastFrameIndex = m_LastFrameIndex = m_CurrentFrameIndex;
+		m_Specification.State.CurrentFrameIndex = m_CurrentFrameIndex = (++m_CurrentFrameIndex) % m_Specification.MaxFramesInFlight;
+		m_Specification.State.TotalFrames++;
 	}
 	
 	void VulkanRenderer::Draw(Ref<Buffer> vertices, Ref<Material> material, Ref<Buffer> indices, size_t indexCount)
@@ -399,11 +396,7 @@ namespace Povox {
 			
 		vkCmdDrawIndexed(m_ActiveCommandBuffer, 6, 1, 0, 0, 0);
 	}
-	
-	void VulkanRenderer::Submit(const Renderable& object)
-	{
 
-	}
 	void VulkanRenderer::InitFrameData()
 	{
 		PX_PROFILE_FUNCTION();
@@ -478,8 +471,8 @@ namespace Povox {
 			
 			PX_CORE_INFO("Completed (global) UBO creation for {0} frames.", maxFrames);
 
-			m_ViewportSizeX = m_Swapchain->GetProperties().Width;
-			m_ViewportSizeY = m_Swapchain->GetProperties().Height;
+			m_FramebufferWidth = m_ViewportWidth = m_Swapchain->GetProperties().Width;
+			m_FramebufferHeight = m_ViewportHeight = m_Swapchain->GetProperties().Height;
 		}
 		else
 		{
@@ -496,9 +489,9 @@ namespace Povox {
 
 
 		Ref<VulkanImage2D> sourceImageVK = std::dynamic_pointer_cast<VulkanImage2D>(sourceImage);
-		if (m_FramebufferResized || !m_FinalImage)
+		if (!m_FinalImage)
 		{
-			InitFinalImage(m_ViewportSizeX, m_ViewportSizeY);
+			InitFinalImage(m_ViewportWidth, m_ViewportHeight);
 		}
 
 		//Transition final image
@@ -642,12 +635,35 @@ namespace Povox {
 	}
 
 	// State
-	void VulkanRenderer::FramebufferResized(uint32_t x, uint32_t y, uint32_t width, uint32_t height)
+	void VulkanRenderer::OnResize(uint32_t width, uint32_t height)
 	{
+		if (m_FramebufferResized)
+			return;
+
+
 		m_FramebufferResized = true;
-		m_ViewportSizeX = width;
-		m_ViewportSizeY = height;
+
+		
+		m_Specification.State.WindowWidth = m_FramebufferWidth = width;
+		m_Specification.State.WindowHeight = m_FramebufferHeight = height;
 	}
+
+	void VulkanRenderer::OnViewportResize(uint32_t width, uint32_t height)
+	{
+		if (m_ViewportResized)
+			return;
+
+		m_ViewportResized = true;
+
+
+		m_Specification.State.ViewportWidth = m_ViewportWidth = width;
+		m_Specification.State.ViewportHeight = m_ViewportHeight = height;
+
+		InitFinalImage(m_ViewportWidth, m_ViewportHeight);
+
+		m_ViewportResized = false;
+	}
+
 	void VulkanRenderer::UpdateCamera(const CameraUniform& cam)
 	{
 		PX_PROFILE_FUNCTION();
@@ -739,10 +755,9 @@ namespace Povox {
 
 
 		//TODO: Get from the fb
-		std::array<VkClearValue, 3> clearColor = {};
+		std::array<VkClearValue, 2> clearColor = {};
 		clearColor[0].color = { 0.0f, 0.0f, 0.0f, 0.0f };
-		clearColor[1].color.int32[0] = -1;
-		clearColor[2].depthStencil = { 1.0f, 0 };
+		clearColor[1].depthStencil = { 1.0f, 0 };
 
 		VkRenderPassBeginInfo info{};
 		info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -800,6 +815,8 @@ namespace Povox {
 		{
 			VkExtent2D extent{ m_Swapchain->GetProperties().Width, m_Swapchain->GetProperties().Height };
 			m_ImGui->OnSwapchainRecreate(Application::Get()->GetWindow().GetSwapchain()->GetImageViews(), extent);
+			// TODO: Find right place for flag
+			m_FramebufferResized = false;
 		}
 		m_ImGui->BeginRenderPass(m_ActiveCommandBuffer, m_CurrentSwapchainImageIndex, { m_Swapchain->GetProperties().Width, m_Swapchain->GetProperties().Height });
 	}
@@ -994,6 +1011,9 @@ namespace Povox {
 	{
 		Ref<VulkanImage2D> vkImage = std::dynamic_pointer_cast<VulkanImage2D>(image);
 
+		if ((VkDescriptorSet)vkImage->GetDescriptorSet())
+			m_ImGui->FreeImGuiDescriptorSet((VkDescriptorSet)vkImage->GetDescriptorSet());
+
 		vkImage->TransitionImageLayout(
 			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
 			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
@@ -1002,8 +1022,11 @@ namespace Povox {
 			VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
 			VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT
 		);
-		return m_ImGui->GetImGUIDescriptorSet(vkImage->GetImageView(), vkImage->GetSampler(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+		
+		vkImage->SetDescriptorSet(m_ImGui->GetImGUIDescriptorSet(vkImage->GetImageView(), vkImage->GetSampler(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL));
+		return vkImage->GetDescriptorSet();
 	}
+
 	
 	//TEMP
 	// Samplers
@@ -1035,6 +1058,15 @@ namespace Povox {
 			samplerInfo.maxLod = 0.0f;
 			samplerInfo.minLod = 0.0f;
 			PX_CORE_VK_ASSERT(vkCreateSampler(VulkanContext::GetDevice()->GetVulkanDevice(), &samplerInfo, nullptr, &m_TextureSampler), VK_SUCCESS, "Failed to create texture sampler!");
+
+#ifdef PX_DEBUG
+			VkDebugUtilsObjectNameInfoEXT nameInfo{};
+			nameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+			nameInfo.objectType = VK_OBJECT_TYPE_SAMPLER;
+			nameInfo.objectHandle = (uint64_t)m_TextureSampler;
+			nameInfo.pObjectName = "TextureSampler";
+			NameVkObject(VulkanContext::GetDevice()->GetVulkanDevice(), nameInfo);
+#endif // DEBUG
 		}	
 	}
 	// Descriptors
@@ -1176,13 +1208,20 @@ namespace Povox {
 	{
 		PX_PROFILE_FUNCTION();
 
+		if (width <= 0 || height <= 0)
+		{
+			PX_CORE_WARN("VulkanRenderer::InitFinalImage: Cannot create image with extent {}, {}", width, height);
+			return;
+		}
 
 		if (m_FinalImage)
 		{
-			m_FinalImage->Destroy();
+			m_FinalImage->Free();
 			m_FinalImage = nullptr;
 		}
+
 		ImageSpecification imageSpec{};
+		imageSpec.DebugName = "Renderer::FinalImage";
 		imageSpec.Width = width;
 		imageSpec.Height = height;
 		imageSpec.ChannelCount = 4;
@@ -1192,6 +1231,7 @@ namespace Povox {
 		imageSpec.Tiling = ImageTiling::LINEAR;
 		imageSpec.Usages = { ImageUsage::SAMPLED, ImageUsage::COLOR_ATTACHMENT, ImageUsage::COPY_DST };
 		imageSpec.DedicatedSampler = true;
+		imageSpec.CreateDescriptorOnInit = false;
 		m_FinalImage = CreateRef<VulkanImage2D>(imageSpec);
 	}
 

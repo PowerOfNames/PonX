@@ -40,7 +40,10 @@ namespace Povox {
 	{
 		PX_CORE_INFO("ShaderLibrary::Shutdown: Starting...");
 
-
+		for (auto& shader : m_Shaders)
+		{
+			shader.second->Free();
+		}
 
 
 		PX_CORE_INFO("ShaderLibrary::Shutdown: Completed.");
@@ -59,7 +62,7 @@ namespace Povox {
 	
 	void ShaderLibrary::Add(const Ref<Shader>& shader)
 	{
-		auto name = shader->GetName();
+		auto name = shader->GetDebugName();
 		Add(name, shader);
 	}
 

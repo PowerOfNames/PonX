@@ -11,16 +11,18 @@ namespace Povox {
 	{
 	public:
 		virtual ~Texture() = default;
+		virtual void Free() = 0;
 
 		virtual uint32_t GetWidth() const = 0;
 		virtual uint32_t GetHeight() const = 0;
-		virtual const std::string& GetDebugName() const = 0;
 
 		virtual void SetData(void* data) = 0;
 
 		virtual const Ref<Image2D> GetImage() const = 0;
 		virtual Ref<Image2D> GetImage() = 0;
 		virtual uint64_t GetRendererID() const = 0;
+
+		virtual const std::string& GetDebugName() const = 0;
 
 		virtual bool operator==(const Texture& other) const = 0;
 	};
@@ -29,16 +31,18 @@ namespace Povox {
 	{
 	public:
 		virtual ~Texture2D() = default;
+		virtual void Free() = 0;
 
 		virtual uint32_t GetWidth() const = 0;
 		virtual uint32_t GetHeight() const = 0;
-		virtual const std::string& GetDebugName() const = 0;
 
 		virtual void SetData(void* data) = 0;
 
 		virtual const Ref<Image2D> GetImage() const = 0;
 		virtual Ref<Image2D> GetImage() = 0;
 		virtual uint64_t GetRendererID() const = 0;
+
+		virtual const std::string& GetDebugName() const = 0;
 
 		virtual bool operator==(const Texture& other) const = 0;
 

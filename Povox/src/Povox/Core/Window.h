@@ -27,6 +27,8 @@ namespace Povox {
 
 		virtual ~Window() = default;
 
+		virtual void Close() = 0;
+
 		virtual void OnUpdate() = 0;
 		virtual void OnResize(uint32_t width, uint32_t height) = 0;
 

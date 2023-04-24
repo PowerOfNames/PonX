@@ -156,6 +156,11 @@ namespace Povox {
 		return ImGui_VulkanImpl_AddTexture(sampler, view, layout);
 	}
 
+	void VulkanImGui::FreeImGuiDescriptorSet(VkDescriptorSet set)
+	{
+		ImGui_VulkanImpl_FreeTexture(set);
+	}
+
 	VulkanImGui::FrameData& VulkanImGui::GetFrame(uint32_t index)
 	{
 		if (index > m_FrameData.size())

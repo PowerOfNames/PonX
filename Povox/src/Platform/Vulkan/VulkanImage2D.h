@@ -32,7 +32,8 @@ namespace Povox {
 				case ImageFormat::RGBA8: return VK_FORMAT_R8G8B8A8_SRGB;
 				case ImageFormat::RGB8: return VK_FORMAT_R8G8B8_SRGB;
 				case ImageFormat::RG8: return VK_FORMAT_R8G8_SRGB;
-				case ImageFormat::RED_INTEGER: return VK_FORMAT_R32_SINT;
+				case ImageFormat::RED_INTEGER_U32: return VK_FORMAT_R32_UINT;
+				case ImageFormat::RED_INTEGER_U64: return VK_FORMAT_R64_UINT;
 				case ImageFormat::RED_FLOAT: return VK_FORMAT_R32_SFLOAT;
 				case ImageFormat::DEPTH24STENCIL8: return VulkanUtils::FindDepthFormat(VulkanContext::GetDevice()->GetPhysicalDevice());
 			}
@@ -107,18 +108,19 @@ namespace Povox {
 	public:
 		VulkanImage2D(uint32_t width, uint32_t height, uint32_t channels = 4);
 		VulkanImage2D(const ImageSpecification& spec);
-		virtual ~VulkanImage2D() override;
+		virtual ~VulkanImage2D() = default;
+		virtual void Free() override;
 
-
-		virtual void Destroy() override;
 
 		virtual const ImageSpecification& GetSpecification() const override { return m_Specification; }
-		virtual void* GetDescriptorSet() override { return m_DescriptorSet; }
 		virtual void SetData(void* data) override;
+
+		virtual void* GetDescriptorSet() override { return m_DescriptorSet; }
+		void SetDescriptorSet(VkDescriptorSet set) { m_DescriptorSet = set; }
 
 		virtual int ReadPixel(int posX, int posY) override;
 
-		static AllocatedImage CreateAllocation(VkExtent3D extent, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VmaMemoryUsage memUsage, VkImageLayout initialLayout = VK_IMAGE_LAYOUT_UNDEFINED);
+		static AllocatedImage CreateAllocation(VkExtent3D extent, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VmaMemoryUsage memUsage, VkImageLayout initialLayout = VK_IMAGE_LAYOUT_UNDEFINED, std::string debugName = std::string());
 
 		void TransitionImageLayout(VkImageLayout initialLayout, VkImageLayout finalLayout, VkAccessFlags srcMask, VkAccessFlags dstMask, 
 			VkPipelineStageFlags srcStage, VkPipelineStageFlags dstStage);
@@ -131,6 +133,8 @@ namespace Povox {
 		void CreateDescriptorSet();
 		void CreateSampler();
 
+		virtual const std::string& GetDebugName() const { return m_Specification.DebugName; }
+
 	private:
 		void CreateImage();
 		void CreateImageView();
@@ -141,6 +145,7 @@ namespace Povox {
 		AllocatedImage m_Allocation{};
 		VkImageView m_View = VK_NULL_HANDLE;
 		VkSampler m_Sampler = VK_NULL_HANDLE;
+		bool m_OwnsSampler = false;
 		VkWriteDescriptorSet m_Write{};
 		VkDescriptorSetLayoutBinding m_Binding{};
 		VkDescriptorImageInfo m_DescImageInfo{};
@@ -156,16 +161,19 @@ namespace Povox {
 		VulkanTexture2D(uint32_t width, uint32_t height, uint32_t channels = 4, const std::string& debugName = "DebugName");
 		VulkanTexture2D(const std::string& path, const std::string& debugName = "DebugName");
 		virtual ~VulkanTexture2D() = default;
+		virtual void Free() override;
 
 		virtual inline uint32_t GetWidth() const override { return m_Image->GetSpecification().Width; };
 		virtual inline uint32_t GetHeight() const override { return m_Image->GetSpecification().Height; };
-		virtual inline const std::string& GetDebugName() const override { return m_DebugName; }
 
 		virtual void SetData(void* data) override;
 
 		virtual const Ref<Image2D> GetImage() const override { return m_Image; }
 		virtual Ref<Image2D> GetImage() override { return m_Image; }
 		virtual uint64_t GetRendererID() const override { return m_RUID; }
+
+
+		virtual inline const std::string& GetDebugName() const override { return m_Image->GetDebugName(); }
 
 		virtual bool operator==(const Texture& other) const override { return m_RUID == ((VulkanTexture2D&)other).m_RUID; }
 
@@ -175,6 +183,5 @@ namespace Povox {
 		Ref<VulkanImage2D> m_Image = nullptr;
 
 		std::string m_Path = "";
-		std::string m_DebugName = "";
 	};
 }

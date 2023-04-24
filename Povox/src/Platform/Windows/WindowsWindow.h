@@ -14,6 +14,8 @@ namespace Povox {
 		WindowsWindow(const WindowProps& props);
 		virtual ~WindowsWindow();
 
+		virtual void Close() override;
+
 		// Gets called every frame
 		void OnUpdate() override;
 
@@ -34,7 +36,6 @@ namespace Povox {
 
 	private:
 		virtual void Init(const WindowProps& props);
-		virtual void Shutdown();
 	private:
 		GLFWwindow* m_Window = nullptr;
 		Ref<GraphicsContext> m_Context = nullptr; // move into renderer?

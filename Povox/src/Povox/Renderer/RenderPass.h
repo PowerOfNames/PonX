@@ -9,6 +9,8 @@ namespace Povox {
 		Ref<Framebuffer> TargetFramebuffer = nullptr;
 		uint32_t ColorAttachmentCount = 0;
 		bool HasDepthAttachment = false;
+
+		std::string DebugName = "Renderpass";
 	};
 
 	class RenderPass
@@ -19,6 +21,7 @@ namespace Povox {
 
 		virtual const RenderPassSpecification& GetSpecification() const = 0;
 
+		virtual const std::string& GetDebugName() const = 0;
 
 		static Ref<RenderPass> Create(const RenderPassSpecification& spec);
 	};

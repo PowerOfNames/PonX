@@ -33,13 +33,22 @@ namespace Povox {
 
 		RendererAPI::SetAPI(specs.UseAPI);
 
-		m_Window = Window::Create();
+		WindowProps windowProperties{};
+		windowProperties.Title = "Povosom";
+		windowProperties.Width = 1600;
+		windowProperties.Height = 900;
+		m_Window = Window::Create(windowProperties);
 		m_Window->SetEventCallback(PX_BIND_EVENT_FN(Application::OnEvent));
 		PX_CORE_ASSERT(m_Window, "Failed to create Window!");
 
 		PX_CORE_INFO("Initializing Renderer...");
 
 		RendererSpecification rendererSpecs{};
+		rendererSpecs.State.WindowWidth = windowProperties.Width;
+		rendererSpecs.State.WindowHeight = windowProperties.Height;
+		rendererSpecs.State.ViewportWidth = windowProperties.Width;
+		rendererSpecs.State.ViewportHeight = windowProperties.Height;
+
 		rendererSpecs.MaxSceneObjects = 20000;
 		rendererSpecs.MaxFramesInFlight = specs.MaxFramesInFlight;
 		Renderer::Init(rendererSpecs);
@@ -87,18 +96,18 @@ namespace Povox {
 			PX_PROFILE_SCOPE("Application Run-Loop");
 
 			//Between Begin and EndFrame happens the CommandRecording of everything rendering related
-			if (!Renderer::BeginFrame())
-				continue;
-
-			float time = (float)glfwGetTime();
-			Timestep timestep = time - m_DeltaTime;
-			m_DeltaTime = time;
-
 			if (!m_Minimized)
 			{
+				if (!Renderer::BeginFrame())
+					continue;
+
+				float time = (float)glfwGetTime();
+				Timestep timestep = time - m_DeltaTime;
+				m_DeltaTime = time;
+
 				for (Layer* layer : m_Layerstack)
 				{
-					layer->OnUpdate(timestep);//contains begin renderpass, begin commandbuffer, end rnderpass, end commandbuffer
+					layer->OnUpdate(timestep);//contains begin renderpass, begin commandbuffer, end renderpass, end commandbuffer
 				}
 
 				//if the GUI rendering happens here, then I have to change the frame handling and end it AFTER ImGui or other GUI has been handled and rendered before buffer swapping
@@ -118,33 +127,31 @@ namespace Povox {
 					Renderer::EndGUIRenderPass();
 					Renderer::EndCommandBuffer();
 				}
+				Renderer::EndFrame();
 			}
-			Renderer::EndFrame();
+			else {
+				PX_CORE_INFO("Application::Run: Minimized");
+			}
 			
 			m_Window->OnUpdate();
 		}
 		PX_CORE_INFO("Application::Run: Stopped Main-Loop.");
 	}
 
-	Application::~Application() 
+	Application::~Application()
 	{
 		PX_PROFILE_FUNCTION();
 
 		PX_CORE_INFO("Application::~Application: Starting shutdown...");
-		/* Shutdown routine:
-		 * end last rendering
-		 * shutdown the RendererAPI -> automatic
-		 * shutdown Swapchain and Context
-		 * shutdown window
-		 * close app
-		 */
-		//delete m_ImGuiVulkanLayer;
 		
 		PX_CORE_INFO("Starting Renderer shutdown...");
-		
+		Renderer::WaitForDeviceFinished();
 		Renderer::Shutdown();
 
 		PX_CORE_INFO("Completed Renderer shutdown.");
+
+
+		m_Window->Close();
 		PX_CORE_INFO("Application::~Application: Completed shutdown...");
 	}
 
@@ -182,6 +189,13 @@ namespace Povox {
 		PX_CORE_INFO("Application::PushOverlay: Pushed '{0}'.", overlay->GetDebugName());
 	}
 
+	/**
+	 * First calls OnEventCallbacks in Application:
+	 * - Window
+	 * - Renderer
+	 * 
+	 * Then reverse-iterates over LayerStack and calls OnEvent() per Layer
+	 */
 	void Application::OnEvent(Event& e)
 	{
 		PX_PROFILE_FUNCTION();
@@ -189,8 +203,10 @@ namespace Povox {
 
 		EventDispatcher dispatcher(e);
 		dispatcher.Dispatch<WindowCloseEvent>(PX_BIND_EVENT_FN(Application::OnWindowClose)); 
-		dispatcher.Dispatch<WindowResizeEvent>(PX_BIND_EVENT_FN(Application::OnWindowResize));
-		//dispatcher.Dispatch<FramebufferResizeEvent>(PX_BIND_EVENT_FN(Application::OnFramebufferResize));
+		dispatcher.Dispatch<FramebufferResizeEvent>(PX_BIND_EVENT_FN(Application::OnFramebufferResize));
+
+		// FBResize give pixel values, window screen space values -> pixel doesnot always equal screen space, e.g. retina
+		//dispatcher.Dispatch<WindowResizeEvent>(PX_BIND_EVENT_FN(Application::OnWindowResize));
 
 		for (auto it = m_Layerstack.rbegin(); it != m_Layerstack.rend(); ++it)
 		{
@@ -219,9 +235,9 @@ namespace Povox {
 			return false;
 		}
 		m_Minimized = false;
+		PX_CORE_ERROR("Application::OnWindowResize to {0};{1}", e.GetWidth(), e.GetHeight());
 
 		m_Window->OnResize(e.GetWidth(), e.GetHeight());
-		//Renderer::FramebufferResized(e.GetWidth(), e.GetHeight());
 		return false;
 	}
 
@@ -230,14 +246,16 @@ namespace Povox {
 		PX_PROFILE_FUNCTION();
 
 
-		if (e.GetWidth() == 0 || e.GetHeight() == 0)
+		if (e.GetWidth() <= 0 || e.GetHeight() <= 0)
 		{
 			m_Minimized = true;
 			return false;
 		}
-		PX_CORE_ERROR("Application::OnFramebufferResize to {0};{1}", e.GetWidth(), e.GetHeight());
-
 		m_Minimized = false;
+		PX_CORE_INFO("Application::OnFramebufferResize to {0};{1}", e.GetWidth(), e.GetHeight());
+
+		m_Window->OnResize(e.GetWidth(), e.GetHeight());
+		Renderer::OnResize(e.GetWidth(), e.GetHeight());
 
 		return false;
 	}

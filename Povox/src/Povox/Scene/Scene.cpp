@@ -93,12 +93,12 @@ namespace Povox {
 	{
 		//Renderer2D::BeginScene(editorCamera);
 
-		auto group = m_Registry.group<SpriteRendererComponent>(entt::get<TransformComponent>);
+		auto group = m_Registry.group<SpriteRendererComponent>(entt::get<IDComponent, TransformComponent>);
 		for (auto entity : group)
 		{
-			auto [spriteComp, transformComp] = group.get<SpriteRendererComponent, TransformComponent>(entity);
-
-			Renderer2D::DrawSprite(transformComp.GetTransform(), spriteComp, UUID());
+			auto [spriteComp, uuidComp, transformComp] = group.get<SpriteRendererComponent, IDComponent, TransformComponent>(entity);
+			
+			Renderer2D::DrawSprite(transformComp.GetTransform(), spriteComp, uuidComp.ID);
 		}
 		//Renderer2D::EndScene();
 	}

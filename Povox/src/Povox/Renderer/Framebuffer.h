@@ -44,6 +44,8 @@ namespace Povox {
 		bool Resizable = true;
 		bool SwapChainTarget = false;
 		Ref<Framebuffer> OriginalFramebuffer = nullptr;
+
+		std::string DebugName = "Framebuffer";
 	};
 
 	class Framebuffer
@@ -60,6 +62,8 @@ namespace Povox {
 		virtual const Ref<Image2D> GetColorAttachment(size_t index = 0) = 0;
 		virtual const Ref<Image2D> GetDepthAttachment() = 0;
 		
+		virtual const std::string& GetDebugName() const = 0;
+
 		static Ref<Framebuffer> Create();
 		static Ref<Framebuffer> Create(const FramebufferSpecification& spec);
 	};

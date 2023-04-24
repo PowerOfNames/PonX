@@ -43,12 +43,15 @@ namespace Povox {
 
 		PX_CORE_INFO("TextureSystem::Shutdown: Starting...");
 		
-		
+		ResetFixedTextures();
 		// TODO: Clean all textures upon shutdown by calling destroy texture? Or let smart pointers handle the cleanup -> clear the pixel array(s)
-		/*for (auto& texture : s_SystemState.m_RegisteredTextures)
+		for (auto& texture : m_SystemState.RegisteredTextures)
 		{
-			texture.second->Destroy();
-		}*/
+			texture.second->Free();
+		}
+		m_SystemState.RegisteredTextures.clear();
+		std::memset(m_SystemState.ActiveTextures.data(), 0, m_SystemState.ActiveTextures.size());
+		std::memset(m_SystemState.ActiveTexturesCounter.data(), 0, m_SystemState.ActiveTexturesCounter.size());
 
 		PX_CORE_INFO("TextureSystem::Shutdown: Completed.");
 	}

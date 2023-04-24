@@ -20,7 +20,8 @@ namespace Povox {
 	{
 	public:
 		VulkanBuffer(const BufferSpecification& specs);
-		~VulkanBuffer();
+		virtual ~VulkanBuffer() = default;
+		virtual void Free() override;
 
 		virtual uint64_t GetRendererID() const override { return m_RID; }
 
@@ -30,7 +31,9 @@ namespace Povox {
 		inline const AllocatedBuffer& GetAllocation() const { return m_Allocation; }
 		inline AllocatedBuffer& GetAllocation() { return m_Allocation; }
 
-		static AllocatedBuffer CreateAllocation(size_t allocSize, VkBufferUsageFlags usage, VmaMemoryUsage memUsage);
+		static AllocatedBuffer CreateAllocation(size_t allocSize, VkBufferUsageFlags usage, VmaMemoryUsage memUsage, std::string debugName = std::string());
+
+		virtual const std::string& GetDebugName() const override { return m_Specification.DebugName; }
 
 		virtual bool operator==(const Buffer& other) const override { return m_RID == ((VulkanBuffer&)other).m_RID; }
 	private:

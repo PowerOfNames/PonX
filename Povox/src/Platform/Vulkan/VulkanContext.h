@@ -39,6 +39,7 @@ namespace Povox {
 		static std::vector<std::vector<std::function<void()>>>& GetResourceFreeQueue() { return s_ResourceFreeQueue; }
 
 		static void SubmitResourceFree(std::function<void()>&& func);
+		static void FreeFrameResources(uint32_t frameIndex);
 
 	private:
 	// stays here!

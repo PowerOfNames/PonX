@@ -30,11 +30,8 @@ namespace Povox {
 	public:
 		VulkanShader(const std::string& filepath);
 		virtual ~VulkanShader() = default;
+		virtual void Free() override;
 
-		//static VkShaderModule Create(VkDevice logicalDevice, const std::string& filepath);
-
-
-		virtual const std::string& GetName() const { return m_DebugName; }
 		virtual uint64_t GetRendererID() const override { return m_RID; }
 
 		// Uniforms
@@ -63,6 +60,8 @@ namespace Povox {
 
 		VkShaderModule& GetModule(VkShaderStageFlagBits stage);
 
+		virtual const std::string& GetDebugName() const { return m_DebugName; }
+
 		virtual bool operator==(const Shader& other) const override { return m_RID == ((VulkanShader&)other).m_RID; }
 	private:
 		std::unordered_map<VkShaderStageFlagBits, std::string> PreProcess(const std::string& sources);
@@ -82,6 +81,6 @@ namespace Povox {
 		VertexInputDescription m_VertexInputDescription{};
 
 		const std::string m_FilePath = "";
-		std::string m_DebugName = "Shader name";
+		std::string m_DebugName = "Shader";
 	};
 }

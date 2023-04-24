@@ -241,6 +241,20 @@ namespace Povox {
 		}
 	}
 
+	void VulkanShader::Free()
+	{
+		VulkanContext::SubmitResourceFree([=]()
+			{
+				for (auto& module : m_Modules)
+				{
+					vkDestroyShaderModule(VulkanContext::GetDevice()->GetVulkanDevice(), module.second, nullptr);
+				}
+		m_Modules.clear();
+		m_SourceCodes.clear();
+		m_RID = 0;
+			});
+	}
+
 	//Creates a DescriptorSetLayout by reflecting the shade and allocates it form the Pool in the Context
 	void VulkanShader::Reflect()
 	{
@@ -577,8 +591,8 @@ namespace Povox {
 		shaderc::Compiler compiler;
 		shaderc::CompileOptions options;
 
-		options.SetTargetEnvironment(shaderc_target_env_vulkan, shaderc_env_version_vulkan_1_2);
-		options.SetTargetSpirv(shaderc_spirv_version_1_5);
+		options.SetTargetEnvironment(shaderc_target_env_vulkan, shaderc_env_version_vulkan_1_3);
+		options.SetTargetSpirv(shaderc_spirv_version_1_6);
 
 		const bool optimize = false;
 
@@ -611,12 +625,12 @@ namespace Povox {
 			}
 			else
 			{
-				shaderc::SpvCompilationResult module = compiler.CompileGlslToSpv(code, VulkanUtils::VKShaderStageToShaderC(stage), m_FilePath.c_str(), options);
-				if (module.GetCompilationStatus() != shaderc_compilation_status_success)
-				{
-					PX_CORE_ERROR(module.GetErrorMessage());
-					PX_CORE_ASSERT(false, module.GetErrorMessage());
-				}
+ 				shaderc::SpvCompilationResult module = compiler.CompileGlslToSpv(code, VulkanUtils::VKShaderStageToShaderC(stage), m_FilePath.c_str(), options);
+ 				if (module.GetCompilationStatus() != shaderc_compilation_status_success)
+ 				{
+ 					PX_CORE_ERROR(module.GetErrorMessage());
+ 					PX_CORE_ASSERT(false, module.GetErrorMessage());
+ 				}
 
 				shaderData[stage] = std::vector<uint32_t>(module.cbegin(), module.cend());
 

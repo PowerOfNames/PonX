@@ -23,7 +23,8 @@ namespace Povox {
 		{
 			if(m_Specification.DedicatedSampler)
 				CreateSampler();
-			CreateDescriptorSet();
+			if(m_Specification.CreateDescriptorOnInit)
+				CreateDescriptorSet();
 		}
 	}
 
@@ -44,26 +45,37 @@ namespace Povox {
 		CreateDescriptorSet();
 	}
 
-	VulkanImage2D::~VulkanImage2D()
+	void VulkanImage2D::Free()
 	{
-		//Destroy();
-	}
+		PX_CORE_WARN("VulkanImage2D::Submitting Image {}", m_Specification.DebugName);
 
-	void VulkanImage2D::Destroy()
-	{
-		VkDevice device = VulkanContext::GetDevice()->GetVulkanDevice();
+		VulkanContext::SubmitResourceFree([=]()
+		{
+			VkDevice device = VulkanContext::GetDevice()->GetVulkanDevice();
+			PX_CORE_WARN("VulkanImage2D::Destroyeing Image {}", m_Specification.DebugName);
 
-		if (m_Sampler)
+		if (m_Sampler && m_OwnsSampler)
+		{
 			vkDestroySampler(device, m_Sampler, nullptr);
-		if(m_View)
+			m_Sampler = VK_NULL_HANDLE;
+		}
+		if (m_View)
+		{
 			vkDestroyImageView(device, m_View, nullptr);
+			m_View = VK_NULL_HANDLE;
+		}
 		if (m_Allocation.Image)
+		{
 			vmaDestroyImage(VulkanContext::GetAllocator(), m_Allocation.Image, m_Allocation.Allocation);
+			m_Allocation.Image = VK_NULL_HANDLE;
+			m_Allocation.Allocation = VK_NULL_HANDLE;
+		}
 
-		PX_CORE_WARN("VulkanImage2D::Destroy");
+		});
+		
 	}
 
-	AllocatedImage VulkanImage2D::CreateAllocation(VkExtent3D extent, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VmaMemoryUsage memUsage, VkImageLayout initialLayout)
+	AllocatedImage VulkanImage2D::CreateAllocation(VkExtent3D extent, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VmaMemoryUsage memUsage, VkImageLayout initialLayout, std::string debugName)
 	{
 		VkImageCreateInfo info{};
 		info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -93,6 +105,18 @@ namespace Povox {
 		AllocatedImage output;
 		PX_CORE_VK_ASSERT(vmaCreateImage(VulkanContext::GetAllocator(), &info, &allocationInfo, &output.Image, &output.Allocation, nullptr), VK_SUCCESS, "Failed to create Image!");
 		
+#ifdef PX_DEBUG
+		if(!debugName.empty())
+		{
+			VkDebugUtilsObjectNameInfoEXT nameInfo{};
+			nameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+			nameInfo.objectType = VK_OBJECT_TYPE_IMAGE;
+			nameInfo.objectHandle = (uint64_t)output.Image;
+			nameInfo.pObjectName = debugName.c_str();
+			NameVkObject(VulkanContext::GetDevice()->GetVulkanDevice(), nameInfo);
+		}
+#endif // DEBUG
+
 		return output;
 	}
 
@@ -238,7 +262,16 @@ namespace Povox {
 		m_Allocation = CreateAllocation({ m_Specification.Width, m_Specification.Height, 1 }, VulkanUtils::GetVulkanImageFormat(m_Specification.Format), VulkanUtils::GetVulkanTiling(m_Specification.Tiling),
 			VulkanUtils::GetVulkanImageUsages(m_Specification.Usages), VulkanUtils::GetVmaUsage(m_Specification.Memory));
 
-		PX_CORE_INFO("VulkanImage2D::CreateImage: Created Image with extent '{0}, {1}'", m_Specification.Width, m_Specification.Height);
+#ifdef PX_DEBUG
+		VkDebugUtilsObjectNameInfoEXT nameInfo{};
+		nameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+		nameInfo.objectType = VK_OBJECT_TYPE_IMAGE;
+		nameInfo.objectHandle = (uint64_t)m_Allocation.Image;
+		nameInfo.pObjectName = m_Specification.DebugName.c_str();
+		NameVkObject(VulkanContext::GetDevice()->GetVulkanDevice(), nameInfo);
+#endif // DEBUG
+
+		PX_CORE_INFO("VulkanImage2D::CreateImage: Created Image {} with extent '{}, {}'", m_Specification.DebugName, m_Specification.Width, m_Specification.Height);
 	}
 
 	void VulkanImage2D::CreateImageView()
@@ -262,6 +295,15 @@ namespace Povox {
 		info.subresourceRange.baseArrayLayer = 0;
 		info.subresourceRange.layerCount = 1;
 		PX_CORE_VK_ASSERT(vkCreateImageView(VulkanContext::GetDevice()->GetVulkanDevice(), &info, nullptr, &m_View), VK_SUCCESS, "Failed to create image view!");
+
+#ifdef PX_DEBUG
+		VkDebugUtilsObjectNameInfoEXT nameInfo{};
+		nameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+		nameInfo.objectType = VK_OBJECT_TYPE_IMAGE_VIEW;
+		nameInfo.objectHandle = (uint64_t)m_View;
+		nameInfo.pObjectName = m_Specification.DebugName.c_str();
+		NameVkObject(VulkanContext::GetDevice()->GetVulkanDevice(), nameInfo);
+#endif // DEBUG
 	}
 
 
@@ -288,6 +330,17 @@ namespace Povox {
 		samplerInfo.maxLod = 0.0f;
 		samplerInfo.minLod = 0.0f;
 		PX_CORE_VK_ASSERT(vkCreateSampler(VulkanContext::GetDevice()->GetVulkanDevice(), &samplerInfo, nullptr, &m_Sampler), VK_SUCCESS, "Failed to create texture sampler!");
+
+#ifdef PX_DEBUG
+		VkDebugUtilsObjectNameInfoEXT nameInfo{};
+		nameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+		nameInfo.objectType = VK_OBJECT_TYPE_SAMPLER;
+		nameInfo.objectHandle = (uint64_t)m_Sampler;
+		nameInfo.pObjectName = m_Specification.DebugName.c_str();
+		NameVkObject(VulkanContext::GetDevice()->GetVulkanDevice(), nameInfo);
+#endif // DEBUG
+
+		m_OwnsSampler = true;
 	}
 	
 	void VulkanImage2D::CreateDescriptorSet()
@@ -318,11 +371,11 @@ namespace Povox {
 
 
 	VulkanTexture2D::VulkanTexture2D(uint32_t width, uint32_t height, uint32_t channels, const std::string& debugName)
-		: m_DebugName(debugName)
 	{
 		m_Path = "No Path";
 
 		ImageSpecification specs{};
+		specs.DebugName = debugName;
 		specs.Width = width;
 		specs.Height = height;
 		specs.ChannelCount = channels;
@@ -334,18 +387,10 @@ namespace Povox {
 		specs.Usages = { ImageUsage::SAMPLED, ImageUsage::COPY_DST };
 		m_Image = CreateRef<VulkanImage2D>(specs);
 
-		VkDebugUtilsObjectNameInfoEXT nameInfo{};
-		nameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
-		nameInfo.objectType = VK_OBJECT_TYPE_IMAGE;
-		nameInfo.objectHandle = (uint64_t)m_Image->GetImage();
-		nameInfo.pObjectName = "White";
-		NameVkObject(VulkanContext::GetDevice()->GetVulkanDevice(), nameInfo);
-
 		PX_CORE_TRACE("Texture width : '{0}', height '{1}', RID: {2}", width, height, std::to_string(m_RUID).c_str());
 	}
 
 	VulkanTexture2D::VulkanTexture2D(const std::string& path, const std::string& debugName)
-		: m_DebugName(debugName)
 	{
 		m_Path = path;
 		int width, height, channels;
@@ -354,6 +399,7 @@ namespace Povox {
 		PX_CORE_ASSERT(width > 0 && height > 0 && channels > 0, "Texture loading failed with insufficient dimensionality!");
 		
 		ImageSpecification specs{};
+		specs.DebugName = debugName;
 		specs.Width = static_cast<uint32_t>(width);
 		specs.Height = static_cast<uint32_t>(height);
 		//specs.ChannelCount = static_cast<uint32_t>(channels);
@@ -373,17 +419,17 @@ namespace Povox {
 		specs.Usages = { ImageUsage::SAMPLED, ImageUsage::COPY_DST };
 		m_Image = CreateRef<VulkanImage2D>(specs);
 
-		VkDebugUtilsObjectNameInfoEXT nameInfo{};
-		nameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
-		nameInfo.objectType = VK_OBJECT_TYPE_IMAGE;
-		nameInfo.objectHandle = (uint64_t)m_Image->GetImage();
-		nameInfo.pObjectName = path.c_str();
-		NameVkObject(VulkanContext::GetDevice()->GetVulkanDevice(), nameInfo);
 
 		PX_CORE_TRACE("Texture width : '{0}', height '{1}', RID: {2}", width, height, std::to_string(m_RUID).c_str());
 
 		SetData(pixels);
 		stbi_image_free(pixels);
+	}
+
+	void VulkanTexture2D::Free()
+	{
+		m_Image->Free();
+		m_RUID = 0;
 	}
 
 	void VulkanTexture2D::SetData(void* data)

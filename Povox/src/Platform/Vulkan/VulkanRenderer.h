@@ -55,14 +55,14 @@ namespace Povox {
 		~VulkanRenderer();
 
 		// Core
-		virtual void Shutdown();
+		virtual void Shutdown() override;
+		virtual void WaitForDeviceFinished() override;
 
 
 		// FrameData
 		virtual bool BeginFrame() override;
 		virtual void Draw(Ref<Buffer> vertices, Ref<Material> material, Ref<Buffer> indices, size_t indexCount) override;
 		virtual void DrawRenderable(const Renderable& renderable) override;
-		virtual void Submit(const Renderable& object) override;
 		virtual void EndFrame() override;
 		virtual inline uint32_t GetCurrentFrameIndex() const override { return m_CurrentFrameIndex; }		
 
@@ -72,7 +72,8 @@ namespace Povox {
 
 		// State
 		virtual void UpdateCamera(const CameraUniform& cam) override;
-		virtual void FramebufferResized(uint32_t x, uint32_t y, uint32_t width, uint32_t height) override;
+		virtual void OnResize(uint32_t width, uint32_t height) override;
+		virtual void OnViewportResize(uint32_t width, uint32_t height) override;
 
 		// Commands
 		virtual void BeginCommandBuffer(const void* cmd) override;
@@ -147,14 +148,15 @@ namespace Povox {
 		Ref<VulkanRenderPass> m_ActiveRenderPass = nullptr;
 		Ref<VulkanPipeline> m_ActivePipeline = nullptr;
 
-		bool m_FramebufferResized = false;
-		uint32_t m_ViewportSizeX, m_ViewportSizeY = 0;
+		bool m_FramebufferResized = false, m_ViewportResized = false;
+		uint32_t m_FramebufferWidth = 0, m_FramebufferHeight = 0, m_ViewportWidth = 0, m_ViewportHeight = 0;
 
 
 		// FrameData
 		SwapchainFrame* m_SwapchainFrame = nullptr;
 		std::vector<FrameData> m_Frames;
 		uint32_t m_CurrentFrameIndex = 0;
+		uint32_t m_LastFrameIndex = 0;
 		uint32_t m_CurrentSwapchainImageIndex = 0;
 				
 
@@ -162,8 +164,8 @@ namespace Povox {
 		Scope<VulkanCommandControl> m_CommandControl = nullptr;
 		Ref<UploadContext> m_UploadContext = nullptr;
 
-		Ref<ShaderLibrary> m_ShaderLibrary;
-		Ref<TextureSystem> m_TextureSystem;
+		Ref<ShaderLibrary> m_ShaderLibrary = nullptr;
+		Ref<TextureSystem> m_TextureSystem = nullptr;
 
 		Ref<VulkanImage2D> m_FinalImage = nullptr;
 

@@ -16,6 +16,7 @@ namespace Povox {
 
 		inline VkRenderPass GetVulkanObj() const { return m_RenderPass; }
 
+		virtual inline const std::string& GetDebugName() const override { return m_Specification.DebugName; }
 	private:
 		RenderPassSpecification m_Specification;
 		VkRenderPass m_RenderPass = VK_NULL_HANDLE;

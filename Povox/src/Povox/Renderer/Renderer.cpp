@@ -63,16 +63,17 @@ namespace Povox {
 		PX_CORE_INFO("Renderer::Shutdown: Completed.");
 	}
 
+	void Renderer::WaitForDeviceFinished()
+	{
+		s_RendererAPI->WaitForDeviceFinished();
+	}
+
 	bool Renderer::BeginFrame()
 	{
 		PX_PROFILE_FUNCTION();
 		return s_RendererAPI->BeginFrame();
 	}
 
-	void Renderer::Submit(const Renderable& object) {
-		PX_PROFILE_FUNCTION();
-		s_RendererAPI->Submit(object);
-	}
 	void Renderer::DrawRenderable(const Renderable& renderable) { s_RendererAPI->DrawRenderable(renderable); }
 	void Renderer::Draw(Ref<Buffer> vertices, Ref<Material> material, Ref<Buffer> indices, size_t indexCount)
 	{
@@ -111,6 +112,8 @@ namespace Povox {
 	void Renderer::BeginGUIRenderPass() { s_RendererAPI->BeginGUIRenderPass(); }
 	void Renderer::EndGUIRenderPass() {	s_RendererAPI->EndGUIRenderPass(); }
 
+	void Renderer::OnViewportResize(uint32_t width, uint32_t height) { s_RendererAPI->OnViewportResize(width, height); }
+
 	void Renderer::BindPipeline(Ref<Pipeline> pipeline) { s_RendererAPI->BindPipeline(pipeline); }
 
 	void Renderer::UpdateCamera(const CameraUniform& cam) { s_RendererAPI->UpdateCamera(cam); }
@@ -128,7 +131,11 @@ namespace Povox {
 
 	Ref<TextureSystem> Renderer::GetTextureSystem()	{ return s_RendererAPI->GetTextureSystem();}
 
-	void Renderer::FramebufferResized(uint32_t width, uint32_t height) { s_RendererAPI->FramebufferResized(0, 0, width, height); }
+	void Renderer::OnResize(uint32_t width, uint32_t height)
+	{
+		s_RendererAPI->OnResize(width, height);
+		Renderer2D::OnResize(width, height);
+	}
 
 	
 

@@ -14,12 +14,15 @@ namespace Povox {
 	public:
 		VulkanPipeline(const PipelineSpecification& specs);
 		virtual ~VulkanPipeline();
+		virtual void Free() override;
 
 		virtual void Recreate() override;
 		
 		inline VkPipelineLayout GetLayout() { return m_Layout; }
 		inline VkPipeline GetVulkanObj() { return m_Pipeline; }
 		virtual inline  PipelineSpecification& GetSpecification() override { return m_Specification; }
+
+		virtual inline const std::string& GetDebugName() const override { return m_Specification.DebugName; }
 
 	private:
 		void CreateLayout();

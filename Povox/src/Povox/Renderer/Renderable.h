@@ -24,10 +24,8 @@ namespace Povox {
 		glm::vec3 Position;
 		glm::vec4 Color;
 		glm::vec2 TexCoord;
-		float TexID; // -> MaterialID after MaterialSystem//DescriptorManager implementation
 
-		//Editor only
-		int EntityID;
+		float TexID; // -> MaterialID after MaterialSystem//DescriptorManager implementation
 	};
 
 	class Buffer;
