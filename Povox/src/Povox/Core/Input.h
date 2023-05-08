@@ -11,6 +11,7 @@ namespace Povox {
 	{
 	public:
 		static bool IsKeyPressed(KeyCode key);
+		static bool IsKeyReleased(KeyCode key);
 
 		static bool IsMouseButtonPressed(MouseCode button);
 

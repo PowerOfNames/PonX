@@ -55,6 +55,7 @@ namespace Povox {
 		~VulkanRenderer();
 
 		// Core
+		virtual bool Init() override;
 		virtual void Shutdown() override;
 		virtual void WaitForDeviceFinished() override;
 
@@ -65,15 +66,17 @@ namespace Povox {
 		virtual void DrawRenderable(const Renderable& renderable) override;
 		virtual void EndFrame() override;
 		virtual inline uint32_t GetCurrentFrameIndex() const override { return m_CurrentFrameIndex; }		
+		virtual inline uint32_t GetLastFrameIndex() const override { return m_LastFrameIndex; }		
 
 		virtual void PrepareSwapchainImage(Ref<Image2D> finalImage) override;
 		virtual void CreateFinalImage(Ref<Image2D> finalImage) override;
 
 
 		// State
-		virtual void UpdateCamera(const CameraUniform& cam) override;
 		virtual void OnResize(uint32_t width, uint32_t height) override;
 		virtual void OnViewportResize(uint32_t width, uint32_t height) override;
+		virtual void OnSwapchainRecreate() override;
+		virtual void UpdateCamera(const CameraUniform& cam) override;
 
 		// Commands
 		virtual void BeginCommandBuffer(const void* cmd) override;
@@ -93,7 +96,7 @@ namespace Povox {
 		virtual void DrawGUI() override;
 		virtual void EndGUIRenderPass() override;
 		virtual inline const void* GetGUICommandBuffer(uint32_t index) override { return (const void*)(m_ImGui->GetFrame(index).CommandBuffer); }
-		virtual void* GetGUIDescriptorSet(Ref<Image2D> image) override;
+		virtual void* GetGUIDescriptorSet(Ref<Image2D> image) const override;
 		// ImGui
 		static void InitImGui();
 		static void BeginImGuiFrame();
@@ -106,16 +109,14 @@ namespace Povox {
 
 
 		// Resource Getters
-		virtual Ref<ShaderLibrary> GetShaderLibrary() override { return m_ShaderLibrary; }
-		virtual Ref<TextureSystem> GetTextureSystem() override { return m_TextureSystem; }
-		virtual inline Ref<Image2D> GetFinalImage() { return m_FinalImage; }
+		virtual Ref<ShaderLibrary> GetShaderLibrary() const override { return m_ShaderLibrary; }
+		virtual Ref<TextureSystem> GetTextureSystem() const override { return m_TextureSystem; }
+		virtual inline Ref<Image2D> GetFinalImage(uint32_t frameIndex) const override;
 
 		virtual const RendererStatistics& GetStatistics() const override { return m_Statistics; }
-		virtual inline const RendererSpecification& GetSpecification() override { return m_Specification; }
+		virtual inline const RendererSpecification& GetSpecification() const override { return m_Specification; }
 
 	private:
-		//Core
-		void Init();
 
 		// FrameData
 		void InitFrameData();
@@ -167,7 +168,7 @@ namespace Povox {
 		Ref<ShaderLibrary> m_ShaderLibrary = nullptr;
 		Ref<TextureSystem> m_TextureSystem = nullptr;
 
-		Ref<VulkanImage2D> m_FinalImage = nullptr;
+		std::vector<Ref<VulkanImage2D>> m_FinalImages;
 
 
 		//TEMP

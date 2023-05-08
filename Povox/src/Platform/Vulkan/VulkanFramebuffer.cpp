@@ -188,8 +188,8 @@ namespace Povox {
 			for (uint32_t i = 0; i < m_ColorAttachments.size(); i++)
 			{
 				m_ColorAttachments[i]->Free();
-				m_ColorAttachments.clear();
 			}
+			m_ColorAttachments.clear();
 			if (m_DepthAttachment)
 			{
 				m_DepthAttachment->Free();
@@ -203,7 +203,6 @@ namespace Povox {
 		}
 		if (m_RenderPass)
 		{
-			vkDestroyRenderPass(device, m_RenderPass, nullptr); //??? -> maybe just set to null handle, and the actual VulkanRenderpass takes care of its cleanup
 			m_RenderPass = VK_NULL_HANDLE;
 		}
 	}

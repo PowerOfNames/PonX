@@ -37,14 +37,14 @@ namespace Povox {
 	public:
 		VulkanSwapchain(GLFWwindow* m_WindowHandle);
 		~VulkanSwapchain() = default;
-		void Init(uint32_t width, uint32_t height);
+
+		void Recreate(uint32_t width, uint32_t height);
+		inline void FramebufferResized() { m_FramebufferResized = true; }
 		void Destroy();
 
 		void SwapBuffers();
 		
 
-		void Recreate(uint32_t width, uint32_t height);
-		inline void FramebufferResized() { m_FramebufferResized = true; }
 
 		inline VkSwapchainKHR Get() { return m_Swapchain; }
 

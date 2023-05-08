@@ -7,7 +7,7 @@
 
 namespace Povox {
 
-	Scope<Window> Window::Create(const WindowProps& props)
+	Scope<Window> Window::Create(const WindowSpecification& props)
 	{
 #ifdef PX_PLATFORM_WINDOWS
 		PX_CORE_INFO("Window::Create: Selecting WindowsWindow!");

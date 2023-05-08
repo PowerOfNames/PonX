@@ -5,15 +5,20 @@
 
 namespace Povox {
 
-	struct WindowProps
+	
+	struct WindowSpecification
 	{
 		std::string Title;
-		unsigned int Width;
-		unsigned int Height;
+		uint32_t Width;
+		uint32_t Height;
 
-		WindowProps(const std::string& title = "Povox Engine", 
-					unsigned int width = 1600, 
-					unsigned int height = 900)
+		struct WindowState
+		{
+			bool IsInitialized = false;
+			bool VSync = false;
+		} State;
+
+		WindowSpecification(const std::string& title = "Povox Engine", uint32_t width = 1600, uint32_t height = 900)
 			: Title(title), Width(width), Height(height) 
 		{
 		}
@@ -27,15 +32,18 @@ namespace Povox {
 
 		virtual ~Window() = default;
 
+		virtual bool Init() = 0;
 		virtual void Close() = 0;
 
 		virtual void OnUpdate() = 0;
+		virtual void PollEvents() = 0;
 		virtual void OnResize(uint32_t width, uint32_t height) = 0;
 
-		virtual unsigned int GetWidth() const = 0;
-		virtual unsigned int GetHeight() const = 0;
+		virtual uint32_t GetWidth() const = 0;
+		virtual uint32_t GetHeight() const = 0;
 
 		virtual Ref<VulkanSwapchain> GetSwapchain() = 0;
+		virtual const WindowSpecification& GetSpecification() const = 0;
 
 		// Window attributes
 		virtual void SetEventCallback(const EventCallbackFn& eventcallback) = 0;
@@ -44,6 +52,6 @@ namespace Povox {
 
 		virtual void* GetNativeWindow() const = 0;
 
-		static Scope<Window> Create(const WindowProps& props = WindowProps());
+		static Scope<Window> Create(const WindowSpecification& specs = WindowSpecification());
 	};
 }

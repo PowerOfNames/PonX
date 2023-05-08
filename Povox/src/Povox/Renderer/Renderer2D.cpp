@@ -1,79 +1,75 @@
 #include "pxpch.h"
 #include "Povox/Renderer/Renderer2D.h"
 
-#include "Povox/Renderer/Renderable.h"
-#include "Povox/Renderer/Renderer.h"
-
-#include "Povox/Renderer/Buffer.h"
-#include "Povox/Renderer/Material.h"
-#include "Povox/Renderer/Shader.h"
+#include "Povox/Core/Application.h"
 
 #include <glm/gtc/matrix_transform.hpp>
 
 namespace Povox {
-
-	struct Renderer2DData
+	
+	
+	Renderer2D::Renderer2D(const Renderer2DSpecification& specs)
+		: m_Specification(specs)
 	{
-		static const uint32_t MaxQuads = 60000;
-		static const uint32_t MaxVertices = MaxQuads * 4;
-		static const uint32_t MaxIndices = MaxQuads * 6;
-		static const uint32_t MaxTextureSlots = 32; //TODO: needs to be dynamic to the GPU, comes from Renderer Capabilities
+		Renderer::GetTextureSystem()->RegisterTexture("green");
+		m_GreenTexture = std::dynamic_pointer_cast<Texture2D>(Renderer::GetTextureSystem()->GetTexture("green"));
 
-		// Common
-		Ref<Texture2D> WhiteTexture;
-		uint32_t WhiteTextureSlot;
-
-		// Quads
-		std::vector<Ref<Buffer>> QuadVertexBuffers;
-		std::vector<QuadVertex*> QuadVertexBufferBases;
-		QuadVertex* QuadVertexBufferPtr = nullptr;
-
-		std::vector<Ref<Buffer>> QuadIndexBuffers;
-		uint32_t QuadIndexCount = 0;
-
-		Ref<Material> QuadMaterial;
-		glm::vec4 QuadVertexPositions[4];
-
-		// Lines
-
-		CameraUniform CameraData;
-
-
-		Renderer2D::Statistics Stats;
-
-		std::vector<Renderable> RenderedObjects;
-	};
-
-	static Renderer2DData s_QuadData;
-
-	void Renderer2D::Init()
-	{
-		PX_PROFILE_FUNCTION();
-
-
-		PX_CORE_TRACE("Renderer2D::Init: Starting...");
 		// TODO: Instead of taking a name and a path, just take in a name and pass the path upon ShaderLib creation inside the RendererBackend, pointing to root/.../assets/shaders/
 		Renderer::GetShaderLibrary()->Add("TextureShader", Shader::Create("assets/shaders/Texture.glsl"));
 		Renderer::GetShaderLibrary()->Add("FlatColorShader", Shader::Create("assets/shaders/FlatColor.glsl"));
 		Renderer::GetShaderLibrary()->Add("Renderer2D_Quad", Shader::Create("assets/shaders/Renderer2D_Quad.glsl"));
+
+		//Quads
+		{
+			FramebufferSpecification quadFBSpecs{};
+			quadFBSpecs.DebugName = "RenderFramebuffer";
+			quadFBSpecs.Attachments = { {ImageFormat::RGBA8}, {ImageFormat::Depth} };
+			quadFBSpecs.Width = m_Specification.ViewportWidth;
+			quadFBSpecs.Height = m_Specification.ViewportHeight;
+			quadFBSpecs.SwapChainTarget = false;
+			m_QuadFramebuffer = Framebuffer::Create(quadFBSpecs);
+
+
+			RenderPassSpecification quadRPSpecs{};
+			quadRPSpecs.DebugName = "RenderRenderpass";
+			quadRPSpecs.TargetFramebuffer = m_QuadFramebuffer;
+			quadRPSpecs.ColorAttachmentCount = 1;
+			quadRPSpecs.HasDepthAttachment = true;
+			m_QuadRenderpass = RenderPass::Create(quadRPSpecs);
+
+
+			PipelineSpecification quadPLSpecs{};
+			quadPLSpecs.DebugName = "TexturePipeline";
+			quadPLSpecs.DynamicViewAndScissors = true;
+			quadPLSpecs.Culling = PipelineUtils::CullMode::BACK;
+			quadPLSpecs.TargetRenderPass = m_QuadRenderpass;
+			quadPLSpecs.Shader = Renderer::GetShaderLibrary()->Get("Renderer2D_Quad");
+			m_QuadPipeline = Pipeline::Create(quadPLSpecs);
+		}
+	}
+
+	bool Renderer2D::Init()
+	{
+		PX_PROFILE_FUNCTION();
+
+
+		PX_CORE_TRACE("Renderer2D::Init: Starting...");		
 		
-
-
 		BufferSpecification vertexBufferSpecs{};
 		vertexBufferSpecs.Usage = BufferUsage::VERTEX_BUFFER;
 		vertexBufferSpecs.MemUsage = MemoryUtils::MemoryUsage::GPU_ONLY;
-		vertexBufferSpecs.ElementCount = s_QuadData.MaxVertices;
+		vertexBufferSpecs.ElementCount = m_Specification.MaxVertices;
 		vertexBufferSpecs.ElementSize = sizeof(QuadVertex);
-		vertexBufferSpecs.Size = sizeof(QuadVertex) * s_QuadData.MaxVertices;
+		vertexBufferSpecs.Size = sizeof(QuadVertex) * m_Specification.MaxVertices;
 
-		s_QuadData.QuadVertexPositions[0] = { -0.5f, -0.5f, 0.0f, 1.0f };
-		s_QuadData.QuadVertexPositions[1] = { 0.5f, -0.5f, 0.0f, 1.0f };
-		s_QuadData.QuadVertexPositions[2] = { 0.5f, 0.5f, 0.0f, 1.0f };
-		s_QuadData.QuadVertexPositions[3] = { -0.5f, 0.5f, 0.0f, 1.0f };
+		m_QuadVertexPositions[0] = { -0.5f, -0.5f, 0.0f, 1.0f };
+		m_QuadVertexPositions[1] = { 0.5f, -0.5f, 0.0f, 1.0f };
+		m_QuadVertexPositions[2] = { 0.5f, 0.5f, 0.0f, 1.0f };
+		m_QuadVertexPositions[3] = { -0.5f, 0.5f, 0.0f, 1.0f };
 
-		uint32_t* quadIndices = new uint32_t[s_QuadData.MaxIndices];
+		uint32_t* quadIndices = new uint32_t[m_Specification.MaxIndices];
 		uint32_t offset = 0;
-		for (uint32_t index = 0; index < s_QuadData.MaxIndices; index += 6)
+		for (uint32_t index = 0; index < m_Specification.MaxIndices; index += 6)
 		{
 			quadIndices[index + 0] = offset + 0;
 			quadIndices[index + 1] = offset + 1;
@@ -88,31 +84,31 @@ namespace Povox {
 		BufferSpecification indexBufferSpecs{};
 		indexBufferSpecs.Usage = BufferUsage::INDEX_BUFFER;
 		indexBufferSpecs.MemUsage = MemoryUtils::MemoryUsage::GPU_ONLY;
-		indexBufferSpecs.ElementCount = s_QuadData.MaxIndices;
+		indexBufferSpecs.ElementCount = m_Specification.MaxIndices;
 		indexBufferSpecs.ElementSize = sizeof(uint32_t);
-		indexBufferSpecs.Size = sizeof(uint32_t) * s_QuadData.MaxIndices;
+		indexBufferSpecs.Size = sizeof(uint32_t) * m_Specification.MaxIndices;
 		indexBufferSpecs.Data = quadIndices;
 
 		uint32_t maxFrames = Renderer::GetSpecification().MaxFramesInFlight;
-		s_QuadData.QuadVertexBuffers.resize(maxFrames);
-		s_QuadData.QuadVertexBufferBases.resize(maxFrames);
+		m_QuadVertexBuffers.resize(maxFrames);
+		m_QuadVertexBufferBases.resize(maxFrames);
 
-		s_QuadData.QuadIndexBuffers.resize(maxFrames);
+		m_QuadIndexBuffers.resize(maxFrames);
 		for (uint32_t i = 0; i < maxFrames; i++)
 		{
 			vertexBufferSpecs.DebugName = "Renderer2D Vertexbuffer Frame: " + std::to_string(i);
 
-			s_QuadData.QuadVertexBuffers[i] = Buffer::Create(vertexBufferSpecs);
-			s_QuadData.QuadVertexBufferBases[i] = new QuadVertex[s_QuadData.MaxVertices];
+			m_QuadVertexBuffers[i] = Buffer::Create(vertexBufferSpecs);
+			m_QuadVertexBufferBases[i] = new QuadVertex[m_Specification.MaxVertices];
 
 			indexBufferSpecs.DebugName = "Renderer2D Indices Frame: " + std::to_string(i);
-			s_QuadData.QuadIndexBuffers[i] = Buffer::Create(indexBufferSpecs);
+			m_QuadIndexBuffers[i] = Buffer::Create(indexBufferSpecs);
 		}
 		delete[] quadIndices;
-		s_QuadData.QuadMaterial = Material::Create(Renderer::GetShaderLibrary()->Get("Renderer2D_Quad"), "Quad");
+		m_QuadMaterial = Material::Create(Renderer::GetShaderLibrary()->Get("Renderer2D_Quad"), "Quad");
 
 		/* -> move to Pipeline.Layout to check against Pipeline.Shader.Layout -> For VertexInput checkup
-		s_QuadData.QuadVertexBuffer->SetLayout({
+		m_QuadVertexBuffer->SetLayout({
 			{ ShaderUtils::ShaderDataType::Float3, "a_Position" },
 			{ ShaderUtils::ShaderDataType::Float4, "a_Color" },
 			{ ShaderUtils::ShaderDataType::Float2, "a_TexCoord" },
@@ -120,15 +116,16 @@ namespace Povox {
 			});
 		*/
 
-		s_QuadData.WhiteTexture = Texture2D::Create(1, 1, 4, "WhiteTexture");
+		m_WhiteTexture = Texture2D::Create(1, 1, 4, "WhiteTexture");
 		uint32_t whiteTextureData = 0xffffffff;
-		s_QuadData.WhiteTexture->SetData(&whiteTextureData);
-		Renderer::GetTextureSystem()->RegisterTexture("WhiteTexture", s_QuadData.WhiteTexture);
+		m_WhiteTexture->SetData(&whiteTextureData);
+		Renderer::GetTextureSystem()->RegisterTexture("WhiteTexture", m_WhiteTexture);
 
-		s_QuadData.WhiteTextureSlot = Renderer::GetTextureSystem()->BindFixedTexture(s_QuadData.WhiteTexture);
+		m_WhiteTextureSlot = Renderer::GetTextureSystem()->BindFixedTexture(m_WhiteTexture);
 		
 
 		PX_CORE_TRACE("Renderer2D::Init: Completed.");
+		return true;
 	}
 
 	void Renderer2D::Shutdown()
@@ -139,7 +136,7 @@ namespace Povox {
 		uint32_t maxFrames = Renderer::GetSpecification().MaxFramesInFlight;
 		for (uint32_t i = 0; i < maxFrames; i++)
 		{
-			delete[] s_QuadData.QuadVertexBufferBases[i];
+			delete[] m_QuadVertexBufferBases[i];
 		}
 	}
 
@@ -147,16 +144,27 @@ namespace Povox {
 	{
 		PX_PROFILE_FUNCTION();
 
+		if((width <= 0 || height <= 0 ))
+			return;
 
-		// TODO: Recreate Renderer2D resources here if needed!
+		if (width == m_Specification.ViewportWidth
+			&& height == m_Specification.ViewportHeight)
+			return;
 
+		m_Specification.ViewportWidth = width;
+		m_Specification.ViewportHeight = height;
+
+		// Quads
+		m_QuadFramebuffer->Recreate(width, height);
+		m_QuadRenderpass->Recreate();
+		m_QuadPipeline->Recreate();
 	}
 
 	void Renderer2D::BeginScene(const OrthographicCamera& camera)
 	{
 		PX_PROFILE_FUNCTION();
 
-		s_QuadData.CameraData.ViewProjMatrix = camera.GetViewProjectionMatrix();
+		m_CameraData.ViewProjMatrix = camera.GetViewProjectionMatrix();
 		StartBatch();
 	}
 
@@ -164,7 +172,7 @@ namespace Povox {
 	{
 		PX_PROFILE_FUNCTION();
 
-		s_QuadData.CameraData.ViewProjMatrix = camera.GetProjection() * glm::inverse(transform);
+		m_CameraData.ViewProjMatrix = camera.GetProjection() * glm::inverse(transform);
 		StartBatch();
 	}
 
@@ -173,11 +181,35 @@ namespace Povox {
 		PX_PROFILE_FUNCTION();
 
 
-		s_QuadData.CameraData.ViewMatrix = camera.GetViewMatrix();
-		s_QuadData.CameraData.ProjectionMatrix = camera.GetProjection();
-		s_QuadData.CameraData.ViewProjMatrix = camera.GetViewProjectionMatrix();
-		Renderer::UpdateCamera(s_QuadData.CameraData);
+		uint32_t currentFrameIndex = Renderer::GetCurrentFrameIndex();
+		auto cmd = Renderer::GetCommandBuffer(currentFrameIndex);
+		Renderer::BeginCommandBuffer(cmd);
+		Renderer::StartTimestampQuery("QuadRenderpass");
+		Renderer::BeginRenderPass(m_QuadRenderpass);
+
+		Renderer::BindPipeline(m_QuadPipeline);		
+
+		m_CameraData.ViewMatrix = camera.GetViewMatrix();
+		m_CameraData.ProjectionMatrix = camera.GetProjection();
+		m_CameraData.ViewProjMatrix = camera.GetViewProjectionMatrix();
+		Renderer::UpdateCamera(m_CameraData);
+
 		StartBatch();
+
+		Renderer2D::DrawQuad({ -2.0f, -3.0f,-4.0f }, { 1.0f, 1.0f }, m_GreenTexture, 0.5f);
+		Renderer2D::DrawQuad({ 0.0f, 0.0f, -2.0f }, { 2.0f, 3.0f }, m_GreenTexture, 2.0f);
+		{
+			PX_PROFILE_SCOPE("DrawQuadLoop");
+			int quads = 10;
+			float dquads = quads * 2.0f;
+			for (int i = -quads; i <= quads; i++)
+			{
+				for (int j = -quads; j <= quads; j++)
+				{
+					Renderer2D::DrawQuad({ i, j, 0.0f }, { 0.9f, 0.9f }, { (i + quads) / dquads, (j + quads) / dquads, 0.1f, 1.0f });
+				}
+			}
+		}
 	}
 
 	void Renderer2D::StartBatch()
@@ -186,11 +218,11 @@ namespace Povox {
 
 
 		uint32_t currentFrame = Renderer::GetCurrentFrameIndex();
-		s_QuadData.QuadIndexCount = 0;
-		s_QuadData.QuadVertexBufferPtr = s_QuadData.QuadVertexBufferBases[currentFrame];
+		m_QuadIndexCount = 0;
+		m_QuadVertexBufferPtr = m_QuadVertexBufferBases[currentFrame];
 
 		Renderer::GetTextureSystem()->ResetActiveTextures();
-		s_QuadData.RenderedObjects.clear();
+		m_RenderedObjects.clear();
 	}
 
 	void Renderer2D::Flush()
@@ -199,23 +231,34 @@ namespace Povox {
 
 
 		uint32_t currentFrame = Renderer::GetCurrentFrameIndex();
-		if (s_QuadData.QuadIndexCount == 0)
+		if (m_QuadIndexCount == 0)
 			return; // nothing to draw
 
-		uint32_t dataSize = (uint32_t)((uint8_t*)s_QuadData.QuadVertexBufferPtr - (uint8_t*)s_QuadData.QuadVertexBufferBases[currentFrame]);
-		s_QuadData.QuadVertexBuffers[currentFrame]->SetData(s_QuadData.QuadVertexBufferBases[currentFrame], dataSize);		
-		Renderer::Draw(s_QuadData.QuadVertexBuffers[currentFrame], s_QuadData.QuadMaterial, s_QuadData.QuadIndexBuffers[currentFrame], s_QuadData.QuadIndexCount);
+		uint32_t dataSize = (uint32_t)((uint8_t*)m_QuadVertexBufferPtr - (uint8_t*)m_QuadVertexBufferBases[currentFrame]);
+		m_QuadVertexBuffers[currentFrame]->SetData(m_QuadVertexBufferBases[currentFrame], dataSize);		
+		Renderer::Draw(m_QuadVertexBuffers[currentFrame], m_QuadMaterial, m_QuadIndexBuffers[currentFrame], m_QuadIndexCount);
 
 		
-		s_QuadData.Stats.DrawCalls++;
+		m_Stats.DrawCalls++;
 	}
 
 	void Renderer2D::EndScene()
 	{
 		PX_PROFILE_FUNCTION();
 
-
 		Flush();
+
+
+		Renderer::EndRenderPass();
+		Renderer::StopTimestampQuery("QuadRenderpass");
+		Renderer::EndCommandBuffer();
+
+
+		//CopyFinalImage into current SwapchainImage
+		if (!Application::Get()->GetSpecification().ImGuiEnabled)
+			Renderer::PrepareSwapchainImage(m_QuadFramebuffer->GetColorAttachment(0));
+		else
+			Renderer::CreateFinalImage(m_QuadFramebuffer->GetColorAttachment(0));
 	}
 
 	void Renderer2D::NextBatch()
@@ -247,19 +290,19 @@ namespace Povox {
 		constexpr glm::vec2 textureCoords[4] = { {1.0f, 1.0f}, {1.0f, 0.0f}, {0.0f, 0.0f}, {0.0f, 1.0f} };
 
 		uint32_t currentFrame = Renderer::GetCurrentFrameIndex();
-		if (s_QuadData.QuadIndexCount >= Renderer2DData::MaxIndices)
+		if (m_QuadIndexCount >= m_Specification.MaxIndices)
 			NextBatch();
 
 		for (uint32_t i = 0; i < 4; i++)
 		{
-			s_QuadData.QuadVertexBufferPtr->Position = transform * s_QuadData.QuadVertexPositions[i];
-			s_QuadData.QuadVertexBufferPtr->Color = color;
-			s_QuadData.QuadVertexBufferPtr->TexCoord = textureCoords[i];
-			s_QuadData.QuadVertexBufferPtr->TexID = s_QuadData.WhiteTextureSlot;
-			s_QuadData.QuadVertexBufferPtr++;
+			m_QuadVertexBufferPtr->Position = transform * m_QuadVertexPositions[i];
+			m_QuadVertexBufferPtr->Color = color;
+			m_QuadVertexBufferPtr->TexCoord = textureCoords[i];
+			m_QuadVertexBufferPtr->TexID = m_WhiteTextureSlot;
+			m_QuadVertexBufferPtr++;
 		}
-		s_QuadData.QuadIndexCount += 6;
-		s_QuadData.Stats.QuadCount++;
+		m_QuadIndexCount += 6;
+		m_Stats.QuadCount++;
 	}
 
 // Quads Texture
@@ -282,25 +325,25 @@ namespace Povox {
 		constexpr glm::vec2 textureCoords[4] = { {0.0f, 0.0f}, {1.0f, 0.0f}, {1.0f, 1.0f}, {0.0f, 1.0f} };
 		
 		uint32_t currentFrame = Renderer::GetCurrentFrameIndex();
-		if (s_QuadData.QuadIndexCount >= Renderer2DData::MaxIndices)
+		if (m_QuadIndexCount >= m_Specification.MaxIndices)
 			NextBatch();
 
 		//Will return the first slot possible if allSlotsFull is true
 		uint32_t textureIndex = Renderer::GetTextureSystem()->BindTexture(texture);
-		if (textureIndex >= s_QuadData.MaxTextureSlots)
+		if (textureIndex >= m_Specification.MaxTextureSlots)
 			NextBatch();
 		textureIndex = Renderer::GetTextureSystem()->BindTexture(texture);
 
 		for (uint32_t i = 0; i < 4; i++)
 		{
-			s_QuadData.QuadVertexBufferPtr->Position = transform * s_QuadData.QuadVertexPositions[i];
-			s_QuadData.QuadVertexBufferPtr->Color = tintingColor;
-			s_QuadData.QuadVertexBufferPtr->TexCoord = textureCoords[i];
-			s_QuadData.QuadVertexBufferPtr->TexID = textureIndex;
-			s_QuadData.QuadVertexBufferPtr++;
+			m_QuadVertexBufferPtr->Position = transform * m_QuadVertexPositions[i];
+			m_QuadVertexBufferPtr->Color = tintingColor;
+			m_QuadVertexBufferPtr->TexCoord = textureCoords[i];
+			m_QuadVertexBufferPtr->TexID = textureIndex;
+			m_QuadVertexBufferPtr++;
 		}
-		s_QuadData.QuadIndexCount += 6;
-		s_QuadData.Stats.QuadCount++;
+		m_QuadIndexCount += 6;
+		m_Stats.QuadCount++;
 	}
 
 // Quads Subtexture
@@ -322,13 +365,13 @@ namespace Povox {
 
 		uint32_t currentFrame = Renderer::GetCurrentFrameIndex();
 
-		if (s_QuadData.QuadIndexCount >= Renderer2DData::MaxIndices)
+		if (m_QuadIndexCount >= m_Specification.MaxIndices)
 			NextBatch();
 
 		//float textureIndex = 0.0f;
-		//for (uint32_t i = 1; i < s_QuadData.TextureSlotIndex; i++)
+		//for (uint32_t i = 1; i < m_TextureSlotIndex; i++)
 		//{
-		//	if (*s_QuadData.TextureSlots[i].get() == *texture.get()) // s_QuadData.TextureSlots[i] == texture -> compares the shared ptr, so .get() gives the ptr and * dereferences is to the fnc uses the boolean == operator defined in the openGLTexture2D class
+		//	if (*m_TextureSlots[i].get() == *texture.get()) // m_TextureSlots[i] == texture -> compares the shared ptr, so .get() gives the ptr and * dereferences is to the fnc uses the boolean == operator defined in the openGLTexture2D class
 		//	{
 		//		textureIndex = (float)i;
 		//		break;
@@ -338,24 +381,24 @@ namespace Povox {
 
 		//if (textureIndex == 0.0f)
 		//{
-		//	textureIndex = (float)s_QuadData.TextureSlotIndex;
-		//	s_QuadData.TextureSlots[s_QuadData.TextureSlotIndex] = texture;
-		//	s_QuadData.TextureSlotIndex++;
+		//	textureIndex = (float)m_TextureSlotIndex;
+		//	m_TextureSlots[m_TextureSlotIndex] = texture;
+		//	m_TextureSlotIndex++;
 		//}
 
 		//for (uint32_t i = 0; i < 4; i++)
 		//{
-		//	s_QuadData.QuadVertexBufferPtr->Position = transform * s_QuadData.QuadVertexPositions[i];
-		//	s_QuadData.QuadVertexBufferPtr->Color = tintingColor;
-		//	s_QuadData.QuadVertexBufferPtr->TexCoord = textureCoords[i];
-		//	s_QuadData.QuadVertexBufferPtr->TexID = textureIndex;
-		//	s_QuadData.QuadVertexBufferPtr->TilingFactor = tilingFactor;
-		//	s_QuadData.QuadVertexBufferPtr->EntityID = entityID;
-		//	s_QuadData.QuadVertexBufferPtr++;
+		//	m_QuadVertexBufferPtr->Position = transform * m_QuadVertexPositions[i];
+		//	m_QuadVertexBufferPtr->Color = tintingColor;
+		//	m_QuadVertexBufferPtr->TexCoord = textureCoords[i];
+		//	m_QuadVertexBufferPtr->TexID = textureIndex;
+		//	m_QuadVertexBufferPtr->TilingFactor = tilingFactor;
+		//	m_QuadVertexBufferPtr->EntityID = entityID;
+		//	m_QuadVertexBufferPtr++;
 		//}
-		//s_QuadData.QuadIndexCount += 6;
+		//m_QuadIndexCount += 6;
 
-		//s_QuadData.Stats.QuadCount++;
+		//m_Stats.QuadCount++;
 	}
 
 //Rotatables
@@ -404,14 +447,12 @@ namespace Povox {
 	}
 
 
-
-
-	Renderer2D::Statistics Renderer2D::GetStats()
+	const Renderer2DStatistics& Renderer2D::GetStatistics() const 
 	{
-		return s_QuadData.Stats;
+		return m_Stats;
 	}
 	void Renderer2D::ResetStats()
 	{
-		memset(&s_QuadData.Stats, 0, sizeof(Statistics));
+		memset(&m_Stats, 0, sizeof(Renderer2DStatistics));
 	}
 }

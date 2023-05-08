@@ -20,12 +20,8 @@ namespace Povox {
 		PX_CORE_ERROR("GLFW error ({0}): {1}", error, description);
 	}
 
-	WindowsWindow::WindowsWindow(const WindowProps& props)
-	{
-		Init(props);
-	}
-
-	WindowsWindow::~WindowsWindow() 
+	WindowsWindow::WindowsWindow(const WindowSpecification& specs)
+		: m_Specification(specs)
 	{
 	}
 
@@ -45,17 +41,17 @@ namespace Povox {
 		}
 	}
 
-	void WindowsWindow::Init(const WindowProps& props)
+	bool WindowsWindow::Init()
 	{
 		PX_PROFILE_FUNCTION();
 
 
-		m_Data.Title = props.Title;
-		m_Data.Width = props.Width;
-		m_Data.Height = props.Height;
+		m_Data.Title = &m_Specification.Title;
+		m_Data.Width = (int*) & m_Specification.Width;
+		m_Data.Height = (int*) & m_Specification.Height;
 
 		PX_CORE_INFO("WindowsWindow::Init: Starting initialization...");
-		PX_CORE_INFO("Window name: '{0}'; Initial size: ({1}, {2})", m_Data.Title, m_Data.Width, m_Data.Height);
+		PX_CORE_INFO("Window name: '{0}'; Initial size: ({1}, {2})", m_Specification.Title, m_Specification.Width, m_Specification.Height);
 
 		if (s_GLFWwindowCount == 0)
 		{
@@ -79,7 +75,7 @@ namespace Povox {
 		}
 
 		PX_CORE_INFO("Creating glfwWindow handle...");
-		m_Window = glfwCreateWindow(static_cast<int>(props.Width), static_cast<int>(props.Height), props.Title.c_str(), nullptr, nullptr);
+		m_Window = glfwCreateWindow(static_cast<int>(m_Specification.Width), static_cast<int>(m_Specification.Height), m_Specification.Title.c_str(), nullptr, nullptr);
 		++s_GLFWwindowCount;	
 		PX_CORE_INFO("Window count: {0}", s_GLFWwindowCount);
 		PX_CORE_INFO("Completed glfwWindow handle creation.");
@@ -91,7 +87,7 @@ namespace Povox {
 		//init context with surface after swapchain has set surface up
 		m_Context->Init();
 		//init rest of swapchain
-		m_Swapchain->Init(static_cast<uint32_t>(m_Data.Width), static_cast<uint32_t>(m_Data.Height));
+		m_Swapchain->Recreate(m_Specification.Width, m_Specification.Height);
 
 
 		glfwSetWindowUserPointer(m_Window, &m_Data);
@@ -101,12 +97,12 @@ namespace Povox {
 		// Set GLFW callbacks
 	// --- Window
 		// Window resizing
-		//return window size in screen cordinates
+		//return window size in screen coordinates
 		glfwSetWindowSizeCallback(m_Window, [](GLFWwindow* window, int width, int height)
 			{
 				WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
-				data.Width = width;
-				data.Height = height;
+				*data.Width = width;
+				*data.Height = height;
 
 				WindowResizeEvent event(width, height);
 				data.EventCallback(event);
@@ -116,8 +112,8 @@ namespace Povox {
 		glfwSetFramebufferSizeCallback(m_Window, [](GLFWwindow* window, int width, int height)
 			{
 				WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
-				data.Width = width;
-				data.Height = height;
+				*data.Width = width;
+				*data.Height = height;
 
 				FramebufferResizeEvent event(width, height);
 				data.EventCallback(event);
@@ -218,15 +214,20 @@ namespace Povox {
 			});
 
 		PX_CORE_INFO("WindowsWindow::Init: Completed initialization.");
+		return m_Specification.State.IsInitialized = true;
 	}
 
 	void WindowsWindow::OnUpdate()
 	{
 		PX_PROFILE_FUNCTION();
 
-		
-		glfwPollEvents();
 		m_Swapchain->SwapBuffers();
+	}
+	void WindowsWindow::PollEvents()
+	{
+		PX_PROFILE_FUNCTION();
+
+		glfwPollEvents();		
 	}
 
 	void WindowsWindow::OnResize(uint32_t width, uint32_t height)
@@ -245,11 +246,11 @@ namespace Povox {
 			glfwSwapInterval(0);
 		
 
-		m_Data.VSync = enabled;
+		m_Specification.State.VSync = enabled;
 	}
 
 	bool WindowsWindow::IsVSync() const
 	{
-		return m_Data.VSync;
+		return m_Specification.State.VSync;
 	}
 }

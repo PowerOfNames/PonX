@@ -2,6 +2,7 @@
 #include "VulkanSwapchain.h"
 
 #include "Povox/Core/Application.h"
+#include "Povox/Renderer/Renderer.h"
 
 #include "Platform/Vulkan/VulkanCommands.h"
 #include "Platform/Vulkan/VulkanContext.h"
@@ -25,13 +26,6 @@ namespace Povox {
 		PX_CORE_INFO("VulkanSurface created.");
 		
 		PX_CORE_INFO("VulkanSwapchain::VulkanSwapchain: Complete.");
-	}
-
-	void VulkanSwapchain::Init(uint32_t width, uint32_t height)
-	{
-		PX_CORE_INFO("VulkanSwapchain::Init: Starting initialization...");
-		Recreate(width, height);
-		PX_CORE_INFO("VulkanSwapchain::Init: Completed initialization.");
 	}
 
 	void VulkanSwapchain::Recreate(uint32_t width, uint32_t height)
@@ -69,20 +63,21 @@ namespace Povox {
 		VkSurfaceCapabilitiesKHR caps{};
 		vkGetPhysicalDeviceSurfaceCapabilitiesKHR(devicePtr->GetPhysicalDevice(), s_Surface, &caps);
 
-		VkSwapchainCreateInfoKHR createInfo{};
-		createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-		createInfo.surface = s_Surface;
-		createInfo.minImageCount = imageCount;
-		createInfo.imageFormat = m_Properties.SurfaceFormat.format;
+		VkSwapchainCreateInfoKHR createInfo{ VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR };
+		createInfo.pNext = nullptr;
+		createInfo.flags = 0;
+		
+		createInfo.clipped = VK_TRUE;
+		createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+		createInfo.imageArrayLayers = 1;
 		createInfo.imageColorSpace = m_Properties.SurfaceFormat.colorSpace;
 		createInfo.imageExtent = { width, height };
-		createInfo.imageArrayLayers = 1;
+		createInfo.imageFormat = m_Properties.SurfaceFormat.format;
 		createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 		if (caps.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_SRC_BIT)
 			createInfo.imageUsage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
 		if (caps.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_DST_BIT)
 			createInfo.imageUsage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
-		createInfo.presentMode = m_Properties.PresentMode;
 		QueueFamilies queueFamIndices = devicePtr->GetQueueFamilies();
 		uint32_t queueFamilyIndices[] = {
 						queueFamIndices.GraphicsFamilyIndex,
@@ -101,11 +96,11 @@ namespace Povox {
 			createInfo.queueFamilyIndexCount = 0;		// optional
 			createInfo.pQueueFamilyIndices = nullptr;	// optional
 		}
-		createInfo.preTransform = swapchainSupportDetails.Capabilities.currentTransform;
-		createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-		createInfo.presentMode = m_Properties.PresentMode;					// -> vsync
-		createInfo.clipped = VK_TRUE;
+		createInfo.minImageCount = imageCount;
 		createInfo.oldSwapchain = m_OldSwapchain;
+		createInfo.presentMode = m_Properties.PresentMode;
+		createInfo.preTransform = swapchainSupportDetails.Capabilities.currentTransform;
+		createInfo.surface = s_Surface;
 		PX_CORE_VK_ASSERT(vkCreateSwapchainKHR(device, &createInfo, nullptr, &m_Swapchain), VK_SUCCESS, "Failed to create logical device!");
 
 		// Images		
@@ -116,8 +111,10 @@ namespace Povox {
 		m_ImageViews.resize(m_Images.size());
 		for (size_t i = 0; i < m_ImageViews.size(); i++)
 		{
-			VkImageViewCreateInfo info{};
-			info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+			VkImageViewCreateInfo info{ VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
+			info.pNext = nullptr;
+			info.flags = 0;
+
 			info.image = m_Images[i];
 			info.viewType = VK_IMAGE_VIEW_TYPE_2D;
 			info.format = m_Properties.SurfaceFormat.format;
@@ -132,8 +129,17 @@ namespace Povox {
 			info.subresourceRange.levelCount = 1;
 			info.subresourceRange.baseArrayLayer = 0;
 			info.subresourceRange.layerCount = 1;
-
 			PX_CORE_VK_ASSERT(vkCreateImageView(device, &info, nullptr, &m_ImageViews[i]), VK_SUCCESS, "Failed to create image view!");
+
+#ifdef PX_DEBUG
+			VkDebugUtilsObjectNameInfoEXT nameInfo{};
+			nameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+			nameInfo.objectType = VK_OBJECT_TYPE_IMAGE_VIEW;
+			nameInfo.objectHandle = (uint64_t)m_ImageViews[i];
+			std::string objDebugName = "Swapchain-ImageView" + std::to_string(i);
+			nameInfo.pObjectName = objDebugName.c_str();
+			NameVkObject(VulkanContext::GetDevice()->GetVulkanDevice(), nameInfo);
+#endif // DEBUG
 		}
 
 		{
@@ -143,24 +149,23 @@ namespace Povox {
 			extent.height = m_Properties.Height;
 			extent.depth = 1;
 
-			VkImageCreateInfo info{};
-			info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+			VkImageCreateInfo info{ VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
 			info.pNext = nullptr;
+			info.flags = 0;
 
 			info.imageType = VK_IMAGE_TYPE_2D;
-
 			info.extent = extent;
 			info.format = m_DepthFormat;
 
-			info.arrayLayers = 1;
-			info.mipLevels = 1;
-			info.tiling = VK_IMAGE_TILING_OPTIMAL;
 			info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+			info.mipLevels = 1;
+			info.arrayLayers = 1;
+			info.tiling = VK_IMAGE_TILING_OPTIMAL;
 			info.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;	// used as destination from the buffer to image, and the shader needs to sample from it
 			info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;				// exclusive means it will only be used by one queue family (graphics and therefore also transfer possible)
 			info.samples = VK_SAMPLE_COUNT_1_BIT;						// related to multi sampling -> in attachments
-			info.flags = 0;	// optional, can be used for sparse textures, in for examples for voxel terrain, to avoid using memory with AIR
-
+			info.queueFamilyIndexCount = 0;
+			info.pQueueFamilyIndices = nullptr;
 
 			VmaAllocationCreateInfo allocationInfo{};
 			allocationInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
@@ -183,6 +188,15 @@ namespace Povox {
 			viewInfo.subresourceRange.baseArrayLayer = 0;
 			viewInfo.subresourceRange.layerCount = 1;
 			PX_CORE_VK_ASSERT(vkCreateImageView(device, &viewInfo, nullptr, &m_DepthImageView), VK_SUCCESS, "Failed to create ImageView!");
+
+#ifdef PX_DEBUG
+			VkDebugUtilsObjectNameInfoEXT nameInfo{};
+			nameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+			nameInfo.objectType = VK_OBJECT_TYPE_IMAGE_VIEW;
+			nameInfo.objectHandle = (uint64_t)m_DepthImageView;
+			nameInfo.pObjectName = "Swapchain-DepthImageView";
+			NameVkObject(VulkanContext::GetDevice()->GetVulkanDevice(), nameInfo);
+#endif // DEBUG
 
 			VulkanCommandControl::ImmidiateSubmit(VulkanCommandControl::SubmitType::SUBMIT_TYPE_GRAPHICS, [=](VkCommandBuffer cmd)
 				{
@@ -291,9 +305,12 @@ namespace Povox {
 			PX_CORE_VK_ASSERT(vkCreateFramebuffer(device, &fbInfo, nullptr, &m_Framebuffers[i]), VK_SUCCESS, "Failed to create framebuffer!");
 		}
 
+		if(Application::Get()->GetSpecification().State.RendererInitialized)
+			Renderer::OnSwapchainRecreate();
+
 		PX_CORE_INFO("Swapchain (re)creation with: '({0}|{1})', '{2}' Images and '{3}' FramesInFlight!", width, height, m_Images.size(), maxFramesInFlight);
 		PX_CORE_INFO("VulkanSwapchain::Recreate: Completed.");
-		}
+	}
 
 	void VulkanSwapchain::Cleanup()
 	{

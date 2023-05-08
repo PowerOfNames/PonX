@@ -94,12 +94,13 @@ namespace Povox {
 	{
 	public:
 		// Core
-		static void Init(const RendererSpecification& specs);
+		static bool Init(const RendererSpecification& specs);
 		static void Shutdown();
 
 		// State
 		static void OnResize(uint32_t width, uint32_t height);
 		static void OnViewportResize(uint32_t width, uint32_t height);
+		static void OnSwapchainRecreate();
 
 		static void WaitForDeviceFinished();
 		static void UpdateCamera(const CameraUniform& cam);
@@ -112,9 +113,10 @@ namespace Povox {
 		static void EndFrame();
 
 		static uint32_t GetCurrentFrameIndex();
+		static uint32_t GetLastFrameIndex();
 
 		static void CreateFinalImage(Ref<Image2D> finalImage);
-		static Ref<Image2D> GetFinalImage();
+		static Ref<Image2D> GetFinalImage(uint32_t frameIndex);
 		static void PrepareSwapchainImage(Ref<Image2D> finalImage);
 
 		// Resources
@@ -144,8 +146,6 @@ namespace Povox {
 		static const RendererStatistics& Renderer::GetStatistics();
 		static void StartTimestampQuery(const std::string& name);
 		static void StopTimestampQuery(const std::string& name);
-
-
 
 
 		inline static RendererAPI::API GetAPI() { return RendererAPI::GetAPI(); }

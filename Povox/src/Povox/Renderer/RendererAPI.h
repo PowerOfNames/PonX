@@ -37,6 +37,7 @@ namespace Povox {
 		virtual ~RendererAPI() = default;
 
 		// Core
+		virtual bool Init() = 0;
 		virtual void Shutdown() = 0;
 
 		// Render
@@ -46,24 +47,26 @@ namespace Povox {
 		virtual void Draw(Ref<Buffer> vertices, Ref<Material> material, Ref<Buffer> indices, size_t indexCount) = 0;
 
 		virtual uint32_t GetCurrentFrameIndex() const = 0;
+		virtual uint32_t GetLastFrameIndex() const = 0;
 
 		virtual void CreateFinalImage(Ref<Image2D> finalImage) = 0;
-		virtual Ref<Image2D> GetFinalImage() = 0;
+		virtual Ref<Image2D> GetFinalImage(uint32_t frameIndex) const = 0;
 		virtual void PrepareSwapchainImage(Ref<Image2D> finalImage) = 0;
 
 		// State
 		virtual void OnResize(uint32_t width, uint32_t height) = 0;
 		virtual void OnViewportResize(uint32_t width, uint32_t height) = 0;
+		virtual void OnSwapchainRecreate() = 0;
 		virtual void WaitForDeviceFinished() = 0;
 
 		virtual void UpdateCamera(const CameraUniform& cam) = 0;
 
 
 		// Resources
-		virtual Ref<ShaderLibrary> GetShaderLibrary() = 0;
-		virtual Ref<TextureSystem> GetTextureSystem() = 0;
-		virtual const RendererSpecification& GetSpecification() = 0;
-		virtual void* GetGUIDescriptorSet(Ref<Image2D> image) = 0;
+		virtual Ref<ShaderLibrary> GetShaderLibrary() const = 0;
+		virtual Ref<TextureSystem> GetTextureSystem() const = 0;
+		virtual const RendererSpecification& GetSpecification() const = 0;
+		virtual void* GetGUIDescriptorSet(Ref<Image2D> image) const = 0;
 
 		// Commands 
 		virtual const void* GetCommandBuffer(uint32_t index) = 0;

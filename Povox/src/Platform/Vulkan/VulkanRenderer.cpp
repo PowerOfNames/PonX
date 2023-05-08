@@ -22,7 +22,6 @@ namespace Povox {
 	VulkanRenderer::VulkanRenderer(const RendererSpecification& specs)
 		:m_Specification(specs)
 	{
-		Init();
 	}
 
 	VulkanRenderer::~VulkanRenderer()
@@ -31,7 +30,7 @@ namespace Povox {
 	}
 
 	// Core
-	void VulkanRenderer::Init()
+	bool VulkanRenderer::Init()
 	{
 		PX_PROFILE_FUNCTION();
 
@@ -69,10 +68,11 @@ namespace Povox {
 		
 
 		
-		m_Specification.State.IsInitialized = true;
 
 		m_Statistics.State = &m_Specification.State;
+		m_Specification.State.IsInitialized = true;
 		PX_CORE_INFO("VulkanRenderer::Init: Completed initialization.");
+		return m_Specification.State.IsInitialized;
 	}
 
 	void VulkanRenderer::Shutdown()
@@ -138,7 +138,9 @@ namespace Povox {
 
 		m_ImGui->Destroy();
 
-		m_FinalImage->Free();
+		for(uint32_t i = 0; i < m_FinalImages.size(); i++)
+			m_FinalImages[i]->Free();
+		m_FinalImages.clear();
 
 
 		vkDestroySampler(m_Device, m_TextureSampler, nullptr);
@@ -473,6 +475,7 @@ namespace Povox {
 
 			m_FramebufferWidth = m_ViewportWidth = m_Swapchain->GetProperties().Width;
 			m_FramebufferHeight = m_ViewportHeight = m_Swapchain->GetProperties().Height;
+			m_FinalImages.resize(maxFrames);
 		}
 		else
 		{
@@ -489,13 +492,16 @@ namespace Povox {
 
 
 		Ref<VulkanImage2D> sourceImageVK = std::dynamic_pointer_cast<VulkanImage2D>(sourceImage);
-		if (!m_FinalImage)
+		if (!m_FinalImages[m_CurrentFrameIndex] 
+			|| m_FinalImages[m_CurrentFrameIndex]->GetSpecification().Width != m_ViewportWidth 
+			|| m_FinalImages[m_CurrentFrameIndex]->GetSpecification().Height != m_ViewportHeight)
 		{
 			InitFinalImage(m_ViewportWidth, m_ViewportHeight);
 		}
 
+
 		//Transition final image
-		m_FinalImage->TransitionImageLayout(
+		m_FinalImages[m_CurrentFrameIndex]->TransitionImageLayout(
 			VK_IMAGE_LAYOUT_UNDEFINED,	
 			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 			VK_ACCESS_MEMORY_READ_BIT, 
@@ -524,10 +530,10 @@ namespace Povox {
 				imageCopyRegion.extent.height = sourceImageVK->GetSpecification().Height;
 				imageCopyRegion.extent.depth = 1;
 
-				vkCmdCopyImage(cmd, sourceImageVK->GetImage(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, m_FinalImage->GetImage(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &imageCopyRegion);
+				vkCmdCopyImage(cmd, sourceImageVK->GetImage(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, m_FinalImages[m_CurrentFrameIndex]->GetImage(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &imageCopyRegion);
 			});
 		//Transition swapchain image back into present
-		m_FinalImage->TransitionImageLayout(
+		m_FinalImages[m_CurrentFrameIndex]->TransitionImageLayout(
 			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
 			VK_ACCESS_MEMORY_READ_BIT,
@@ -568,30 +574,14 @@ namespace Povox {
 			vkCmdPipelineBarrier(cmd, srcStage, dstStage, 0, 0, nullptr, 0, nullptr, 1, &barrier);
 			});
 		//Transition final rendered image
-		m_CommandControl->ImmidiateSubmit(VulkanCommandControl::SubmitType::SUBMIT_TYPE_GRAPHICS, [=](VkCommandBuffer cmd) {
-			VkImageMemoryBarrier barrier{};
-			barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-			barrier.image = sourceImageVK->GetImage();
-			barrier.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-			barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-			barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-			barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-			barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-			barrier.subresourceRange.baseMipLevel = 0;
-			barrier.subresourceRange.levelCount = 1;
-			barrier.subresourceRange.baseArrayLayer = 0;
-			barrier.subresourceRange.layerCount = 1;
-
-			VkPipelineStageFlags srcStage;
-			VkPipelineStageFlags dstStage;
-			barrier.srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
-			barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
-
-			srcStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
-			dstStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
-
-			vkCmdPipelineBarrier(cmd, srcStage, dstStage, 0, 0, nullptr, 0, nullptr, 1, &barrier);
-			});
+		sourceImageVK->TransitionImageLayout(
+			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+			VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+			VK_ACCESS_MEMORY_READ_BIT,
+			VK_ACCESS_TRANSFER_READ_BIT,
+			VK_PIPELINE_STAGE_TRANSFER_BIT,
+			VK_PIPELINE_STAGE_TRANSFER_BIT
+		);
 		//Image copying
 		m_CommandControl->ImmidiateSubmit(VulkanCommandControl::SubmitType::SUBMIT_TYPE_TRANSFER, [=](VkCommandBuffer cmd)
 			{
@@ -662,6 +652,12 @@ namespace Povox {
 		InitFinalImage(m_ViewportWidth, m_ViewportHeight);
 
 		m_ViewportResized = false;
+	}
+
+	void VulkanRenderer::OnSwapchainRecreate()
+	{
+		VkExtent2D extent{ m_Swapchain->GetProperties().Width, m_Swapchain->GetProperties().Height };
+		m_ImGui->OnSwapchainRecreate(Application::Get()->GetWindow().GetSwapchain()->GetImageViews(), extent);
 	}
 
 	void VulkanRenderer::UpdateCamera(const CameraUniform& cam)
@@ -1007,7 +1003,7 @@ namespace Povox {
 		PX_CORE_INFO("VulkanRenderer::CreateDescriptors: Completed.");
 	}
 
-	void* VulkanRenderer::GetGUIDescriptorSet(Ref<Image2D> image)
+	void* VulkanRenderer::GetGUIDescriptorSet(Ref<Image2D> image) const
 	{
 		Ref<VulkanImage2D> vkImage = std::dynamic_pointer_cast<VulkanImage2D>(image);
 
@@ -1103,6 +1099,23 @@ namespace Povox {
 		vkCmdWriteTimestamp(m_ActiveCommandBuffer, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, m_TimestampQueryPools[m_CurrentFrameIndex], m_TimestampQueries[name] + 1);
 	}
 
+
+	Ref<Image2D> VulkanRenderer::GetFinalImage(uint32_t frameIndex) const
+	{
+		if (!(frameIndex < m_FinalImages.size()))
+		{
+			PX_CORE_WARN("VulkanRenderer::GetFinalImage: Index {} out of scope. Must be <= MaxFrames! Returning nullptr!", frameIndex);
+			return nullptr;
+		}
+		if(m_FinalImages[frameIndex])
+			return m_FinalImages[frameIndex];
+		else
+		{
+			PX_CORE_WARN("VulkanRenderer::GetFinalImage: Final image at frame {} not yet created! Returning nullptr!", frameIndex);
+			return nullptr;
+		}
+	}
+
 	void VulkanRenderer::InitPerformanceQueryPools()
 	{
 		PX_PROFILE_FUNCTION();
@@ -1113,8 +1126,8 @@ namespace Povox {
 		PX_CORE_INFO("Starting TimestampPool creation...");
 		{
 			uint32_t framesInFlight = m_Specification.MaxFramesInFlight;
-			m_TimestampQueries["ImguiRenderpass"] = 0;
-			m_Statistics.TimestampResults["ImguiRenderpass"] = 0;
+			m_TimestampQueries["QuadRenderpass"] = 0;
+			m_Statistics.TimestampResults["QuadRenderpass"] = 0;
 
 			VkQueryPoolCreateInfo info{};
 			info.sType = VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO;
@@ -1214,10 +1227,10 @@ namespace Povox {
 			return;
 		}
 
-		if (m_FinalImage)
+		if (m_FinalImages[m_CurrentFrameIndex])
 		{
-			m_FinalImage->Free();
-			m_FinalImage = nullptr;
+			m_FinalImages[m_CurrentFrameIndex]->Free();
+			m_FinalImages[m_CurrentFrameIndex] = nullptr;
 		}
 
 		ImageSpecification imageSpec{};
@@ -1232,7 +1245,7 @@ namespace Povox {
 		imageSpec.Usages = { ImageUsage::SAMPLED, ImageUsage::COLOR_ATTACHMENT, ImageUsage::COPY_DST };
 		imageSpec.DedicatedSampler = true;
 		imageSpec.CreateDescriptorOnInit = false;
-		m_FinalImage = CreateRef<VulkanImage2D>(imageSpec);
+		m_FinalImages[m_CurrentFrameIndex] = CreateRef<VulkanImage2D>(imageSpec);
 	}
 
 	FrameData& VulkanRenderer::GetFrame(uint32_t index)

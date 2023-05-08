@@ -33,25 +33,26 @@ namespace Povox {
 
 		RendererAPI::SetAPI(specs.UseAPI);
 
-		WindowProps windowProperties{};
-		windowProperties.Title = "Povosom";
-		windowProperties.Width = 1600;
-		windowProperties.Height = 900;
-		m_Window = Window::Create(windowProperties);
-		m_Window->SetEventCallback(PX_BIND_EVENT_FN(Application::OnEvent));
+		WindowSpecification windowSpecs{};
+		windowSpecs.Title = "Povosom";
+		windowSpecs.Width = 1600;
+		windowSpecs.Height = 900;
+		m_Window = Window::Create(windowSpecs);
 		PX_CORE_ASSERT(m_Window, "Failed to create Window!");
+		m_Window->SetEventCallback(PX_BIND_EVENT_FN(Application::OnEvent));
+		m_Specification.State.WindowInitialized = m_Window->Init();
 
 		PX_CORE_INFO("Initializing Renderer...");
 
 		RendererSpecification rendererSpecs{};
-		rendererSpecs.State.WindowWidth = windowProperties.Width;
-		rendererSpecs.State.WindowHeight = windowProperties.Height;
-		rendererSpecs.State.ViewportWidth = windowProperties.Width;
-		rendererSpecs.State.ViewportHeight = windowProperties.Height;
+		rendererSpecs.State.WindowWidth = windowSpecs.Width;
+		rendererSpecs.State.WindowHeight = windowSpecs.Height;
+		rendererSpecs.State.ViewportWidth = windowSpecs.Width;
+		rendererSpecs.State.ViewportHeight = windowSpecs.Height;
 
 		rendererSpecs.MaxSceneObjects = 20000;
-		rendererSpecs.MaxFramesInFlight = specs.MaxFramesInFlight;
-		Renderer::Init(rendererSpecs);
+		rendererSpecs.MaxFramesInFlight = specs.MaxFramesInFlight;		
+		m_Specification.State.RendererInitialized = Renderer::Init(rendererSpecs);
 
 		PX_CORE_INFO("Completed Renderer initialization.");
 		PX_CORE_INFO("Pushing (Im)GUI Layer...");
@@ -79,7 +80,7 @@ namespace Povox {
 			PX_CORE_ASSERT(false, "This API is not supported!");
 		}		
 		
-
+		m_Specification.State.ApplicationInitialized = true;
 		PX_CORE_INFO("Pushed (Im)GUI Layer.");
 		PX_CORE_WARN("Application::Application: Completed initialization.");
 	}
@@ -128,12 +129,14 @@ namespace Povox {
 					Renderer::EndCommandBuffer();
 				}
 				Renderer::EndFrame();
+
+				m_Window->OnUpdate();
 			}
 			else {
 				PX_CORE_INFO("Application::Run: Minimized");
 			}
 			
-			m_Window->OnUpdate();
+			m_Window->PollEvents();
 		}
 		PX_CORE_INFO("Application::Run: Stopped Main-Loop.");
 	}
@@ -252,7 +255,6 @@ namespace Povox {
 			return false;
 		}
 		m_Minimized = false;
-		PX_CORE_INFO("Application::OnFramebufferResize to {0};{1}", e.GetWidth(), e.GetHeight());
 
 		m_Window->OnResize(e.GetWidth(), e.GetHeight());
 		Renderer::OnResize(e.GetWidth(), e.GetHeight());

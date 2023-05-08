@@ -34,8 +34,9 @@ namespace Povox {
 		float queuePriority = 1.0f;
 		for (uint32_t queueIndex : queueFamilyIndices)
 		{
-			VkDeviceQueueCreateInfo queueCreateInfo{};
-			queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+			VkDeviceQueueCreateInfo queueCreateInfo{ VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO };
+			queueCreateInfo.pNext = nullptr;
+
 			queueCreateInfo.queueFamilyIndex = queueIndex;
 			queueCreateInfo.queueCount = 1;
 			if (m_QueueFamilies.UniqueQueueFamilies == 1 && queueIndex == m_QueueFamilies.GraphicsFamilyIndex)
@@ -54,24 +55,24 @@ namespace Povox {
 
 		
 
-		VkPhysicalDeviceShaderDrawParametersFeatures shaderDrawParametersFeatures{};
-		shaderDrawParametersFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_DRAW_PARAMETERS_FEATURES;
+		VkPhysicalDeviceShaderDrawParametersFeatures shaderDrawParametersFeatures{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_DRAW_PARAMETERS_FEATURES };
 		shaderDrawParametersFeatures.pNext = nullptr;
+
 		shaderDrawParametersFeatures.shaderDrawParameters = VK_TRUE;
 
-		VkPhysicalDeviceHostQueryResetFeatures resetFeature{};
-		resetFeature.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_HOST_QUERY_RESET_FEATURES;
+		VkPhysicalDeviceHostQueryResetFeatures resetFeature{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_HOST_QUERY_RESET_FEATURES };
 		resetFeature.pNext = &shaderDrawParametersFeatures;
 		resetFeature.hostQueryReset = VK_TRUE;
 
-		VkDeviceCreateInfo createInfo{};
-		createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+		VkDeviceCreateInfo createInfo{ VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO };
+		createInfo.pNext = &resetFeature;
+		createInfo.flags = 0;
+
 		createInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
 		createInfo.pQueueCreateInfos = queueCreateInfos.data();
-		createInfo.pEnabledFeatures = &deviceFeatures;
 		createInfo.enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size());
+		createInfo.pEnabledFeatures = &deviceFeatures;
 		createInfo.ppEnabledExtensionNames = deviceExtensions.data();
-		createInfo.pNext = &resetFeature;
 
 		if (PX_ENABLE_VK_VALIDATION_LAYERS)
 		{
@@ -81,6 +82,7 @@ namespace Povox {
 		else
 		{
 			createInfo.enabledLayerCount = 0;
+			createInfo.ppEnabledExtensionNames = nullptr;
 		}
 		PX_CORE_VK_ASSERT(vkCreateDevice(m_PhysicalDevice, &createInfo, nullptr, &m_Device), VK_SUCCESS, "Failed to create logical device!");
 

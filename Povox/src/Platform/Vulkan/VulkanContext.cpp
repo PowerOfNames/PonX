@@ -103,16 +103,20 @@ namespace Povox {
 			PX_CORE_WARN("Validation layers requested, but not available!");
 		}
 
-		VkApplicationInfo appInfo{};
-		appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
+		VkApplicationInfo appInfo{ VK_STRUCTURE_TYPE_APPLICATION_INFO };
+		appInfo.pNext = nullptr;
+
 		appInfo.pApplicationName = "Povox Vulkan Renderer";
 		appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
 		appInfo.pEngineName = "Povox";
 		appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
 		appInfo.apiVersion = VK_API_VERSION_1_3;
 
-		VkInstanceCreateInfo createInfo{};
-		createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+
+		VkInstanceCreateInfo createInfo{ VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO };
+		createInfo.pNext = nullptr;
+		createInfo.flags = 0;
+
 		createInfo.pApplicationInfo = &appInfo;
 
 		VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo;
@@ -127,8 +131,7 @@ namespace Povox {
 		else
 		{
 			createInfo.enabledLayerCount = 0;
-
-			createInfo.pNext = nullptr;
+			createInfo.ppEnabledLayerNames = nullptr;
 		}
 
 		auto extensions = GetRequiredExtensions();
@@ -223,8 +226,10 @@ namespace Povox {
 	}
 	void VulkanContext::PopulateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo)
 	{
-		createInfo = {};
-		createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+		createInfo = { VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT };
+		createInfo.pNext = nullptr;
+		createInfo.flags = 0;
+
 		VkDebugUtilsMessageSeverityFlagsEXT messageSeverityFlags = VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
 #ifdef PX_DEBUG
 		messageSeverityFlags |= VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT;
@@ -232,6 +237,7 @@ namespace Povox {
 		createInfo.messageSeverity = messageSeverityFlags;
 		createInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT | VK_DEBUG_REPORT_ERROR_BIT_EXT;
 		createInfo.pfnUserCallback = DebugCallback;
+		createInfo.pUserData = nullptr;
 	}
 
 	//by Cherno

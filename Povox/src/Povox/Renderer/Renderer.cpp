@@ -10,7 +10,8 @@ namespace Povox {
 
 	Scope<RendererAPI> Renderer::s_RendererAPI = nullptr;
 
-	void Renderer::Init(const RendererSpecification& specs)
+	// Core
+	bool Renderer::Init(const RendererSpecification& specs)
 	{
 		PX_PROFILE_FUNCTION();
 
@@ -32,16 +33,18 @@ namespace Povox {
 				s_RendererAPI = CreateScope<VulkanRenderer>(specs);
 			}
 		}
-		
+		bool result = s_RendererAPI->Init();
+
 		PX_CORE_INFO("Completed RendererBackend creation.");
 		PX_CORE_INFO("Initializing SubRenderers...");
 
 		// Initialize the subrenderers (2D, Voxel, PixelSimulation, RayCasting, Scene etc.)
-		Renderer2D::Init();
+		//result = result && Renderer2D::Init();
 
 
 		PX_CORE_INFO("Completed SubRenderer initializations.");
 		PX_CORE_INFO("Renderer::Init: Completed initialization.");
+		return result;
 	}
 
 	void Renderer::Shutdown()
@@ -52,7 +55,7 @@ namespace Povox {
 		PX_CORE_INFO("Renderer::Shutdown: Starting...");
 		PX_CORE_INFO("Starting SubRenderers shutdown...");
 
-		Renderer2D::Shutdown();
+		//Renderer2D::Shutdown();
 
 		PX_CORE_INFO("Completed SubRenderers shutdown.");
 		PX_CORE_INFO("Starting RendererBackend shutdown...");
@@ -68,12 +71,12 @@ namespace Povox {
 		s_RendererAPI->WaitForDeviceFinished();
 	}
 
+	// Frame
 	bool Renderer::BeginFrame()
 	{
 		PX_PROFILE_FUNCTION();
 		return s_RendererAPI->BeginFrame();
 	}
-
 	void Renderer::DrawRenderable(const Renderable& renderable) { s_RendererAPI->DrawRenderable(renderable); }
 	void Renderer::Draw(Ref<Buffer> vertices, Ref<Material> material, Ref<Buffer> indices, size_t indexCount)
 	{
@@ -91,51 +94,54 @@ namespace Povox {
 		PX_PROFILE_FUNCTION();
 		s_RendererAPI->EndFrame();
 	}
-	
-	uint32_t Renderer::GetCurrentFrameIndex() { return s_RendererAPI->GetCurrentFrameIndex(); }
 
-	const RendererSpecification& Renderer::GetSpecification() { return s_RendererAPI->GetSpecification(); }
-
-	void Renderer::CreateFinalImage(Ref<Image2D> finalImage) { s_RendererAPI->CreateFinalImage(finalImage); }
-
-	Ref<Image2D> Renderer::GetFinalImage() { return s_RendererAPI->GetFinalImage(); }
-
-	const void* Renderer::GetCommandBuffer(uint32_t index) { return s_RendererAPI->GetCommandBuffer(index); }
-	const void* Renderer::GetGUICommandBuffer(uint32_t index) {	return s_RendererAPI->GetGUICommandBuffer(index); }
-
-	void Renderer::BeginCommandBuffer(const void* cmd) { s_RendererAPI->BeginCommandBuffer(cmd); }
-	void Renderer::EndCommandBuffer() {	s_RendererAPI->EndCommandBuffer(); }
-
-	void Renderer::BeginRenderPass(Ref<RenderPass> renderPass) { s_RendererAPI->BeginRenderPass(renderPass); }
-	void Renderer::EndRenderPass() { s_RendererAPI->EndRenderPass(); }
-
-	void Renderer::BeginGUIRenderPass() { s_RendererAPI->BeginGUIRenderPass(); }
-	void Renderer::EndGUIRenderPass() {	s_RendererAPI->EndGUIRenderPass(); }
-
-	void Renderer::OnViewportResize(uint32_t width, uint32_t height) { s_RendererAPI->OnViewportResize(width, height); }
-
-	void Renderer::BindPipeline(Ref<Pipeline> pipeline) { s_RendererAPI->BindPipeline(pipeline); }
-
-	void Renderer::UpdateCamera(const CameraUniform& cam) { s_RendererAPI->UpdateCamera(cam); }
+	uint32_t Renderer::GetCurrentFrameIndex() { return s_RendererAPI->GetCurrentFrameIndex(); }	
+	uint32_t Renderer::GetLastFrameIndex() { return s_RendererAPI->GetLastFrameIndex(); }
 
 	void Renderer::PrepareSwapchainImage(Ref<Image2D> finalImage) { s_RendererAPI->PrepareSwapchainImage(finalImage); }
+	void Renderer::CreateFinalImage(Ref<Image2D> finalImage) { s_RendererAPI->CreateFinalImage(finalImage); }
 
+	Ref<Image2D> Renderer::GetFinalImage(uint32_t frameIndex) { return s_RendererAPI->GetFinalImage(frameIndex); }
+
+
+	// Resources
+	const RendererSpecification& Renderer::GetSpecification() { return s_RendererAPI->GetSpecification(); }
 	void* Renderer::GetGUIDescriptorSet(Ref<Image2D> image)	{ return s_RendererAPI->GetGUIDescriptorSet(image); }
-
-	const RendererStatistics& Renderer::GetStatistics() { return s_RendererAPI->GetStatistics(); }
-
-	void Renderer::StartTimestampQuery(const std::string& name) { s_RendererAPI->StartTimestampQuery(name); };
-	void Renderer::StopTimestampQuery(const std::string& name) { s_RendererAPI->StopTimestampQuery(name); };
-
 	Ref<ShaderLibrary> Renderer::GetShaderLibrary() { return s_RendererAPI->GetShaderLibrary(); }
+	Ref<TextureSystem> Renderer::GetTextureSystem()	{ return s_RendererAPI->GetTextureSystem(); }
 
-	Ref<TextureSystem> Renderer::GetTextureSystem()	{ return s_RendererAPI->GetTextureSystem();}
-
+	// State
 	void Renderer::OnResize(uint32_t width, uint32_t height)
 	{
 		s_RendererAPI->OnResize(width, height);
-		Renderer2D::OnResize(width, height);
 	}
+	void Renderer::OnViewportResize(uint32_t width, uint32_t height) { s_RendererAPI->OnViewportResize(width, height); }
+	void Renderer::OnSwapchainRecreate() { s_RendererAPI->OnSwapchainRecreate(); }
+	void Renderer::UpdateCamera(const CameraUniform& cam) { s_RendererAPI->UpdateCamera(cam); }
+
+	// Commands
+	void Renderer::BeginCommandBuffer(const void* cmd) { s_RendererAPI->BeginCommandBuffer(cmd); }
+	void Renderer::EndCommandBuffer() {	s_RendererAPI->EndCommandBuffer(); }
+	const void* Renderer::GetCommandBuffer(uint32_t index) { return s_RendererAPI->GetCommandBuffer(index); }
+
+	// Renderpass
+	void Renderer::BeginRenderPass(Ref<RenderPass> renderPass) { s_RendererAPI->BeginRenderPass(renderPass); }
+	void Renderer::EndRenderPass() { s_RendererAPI->EndRenderPass(); }
+	
+	//Pipeline
+	void Renderer::BindPipeline(Ref<Pipeline> pipeline) { s_RendererAPI->BindPipeline(pipeline); }
+	
+	// GUI
+	void Renderer::BeginGUIRenderPass() { s_RendererAPI->BeginGUIRenderPass(); }
+	void Renderer::EndGUIRenderPass() {	s_RendererAPI->EndGUIRenderPass(); }
+	const void* Renderer::GetGUICommandBuffer(uint32_t index) {	return s_RendererAPI->GetGUICommandBuffer(index); }
+
+
+	// Debugging and Statistics
+	const RendererStatistics& Renderer::GetStatistics() { return s_RendererAPI->GetStatistics(); }
+	void Renderer::StartTimestampQuery(const std::string& name) { s_RendererAPI->StartTimestampQuery(name); };
+	void Renderer::StopTimestampQuery(const std::string& name) { s_RendererAPI->StopTimestampQuery(name); };
+	
 
 	
 

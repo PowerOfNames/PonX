@@ -19,6 +19,8 @@ namespace Povox {
 		virtual void OnImGuiRender() override;
 		void OnEvent(Event& e) override;
 	private:
+		void ManageEntitySelection();
+
 		bool OnFramebufferResize(FramebufferResizeEvent& e);
 
 		bool OnKeyPressed(KeyPressedEvent& e);
@@ -33,16 +35,6 @@ namespace Povox {
 	private:
 		EditorCamera m_EditorCamera;
 		OrthographicCameraController m_OrthoCamControl;
-
-		std::vector<Renderable> m_DrawList;
-
-		Ref<Framebuffer> m_ImGuiViewportFB;
-		Ref<RenderPass> m_ImGuiRenderpass;
-		Ref<Pipeline> m_TexturePipeline;
-
-		Ref<Texture2D> m_LogoTexture;
-		Ref<Texture2D> m_GreenTexture;
-		
 		
 		Ref<Scene> m_ActiveScene;
 		std::string m_CurrentScenePath;

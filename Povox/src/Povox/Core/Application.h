@@ -13,8 +13,17 @@
 
 namespace Povox {
 
+	struct ApplicationState
+	{
+		bool WindowInitialized = false;
+		bool RendererInitialized = false;
+
+		bool ApplicationInitialized = false;
+	};
 	struct ApplicationSpecification
 	{
+		ApplicationState State{};
+
 		RendererAPI::API UseAPI = RendererAPI::API::NONE;
 		bool ImGuiEnabled = true;
 
