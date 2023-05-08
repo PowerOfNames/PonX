@@ -1241,7 +1241,7 @@ namespace Povox {
 		imageSpec.Format = ImageFormat::RGBA8;
 		imageSpec.Memory = MemoryUtils::MemoryUsage::GPU_ONLY;
 		imageSpec.MipLevels = 1;
-		imageSpec.Tiling = ImageTiling::LINEAR;
+		imageSpec.Tiling = ImageTiling::OPTIMAL;
 		imageSpec.Usages = { ImageUsage::SAMPLED, ImageUsage::COLOR_ATTACHMENT, ImageUsage::COPY_DST };
 		imageSpec.DedicatedSampler = true;
 		imageSpec.CreateDescriptorOnInit = false;

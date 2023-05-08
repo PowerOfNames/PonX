@@ -151,9 +151,6 @@
       <Project>{418BE50D-AD9F-0DBF-7621-B11EE2F409F0}</Project>
     </ProjectReference>
   </ItemGroup>
-  <ItemGroup>
-    <None Include="assets\shaders\Renderer2D_Quad.glsl" />
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

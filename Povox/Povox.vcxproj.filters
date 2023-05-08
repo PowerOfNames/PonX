@@ -141,6 +141,9 @@
     <ClInclude Include="src\Platform\Vulkan\VulkanImage2D.h">
       <Filter>src\Platform\Vulkan</Filter>
     </ClInclude>
+    <ClInclude Include="src\Platform\Vulkan\VulkanMaterial.h">
+      <Filter>src\Platform\Vulkan</Filter>
+    </ClInclude>
     <ClInclude Include="src\Platform\Vulkan\VulkanPipeline.h">
       <Filter>src\Platform\Vulkan</Filter>
     </ClInclude>
@@ -198,6 +201,9 @@
     <ClInclude Include="src\Povox\Core\Timestep.h">
       <Filter>src\Povox\Core</Filter>
     </ClInclude>
+    <ClInclude Include="src\Povox\Core\UUID.h">
+      <Filter>src\Povox\Core</Filter>
+    </ClInclude>
     <ClInclude Include="src\Povox\Core\Window.h">
       <Filter>src\Povox\Core</Filter>
     </ClInclude>
@@ -222,6 +228,9 @@
     <ClInclude Include="src\Povox\ImGui\ImGuiVulkanLayer.h">
       <Filter>src\Povox\ImGui</Filter>
     </ClInclude>
+    <ClInclude Include="src\Povox\ImGui\my_imgui_config.h">
+      <Filter>src\Povox\ImGui</Filter>
+    </ClInclude>
     <ClInclude Include="src\Povox\Math\Math.h">
       <Filter>src\Povox\Math</Filter>
     </ClInclude>
@@ -241,6 +250,9 @@
       <Filter>src\Povox\Renderer</Filter>
     </ClInclude>
     <ClInclude Include="src\Povox\Renderer\Image2D.h">
+      <Filter>src\Povox\Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Povox\Renderer\Material.h">
       <Filter>src\Povox\Renderer</Filter>
     </ClInclude>
     <ClInclude Include="src\Povox\Renderer\OrthographicCamera.h">
@@ -273,6 +285,9 @@
     <ClInclude Include="src\Povox\Renderer\RendererAPI.h">
       <Filter>src\Povox\Renderer</Filter>
     </ClInclude>
+    <ClInclude Include="src\Povox\Renderer\RendererUID.h">
+      <Filter>src\Povox\Renderer</Filter>
+    </ClInclude>
     <ClInclude Include="src\Povox\Renderer\Shader.h">
       <Filter>src\Povox\Renderer</Filter>
     </ClInclude>
@@ -280,6 +295,9 @@
       <Filter>src\Povox\Renderer</Filter>
     </ClInclude>
     <ClInclude Include="src\Povox\Renderer\Texture.h">
+      <Filter>src\Povox\Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Povox\Renderer\TextureSystem.h">
       <Filter>src\Povox\Renderer</Filter>
     </ClInclude>
     <ClInclude Include="src\Povox\Renderer\Utilities.h">
@@ -1605,12 +1623,6 @@
     <ClInclude Include="vendor\yaml-cpp\src\token.h">
       <Filter>vendor\yaml-cpp\src</Filter>
     </ClInclude>
-    <ClInclude Include="src\Povox\ImGui\my_imgui_config.h" />
-    <ClInclude Include="src\Povox\Core\UUID.h" />
-    <ClInclude Include="src\Povox\Renderer\RendererUID.h" />
-    <ClInclude Include="src\Povox\Renderer\TextureSystem.h" />
-    <ClInclude Include="src\Platform\Vulkan\VulkanMaterial.h" />
-    <ClInclude Include="src\Povox\Renderer\Material.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Platform\OpenGL\OpenGLContext.cpp">
@@ -1652,6 +1664,9 @@
     <ClCompile Include="src\Platform\Vulkan\VulkanImage2D.cpp">
       <Filter>src\Platform\Vulkan</Filter>
     </ClCompile>
+    <ClCompile Include="src\Platform\Vulkan\VulkanMaterial.cpp">
+      <Filter>src\Platform\Vulkan</Filter>
+    </ClCompile>
     <ClCompile Include="src\Platform\Vulkan\VulkanPipeline.cpp">
       <Filter>src\Platform\Vulkan</Filter>
     </ClCompile>
@@ -1688,6 +1703,9 @@
     <ClCompile Include="src\Povox\Core\Log.cpp">
       <Filter>src\Povox\Core</Filter>
     </ClCompile>
+    <ClCompile Include="src\Povox\Core\UUID.cpp">
+      <Filter>src\Povox\Core</Filter>
+    </ClCompile>
     <ClCompile Include="src\Povox\Core\Window.cpp">
       <Filter>src\Povox\Core</Filter>
     </ClCompile>
@@ -1718,6 +1736,9 @@
     <ClCompile Include="src\Povox\Renderer\Image2D.cpp">
       <Filter>src\Povox\Renderer</Filter>
     </ClCompile>
+    <ClCompile Include="src\Povox\Renderer\Material.cpp">
+      <Filter>src\Povox\Renderer</Filter>
+    </ClCompile>
     <ClCompile Include="src\Povox\Renderer\OrthographicCamera.cpp">
       <Filter>src\Povox\Renderer</Filter>
     </ClCompile>
@@ -1745,6 +1766,9 @@
     <ClCompile Include="src\Povox\Renderer\RendererAPI.cpp">
       <Filter>src\Povox\Renderer</Filter>
     </ClCompile>
+    <ClCompile Include="src\Povox\Renderer\RendererUID.cpp">
+      <Filter>src\Povox\Renderer</Filter>
+    </ClCompile>
     <ClCompile Include="src\Povox\Renderer\Shader.cpp">
       <Filter>src\Povox\Renderer</Filter>
     </ClCompile>
@@ -1752,6 +1776,9 @@
       <Filter>src\Povox\Renderer</Filter>
     </ClCompile>
     <ClCompile Include="src\Povox\Renderer\Texture.cpp">
+      <Filter>src\Povox\Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Povox\Renderer\TextureSystem.cpp">
       <Filter>src\Povox\Renderer</Filter>
     </ClCompile>
     <ClCompile Include="src\Povox\Scene\Entity.cpp">
@@ -1871,10 +1898,5 @@
     <ClCompile Include="vendor\yaml-cpp\src\tag.cpp">
       <Filter>vendor\yaml-cpp\src</Filter>
     </ClCompile>
-    <ClCompile Include="src\Povox\Core\UUID.cpp" />
-    <ClCompile Include="src\Povox\Renderer\RendererUID.cpp" />
-    <ClCompile Include="src\Povox\Renderer\TextureSystem.cpp" />
-    <ClCompile Include="src\Platform\Vulkan\VulkanMaterial.cpp" />
-    <ClCompile Include="src\Povox\Renderer\Material.cpp" />
   </ItemGroup>
 </Project>
