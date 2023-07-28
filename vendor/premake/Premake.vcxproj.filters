@@ -7,6 +7,9 @@
     <Filter Include="..\Povosom">
       <UniqueIdentifier>{4312BC57-2FCA-FDA4-98D1-D60084A89895}</UniqueIdentifier>
     </Filter>
+    <Filter Include="..\Povoton">
+      <UniqueIdentifier>{8516BC57-71CE-FDA4-DAD5-D600C6AC9895}</UniqueIdentifier>
+    </Filter>
     <Filter Include="..\Povox">
       <UniqueIdentifier>{CC750738-B842-6243-E15B-50EBCD8797D1}</UniqueIdentifier>
     </Filter>
@@ -32,6 +35,9 @@
   <ItemGroup>
     <None Include="..\..\Povosom\premake5.lua">
       <Filter>..\Povosom</Filter>
+    </None>
+    <None Include="..\..\Povoton\premake5.lua">
+      <Filter>..\Povoton</Filter>
     </None>
     <None Include="..\..\Povox\premake5.lua">
       <Filter>..\Povox</Filter>
