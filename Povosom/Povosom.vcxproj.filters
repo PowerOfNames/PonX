@@ -4,11 +4,17 @@
     <Filter Include="Panels">
       <UniqueIdentifier>{A80D95C9-94AF-BF9F-7D6A-D3F369AB46F0}</UniqueIdentifier>
     </Filter>
+    <Filter Include="stuff">
+      <UniqueIdentifier>{4D9D6110-B9B1-89C1-8233-2D21EE0686F2}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\EditorLayer.h" />
     <ClInclude Include="src\Panels\SceneHierarchyPanel.h">
       <Filter>Panels</Filter>
+    </ClInclude>
+    <ClInclude Include="src\stuff\Counter.h">
+      <Filter>stuff</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -17,5 +23,8 @@
       <Filter>Panels</Filter>
     </ClCompile>
     <ClCompile Include="src\PovosomApp.cpp" />
+    <ClCompile Include="src\stuff\Counter.cpp">
+      <Filter>stuff</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

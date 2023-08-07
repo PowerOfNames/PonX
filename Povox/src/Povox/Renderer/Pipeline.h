@@ -79,4 +79,28 @@ namespace Povox {
 
 		static Ref<Pipeline> Create(const PipelineSpecification& specs);
 	};
+
+
+	struct ComputePipelineSpecification
+	{
+		Ref<Shader> Shader = nullptr;
+
+
+		std::string DebugName = "ComputePipeline";
+	};
+
+	class ComputePipeline
+	{
+	public:
+		virtual ~ComputePipeline() = default;
+		virtual void Free() = 0;
+
+		virtual void Recreate() = 0;
+
+		virtual ComputePipelineSpecification& GetSpecification() = 0;
+		virtual const std::string& GetDebugName() const = 0;
+
+
+		static Ref<ComputePipeline> Create(const ComputePipelineSpecification& specs);
+	};
 }

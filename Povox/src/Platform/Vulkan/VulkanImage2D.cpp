@@ -17,8 +17,10 @@ namespace Povox {
 		: m_Specification(spec)
 	{		
 		CreateImage();
-		CreateImageView();
-
+		if (!m_Specification.Usages.ContainsUsage(ImageUsage::STORAGE))
+		{
+			CreateImageView();
+		}
 		if(m_Specification.Usages.ContainsUsage(ImageUsage::SAMPLED))
 		{
 			if(m_Specification.DedicatedSampler)

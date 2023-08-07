@@ -15,5 +15,14 @@ namespace Povox {
 		}
 		PX_CORE_ASSERT(true, "Renderer API not supported!");
 	}
+
+	Ref<ComputePipeline> ComputePipeline::Create(const ComputePipelineSpecification& specs)
+	{
+		switch (Renderer::GetAPI())
+		{
+			case RendererAPI::API::Vulkan: return CreateRef<VulkanComputePipeline>(specs);
+		}
+		PX_CORE_ASSERT(true, "Renderer API not supported!");
+	}
 }
 

@@ -114,7 +114,10 @@ namespace Povox {
 			vkDestroySemaphore(m_Device, m_Frames[i].Semaphores.PresentSemaphore, nullptr);
 			vkDestroySemaphore(m_Device, m_Frames[i].Semaphores.RenderSemaphore, nullptr);
 
-			vkDestroyFence(m_Device, m_Frames[i].Fence, nullptr);
+			vkDestroySemaphore(m_Device, m_Frames[i].Semaphores.ComputeFinishedSemaphore, nullptr);
+
+			vkDestroyFence(m_Device, m_Frames[i].RenderFence, nullptr);
+			vkDestroyFence(m_Device, m_Frames[i].ComputeFence, nullptr);
 
 			vkDestroyCommandPool(m_Device, m_Frames[i].Commands.Pool, nullptr);
 
@@ -167,18 +170,19 @@ namespace Povox {
 		//VulkanContext::FreeFrameResources(m_CurrentFrameIndex);
 
 
-		vkWaitForFences(m_Device, 1, &GetCurrentFrame().Fence, VK_TRUE, UINT64_MAX);
+		vkWaitForFences(m_Device, 1, &GetCurrentFrame().RenderFence, VK_TRUE, UINT64_MAX);
 		vkResetCommandPool(m_Device, GetCurrentFrame().Commands.Pool, 0);
 		m_SwapchainFrame = m_Swapchain->AcquireNextImageIndex(GetCurrentFrame().Semaphores.PresentSemaphore);
 		if (!m_SwapchainFrame)
 			return false;
-		vkResetFences(m_Device, 1, &GetCurrentFrame().Fence);
+		vkResetFences(m_Device, 1, &GetCurrentFrame().RenderFence);
 
 		m_Specification.State.CurrentSwapchainImageIndex = m_CurrentSwapchainImageIndex = m_SwapchainFrame->CurrentImageIndex;
-		m_SwapchainFrame->CurrentFence = GetCurrentFrame().Fence;
+		m_SwapchainFrame->CurrentFence = GetCurrentFrame().RenderFence;
 		m_SwapchainFrame->PresentSemaphore = GetCurrentFrame().Semaphores.PresentSemaphore;
 		m_SwapchainFrame->RenderSemaphore = GetCurrentFrame().Semaphores.RenderSemaphore;
 		
+
 
 		return true;
 	}
@@ -200,8 +204,9 @@ namespace Povox {
 		uint32_t frameIndex = m_CurrentFrameIndex % m_Specification.MaxFramesInFlight;
 		uint32_t camUniformOffset = PadUniformBuffer(sizeof(SceneUniform), VulkanContext::GetDevice()->GetPhysicalDeviceProperties().limits.minUniformBufferOffsetAlignment) * (size_t)frameIndex;
 
-		uint32_t height = m_Swapchain->GetProperties().Height;
-		uint32_t width = m_Swapchain->GetProperties().Width;
+
+		uint32_t width = m_ViewportWidth;
+		uint32_t height = m_ViewportHeight;
 		VkViewport viewport{};
 		viewport.x = 0.0f;
 		viewport.y = static_cast<float>(height);
@@ -421,6 +426,8 @@ namespace Povox {
 			{
 				PX_CORE_VK_ASSERT(vkCreateSemaphore(m_Device, &createSemaphoreInfo, nullptr, &m_Frames[i].Semaphores.RenderSemaphore), VK_SUCCESS, "Failed to create RenderSemaphore!");
 				PX_CORE_VK_ASSERT(vkCreateSemaphore(m_Device, &createSemaphoreInfo, nullptr, &m_Frames[i].Semaphores.PresentSemaphore), VK_SUCCESS, "Failed to create PresentSemaphore!");
+				
+				PX_CORE_VK_ASSERT(vkCreateSemaphore(m_Device, &createSemaphoreInfo, nullptr, &m_Frames[i].Semaphores.ComputeFinishedSemaphore), VK_SUCCESS, "Failed to create ComputeFinishedSemaphore!");
 			}
 			//Fences
 			VkFenceCreateInfo createFenceInfo{};
@@ -428,7 +435,9 @@ namespace Povox {
 			createFenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 			for (size_t i = 0; i < maxFrames; i++)
 			{
-				PX_CORE_VK_ASSERT(vkCreateFence(m_Device, &createFenceInfo, nullptr, &m_Frames[i].Fence), VK_SUCCESS, "Failed to create Fence!");
+				PX_CORE_VK_ASSERT(vkCreateFence(m_Device, &createFenceInfo, nullptr, &m_Frames[i].RenderFence), VK_SUCCESS, "Failed to create Render Fence!");
+
+				PX_CORE_VK_ASSERT(vkCreateFence(m_Device, &createFenceInfo, nullptr, &m_Frames[i].ComputeFence), VK_SUCCESS, "Failed to create Compute Fence!");
 			}
 
 			PX_CORE_INFO("Completed Synchronization objects creation for {0} frames.", maxFrames);
@@ -451,7 +460,9 @@ namespace Povox {
 				PX_CORE_VK_ASSERT(vkCreateCommandPool(m_Device, &poolci, nullptr, &m_Frames[i].Commands.Pool), VK_SUCCESS, "Failed to create graphics command pool!");
 
 				bufferci.commandPool = m_Frames[i].Commands.Pool;
-				PX_CORE_VK_ASSERT(vkAllocateCommandBuffers(m_Device, &bufferci, &m_Frames[i].Commands.Buffer), VK_SUCCESS, "Failed to create CommandBuffer!");
+				PX_CORE_VK_ASSERT(vkAllocateCommandBuffers(m_Device, &bufferci, &m_Frames[i].Commands.RenderBuffer), VK_SUCCESS, "Failed to create Render CommandBuffer!");
+
+				PX_CORE_VK_ASSERT(vkAllocateCommandBuffers(m_Device, &bufferci, &m_Frames[i].Commands.ComputeBuffer), VK_SUCCESS, "Failed to create Compute CommandBuffer!");
 			}
 
 			PX_CORE_INFO("Completed Command objects creation for {0} frames.", maxFrames);
@@ -499,7 +510,6 @@ namespace Povox {
 			InitFinalImage(m_ViewportWidth, m_ViewportHeight);
 		}
 
-
 		//Transition final image
 		m_FinalImages[m_CurrentFrameIndex]->TransitionImageLayout(
 			VK_IMAGE_LAYOUT_UNDEFINED,	
@@ -526,13 +536,15 @@ namespace Povox {
 				imageCopyRegion.srcSubresource.layerCount = 1;
 				imageCopyRegion.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 				imageCopyRegion.dstSubresource.layerCount = 1;
-				imageCopyRegion.extent.width = sourceImageVK->GetSpecification().Width;
-				imageCopyRegion.extent.height = sourceImageVK->GetSpecification().Height;
+				//imageCopyRegion.extent.width = sourceImageVK->GetSpecification().Width;
+				imageCopyRegion.extent.width = m_ViewportWidth;
+				//imageCopyRegion.extent.height = sourceImageVK->GetSpecification().Height;
+				imageCopyRegion.extent.height = m_ViewportHeight;
 				imageCopyRegion.extent.depth = 1;
 
 				vkCmdCopyImage(cmd, sourceImageVK->GetImage(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, m_FinalImages[m_CurrentFrameIndex]->GetImage(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &imageCopyRegion);
 			});
-		//Transition swapchain image back into present
+		//Transition swapchain image back into color
 		m_FinalImages[m_CurrentFrameIndex]->TransitionImageLayout(
 			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
@@ -804,6 +816,11 @@ namespace Povox {
 		vkCmdBindPipeline(m_ActiveCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_ActivePipeline->GetVulkanObj());
 	}
 
+	void VulkanRenderer::DispatchCompute(Ref<ComputePipeline> pipeline)
+	{
+
+	}
+
 	// GUI
 	void VulkanRenderer::BeginGUIRenderPass()
 	{
@@ -860,7 +877,7 @@ namespace Povox {
 			camBinding.binding = 0;
 			camBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 			camBinding.descriptorCount = 1;
-			camBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+			camBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
 			camBinding.pImmutableSamplers = nullptr;
 
 
@@ -1077,6 +1094,23 @@ namespace Povox {
 	}
 			
 
+	void VulkanRenderer::ComputeSubmit()
+	{
+		PX_PROFILE_FUNCTION();
+
+
+		VkSubmitInfo submitInfo{};
+		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+
+		submitInfo.commandBufferCount = 1;
+		submitInfo.pCommandBuffers = &GetCurrentFrame().Commands.ComputeBuffer;
+
+		submitInfo.signalSemaphoreCount = 1;
+		submitInfo.pSignalSemaphores = &GetCurrentFrame().Semaphores.ComputeFinishedSemaphore;
+
+		PX_CORE_VK_ASSERT(vkQueueSubmit(VulkanContext::GetDevice()->GetQueueFamilies().Queues.ComputeQueue, 1, &submitInfo, GetCurrentFrame().ComputeFence), VK_SUCCESS, "Failed to submit compute commands!");
+	}
+
 	// Debugging and Performance
 	void VulkanRenderer::StartTimestampQuery(const std::string& name)
 	{
@@ -1099,23 +1133,7 @@ namespace Povox {
 		vkCmdWriteTimestamp(m_ActiveCommandBuffer, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, m_TimestampQueryPools[m_CurrentFrameIndex], m_TimestampQueries[name] + 1);
 	}
 
-
-	Ref<Image2D> VulkanRenderer::GetFinalImage(uint32_t frameIndex) const
-	{
-		if (!(frameIndex < m_FinalImages.size()))
-		{
-			PX_CORE_WARN("VulkanRenderer::GetFinalImage: Index {} out of scope. Must be <= MaxFrames! Returning nullptr!", frameIndex);
-			return nullptr;
-		}
-		if(m_FinalImages[frameIndex])
-			return m_FinalImages[frameIndex];
-		else
-		{
-			PX_CORE_WARN("VulkanRenderer::GetFinalImage: Final image at frame {} not yet created! Returning nullptr!", frameIndex);
-			return nullptr;
-		}
-	}
-
+// Resource Creation and Getters
 	void VulkanRenderer::InitPerformanceQueryPools()
 	{
 		PX_PROFILE_FUNCTION();
@@ -1216,7 +1234,6 @@ namespace Povox {
 		vkResetQueryPool(m_Device, m_TimestampQueryPools[m_CurrentFrameIndex], 0, 2);
 	}
 
-	// Resource Creation and Getters
 	void VulkanRenderer::InitFinalImage(uint32_t width, uint32_t height)
 	{
 		PX_PROFILE_FUNCTION();
@@ -1246,6 +1263,22 @@ namespace Povox {
 		imageSpec.DedicatedSampler = true;
 		imageSpec.CreateDescriptorOnInit = false;
 		m_FinalImages[m_CurrentFrameIndex] = CreateRef<VulkanImage2D>(imageSpec);
+	}
+
+	Ref<Image2D> VulkanRenderer::GetFinalImage(uint32_t frameIndex) const
+	{
+		if (!(frameIndex < m_FinalImages.size()))
+		{
+			PX_CORE_WARN("VulkanRenderer::GetFinalImage: Index {} out of scope. Must be <= MaxFrames! Returning nullptr!", frameIndex);
+			return nullptr;
+		}
+		if (m_FinalImages[frameIndex])
+			return m_FinalImages[frameIndex];
+		else
+		{
+			PX_CORE_WARN("VulkanRenderer::GetFinalImage: Final image at frame {} not yet created! Returning nullptr!", frameIndex);
+			return nullptr;
+		}
 	}
 
 	FrameData& VulkanRenderer::GetFrame(uint32_t index)

@@ -79,7 +79,7 @@ void ExampleLayer::OnUpdate(Povox::Timestep deltatime)
 	//endbatch(scene)
 
 	m_EditorCamera.OnUpdate(deltatime);
-	Povox::Renderer2D::ResetStats();
+	Povox::Renderer2D::ResetStatistics();
 	
 	Povox::Renderer2D::BeginScene(m_EditorCamera);
 	Povox::Renderer2D::DrawQuad(glm::vec2(0.0f, 0.0f), glm::vec2(1.0f, 1.0f), glm::vec4(1.0f, 0.0f, 1.0f, 1.0f));

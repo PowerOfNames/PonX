@@ -19,7 +19,8 @@ namespace Povox {
 		PX_CORE_INFO("VulkanDevice::CreateLogicalDevice: Starting creation...");
 
 		m_QueueFamilies = FindQueueFamilies(m_PhysicalDevice);
-		PX_CORE_TRACE("GraphicsQueueIndex: '{1}' | TransferQueueIndex '{2}' | Present'Queue'Index: '{0}'", m_QueueFamilies.PresentFamilyIndex, m_QueueFamilies.GraphicsFamilyIndex, m_QueueFamilies.TransferFamilyIndex);
+		PX_CORE_TRACE("GraphicsQueueIndex: '{1}' | ComputeQueueIndex '{3}' | TransferQueueIndex '{2}' | Present'Queue'Index: '{0}'", 
+			m_QueueFamilies.PresentFamilyIndex, m_QueueFamilies.GraphicsFamilyIndex, m_QueueFamilies.TransferFamilyIndex, m_QueueFamilies.ComputeFamilyIndex);
 
 
 		std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
@@ -29,6 +30,7 @@ namespace Povox {
 		std::set<uint32_t> queueFamilyIndices = {
 									static_cast<uint32_t>(m_QueueFamilies.GraphicsFamilyIndex),
 									static_cast<uint32_t>(m_QueueFamilies.PresentFamilyIndex),
+									static_cast<uint32_t>(m_QueueFamilies.ComputeFamilyIndex),
 									static_cast<uint32_t>(m_QueueFamilies.TransferFamilyIndex) };
 
 		float queuePriority = 1.0f;
@@ -52,6 +54,8 @@ namespace Povox {
 		deviceFeatures.samplerAnisotropy = VK_TRUE;
 		deviceFeatures.independentBlend = VK_TRUE;
 		deviceFeatures.pipelineStatisticsQuery = VK_TRUE;
+		deviceFeatures.shaderFloat64 = VK_TRUE;
+		deviceFeatures.shaderInt64 = VK_TRUE;
 
 		
 
@@ -87,13 +91,19 @@ namespace Povox {
 		PX_CORE_VK_ASSERT(vkCreateDevice(m_PhysicalDevice, &createInfo, nullptr, &m_Device), VK_SUCCESS, "Failed to create logical device!");
 
 		
-		//TODO: Maybe get rid of the present queue altogether -> just querey for presentSupport and get one of them handles instead
+		//TODO: Maybe get rid of the present queue altogether -> just query for presentSupport and get one of them handles instead
 		vkGetDeviceQueue(m_Device, m_QueueFamilies.GraphicsFamilyIndex, 0, &m_QueueFamilies.Queues.GraphicsQueue);
 		vkGetDeviceQueue(m_Device, m_QueueFamilies.PresentFamilyIndex, 0, &m_QueueFamilies.Queues.PresentQueue);
-		if (m_QueueFamilies.TransferFamilyIndex == m_QueueFamilies.GraphicsFamilyIndex && m_QueueFamilies.Queues.GraphicsQueueCount > 1 )
+		if (!m_PhysicalLimits.HasDedicatedTransferQueue && m_QueueFamilies.Queues.GraphicsQueueCount > 1 )
 			vkGetDeviceQueue(m_Device, m_QueueFamilies.TransferFamilyIndex, 1, &m_QueueFamilies.Queues.TransferQueue);
 		else
 			vkGetDeviceQueue(m_Device, m_QueueFamilies.TransferFamilyIndex, 0, &m_QueueFamilies.Queues.TransferQueue);
+
+		// TODO: Check if this works!
+		if (!m_PhysicalLimits.HasDedicatedComputeQueue && m_QueueFamilies.Queues.GraphicsQueueCount > 1)
+			vkGetDeviceQueue(m_Device, m_QueueFamilies.ComputeFamilyIndex, 1, &m_QueueFamilies.Queues.ComputeQueue);
+		else
+			vkGetDeviceQueue(m_Device, m_QueueFamilies.ComputeFamilyIndex, 0, &m_QueueFamilies.Queues.ComputeQueue);
 
 
 
@@ -139,6 +149,16 @@ namespace Povox {
 		vkGetPhysicalDeviceProperties(physicalDevice, &limits.Properties);
 		limits.MaxBoundDescriptorSets = limits.Properties.limits.maxBoundDescriptorSets;
 		limits.MinBufferAlign = limits.Properties.limits.minUniformBufferOffsetAlignment;
+
+		// Compute
+		limits.MaxComputeWorkGoupCount.X = limits.Properties.limits.maxComputeWorkGroupCount[0];
+		limits.MaxComputeWorkGoupCount.Y = limits.Properties.limits.maxComputeWorkGroupCount[1];
+		limits.MaxComputeWorkGoupCount.Z = limits.Properties.limits.maxComputeWorkGroupCount[2];
+		limits.MaxComputeWorkGroupInvocations = limits.Properties.limits.maxComputeWorkGroupInvocations;
+		limits.MaxComputeWorkGroupSize.X = limits.Properties.limits.maxComputeWorkGroupSize[0];
+		limits.MaxComputeWorkGroupSize.Y = limits.Properties.limits.maxComputeWorkGroupSize[1];
+		limits.MaxComputeWorkGroupSize.Z = limits.Properties.limits.maxComputeWorkGroupSize[2];
+
 		limits.TimestampPeriod = limits.Properties.limits.timestampPeriod;
 
 		return limits;
@@ -172,7 +192,7 @@ namespace Povox {
 		m_PhysicalLimits = QueryPhysicalDeviceLimits(m_PhysicalDevice);
 
 		PX_CORE_INFO("");
-		PX_CORE_INFO("---- Picked Phsical Device Limits ----");
+		PX_CORE_INFO("---- Picked Physical Device Limits ----");
 		PX_CORE_INFO("MaxBoundDescriptorSets	: {0}", m_PhysicalLimits.MaxBoundDescriptorSets);
 		PX_CORE_INFO("MinBufferAlignment		: {0}", m_PhysicalLimits.MinBufferAlign);
 		PX_CORE_INFO("TimestampPeriod		: {0}", m_PhysicalLimits.TimestampPeriod);
@@ -241,14 +261,24 @@ namespace Povox {
 		std::vector<VkQueueFamilyProperties> queueFamilies(indices.UniqueQueueFamilies);
 		vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &indices.UniqueQueueFamilies, &queueFamilies[0]);
 
-		int i = 0;
+		int32_t i = 0;
+		int32_t combinedComputeAndGraphicsIndex = -1;
 		bool presentFound = false;
+
+		// TODO: maybe flag all dedicated findings and skip further search for them to speed up a bit
 		for (const auto& queueFamily : queueFamilies)
 		{
+			//Found GraphicsQueue
 			if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT)
 			{
 				indices.GraphicsFamilyIndex = i;
 				indices.Queues.GraphicsQueueCount = queueFamilies[i].queueCount;
+
+				//Found combined ComputeAndGraphicsQueue
+				if (queueFamily.queueFlags & VK_QUEUE_COMPUTE_BIT)
+				{
+					combinedComputeAndGraphicsIndex = i;
+				}
 			}
 
 			VkBool32 presentSupport = false;
@@ -259,10 +289,18 @@ namespace Povox {
 				presentFound = true;
 			}
 
+			//Found dedicated TransferQueue
 			if (queueFamily.queueFlags & VK_QUEUE_TRANSFER_BIT && !(queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) && !(queueFamily.queueFlags & VK_QUEUE_COMPUTE_BIT))
 			{
 				indices.TransferFamilyIndex = i;
 				m_PhysicalLimits.HasDedicatedTransferQueue = true;
+			}
+
+			//Found dedicated ComputeQueue
+			if (queueFamily.queueFlags & VK_QUEUE_COMPUTE_BIT && !(queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT))
+			{
+				indices.ComputeFamilyIndex = i;
+				m_PhysicalLimits.HasDedicatedComputeQueue = true;
 			}
 
 			if (indices.IsComplete() && indices.HasTransfer())
@@ -276,6 +314,12 @@ namespace Povox {
 		{
 			indices.TransferFamilyIndex = indices.GraphicsFamilyIndex;
 		}
+
+		if (!m_PhysicalLimits.HasDedicatedComputeQueue)
+		{
+			indices.ComputeFamilyIndex = combinedComputeAndGraphicsIndex;
+		}
+		PX_CORE_ASSERT(indices.ComputeFamilyIndex != -1, "No computeSupport on this device!");
 
 		return indices;
 	}

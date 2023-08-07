@@ -87,10 +87,12 @@ namespace Povox {
 
 
 		void DrawSprite(const glm::mat4& transform, SpriteRendererComponent& src, UUID enittyID);
-			
-	
+		void DrawFullscreenQuad();
+
 		const Renderer2DStatistics& GetStatistics() const;
-		void ResetStats();
+		void ResetStatistics();
+
+		inline const Ref<Image2D> GetFinalImage() const { return m_FinalImage; }
 
 	private:
 		void NextBatch();
@@ -98,6 +100,9 @@ namespace Povox {
 
 	private:
 		Renderer2DSpecification m_Specification{};
+
+		//Final
+		Ref<Image2D> m_FinalImage = nullptr;
 
 		// Common
 		Ref<Texture2D> m_WhiteTexture;
@@ -113,6 +118,7 @@ namespace Povox {
 		Ref<Framebuffer> m_QuadFramebuffer = nullptr;
 		Ref<Pipeline> m_QuadPipeline = nullptr;
 		Ref<Material> m_QuadMaterial = nullptr;
+
 		std::vector<Ref<Buffer>> m_QuadVertexBuffers;
 		std::vector<QuadVertex*> m_QuadVertexBufferBases;
 		QuadVertex* m_QuadVertexBufferPtr = nullptr;
@@ -122,18 +128,25 @@ namespace Povox {
 
 		glm::vec4 m_QuadVertexPositions[4];
 
+		// FullscreenQuad
+		Ref<Pipeline> m_FullscreenQuadPipeline = nullptr;
+
+		Ref<Buffer> m_FullscreenQuadVertexBuffer = nullptr;
+
+		Ref<Buffer> m_FullscreenQuadIndexBuffer = nullptr;
+		Ref<Material> m_FullscreenQuadMaterial = nullptr;
+
 		// TODO: Lines
 		// TODO: Font
 		// TODO: Polygons
 
 
 		//TODO: temp object list
-		std::vector<Renderable> m_RenderedObjects;
-
+		//std::vector<Renderable> m_RenderedObjects;
 
 
 		// Stats
-		Renderer2DStatistics m_Stats;
+		Renderer2DStatistics m_Stats{};
 	};
 
 }

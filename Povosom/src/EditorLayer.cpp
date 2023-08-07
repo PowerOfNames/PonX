@@ -1,5 +1,6 @@
 #include "EditorLayer.h"
 
+
 #include "Platform/OpenGL/OpenGLShader.h"
 
 #include <ImGui/imgui.h>
@@ -27,10 +28,20 @@ namespace Povox {
 
 		m_WindowSize = m_ViewportSize = { Application::Get()->GetWindow().GetWidth(), Application::Get()->GetWindow().GetHeight() };		
 
+		{
+			Renderer2DSpecification specs{};
+			specs.ViewportWidth = m_ViewportSize.x;
+			specs.ViewportHeight = m_ViewportSize.y;
+			m_Renderer2D = CreateRef<Renderer2D>(specs);
+			m_Renderer2D->Init();
+		}
+
         m_ActiveScene = CreateRef<Scene>(m_ViewportSize.x, m_ViewportSize.y);
+		m_ActiveScene->SetRenderer2D(m_Renderer2D);
 
         m_EditorCamera = EditorCamera(60.0f, (m_ViewportSize.x / m_ViewportSize.y * 1.0f), 0.1f, 1000.0f);
         m_SceneHierarchyPanel.SetContext(m_ActiveScene);
+
 
     }
 
@@ -39,7 +50,7 @@ namespace Povox {
     {
         PX_PROFILE_FUNCTION();
 
-
+		m_Renderer2D->Shutdown();
     }
 
 
@@ -47,13 +58,13 @@ namespace Povox {
     {
         PX_PROFILE_FUNCTION();
 
-		        
 		m_Deltatime = deltatime;
 
         // Resize
 		if(m_ViewportResized)
         {
 			PX_INFO("New ViewportWidth and Height: {} {}", m_ViewportSize.x, m_ViewportSize.y);
+			PX_INFO("New WindowWidth and Height: {} {}", m_WindowSize.x, m_WindowSize.y);
 			Renderer::WaitForDeviceFinished();
 			Renderer::OnViewportResize(m_ViewportSize.x, m_ViewportSize.y);
 
@@ -66,10 +77,15 @@ namespace Povox {
         m_EditorCamera.OnUpdate(deltatime);
 		m_OrthoCamControl.OnUpdate(deltatime);
 
-		m_ActiveScene->ResetStats();
+		m_ActiveScene->ResetStatistics();
 
 		m_ActiveScene->OnUpdateEditor(deltatime, m_EditorCamera);
 
+		//CopyFinalImage into current SwapchainImage
+		if (!Application::Get()->GetSpecification().ImGuiEnabled)
+			Renderer::PrepareSwapchainImage(m_Renderer2D->GetFinalImage());
+		else
+			Renderer::CreateFinalImage(m_Renderer2D->GetFinalImage());
 
 		// TODO: Move to MousePicking system
 		{
@@ -285,7 +301,7 @@ namespace Povox {
 			//glm::mat4 cameraView = glm::inverse(cameraEntity.GetComponent<TransformComponent>().GetTransform());
 
 			// Editor Camera            
-			const glm::mat4& cameraProjection = m_EditorCamera.GetProjection();
+			const glm::mat4& cameraProjection = m_EditorCamera.GetProjectionMatrix();
 			glm::mat4 cameraView = m_EditorCamera.GetViewMatrix();
 
 			// Entity Transform

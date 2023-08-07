@@ -7,6 +7,7 @@ namespace Povox {
 	{
 		int32_t GraphicsFamilyIndex = -1;
 		int32_t PresentFamilyIndex = -1;					// Does support windows
+		int32_t ComputeFamilyIndex = -1;
 		int32_t TransferFamilyIndex = -1;					// not supported by all GPUs
 
 		uint32_t UniqueQueueFamilies = 0;
@@ -16,11 +17,14 @@ namespace Povox {
 			VkQueue GraphicsQueue;
 			uint32_t GraphicsQueueCount;
 			VkQueue PresentQueue;
+			VkQueue ComputeQueue;
 			VkQueue TransferQueue;
 		} Queues;
 
+		// TODO: check if ComputeSupport is mandatory or not
 		bool IsComplete() { return (GraphicsFamilyIndex != -1) && (PresentFamilyIndex != -1); }
 		bool HasTransfer() { return TransferFamilyIndex != -1; }
+		bool HasCompute() { return ComputeFamilyIndex  != -1; }
 	};
 
 	
@@ -30,9 +34,26 @@ namespace Povox {
 		uint32_t MaxBoundDescriptorSets;
 		uint32_t MinBufferAlign;
 
+		// Compute
+		struct MaxComputeWorkGoupCount
+		{
+			uint32_t X;
+			uint32_t Y;
+			uint32_t Z;
+		}MaxComputeWorkGoupCount;
+		uint32_t MaxComputeWorkGroupInvocations;
+		struct MaxComputeWorkGroupSize
+		{
+			uint32_t X;
+			uint32_t Y;
+			uint32_t Z;
+		}MaxComputeWorkGroupSize;
+
 		float TimestampPeriod;
 
 		bool HasDedicatedTransferQueue = false;
+		bool HasDedicatedComputeQueue = false;
+
 
 		VkPhysicalDeviceProperties Properties;
 	};

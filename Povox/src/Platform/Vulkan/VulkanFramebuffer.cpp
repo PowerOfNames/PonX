@@ -21,7 +21,7 @@ namespace Povox {
 
 		//The actual fb will be constructed AFTER a RP has been created. THis will happen either in FB->create() or manually, when needed using this->Construct(rp)
 
-		PX_CORE_TRACE("VulkanFramebuffer::Construct!");
+		PX_CORE_TRACE("VulkanFramebuffer::VulkanFramebuffer: Initialized!");
 	}
 
 	VulkanFramebuffer::~VulkanFramebuffer()
@@ -61,7 +61,6 @@ namespace Povox {
 				imageSpec.Tiling = ImageTiling::OPTIMAL;
 				if (Utils::IsDepthFormat(attachment.Format))
 				{
-
 					imageSpec.DebugName = m_Specification.DebugName + "-DepthAttachment";
 					imageSpec.Usages = { ImageUsage::DEPTH_ATTACHMENT };
 					m_DepthAttachment = Image2D::Create(imageSpec);
@@ -173,6 +172,8 @@ namespace Povox {
 		nameInfo.pObjectName = m_Specification.DebugName.c_str();
 		NameVkObject(VulkanContext::GetDevice()->GetVulkanDevice(), nameInfo);
 #endif // DEBUG
+
+		PX_CORE_INFO("VulkanFramebuffer::Construct: Constructed!");
 	}
 
 	void VulkanFramebuffer::Destroy()

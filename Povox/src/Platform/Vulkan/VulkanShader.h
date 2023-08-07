@@ -58,7 +58,7 @@ namespace Povox {
 		inline const VertexInputDescription& GetVertexInputDescription() const { return m_VertexInputDescription; }
 
 
-		VkShaderModule& GetModule(VkShaderStageFlagBits stage);
+		inline const std::unordered_map<VkShaderStageFlagBits, VkShaderModule>& VulkanShader::GetModules() { return m_Modules; }
 
 		virtual const std::string& GetDebugName() const { return m_DebugName; }
 

@@ -1,12 +1,12 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
+# Visual Studio Version 17
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{FA2B8F09-E6BA-18D3-8FD9-2CCE7B472979}"
 	ProjectSection(SolutionItems) = preProject
 		.editorconfig = .editorconfig
 	EndProjectSection
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Povosom", "Povosom\Povosom.vcxproj", "{F858751D-6438-F4B8-6D50-7F8FD9AE5A1A}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Povoton", "Povoton\Povoton.vcxproj", "{3A5D751D-A63C-F4B8-AF54-7F8F1BB35A1A}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Dependencies", "Dependencies", "{53E47842-3FC8-3998-A828-34EB942B241A}"
 EndProject
@@ -18,7 +18,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ImGui", "Povox\vendor\ImGui
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Premake", "vendor\premake\Premake.vcxproj", "{6ACC3F23-D6AB-BEBE-DFC3-49954B222520}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Povoton", "Povoton\Povoton.vcxproj", "{3A5D751D-A63C-F4B8-AF54-7F8F1BB35A1A}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Povosom", "Povosom\Povosom.vcxproj", "{F858751D-6438-F4B8-6D50-7F8FD9AE5A1A}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Povox", "Povox\Povox.vcxproj", "{418BE50D-AD9F-0DBF-7621-B11EE2F409F0}"
 EndProject
@@ -31,12 +31,12 @@ Global
 		Release|x64 = Release|x64
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{F858751D-6438-F4B8-6D50-7F8FD9AE5A1A}.Debug|x64.ActiveCfg = Debug|x64
-		{F858751D-6438-F4B8-6D50-7F8FD9AE5A1A}.Debug|x64.Build.0 = Debug|x64
-		{F858751D-6438-F4B8-6D50-7F8FD9AE5A1A}.Dist|x64.ActiveCfg = Dist|x64
-		{F858751D-6438-F4B8-6D50-7F8FD9AE5A1A}.Dist|x64.Build.0 = Dist|x64
-		{F858751D-6438-F4B8-6D50-7F8FD9AE5A1A}.Release|x64.ActiveCfg = Release|x64
-		{F858751D-6438-F4B8-6D50-7F8FD9AE5A1A}.Release|x64.Build.0 = Release|x64
+		{3A5D751D-A63C-F4B8-AF54-7F8F1BB35A1A}.Debug|x64.ActiveCfg = Debug|x64
+		{3A5D751D-A63C-F4B8-AF54-7F8F1BB35A1A}.Debug|x64.Build.0 = Debug|x64
+		{3A5D751D-A63C-F4B8-AF54-7F8F1BB35A1A}.Dist|x64.ActiveCfg = Dist|x64
+		{3A5D751D-A63C-F4B8-AF54-7F8F1BB35A1A}.Dist|x64.Build.0 = Dist|x64
+		{3A5D751D-A63C-F4B8-AF54-7F8F1BB35A1A}.Release|x64.ActiveCfg = Release|x64
+		{3A5D751D-A63C-F4B8-AF54-7F8F1BB35A1A}.Release|x64.Build.0 = Release|x64
 		{154B857C-0182-860D-AA6E-6C109684020F}.Debug|x64.ActiveCfg = Debug|x64
 		{154B857C-0182-860D-AA6E-6C109684020F}.Debug|x64.Build.0 = Debug|x64
 		{154B857C-0182-860D-AA6E-6C109684020F}.Dist|x64.ActiveCfg = Dist|x64
@@ -61,12 +61,12 @@ Global
 		{6ACC3F23-D6AB-BEBE-DFC3-49954B222520}.Dist|x64.Build.0 = Dist|x64
 		{6ACC3F23-D6AB-BEBE-DFC3-49954B222520}.Release|x64.ActiveCfg = Release|x64
 		{6ACC3F23-D6AB-BEBE-DFC3-49954B222520}.Release|x64.Build.0 = Release|x64
-		{3A5D751D-A63C-F4B8-AF54-7F8F1BB35A1A}.Debug|x64.ActiveCfg = Debug|x64
-		{3A5D751D-A63C-F4B8-AF54-7F8F1BB35A1A}.Debug|x64.Build.0 = Debug|x64
-		{3A5D751D-A63C-F4B8-AF54-7F8F1BB35A1A}.Dist|x64.ActiveCfg = Dist|x64
-		{3A5D751D-A63C-F4B8-AF54-7F8F1BB35A1A}.Dist|x64.Build.0 = Dist|x64
-		{3A5D751D-A63C-F4B8-AF54-7F8F1BB35A1A}.Release|x64.ActiveCfg = Release|x64
-		{3A5D751D-A63C-F4B8-AF54-7F8F1BB35A1A}.Release|x64.Build.0 = Release|x64
+		{F858751D-6438-F4B8-6D50-7F8FD9AE5A1A}.Debug|x64.ActiveCfg = Debug|x64
+		{F858751D-6438-F4B8-6D50-7F8FD9AE5A1A}.Debug|x64.Build.0 = Debug|x64
+		{F858751D-6438-F4B8-6D50-7F8FD9AE5A1A}.Dist|x64.ActiveCfg = Dist|x64
+		{F858751D-6438-F4B8-6D50-7F8FD9AE5A1A}.Dist|x64.Build.0 = Dist|x64
+		{F858751D-6438-F4B8-6D50-7F8FD9AE5A1A}.Release|x64.ActiveCfg = Release|x64
+		{F858751D-6438-F4B8-6D50-7F8FD9AE5A1A}.Release|x64.Build.0 = Release|x64
 		{418BE50D-AD9F-0DBF-7621-B11EE2F409F0}.Debug|x64.ActiveCfg = Debug|x64
 		{418BE50D-AD9F-0DBF-7621-B11EE2F409F0}.Debug|x64.Build.0 = Debug|x64
 		{418BE50D-AD9F-0DBF-7621-B11EE2F409F0}.Dist|x64.ActiveCfg = Dist|x64

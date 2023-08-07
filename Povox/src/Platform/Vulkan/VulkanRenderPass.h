@@ -22,4 +22,20 @@ namespace Povox {
 		VkRenderPass m_RenderPass = VK_NULL_HANDLE;
 	};
 
+
+	class VulkanComputePass : public ComputePass
+	{
+	public:
+		VulkanComputePass(const ComputePassSpecification& spec);
+		virtual ~VulkanComputePass();
+
+		virtual void Recreate() override;
+
+		virtual inline const ComputePassSpecification& GetSpecification() const override { return m_Specification; }
+
+		virtual inline const std::string& GetDebugName() const override { return m_Specification.DebugName; }
+	private:
+
+		ComputePassSpecification m_Specification{};
+	};
 }

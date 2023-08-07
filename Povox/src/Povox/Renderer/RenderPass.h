@@ -25,4 +25,26 @@ namespace Povox {
 
 		static Ref<RenderPass> Create(const RenderPassSpecification& spec);
 	};
+
+
+
+	struct ComputePassSpecification
+	{
+
+
+		std::string DebugName = "ComputePass";
+	};
+
+	class ComputePass
+	{
+	public:
+		virtual ~ComputePass() = default;
+		virtual void Recreate() = 0;
+
+		virtual const ComputePassSpecification& GetSpecification() const = 0;
+
+		virtual const std::string& GetDebugName() const = 0;
+
+		static Ref<ComputePass> Create(const ComputePassSpecification& spec);
+	};
 }

@@ -25,6 +25,8 @@ namespace Povox {
 				return VK_SHADER_STAGE_VERTEX_BIT;
 			if (string == "fragment")
 				return VK_SHADER_STAGE_FRAGMENT_BIT;
+			if (string == "geometry")
+				return VK_SHADER_STAGE_GEOMETRY_BIT;
 			if (string == "compute")
 				return VK_SHADER_STAGE_COMPUTE_BIT;
 
@@ -37,6 +39,7 @@ namespace Povox {
 			{
 				case VK_SHADER_STAGE_VERTEX_BIT: return ".cached_vulkan.vert";
 				case VK_SHADER_STAGE_FRAGMENT_BIT: return ".cached_vulkan.frag";
+				case VK_SHADER_STAGE_GEOMETRY_BIT: return ".cached_vulkan.geom";
 				case VK_SHADER_STAGE_COMPUTE_BIT: return ".cached_vulkan.comp";
 			}
 			PX_CORE_ASSERT(false, "Shaderstage not defined");
@@ -49,11 +52,26 @@ namespace Povox {
 			{
 				case VK_SHADER_STAGE_VERTEX_BIT: return shaderc_glsl_vertex_shader;
 				case VK_SHADER_STAGE_FRAGMENT_BIT: return shaderc_glsl_fragment_shader;
+				case VK_SHADER_STAGE_GEOMETRY_BIT: return shaderc_glsl_geometry_shader;
 				case VK_SHADER_STAGE_COMPUTE_BIT: return shaderc_glsl_compute_shader;
 			}
 
 			PX_CORE_ASSERT(false, "Shaderstage not defined");
 			return (shaderc_shader_kind)0;
+		}
+
+		static std::string VKShaderStageToString(VkShaderStageFlagBits stage)
+		{
+			switch (stage)
+			{
+				case VK_SHADER_STAGE_VERTEX_BIT: return "Vertex";
+				case VK_SHADER_STAGE_FRAGMENT_BIT: return "Fragment";
+				case VK_SHADER_STAGE_GEOMETRY_BIT: return "Geometry";
+				case VK_SHADER_STAGE_COMPUTE_BIT: return "Compute";
+			}
+
+			PX_CORE_ASSERT(false, "Shaderstage not defined");
+			return "Stage not supported!";
 		}
 
 		//Only for Vertex-attributes
@@ -104,6 +122,35 @@ namespace Povox {
 	}
 
 	namespace VulkanShaderUtils {
+
+		std::string ReflectErrorToString(SpvReflectResult result)
+		{
+			switch (result)
+			{
+				case SPV_REFLECT_RESULT_SUCCESS: return "SPV_REFLECT_RESULT_Success";
+				case SPV_REFLECT_RESULT_NOT_READY : return "SPV_REFLECT_RESULT_NOT_READY";
+				case SPV_REFLECT_RESULT_ERROR_PARSE_FAILED : return "SPV_REFLECT_RESULT__ERROR_PARSE_FAILED";
+				case SPV_REFLECT_RESULT_ERROR_ALLOC_FAILED : return "SPV_REFLECT_RESULT_ERROR_ALLOC_FAILED";
+				case SPV_REFLECT_RESULT_ERROR_RANGE_EXCEEDED : return "SPV_REFLECT_RESULT_ERROR_RANGE_EXCEEDED";
+				case SPV_REFLECT_RESULT_ERROR_NULL_POINTER : return "SPV_REFLECT_RESULT_ERROR_NULL_POINTER";
+				case SPV_REFLECT_RESULT_ERROR_INTERNAL_ERROR : return "SPV_REFLECT_RESULT_ERROR_INTERNAL_ERROR";
+				case SPV_REFLECT_RESULT_ERROR_COUNT_MISMATCH : return "SPV_REFLECT_RESULT_ERROR_COUNT_MISMATCH";
+				case SPV_REFLECT_RESULT_ERROR_ELEMENT_NOT_FOUND : return "SPV_REFLECT_RESULT_ERROR_ELEMENT_NOT_FOUND";
+				case SPV_REFLECT_RESULT_ERROR_SPIRV_INVALID_CODE_SIZE : return "SPV_REFLECT_RESULT_ERROR_SPIRV_INVALID_CODE_SIZE";
+				case SPV_REFLECT_RESULT_ERROR_SPIRV_INVALID_MAGIC_NUMBER : return "SPV_REFLECT_RESULT_ERROR_SPIRV_INVALID_MAGIC_NUMBER";
+				case SPV_REFLECT_RESULT_ERROR_SPIRV_UNEXPECTED_EOF : return "SPV_REFLECT_RESULT_ERROR_SPIRV_UNEXPECTED_EOF";
+				case SPV_REFLECT_RESULT_ERROR_SPIRV_INVALID_ID_REFERENCE : return "SPV_REFLECT_RESULT_ERROR_SPIRV_INVALID_ID_REFERENCE";
+				case SPV_REFLECT_RESULT_ERROR_SPIRV_SET_NUMBER_OVERFLOW : return "SPV_REFLECT_RESULT_ERROR_SPIRV_SET_NUMBER_OVERFLOW";
+				case SPV_REFLECT_RESULT_ERROR_SPIRV_INVALID_STORAGE_CLASS : return "SPV_REFLECT_RESULT_ERROR_SPIRV_INVALID_STORAGE_CLASS";
+				case SPV_REFLECT_RESULT_ERROR_SPIRV_RECURSION : return "SPV_REFLECT_RESULT_ERROR_SPIRV_RECURSION";
+				case SPV_REFLECT_RESULT_ERROR_SPIRV_INVALID_INSTRUCTION : return "SPV_REFLECT_RESULT_ERROR_SPIRV_INVALID_INSTRUCTION";
+				case SPV_REFLECT_RESULT_ERROR_SPIRV_UNEXPECTED_BLOCK_DATA : return "SPV_REFLECT_RESULT_ERROR_SPIRV_UNEXPECTED_BLOCK_DATA";
+				case SPV_REFLECT_RESULT_ERROR_SPIRV_INVALID_BLOCK_MEMBER_REFERENCE : return "SPV_REFLECT_RESULT_ERROR_SPIRV_INVALID_BLOCK_MEMBER_REFERENCE";
+				case SPV_REFLECT_RESULT_ERROR_SPIRV_INVALID_ENTRY_POINT : return "SPV_REFLECT_RESULT_ERROR_SPIRV_INVALID_ENTRY_POINT";
+				case SPV_REFLECT_RESULT_ERROR_SPIRV_INVALID_EXECUTION_MODE : return "SPV_REFLECT_RESULT_ERROR_SPIRV_INVALID_EXECUTION_MODE";
+				default: return "SPVReflect case not known!";
+			}
+		}
 
 		std::string ReflectDecorationTypeDescriptionToString(const SpvReflectTypeDescription& type)
 		{
@@ -165,6 +212,7 @@ namespace Povox {
 			switch (stage) {
 				case SPV_REFLECT_SHADER_STAGE_VERTEX_BIT: return "Reflected Vertex Stage";
 				case SPV_REFLECT_SHADER_STAGE_FRAGMENT_BIT: return "Reflected Fragment Stage";
+				case SPV_REFLECT_SHADER_STAGE_GEOMETRY_BIT: return "Reflected Geometry Stage";
 				case SPV_REFLECT_SHADER_STAGE_COMPUTE_BIT: return "Reflected Compute Stage";
 				case SPV_REFLECT_SHADER_STAGE_TESSELLATION_CONTROL_BIT: return "Reflected Tessellation Control Stage";
 				case SPV_REFLECT_SHADER_STAGE_TESSELLATION_EVALUATION_BIT: return "Reflected Tessellation Eva Stage";
@@ -218,7 +266,7 @@ namespace Povox {
 		auto lastDot = m_FilePath.rfind(".");
 		auto count = lastDot == std::string::npos ? m_FilePath.size() - lastSlash : lastDot - lastSlash;
 		m_DebugName = m_FilePath.substr(lastSlash, count);
-
+		PX_CORE_WARN("Creating shader with name: {0}", m_DebugName);
 
 		std::string sources = Utils::Shader::ReadFile(filepath);
 		auto shaderSourceCodeMap = PreProcess(sources);
@@ -255,7 +303,7 @@ namespace Povox {
 			});
 	}
 
-	//Creates a DescriptorSetLayout by reflecting the shade and allocates it form the Pool in the Context
+	//Creates a DescriptorSetLayout by reflecting the shader and allocates it from the Pool in the Context
 	void VulkanShader::Reflect()
 	{
 		VkDevice device = VulkanContext::GetDevice()->GetVulkanDevice();
@@ -276,7 +324,11 @@ namespace Povox {
 		{
 			SpvReflectShaderModule module{};
 			SpvReflectResult result = spvReflectCreateShaderModule(sizeof(uint32_t) * data.size(), data.data(), &module);
-			PX_CORE_ASSERT(result == SPV_REFLECT_RESULT_SUCCESS, "ReflectionModule creation failed!");
+			if (result != SPV_REFLECT_RESULT_SUCCESS)
+			{
+				VulkanShaderUtils::ReflectErrorToString(result);
+				PX_CORE_ASSERT(true, "ReflectionModule creation failed!");
+			}
 
 			uint32_t count = 0;
 			result = spvReflectEnumerateInputVariables(&module, &count, nullptr);
@@ -607,6 +659,7 @@ namespace Povox {
 
 		auto& shaderData = m_SourceCodes;
 		shaderData.clear();
+		PX_CORE_WARN("Compiling shader ' {} ' ...", m_DebugName);
 		for (auto&& [stage, code] : sources)
 		{
 			std::filesystem::path shaderFilePath = m_FilePath;
@@ -643,14 +696,8 @@ namespace Povox {
 					out.close();
 				}
 			}
+
+			PX_CORE_WARN("Contains ShaderStage: {}", VulkanUtils::VKShaderStageToString(stage));
 		}
-	}
-
-	VkShaderModule& VulkanShader::GetModule(VkShaderStageFlagBits stage)
-	{
-		PX_CORE_ASSERT(!(m_Modules.find(stage) == m_Modules.end()), "Shaderstage not covered by shader '{0}'", m_DebugName);
-
-
-		return m_Modules.at(stage);
 	}
 }

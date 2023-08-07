@@ -1,0 +1,20 @@
+Scene: Noname
+Entities:
+  - Entity ID: 4887417705709298517
+    TagComponent:
+      Tag: Blue
+    TransformComponent:
+      Translation: [1.29999995, 4.30000019, -10.5]
+      Rotation: [0.268780708, -0.488692194, -0.563741326]
+      Scale: [16.6000004, 15, 1]
+    SpriteRendererComponent:
+      Color: [0.269167095, 0.31584841, 0.571428537, 1]
+  - Entity ID: 911991870435119475
+    TagComponent:
+      Tag: Green
+    TransformComponent:
+      Translation: [-1.89999998, 0, -6.80000019]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    SpriteRendererComponent:
+      Color: [0.21120733, 0.594594598, 0.261536092, 1]

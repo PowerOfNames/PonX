@@ -17,7 +17,21 @@ namespace Povox {
 				return CreateRef<VulkanRenderPass>(spec);
 			}			
 		}
-		PX_CORE_ASSERT(false, "Unknown RendererAPI");
+		PX_CORE_ASSERT(true, "Unknown RendererAPI");
+		return nullptr;
+	}
+
+
+	Ref<ComputePass> ComputePass::Create(const ComputePassSpecification& spec)
+	{
+		switch (Renderer::GetAPI())
+		{
+			case RendererAPI::API::Vulkan:
+			{
+				return CreateRef<VulkanComputePass>(spec);
+			}
+		}
+		PX_CORE_ASSERT(true, "Unknown RendererAPI");
 		return nullptr;
 	}
 }

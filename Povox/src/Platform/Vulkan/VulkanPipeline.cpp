@@ -205,26 +205,15 @@ namespace Povox {
 			info.pVertexAttributeDescriptions = description.Attributes.data();
 			m_VertexInputStateInfo = info;
 		}
-		//TODO: Check what modules exist and iterate over them
-		VkShaderModule vertexShaderModule = shader->GetModule(VK_SHADER_STAGE_VERTEX_BIT);
+
+		for (auto& [stage, module] : shader->GetModules())
 		{
 			VkPipelineShaderStageCreateInfo info{};
 			info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 			info.pNext = nullptr;
 
-			info.stage = VK_SHADER_STAGE_VERTEX_BIT;
-			info.module = vertexShaderModule;
-			info.pName = "main";
-			m_ShaderStageInfos.push_back(info);
-		}
-		VkShaderModule fragmentShaderModule = shader->GetModule(VK_SHADER_STAGE_FRAGMENT_BIT);
-		{
-			VkPipelineShaderStageCreateInfo info{};
-			info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-			info.pNext = nullptr;
-
-			info.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-			info.module = fragmentShaderModule;
+			info.stage = stage;
+			info.module = module;
 			info.pName = "main";
 			m_ShaderStageInfos.push_back(info);
 		}
@@ -394,8 +383,139 @@ namespace Povox {
 		NameVkObject(VulkanContext::GetDevice()->GetVulkanDevice(), nameInfo);
 #endif // DEBUG
 
-		vkDestroyShaderModule(device, vertexShaderModule, nullptr);
-		vkDestroyShaderModule(device, fragmentShaderModule, nullptr);
+	}
+
+
+	//------------------ Compute -------------------------
+
+
+	VulkanComputePipeline::VulkanComputePipeline(const ComputePipelineSpecification& specs)
+	{
+		PX_PROFILE_FUNCTION();
+
+
+		PX_CORE_TRACE("VulkanComputePipeline::Construct Begin!");
+		VkDevice device = VulkanContext::GetDevice()->GetVulkanDevice();
+		Ref<VulkanShader> shader = std::dynamic_pointer_cast<VulkanShader>(specs.Shader);
+
+		CreateLayout();
+		CreatePipeline();
+
+		PX_CORE_TRACE("VulkanComputePipeline::Construct Finished!");
+	}
+	VulkanComputePipeline::~VulkanComputePipeline()	{}
+
+	void VulkanComputePipeline::Free()
+	{
+		VulkanContext::SubmitResourceFree([=]() {
+
+			VkDevice device = VulkanContext::GetDevice()->GetVulkanDevice();
+			if (m_Layout)
+			{
+				vkDestroyPipelineLayout(device, m_Layout, nullptr);
+				m_Layout = VK_NULL_HANDLE;
+			}
+			if (m_Pipeline)
+			{
+				vkDestroyPipeline(device, m_Pipeline, nullptr);
+				m_Pipeline = VK_NULL_HANDLE;
+			}
+			});
+	}
+
+	void VulkanComputePipeline::Recreate()
+	{
+		VkDevice device = VulkanContext::GetDevice()->GetVulkanDevice();
+		//if (m_Specification.DynamicViewAndScissors)
+		//	return;
+
+		if (m_Pipeline)
+			vkDestroyPipeline(device, m_Pipeline, nullptr);
+		CreatePipeline();
+	}
+
+	void VulkanComputePipeline::CreateLayout()
+	{
+		VkDevice device = VulkanContext::GetDevice()->GetVulkanDevice();
+		Ref<VulkanShader> shader = std::dynamic_pointer_cast<VulkanShader>(m_Specification.Shader);
+
+		std::vector<VkDescriptorSetLayout>& layouts = shader->GetDescriptorSetLayouts();
+		PX_CORE_WARN("Layouts: {0}", layouts.size());
+		VkPipelineLayoutCreateInfo layoutInfo{};
+		layoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+		layoutInfo.pNext = nullptr;
+
+		//layoutInfo.pushConstantRangeCount = 0;		// optional
+		//layoutInfo.pPushConstantRanges = nullptr;	// optional
+		layoutInfo.setLayoutCount = static_cast<uint32_t>(layouts.size());
+		PX_CORE_INFO("DescriptorSetLayout count = '{0}'", layoutInfo.setLayoutCount);
+		layoutInfo.pSetLayouts = layouts.data();
+
+// 		VkPushConstantRange pushConstant;
+// 		pushConstant.offset = 0;
+// 		pushConstant.size = sizeof(PushConstants);
+// 		pushConstant.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+// 
+// 		layoutInfo.pushConstantRangeCount = 1;
+// 		layoutInfo.pPushConstantRanges = &pushConstant;
+		PX_CORE_VK_ASSERT(vkCreatePipelineLayout(device, &layoutInfo, nullptr, &m_Layout), VK_SUCCESS, "Failed to create ComputePipelineLayout!");
+
+#ifdef PX_DEBUG
+		VkDebugUtilsObjectNameInfoEXT nameInfo{};
+		nameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+		nameInfo.objectType = VK_OBJECT_TYPE_PIPELINE_LAYOUT;
+		nameInfo.objectHandle = (uint64_t)m_Layout;
+		nameInfo.pObjectName = m_Specification.DebugName.c_str();
+		NameVkObject(VulkanContext::GetDevice()->GetVulkanDevice(), nameInfo);
+#endif // DEBUG
+
+		PX_CORE_TRACE("VulkanPipeline::Construct Created ComputePipelineLayout!");
+	}
+
+	void VulkanComputePipeline::CreatePipeline()
+	{
+		VkDevice device = VulkanContext::GetDevice()->GetVulkanDevice();
+		Ref<VulkanShader> shader = std::dynamic_pointer_cast<VulkanShader>(m_Specification.Shader);
+
+		//TODO: Check what modules exist and iterate over them
+		const std::unordered_map<VkShaderStageFlagBits, VkShaderModule> modules = shader->GetModules();
+		if (modules.find(VK_SHADER_STAGE_COMPUTE_BIT) == modules.end())
+		{
+			PX_CORE_ASSERT(true, "There is no compute shader set in this PipelineConfig!");
+		}
+		else
+		{
+			VkPipelineShaderStageCreateInfo info{};
+			info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+			info.pNext = nullptr;
+
+			info.stage = VK_SHADER_STAGE_COMPUTE_BIT;
+			info.module = modules.at(VK_SHADER_STAGE_COMPUTE_BIT);
+			info.pName = "main";
+			m_ShaderStageInfo = info;
+		}
+
+		VkComputePipelineCreateInfo info{};
+		info.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
+		info.pNext = nullptr;
+
+		info.layout = m_Layout;
+		info.stage = m_ShaderStageInfo;
+
+		info.flags = 0;
+		info.basePipelineHandle = VK_NULL_HANDLE;
+		info.basePipelineIndex = 0;
+
+		PX_CORE_VK_ASSERT(vkCreateComputePipelines(device, nullptr, 1, &info, nullptr, &m_Pipeline), VK_SUCCESS, "Failed to create ComputePipeline!");
+
+#ifdef PX_DEBUG
+			VkDebugUtilsObjectNameInfoEXT nameInfo{};
+		nameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+		nameInfo.objectType = VK_OBJECT_TYPE_PIPELINE;
+		nameInfo.objectHandle = (uint64_t)m_Pipeline;
+		nameInfo.pObjectName = m_Specification.DebugName.c_str();
+		NameVkObject(VulkanContext::GetDevice()->GetVulkanDevice(), nameInfo);
+#endif // DEBUG
 	}
 
 }

@@ -37,7 +37,7 @@ void Sandbox2D::OnUpdate(Povox::Timestep deltatime)
 
 	m_CameraController.OnUpdate(deltatime);
 
-	Povox::Renderer2D::ResetStats();
+	Povox::Renderer2D::ResetStatistics();
     {
         PX_PROFILE_SCOPE("Renderer_Preps")
     }

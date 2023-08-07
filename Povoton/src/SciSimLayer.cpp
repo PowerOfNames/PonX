@@ -1,7 +1,5 @@
 #include "SciSimLayer.h"
 
-#include "Platform/OpenGL/OpenGLShader.h"
-
 #include <ImGui/imgui.h>
 #include <ImGuizmo.h>
 
@@ -10,13 +8,12 @@
 #include <glm/gtc/type_ptr.hpp>
 
 #include "Povox/Utils/PlatformsUtils.h"
-#include "Povox/Scene/SceneSerializer.h"
 #include "Povox/Math/Math.h"
 
 namespace Povox {
 
 	SciSimLayer::SciSimLayer()
-        : Layer("Povotom"), m_OrthoCamControl((1600.0f/900.0f), false)
+        : Layer("Povoton")
     {
     }
 
@@ -25,13 +22,26 @@ namespace Povox {
         PX_PROFILE_FUNCTION();
 
 
-		m_WindowSize = m_ViewportSize = { Application::Get()->GetWindow().GetWidth(), Application::Get()->GetWindow().GetHeight() };		
+		m_WindowSize = m_ViewportSize = { Povox::Application::Get()->GetWindow().GetWidth(), Povox::Application::Get()->GetWindow().GetHeight() };
 
-        m_ActiveScene = CreateRef<Scene>(m_ViewportSize.x, m_ViewportSize.y);
 
-        m_EditorCamera = EditorCamera(60.0f, (m_ViewportSize.x / m_ViewportSize.y * 1.0f), 0.1f, 1000.0f);
-        m_SceneHierarchyPanel.SetContext(m_ActiveScene);
+        m_EditorCamera = Povox::EditorCamera(90.0f, (m_ViewportSize.x / m_ViewportSize.y * 1.0f), 0.1f, 1000.0f);
+		PX_INFO("Camera Aspect Ratio: {}", (m_ViewportSize.x / m_ViewportSize.y * 1.0f));
 
+
+
+		{
+			SciParticleRendererSpecification specs{};
+			specs.ViewportWidth = m_ViewportSize.x;
+			specs.ViewportHeight = m_ViewportSize.y;
+
+			m_SciRenderer = Povox::CreateRef<SciParticleRenderer>(specs);
+			m_SciRenderer->Init();
+		}
+
+		m_ActiveParticleSet = Povox::CreateRef<SciParticleSet>();
+
+		m_ParticleInformationPanel.SetContext(m_ActiveParticleSet);
     }
 
 
@@ -39,11 +49,11 @@ namespace Povox {
     {
         PX_PROFILE_FUNCTION();
 
-
+		m_SciRenderer->Shutdown();
     }
 
 
-    void SciSimLayer::OnUpdate(Timestep deltatime)
+    void SciSimLayer::OnUpdate(Povox::Timestep deltatime)
     {
         PX_PROFILE_FUNCTION();
 
@@ -54,22 +64,31 @@ namespace Povox {
 		if(m_ViewportResized)
         {
 			PX_INFO("New ViewportWidth and Height: {} {}", m_ViewportSize.x, m_ViewportSize.y);
-			Renderer::WaitForDeviceFinished();
-			Renderer::OnViewportResize(m_ViewportSize.x, m_ViewportSize.y);
+			PX_INFO("New WindowWidth and Height: {} {}", m_WindowSize.x, m_WindowSize.y);
+
+			Povox::Renderer::WaitForDeviceFinished();
+			Povox::Renderer::OnViewportResize(m_ViewportSize.x, m_ViewportSize.y);
 
             m_EditorCamera.SetViewportSize(m_ViewportSize.x, m_ViewportSize.y);
 
-            m_ActiveScene->OnViewportResize((uint32_t)m_ViewportSize.x, (uint32_t)m_ViewportSize.y);
+            m_SciRenderer->OnResize((uint32_t)m_ViewportSize.x, (uint32_t)m_ViewportSize.y);
 			m_ViewportResized = false;
         }
 
+
         m_EditorCamera.OnUpdate(deltatime);
-		m_OrthoCamControl.OnUpdate(deltatime);
 
-		m_ActiveScene->ResetStats();
+		m_SciRenderer->ResetStatistics();
+		
+		m_SciRenderer->BeginScene(m_EditorCamera);
+		m_SciRenderer->DrawParticleSet(m_ActiveParticleSet);
+		m_SciRenderer->EndScene();
 
-		m_ActiveScene->OnUpdateEditor(deltatime, m_EditorCamera);
-
+		//CopyFinalImage into current SwapchainImage
+		if (!Application::Get()->GetSpecification().ImGuiEnabled)
+			Renderer::PrepareSwapchainImage(m_SciRenderer->GetFinalImage());
+		else
+			Renderer::CreateFinalImage(m_SciRenderer->GetFinalImage());
 
 		// TODO: Move to MousePicking system
 		{
@@ -84,7 +103,6 @@ namespace Povox {
 			if (mouseX >= 0 && mouseY >= 0 && mouseX < (int)viewportSize.x && mouseY < (int)viewportSize.y)
 			{
 				//uint64_t pixelData = (uint64_t)m_ImGuiViewportFB->GetColorAttachment(1)->ReadPixel(mouseX, mouseY);
-				//m_HoveredEntity = pixelData == 0 ? Entity() : Entity((entt::entity)pixelData, m_ActiveScene.get());
 			}
 		}
     }
@@ -174,21 +192,21 @@ namespace Povox {
 		}
 
 		// Renderer Stats
-		auto stats = m_ActiveScene->GetStats();
+		//auto stats = m_ActiveScene->GetStats();
 
 		
 
 		if (!m_GUICollapsed)
 		{
 			ImGui::Begin(" Stats ", &m_GUICollapsed);
-			ImGui::Text("DrawCalls: %d", stats.DrawCalls);
-			ImGui::Text("Quads: %d", stats.QuadCount);
-			ImGui::Text("Vertices: %d", stats.GetTotalVertexCount());
-			ImGui::Text("Indices: %d", stats.GetTotalIndexCount());
+// 			ImGui::Text("DrawCalls: %d", stats.DrawCalls);
+// 			ImGui::Text("Quads: %d", stats.QuadCount);
+// 			ImGui::Text("Vertices: %d", stats.GetTotalVertexCount());
+// 			ImGui::Text("Indices: %d", stats.GetTotalIndexCount());
 			ImGui::Text("Deltatime: %f", m_Deltatime);
 			ImGui::Separator();
 
-			RendererStatistics rendererStats = Renderer::GetStatistics();
+			Povox::RendererStatistics rendererStats = Povox::Renderer::GetStatistics();
 			for (uint32_t i = 0; i < rendererStats.PipelineStats.size(); i++)
 			{
 				std::string caption = rendererStats.PipelineStatNames[i] + ": %llu";
@@ -206,8 +224,8 @@ namespace Povox {
 
 
 			std::string name = "None";
-			if (m_HoveredEntity)
-				name = m_HoveredEntity.GetComponent<TagComponent>().Tag;
+			//if (m_HoveredEntity)
+			//	name = m_HoveredEntity.GetComponent<TagComponent>().Tag;
 			ImGui::Text("Hovered Entity: %s", name.c_str());
 
 			ImGui::End(); // Renderer Stats
@@ -226,7 +244,7 @@ namespace Povox {
 
 
 			// Panels
-			m_SceneHierarchyPanel.OnImGuiRender();
+			m_ParticleInformationPanel.OnImGuiRender();
 
 		} // Collapsed
 		ImGui::End(); //Dockspace end
@@ -243,8 +261,12 @@ namespace Povox {
 
 		m_ViewportIsFocused = ImGui::IsWindowFocused();
 		m_ViewportIsHovered = ImGui::IsWindowHovered();
-		Application::Get()->GetImGuiVulkanLayer()->BlockEvents(!m_ViewportIsFocused || !m_ViewportIsHovered);
+		Povox::Application::Get()->GetImGuiVulkanLayer()->BlockEvents(!m_ViewportIsFocused || !m_ViewportIsHovered);
+		ImGui::GetWindowSize();
 
+		ImGui::GetForegroundDrawList()->AddRect(
+			ImVec2(viewportMinRegion.x + viewPortOffset.x, viewportMinRegion.y + viewPortOffset.y), 
+			ImVec2(viewportMaxRegion.x + viewPortOffset.x, viewportMaxRegion.y + viewPortOffset.y), IM_COL32(255, 0, 0, 255));
 
 		ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail();
 		if (viewportPanelSize.x > 0.0f && viewportPanelSize.y > 0.0f
@@ -253,102 +275,103 @@ namespace Povox {
 			m_ViewportSize = { viewportPanelSize.x, viewportPanelSize.y };
 			m_ViewportResized = true;
 		}
-		Ref<Image2D> final = Renderer::GetFinalImage(Renderer::GetLastFrameIndex());
+		Povox::Ref<Povox::Image2D> final = Povox::Renderer::GetFinalImage(Povox::Renderer::GetLastFrameIndex());
 		if (final)
 		{
-			ImTextureID texID = Renderer::GetGUIDescriptorSet(final);
+			ImTextureID texID = Povox::Renderer::GetGUIDescriptorSet(final);
 			ImGui::Image(texID, ImVec2(m_ViewportSize.x, m_ViewportSize.y), ImVec2{ 0, 1 }, ImVec2{ 1, 0 });
 		}
 
 		// Gizmos
-		ManageEntitySelection();
+		//ManageEntitySelection();
 
 		//Viewport
 		ImGui::End();
 		ImGui::PopStyleVar();
 		
     }
-	void SciSimLayer::ManageEntitySelection()
-	{
-		Entity selectedEntity = m_SceneHierarchyPanel.GetSelectedEntity();
-		if (selectedEntity && m_GizmoType != -1)
-		{
-			ImGuizmo::SetOrthographic(false);
-			ImGuizmo::SetDrawlist();
-			ImGuizmo::SetRect(m_ViewportBounds[0].x, m_ViewportBounds[0].y, m_ViewportBounds[1].x - m_ViewportBounds[0].x, m_ViewportBounds[1].y - m_ViewportBounds[0].y);
+// /*
+// 	void SciSimLayer::ManageEntitySelection()
+// 	{
+// 		Entity selectedEntity = m_SceneHierarchyPanel.GetSelectedEntity();
+// 		if (selectedEntity && m_GizmoType != -1)
+// 		{
+// 			ImGuizmo::SetOrthographic(false);
+// 			ImGuizmo::SetDrawlist();
+// 			ImGuizmo::SetRect(m_ViewportBounds[0].x, m_ViewportBounds[0].y, m_ViewportBounds[1].x - m_ViewportBounds[0].x, m_ViewportBounds[1].y - m_ViewportBounds[0].y);
+// 
+// 			// Runtime camera
+// 			//auto cameraEntity = m_ActiveScene->GetPrimaryCameraEntity();
+// 			//
+// 			//const auto& camera = cameraEntity.GetComponent<CameraComponent>().Camera;
+// 			//const glm::mat4& cameraProjection = camera.GetProjection();
+// 			//glm::mat4 cameraView = glm::inverse(cameraEntity.GetComponent<TransformComponent>().GetTransform());
+// 
+// 			// Editor Camera            
+// 			const glm::mat4& cameraProjection = m_EditorCamera.GetProjection();
+// 			glm::mat4 cameraView = m_EditorCamera.GetViewMatrix();
+// 
+// 			// Entity Transform
+// 			auto& tc = selectedEntity.GetComponent<TransformComponent>();
+// 			glm::mat4 transform = tc.GetTransform();
+// 
+// 			m_GizmoSnap = Input::IsKeyPressed(Key::LeftControl) || Input::IsKeyPressed(Key::RightControl);
+// 			float snapValue = 0.5f;
+// 			if (m_GizmoType == ImGuizmo::OPERATION::ROTATE)
+// 				snapValue = 45.0f;
+// 
+// 			float snapValues[] = { snapValue, snapValue, snapValue };
+// 
+// 			ImGui::Begin("Gizmos");
+// 			ImGui::SameLine();
+// 			switch ((ImGuizmo::OPERATION)m_GizmoType)
+// 			{
+// 				case ImGuizmo::TRANSLATE:
+// 					ImGui::InputFloat3("Snap", &snapValues[0]);
+// 					break;
+// 				case ImGuizmo::ROTATE:
+// 					ImGui::InputFloat3("Angle Snap", &snapValues[1]);
+// 					break;
+// 				case ImGuizmo::SCALE:
+// 					ImGui::InputFloat3("Scale Snap", &snapValues[2]);
+// 					break;
+// 			}
+// 
+// 			ImGui::End();
+// 			ImGuizmo::Manipulate(glm::value_ptr(cameraView), glm::value_ptr(cameraProjection),
+// 				(ImGuizmo::OPERATION)m_GizmoType, ImGuizmo::LOCAL, glm::value_ptr(transform), nullptr, m_GizmoSnap ? snapValues : nullptr);
+// 
+// 			if (ImGuizmo::IsUsing())
+// 			{
+// 				glm::vec3 translation, rotation, scale;
+// 				Math::DecomposeTransform(transform, translation, rotation, scale);
+// 				glm::vec3 deltaRotation = rotation - tc.Rotation;
+// 				tc.Translation = translation;
+// 				tc.Rotation += deltaRotation;
+// 				tc.Scale = scale;
+// 			}
+// 		}
+// */
 
-			// Runtime camera
-			//auto cameraEntity = m_ActiveScene->GetPrimaryCameraEntity();
-			//
-			//const auto& camera = cameraEntity.GetComponent<CameraComponent>().Camera;
-			//const glm::mat4& cameraProjection = camera.GetProjection();
-			//glm::mat4 cameraView = glm::inverse(cameraEntity.GetComponent<TransformComponent>().GetTransform());
-
-			// Editor Camera            
-			const glm::mat4& cameraProjection = m_EditorCamera.GetProjection();
-			glm::mat4 cameraView = m_EditorCamera.GetViewMatrix();
-
-			// Entity Transform
-			auto& tc = selectedEntity.GetComponent<TransformComponent>();
-			glm::mat4 transform = tc.GetTransform();
-
-			m_GizmoSnap = Input::IsKeyPressed(Key::LeftControl) || Input::IsKeyPressed(Key::RightControl);
-			float snapValue = 0.5f;
-			if (m_GizmoType == ImGuizmo::OPERATION::ROTATE)
-				snapValue = 45.0f;
-
-			float snapValues[] = { snapValue, snapValue, snapValue };
-
-			ImGui::Begin("Gizmos");
-			ImGui::SameLine();
-			switch ((ImGuizmo::OPERATION)m_GizmoType)
-			{
-				case ImGuizmo::TRANSLATE:
-					ImGui::InputFloat3("Snap", &snapValues[0]);
-					break;
-				case ImGuizmo::ROTATE:
-					ImGui::InputFloat3("Angle Snap", &snapValues[1]);
-					break;
-				case ImGuizmo::SCALE:
-					ImGui::InputFloat3("Scale Snap", &snapValues[2]);
-					break;
-			}
-
-			ImGui::End();
-			ImGuizmo::Manipulate(glm::value_ptr(cameraView), glm::value_ptr(cameraProjection),
-				(ImGuizmo::OPERATION)m_GizmoType, ImGuizmo::LOCAL, glm::value_ptr(transform), nullptr, m_GizmoSnap ? snapValues : nullptr);
-
-			if (ImGuizmo::IsUsing())
-			{
-				glm::vec3 translation, rotation, scale;
-				Math::DecomposeTransform(transform, translation, rotation, scale);
-				glm::vec3 deltaRotation = rotation - tc.Rotation;
-				tc.Translation = translation;
-				tc.Rotation += deltaRotation;
-				tc.Scale = scale;
-			}
-		}
-	}
 
 
-
-    void SciSimLayer::OnEvent(Event& e)
+    void SciSimLayer::OnEvent(Povox::Event& e)
     {
         m_EditorCamera.OnEvent(e);
 
-        EventDispatcher dispatcher(e);
-        dispatcher.Dispatch<KeyPressedEvent>(PX_BIND_EVENT_FN(SciSimLayer::OnKeyPressed));
-        dispatcher.Dispatch<MouseButtonPressedEvent>(PX_BIND_EVENT_FN(SciSimLayer::OnMouseButtonPressed));
+		Povox::EventDispatcher dispatcher(e);
+        dispatcher.Dispatch<Povox::KeyPressedEvent>(PX_BIND_EVENT_FN(SciSimLayer::OnKeyPressed));
+        dispatcher.Dispatch<Povox::MouseButtonPressedEvent>(PX_BIND_EVENT_FN(SciSimLayer::OnMouseButtonPressed));
 
-		dispatcher.Dispatch<FramebufferResizeEvent>(PX_BIND_EVENT_FN(SciSimLayer::OnFramebufferResize));
+		dispatcher.Dispatch<Povox::FramebufferResizeEvent>(PX_BIND_EVENT_FN(SciSimLayer::OnFramebufferResize));
     }
-	bool SciSimLayer::OnFramebufferResize(FramebufferResizeEvent& e)
+	bool SciSimLayer::OnFramebufferResize(Povox::FramebufferResizeEvent& e)
 	{
 		m_WindowResized = true;
 		m_ViewportResized = true;
 
 		m_WindowSize = { e.GetWidth(), e.GetHeight() };
-		if (!Application::Get()->GetSpecification().ImGuiEnabled)
+		if (!Povox::Application::Get()->GetSpecification().ImGuiEnabled)
 		{
 			m_ViewportSize = m_WindowSize;
 			m_ViewportResized = true;
@@ -356,16 +379,16 @@ namespace Povox {
 
 		return false;
 	}
-    bool SciSimLayer::OnKeyPressed(KeyPressedEvent& e)
+    bool SciSimLayer::OnKeyPressed(Povox::KeyPressedEvent& e)
     {
         //shortcuts
         if (e.GetRepeatCount() > 0)
             return false;
-        bool controlPressed = Input::IsKeyPressed(Key::LeftControl) || Input::IsKeyPressed(Key::RightControl);
-        bool shiftPressed = Input::IsKeyPressed(Key::LeftShift) || Input::IsKeyPressed(Key::RightShift);
+        bool controlPressed = Povox::Input::IsKeyPressed(Povox::Key::LeftControl) || Povox::Input::IsKeyPressed(Povox::Key::RightControl);
+        bool shiftPressed = Povox::Input::IsKeyPressed(Povox::Key::LeftShift) || Povox::Input::IsKeyPressed(Povox::Key::RightShift);
         switch (e.GetKeyCode())
         {
-            case Key::N:
+            case Povox::Key::N:
             {
                 if (controlPressed)
                 {
@@ -373,7 +396,7 @@ namespace Povox {
                     break;
                 }
             }
-            case Key::O:
+            case Povox::Key::O:
             {
                 if (controlPressed)
                 {
@@ -381,7 +404,7 @@ namespace Povox {
                     break;
                 }
             }
-            case Key::S:
+            case Povox::Key::S:
             {
                 if (controlPressed)
                 {
@@ -394,35 +417,35 @@ namespace Povox {
                     break;
                 }
             }
-            case Key::Q:
+            case Povox::Key::Q:
             {
                 m_GizmoType = -1;
                 break;
             }
-            case Key::W:
+            case Povox::Key::W:
             {
                 m_GizmoType = ImGuizmo::OPERATION::TRANSLATE;
                 break;
             }
-            case Key::E:
+            case Povox::Key::E:
             {
                 m_GizmoType = ImGuizmo::OPERATION::ROTATE;
                 break;
             }
-            case Key::R:
+            case Povox::Key::R:
             {
                 m_GizmoType = ImGuizmo::OPERATION::SCALE;
                 break;
             }
-			case Key::C:
+			case Povox::Key::C:
 			{			
-				if (Application::Get()->GetSpecification().ImGuiEnabled)
+				if (Povox::Application::Get()->GetSpecification().ImGuiEnabled)
 				{
 					m_GUICollapsed = !m_GUICollapsed;
 				}				
 				break;
 			}
-            case Key::Escape:
+            case Povox::Key::Escape:
             {
                 if (controlPressed)
                 {
@@ -432,15 +455,15 @@ namespace Povox {
             }
         }
     }
-    bool SciSimLayer::OnMouseButtonPressed(MouseButtonPressedEvent& e)
+    bool SciSimLayer::OnMouseButtonPressed(Povox::MouseButtonPressedEvent& e)
     {
-        bool isAltPressed = Input::IsKeyPressed(Key::LeftAlt) || Input::IsKeyPressed(Key::RightAlt);
+        bool isAltPressed = Povox::Input::IsKeyPressed(Povox::Key::LeftAlt) || Povox::Input::IsKeyPressed(Povox::Key::RightAlt);
         switch (e.GetMouseButton())
         {
-            case Mouse::ButtonLeft:
+            case Povox::Mouse::ButtonLeft:
             {
                 if(!isAltPressed && !ImGuizmo::IsOver() && m_ViewportIsHovered)
-                    m_SceneHierarchyPanel.SetSelectedEntity(m_HoveredEntity);
+                    //m_ParticleInformationPanel.SetSelectedParticle(m_HoveredParticle);
                 break;
             }
         }
@@ -452,49 +475,50 @@ namespace Povox {
 
 	void SciSimLayer::NewScene()
     {
-        m_ActiveScene = CreateRef<Scene>(m_ViewportSize.x, m_ViewportSize.y);
-        m_ActiveScene->OnViewportResize((uint32_t)m_ViewportSize.x, (uint32_t)m_ViewportSize.y);
-        m_SceneHierarchyPanel.SetContext(m_ActiveScene);
+        //m_ActiveScene = Povox::CreateRef<Scene>(m_ViewportSize.x, m_ViewportSize.y);
+        //m_ActiveScene->OnViewportResize((uint32_t)m_ViewportSize.x, (uint32_t)m_ViewportSize.y);
+        m_ParticleInformationPanel.SetContext(m_ActiveParticleSet);
     }
 
     void SciSimLayer::OpenScene()
     {
-        m_CurrentScenePath = FileDialog::OpenFile("Povox Scene (*.povox)\0*.povox\0");
-        if (!m_CurrentScenePath.empty())
-        {
-            m_ActiveScene = CreateRef<Scene>(m_ViewportSize.x, m_ViewportSize.y);
-            m_ActiveScene->OnViewportResize((uint32_t)m_ViewportSize.x, (uint32_t)m_ViewportSize.y);
-            m_SceneHierarchyPanel.SetContext(m_ActiveScene);
-
-            SceneSerializer serializer(m_ActiveScene);
-            serializer.Deserialize(m_CurrentScenePath);
-        }
+        //m_CurrentScenePath = FileDialog::OpenFile("Povox Scene (*.povox)\0*.povox\0");
+//         if (!m_CurrentScenePath.empty())
+//         {
+//             //m_ActiveScene = CreateRef<Scene>(m_ViewportSize.x, m_ViewportSize.y);
+//             //m_ActiveScene->OnViewportResize((uint32_t)m_ViewportSize.x, (uint32_t)m_ViewportSize.y);
+// 			m_ParticleInformationPanel.SetContext(m_ActiveParticleSet);
+// 
+// 
+// //             SceneSerializer serializer(m_ActiveScene);
+// //             serializer.Deserialize(m_CurrentScenePath);
+//         }
     }
 
     void SciSimLayer::SaveScene()
     {
-        if (!m_CurrentScenePath.empty())
-        {
-            SceneSerializer serializer(m_ActiveScene);
-            serializer.Serialize(m_CurrentScenePath);
-        }
-        else
-        {
-            SaveSceneAs();
-        }
+//         if (!m_CurrentScenePath.empty())
+//         {
+//             SceneSerializer serializer(m_ActiveScene);
+//             serializer.Serialize(m_CurrentScenePath);
+//         }
+//         else
+//         {
+//             SaveSceneAs();
+//         }
     }
 
     void SciSimLayer::SaveSceneAs()
     {
-        m_CurrentScenePath = FileDialog::SaveFile("Povox Scene (*.povox)\0*.povox\0");
-        if (!m_CurrentScenePath.empty())
-        {
-            SaveScene();
-        }
+        //m_CurrentScenePath = FileDialog::SaveFile("Povox Scene (*.povox)\0*.povox\0");
+//         if (!m_CurrentScenePath.empty())
+//         {
+//             SaveScene();
+//         }
     }
 
     void SciSimLayer::CloseApp()
     {
-        Application::Get()->Close();
+        Povox::Application::Get()->Close();
     }
 }

@@ -3,7 +3,7 @@ include "Dependencies.lua"
 
 workspace "Povox"
 	architecture "x86_64"
-	startproject "Povosom"
+	startproject "Povoton"
 
 	configurations 
 	{

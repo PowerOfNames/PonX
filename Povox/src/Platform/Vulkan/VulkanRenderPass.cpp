@@ -48,13 +48,12 @@ namespace Povox {
 			{
 				PX_CORE_ASSERT(!foundDepth, "Multiple depthAttachments not allowed!");
 				if (!m_Specification.HasDepthAttachment)
-					PX_CORE_WARN("VulkanRenderPass::Init Initially no depth attachment, but found one!");
+					PX_CORE_WARN("VulkanRenderPass::Recreate: Specs.HasDepthAttachment false, but found one!");
 				attachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 				attachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 				attachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 				attachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 				foundDepth = true;
-				m_Specification.HasDepthAttachment = foundDepth;
 			}
 			else
 			{
@@ -66,12 +65,15 @@ namespace Povox {
 			}
 			attachments[i] = attachment;
 		}
+		if (!foundDepth && m_Specification.HasDepthAttachment)
+			PX_CORE_WARN("VulkanRenderPass::Recreate: Specs.HasDepthAttachment true, but found none!");
 		if (colorCount != m_Specification.ColorAttachmentCount)
-			PX_CORE_WARN("VulkanRenderPass::Init: Initially set ColorAttCount not equal to actual ColorAttCount!");
+			PX_CORE_WARN("VulkanRenderPass::Recreate: Specs.ColorAttachmentCount not equal to actual ColorAttachmentCount!");
 		m_Specification.ColorAttachmentCount = colorCount;
 
 		std::vector<VkAttachmentReference> colorRefs(colorCount);
 		VkAttachmentReference depthref{};
+		// TODO: if depth attachment is in the middle of color attachment,s this will break -> ensure depth is always last
 		for (uint32_t i = 0; i < attachments.size(); i++)
 		{
 			if (Utils::IsDepthFormat(fbspecs.Attachments.Attachments[i].Format))
@@ -88,25 +90,27 @@ namespace Povox {
 				ref.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 				colorRefs[i] = ref;
 			}
-
 		}
 
-		//TODO: subpasses later come from framebuffer chains -> pack multiple renderpasses in one if possible
 		VkSubpassDescription subpass{};
 		subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
 		subpass.colorAttachmentCount = static_cast<uint32_t>(colorRefs.size());
-		subpass.pColorAttachments = colorRefs.data();
-		subpass.pDepthStencilAttachment = &depthref;
+		subpass.pColorAttachments = colorRefs.data();			
 
-		//From here on out (and also bits of the attachment creation) need to be determined after analysis of the dependencies to other render passes 
-		// -> chaining render passes need specific number of images and image formats
 		VkSubpassDependency dependency{};
 		dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
 		dependency.dstSubpass = 0;
 		dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
 		dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
 		dependency.srcAccessMask = 0;
-		dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+		dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
+		if (foundDepth && m_Specification.HasDepthAttachment)
+		{
+			subpass.pDepthStencilAttachment = &depthref;
+			dependency.dstAccessMask |= VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+		}
+
 
 		VkRenderPassCreateInfo renderPassInfo{};
 		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
@@ -132,6 +136,19 @@ namespace Povox {
 		PX_CORE_INFO("VulkanRenderpass::Recreate: Recreated Renderpass with AttachmentExtent of '{0}, {1}'", fbspecs.Width, fbspecs.Height);
 		//Now create the actual framebuffer with this render pass
 		framebuffer->Construct(m_RenderPass);
+	}
+
+	VulkanComputePass::VulkanComputePass(const ComputePassSpecification& spec)
+		: m_Specification(spec)
+	{
+	}
+
+	VulkanComputePass::~VulkanComputePass()
+	{
+	}
+
+	void VulkanComputePass::Recreate()
+	{
 	}
 
 }

@@ -1,12 +1,13 @@
 #pragma once
 #include <Povox.h>
 
-#include "Panels/SceneHierarchyPanel.h"
+#include "Panels/SciParticleInformationPanel.h"
+#include "Particles/SciParticleRenderer.h"
 
 
 namespace Povox {
 
-	class SciSimLayer : public Layer
+	class SciSimLayer : public Povox::Layer
 	{
 	public:
 		SciSimLayer();
@@ -15,16 +16,16 @@ namespace Povox {
 		virtual void OnAttach() override;
 		virtual void OnDetach() override;
 
-		void OnUpdate(Timestep deltatime) override;
+		void OnUpdate(Povox::Timestep deltatime) override;
 		virtual void OnImGuiRender() override;
-		void OnEvent(Event& e) override;
+		void OnEvent(Povox::Event& e) override;
 	private:
-		void ManageEntitySelection();
+		//void ManageEntitySelection();
 
-		bool OnFramebufferResize(FramebufferResizeEvent& e);
+		bool OnFramebufferResize(Povox::FramebufferResizeEvent& e);
 
-		bool OnKeyPressed(KeyPressedEvent& e);
-		bool OnMouseButtonPressed(MouseButtonPressedEvent& e);
+		bool OnKeyPressed(Povox::KeyPressedEvent& e);
+		bool OnMouseButtonPressed(Povox::MouseButtonPressedEvent& e);
 
 		void NewScene();
 		void OpenScene();
@@ -33,13 +34,11 @@ namespace Povox {
 
 		void CloseApp();
 	private:
-		EditorCamera m_EditorCamera;
-		OrthographicCameraController m_OrthoCamControl;
+		Povox::EditorCamera m_EditorCamera;
 		
-		Ref<Scene> m_ActiveScene;
-		std::string m_CurrentScenePath;
+		Povox::Ref<SciParticleRenderer> m_SciRenderer = nullptr;
 
-		Entity m_HoveredEntity;
+		Povox::Ref<SciParticleSet> m_ActiveParticleSet = nullptr;
 
 		float m_Deltatime = 0.0f;
 
@@ -55,10 +54,9 @@ namespace Povox {
 		bool m_DemoActive = false;
 
 	// Panels
-		SceneHierarchyPanel m_SceneHierarchyPanel;
+		SciParticleInformationPanel m_ParticleInformationPanel;
 		int m_GizmoType = -1;
 		bool m_GizmoSnap = false;
-
 	};
 
 }

@@ -12,9 +12,11 @@
 namespace Povox {
 
 	class Entity;
-	class Renderer2D;
 	class Renderer2DStatistics;
 
+
+	// TODO: overhaul renderer management -> instead of hardcoding the needed renderers inside the consturctor and class, create AddRenderer (or so) and
+	//manage it more dynamically
 	class Scene
 	{
 	public:
@@ -32,9 +34,10 @@ namespace Povox {
 
 		Entity GetPrimaryCameraEntity();
 
+		inline void SetRenderer2D(Ref<Renderer2D> renderer2D) { m_Renderer2D = renderer2D; }
 		// TODO: temp
 		inline const Renderer2DStatistics& GetStats() const { return m_Renderer2D->GetStatistics(); }
-		inline void ResetStats() { m_Renderer2D->ResetStats(); }
+		inline void ResetStatistics() { m_Renderer2D->ResetStatistics(); }
 	private:
 		template<typename T>
 		void OnComponentAdded(Entity entity, T& component);

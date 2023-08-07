@@ -24,7 +24,7 @@ namespace Povox {
 		float GetDistance() const { return m_Distance; }
 		void SetDistance(float distance) { m_Distance = distance; }
 
-		void SetViewportSize(float width, float height) { m_ViewportWidth = width; m_ViewportHeight = height; UpdateProjection(); }
+		void SetViewportSize(float width, float height);
 
 		const glm::mat4& GetViewMatrix() const { return m_ViewMatrix; }
 		glm::mat4 GetViewProjectionMatrix() const { return m_Projection * m_ViewMatrix; }

@@ -5,7 +5,6 @@ project "Sandbox"
 	staticruntime "off"
 
 
-
 	targetdir("%{wks.location}/bin/" .. outputdir .. "/%{prj.name}")
 	objdir("%{wks.location}/bin-int/" .. outputdir .. "/%{prj.name}")
 
@@ -17,11 +16,11 @@ project "Sandbox"
 
 	includedirs
 	{
-		"%{wks.location}/Povox/src",
 		"%{wks.location}/Povox/vendor/spdlog/include",
+		"%{wks.location}/Povox/src",
 		"%{wks.location}/Povox/vendor",
-		"%{IncludeDir.glm}",
-		"%{IncludeDir.entt}"
+		"%{IncludeDir.entt}",
+		"%{IncludeDir.glm}"
 	}
 
 	links

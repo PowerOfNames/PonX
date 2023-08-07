@@ -13,6 +13,7 @@ namespace Povox {
 		: m_FOV(FOV), m_AspectRatio(aspectRatio), m_NearClip(nearClip), m_FarClip(farClip), Camera(glm::perspective(glm::radians(FOV), aspectRatio, nearClip, farClip))
 	{
 		UpdateView();
+		UpdateProjection();
 	}
 
 	void EditorCamera::OnUpdate(Timestep deltatime)
@@ -38,7 +39,6 @@ namespace Povox {
 
 	void EditorCamera::UpdateProjection()
 	{
-		m_AspectRatio = m_ViewportWidth / m_ViewportHeight;
 		m_Projection = glm::perspective(glm::radians(m_FOV), m_AspectRatio, m_NearClip, m_FarClip);
 	}
 
@@ -56,6 +56,15 @@ namespace Povox {
 	{
 		EventDispatcher dispatcher(e);
 		dispatcher.Dispatch<MouseScrolledEvent>(PX_BIND_EVENT_FN(EditorCamera::OnMouseScroll));
+	}
+
+	void EditorCamera::SetViewportSize(float width, float height)
+	{		
+		m_ViewportWidth = width; 
+		m_ViewportHeight = height;
+		m_AspectRatio = m_ViewportWidth / m_ViewportHeight;
+		
+		UpdateProjection();		
 	}
 
 	bool EditorCamera::OnMouseScroll(MouseScrolledEvent& e)

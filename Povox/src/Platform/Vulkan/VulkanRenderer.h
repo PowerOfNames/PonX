@@ -28,14 +28,18 @@ namespace Povox {
 		{
 			VkSemaphore RenderSemaphore;
 			VkSemaphore PresentSemaphore;
+
+			VkSemaphore ComputeFinishedSemaphore;
 		};
 		FrameSemaphores Semaphores;
-		VkFence Fence;
+		VkFence RenderFence;
+		VkFence ComputeFence;
 
 		struct FrameCommandBuffer
 		{
-			VkCommandBuffer Buffer;
 			VkCommandPool Pool;
+			VkCommandBuffer RenderBuffer;
+			VkCommandBuffer ComputeBuffer;
 		};
 		FrameCommandBuffer Commands;
 
@@ -81,7 +85,7 @@ namespace Povox {
 		// Commands
 		virtual void BeginCommandBuffer(const void* cmd) override;
 		virtual void EndCommandBuffer() override;
-		virtual inline const void* GetCommandBuffer(uint32_t index) override { return (const void*)GetFrame(index).Commands.Buffer; }
+		virtual inline const void* GetCommandBuffer(uint32_t index) override { return (const void*)GetFrame(index).Commands.RenderBuffer; }
 		
 		//Renderpass
 		virtual void BeginRenderPass(Ref<RenderPass> renderPass) override;
@@ -90,6 +94,8 @@ namespace Povox {
 		// Pipeline
 		virtual void BindPipeline(Ref<Pipeline> pipeline) override;
 
+		// Compute
+		virtual void DispatchCompute(Ref<ComputePipeline> pipeline) override;
 
 		// GUI
 		virtual void BeginGUIRenderPass() override;
@@ -134,6 +140,8 @@ namespace Povox {
 		size_t PadUniformBuffer(size_t inputSize, size_t minGPUBufferOffsetAlignment);
 		// TEMP_END
 
+		// Compute
+		void ComputeSubmit();
 
 		// Debugging and Performance
 		void InitPerformanceQueryPools();

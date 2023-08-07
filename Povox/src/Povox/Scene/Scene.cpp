@@ -11,19 +11,11 @@
 namespace Povox {
 
 	Scene::Scene(uint32_t width, uint32_t height)
-	{
-		{
-			Renderer2DSpecification specs{};
-			specs.ViewportWidth = width;
-			specs.ViewportHeight = height;
-			m_Renderer2D = CreateRef<Renderer2D>(specs);
-			m_Renderer2D->Init();
-		}
+	{		
 	}
 
 	Scene::~Scene()
 	{
-		m_Renderer2D->Shutdown();
 	}
 
 	Entity Scene::CreateEntity(const std::string& name)
@@ -85,6 +77,8 @@ namespace Povox {
 
 		if(mainCamera)
 		{
+			// TODO: Handle sprites separate and check if Renderer2D is set
+
 			m_Renderer2D->BeginScene(*mainCamera, cameraTransform);
 			auto group = m_Registry.group<SpriteRendererComponent>(entt::get<TransformComponent>);
 			for (auto entity : group)
@@ -99,6 +93,7 @@ namespace Povox {
 
 	void Scene::OnUpdateEditor(Timestep deltatime, EditorCamera& editorCamera)
 	{
+		// TODO: Handle sprites separate and check if Renderer2D is set
 		m_Renderer2D->BeginScene(editorCamera);
 
 		auto group = m_Registry.group<SpriteRendererComponent>(entt::get<IDComponent, TransformComponent>);

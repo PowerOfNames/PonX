@@ -18,10 +18,9 @@ namespace Povox {
 
 		virtual void Recreate() override;
 		
-		inline VkPipelineLayout GetLayout() { return m_Layout; }
 		inline VkPipeline GetVulkanObj() { return m_Pipeline; }
+		inline VkPipelineLayout GetLayout() { return m_Layout; }
 		virtual inline  PipelineSpecification& GetSpecification() override { return m_Specification; }
-
 		virtual inline const std::string& GetDebugName() const override { return m_Specification.DebugName; }
 
 	private:
@@ -44,6 +43,34 @@ namespace Povox {
 		VkPipelineDepthStencilStateCreateInfo m_DepthStencilStateInfo;
 		VkPipelineColorBlendStateCreateInfo m_ColorBlendStateInfo;
 		std::vector<VkPipelineColorBlendAttachmentState> m_ColorBlendAttachmentStateInfos;
+	};
+
+
+	class VulkanComputePipeline : public ComputePipeline
+	{
+	public:
+		VulkanComputePipeline(const ComputePipelineSpecification& specs);
+		virtual ~VulkanComputePipeline();
+		virtual void Free() override;
+
+		virtual void Recreate() override;
+
+		inline VkPipeline GetVulkanObj() { return m_Pipeline; }
+		inline VkPipelineLayout GetLayout() { return m_Layout; }
+		virtual inline ComputePipelineSpecification& GetSpecification() { return m_Specification; }
+		virtual inline const std::string& GetDebugName() const { return m_Specification.DebugName; }
+
+
+	private:
+		void CreateLayout();
+		void CreatePipeline();
+
+	private:
+		VkPipeline m_Pipeline = VK_NULL_HANDLE;
+		VkPipelineLayout m_Layout = VK_NULL_HANDLE;
+		ComputePipelineSpecification m_Specification{};
+
+		VkPipelineShaderStageCreateInfo m_ShaderStageInfo;
 	};
 
 }

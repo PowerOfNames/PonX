@@ -3,7 +3,6 @@
 
 #include "Panels/SceneHierarchyPanel.h"
 
-
 namespace Povox {
 
 	class EditorLayer : public Layer
@@ -36,6 +35,8 @@ namespace Povox {
 		EditorCamera m_EditorCamera;
 		OrthographicCameraController m_OrthoCamControl;
 		
+		Ref<Renderer2D> m_Renderer2D = nullptr;
+
 		Ref<Scene> m_ActiveScene;
 		std::string m_CurrentScenePath;
 

@@ -71,6 +71,13 @@ struct VertexInput
 layout(location = 0) in VertexInput Input;
 layout(location = 2) in flat float v_TexID;
 
+layout(std140, set = 0, binding = 0) uniform Camera
+{
+	mat4 View;
+	mat4 Projection;
+	mat4 ViewProjection;
+} u_Camera;
+
 layout(std140, set = 0, binding = 1) uniform SceneData
 {
 	vec4 FogColor;

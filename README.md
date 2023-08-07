@@ -42,4 +42,4 @@ The engine is currently under heavy construction, as I move away from OpenGL and
 
 ## Contact
 
-Feel free to contact me via Discord anytime, - PowerOfNames#1926
+Feel free to contact me via Discord anytime, - PowerOfNames
