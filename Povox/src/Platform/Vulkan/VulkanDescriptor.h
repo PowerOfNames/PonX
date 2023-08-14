@@ -50,7 +50,7 @@ namespace Povox {
 		void Cleanup();
 
 
-		VkDescriptorSetLayout CreateDescriptorLayout(VkDescriptorSetLayoutCreateInfo* info);
+		VkDescriptorSetLayout CreateDescriptorLayout(const VkDescriptorSetLayoutCreateInfo* info);
 
 		struct DescriptorLayoutInfo {
 			std::vector<VkDescriptorSetLayoutBinding> Bindings;

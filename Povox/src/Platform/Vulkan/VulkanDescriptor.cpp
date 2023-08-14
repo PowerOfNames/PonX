@@ -129,7 +129,7 @@ namespace Povox
 		}
 	}
 
-	VkDescriptorSetLayout VulkanDescriptorLayoutCache::CreateDescriptorLayout(VkDescriptorSetLayoutCreateInfo* info)
+	VkDescriptorSetLayout VulkanDescriptorLayoutCache::CreateDescriptorLayout(const VkDescriptorSetLayoutCreateInfo* info)
 	{
 		DescriptorLayoutInfo layoutInfo;
 		layoutInfo.Bindings.reserve(info->bindingCount);
@@ -364,8 +364,6 @@ namespace Povox
 
 		vkUpdateDescriptorSets(VulkanContext::GetDevice()->GetVulkanDevice(), static_cast<uint32_t>(m_Writes.size()), m_Writes.data(), 0, nullptr);
 		return true;
-
-		return false;
 	}
 
 }

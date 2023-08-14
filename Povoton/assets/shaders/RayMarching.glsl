@@ -9,7 +9,7 @@ layout(location = 2) in vec2 a_TexCoord;
 layout(location = 3) in float a_TexID;
 
 
-layout(std140, set = 0, binding = 0) uniform Camera
+layout(std140, set = 0, binding = 0) uniform CameraData
 {
 	mat4 View;
 	mat4 Projection;
@@ -90,7 +90,8 @@ layout(std140, set = 1, binding = 0) readonly buffer Objects
 
 /*struct Particle
 {
-	vec3 Color;
+	vec4 Spatial;
+	vec4 Color;
 	uint64_t ID;
 };
 layout(std140, set = 1, binding = 0) readonly buffer ParticleData

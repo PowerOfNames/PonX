@@ -409,9 +409,9 @@ namespace Povox {
 		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
 		VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_VERTEX_INPUT_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
-		submitInfo.waitSemaphoreCount = 1;
+		submitInfo.waitSemaphoreCount = static_cast<uint32_t>(m_CurrentFrame.WaitSemaphores.size());
 		submitInfo.pWaitDstStageMask = waitStages;
-		submitInfo.pWaitSemaphores = &m_CurrentFrame.PresentSemaphore;
+		submitInfo.pWaitSemaphores = m_CurrentFrame.WaitSemaphores.data();
 		submitInfo.commandBufferCount = static_cast<uint32_t>(m_CurrentFrame.Commands.size());
 		submitInfo.pCommandBuffers = m_CurrentFrame.Commands.data();
 

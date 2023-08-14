@@ -1,8 +1,10 @@
 #include "pxpch.h"
-#include "Povox/Renderer/Material.h"
+#include "Platform/Vulkan/VulkanRenderer.h"
+
 #include "Povox/Renderer/Renderer.h"
 #include "Povox/Renderer/Renderer2D.h"
-#include "Platform/Vulkan/VulkanRenderer.h"
+
+#include "Povox/Systems/MaterialSystem.h"
 
 namespace Povox {
 
@@ -109,6 +111,8 @@ namespace Povox {
 	void* Renderer::GetGUIDescriptorSet(Ref<Image2D> image)	{ return s_RendererAPI->GetGUIDescriptorSet(image); }
 	Ref<ShaderLibrary> Renderer::GetShaderLibrary() { return s_RendererAPI->GetShaderLibrary(); }
 	Ref<TextureSystem> Renderer::GetTextureSystem()	{ return s_RendererAPI->GetTextureSystem(); }
+	Ref<MaterialSystem> Renderer::GetMaterialSystem() { return s_RendererAPI->GetMaterialSystem(); }
+	Ref<ShaderResourceSystem> Renderer::GetShaderResourceSystem() { return s_RendererAPI->GetShaderResourceSystem(); }
 
 	// State
 	void Renderer::OnResize(uint32_t width, uint32_t height)
@@ -128,9 +132,14 @@ namespace Povox {
 	void Renderer::BeginRenderPass(Ref<RenderPass> renderPass) { s_RendererAPI->BeginRenderPass(renderPass); }
 	void Renderer::EndRenderPass() { s_RendererAPI->EndRenderPass(); }
 	
-	//Pipeline
+	// Pipeline
 	void Renderer::BindPipeline(Ref<Pipeline> pipeline) { s_RendererAPI->BindPipeline(pipeline); }
 	
+	// Compute
+	void Renderer::BeginComputePass(Ref<ComputePass> computePass) { s_RendererAPI->BeginComputePass(computePass); }
+	void Renderer::DispatchCompute(Ref<ComputePipeline> pipeline) { s_RendererAPI->DispatchCompute(pipeline); }
+	void Renderer::EndComputePass() { s_RendererAPI->EndComputePass(); }
+
 	// GUI
 	void Renderer::BeginGUIRenderPass() { s_RendererAPI->BeginGUIRenderPass(); }
 	void Renderer::EndGUIRenderPass() {	s_RendererAPI->EndGUIRenderPass(); }
@@ -139,8 +148,8 @@ namespace Povox {
 
 	// Debugging and Statistics
 	const RendererStatistics& Renderer::GetStatistics() { return s_RendererAPI->GetStatistics(); }
-	void Renderer::StartTimestampQuery(const std::string& name) { s_RendererAPI->StartTimestampQuery(name); };
-	void Renderer::StopTimestampQuery(const std::string& name) { s_RendererAPI->StopTimestampQuery(name); };
+	void Renderer::StartTimestampQuery(const std::string& name) { s_RendererAPI->StartTimestampQuery(name); }
+	void Renderer::StopTimestampQuery(const std::string& name) { s_RendererAPI->StopTimestampQuery(name); }
 	
 
 	

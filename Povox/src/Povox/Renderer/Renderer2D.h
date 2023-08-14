@@ -7,13 +7,14 @@
 
 #include "Povox/Renderer/Buffer.h"
 #include "Povox/Renderer/Framebuffer.h"
-#include "Povox/Renderer/Material.h"
 #include "Povox/Renderer/Pipeline.h"
 #include "Povox/Renderer/Renderable.h"
 #include "Povox/Renderer/Renderer.h"
 #include "Povox/Renderer/RenderPass.h"
 #include "Povox/Renderer/Texture.h"
 #include "Povox/Renderer/SubTexture2D.h"
+
+#include "Povox/Systems/MaterialSystem.h"
 
 #include <glm/glm.hpp>
 

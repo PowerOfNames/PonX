@@ -16,7 +16,7 @@ namespace Povox {
 		VkImageView CurrentImageView = VK_NULL_HANDLE;
 
 		VkFence CurrentFence = VK_NULL_HANDLE;
-		VkSemaphore PresentSemaphore = VK_NULL_HANDLE;
+		std::vector<VkSemaphore> WaitSemaphores;
 		VkSemaphore RenderSemaphore = VK_NULL_HANDLE;
 
 		std::vector<VkCommandBuffer> Commands;
@@ -42,8 +42,7 @@ namespace Povox {
 		inline void FramebufferResized() { m_FramebufferResized = true; }
 		void Destroy();
 
-		void SwapBuffers();
-		
+		void SwapBuffers();		
 
 
 		inline VkSwapchainKHR Get() { return m_Swapchain; }

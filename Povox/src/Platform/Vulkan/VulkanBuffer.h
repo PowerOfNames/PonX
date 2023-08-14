@@ -26,6 +26,8 @@ namespace Povox {
 		virtual uint64_t GetRendererID() const override { return m_RID; }
 
 		virtual void SetData(void* inputData, size_t size) override;
+		virtual void SetLayout(const BufferLayout& layout) override { m_Specification.Layout = layout; };
+
 		virtual inline BufferSpecification& GetSpecification() override { return m_Specification; }
 
 		inline const AllocatedBuffer& GetAllocation() const { return m_Allocation; }

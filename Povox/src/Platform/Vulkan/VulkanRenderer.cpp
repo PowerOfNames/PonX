@@ -5,7 +5,7 @@
 #include "Platform/Vulkan/VulkanDebug.h"
 #include "Platform/Vulkan/VulkanFramebuffer.h"
 
-#include "Povox/Renderer/TextureSystem.h"
+#include "Povox/Systems/TextureSystem.h"
 
 #include <vulkan/vulkan.h>
 
@@ -59,6 +59,19 @@ namespace Povox {
 		m_TextureSystem = CreateRef<TextureSystem>();
 
 		PX_CORE_INFO("Completed TextureSystem creation.");
+
+		PX_CORE_INFO("Creating MaterialSystem...");
+
+		m_MaterialSystem = CreateRef<VulkanMaterialSystem>();
+
+		PX_CORE_INFO("Completed MaterialSystem creation.");
+
+		PX_CORE_INFO("Creating ShaderResourceSystem...");
+
+		m_ShaderResourceSystem = CreateRef<VulkanShaderResourceSystem>();
+
+		PX_CORE_INFO("Completed ShaderResourceSystem creation.");
+
 
 		CreateSamplers();
 		CreateDescriptors();
@@ -160,16 +173,8 @@ namespace Povox {
 	}
 
 	//FrameData
-	bool VulkanRenderer::BeginFrame()
+	bool VulkanRenderer::PrepareRenderFrame()
 	{
-		PX_PROFILE_FUNCTION();
-
-
-		GetQueryResults();
-
-		//VulkanContext::FreeFrameResources(m_CurrentFrameIndex);
-
-
 		vkWaitForFences(m_Device, 1, &GetCurrentFrame().RenderFence, VK_TRUE, UINT64_MAX);
 		vkResetCommandPool(m_Device, GetCurrentFrame().Commands.Pool, 0);
 		m_SwapchainFrame = m_Swapchain->AcquireNextImageIndex(GetCurrentFrame().Semaphores.PresentSemaphore);
@@ -179,12 +184,40 @@ namespace Povox {
 
 		m_Specification.State.CurrentSwapchainImageIndex = m_CurrentSwapchainImageIndex = m_SwapchainFrame->CurrentImageIndex;
 		m_SwapchainFrame->CurrentFence = GetCurrentFrame().RenderFence;
-		m_SwapchainFrame->PresentSemaphore = GetCurrentFrame().Semaphores.PresentSemaphore;
+		m_SwapchainFrame->WaitSemaphores.clear();
+		m_SwapchainFrame->WaitSemaphores.push_back(GetCurrentFrame().Semaphores.PresentSemaphore);
 		m_SwapchainFrame->RenderSemaphore = GetCurrentFrame().Semaphores.RenderSemaphore;
-		
+	}
 
+	bool VulkanRenderer::PrepareComputeFrame()
+	{
+		//vkWaitForFences(m_Device, 1, &GetCurrentFrame().ComputeFence, VK_TRUE, UINT64_MAX);
+		
+		//vkResetFences(m_Device, 1, &GetCurrentFrame().ComputeFence);
+		
+		//vkResetCommandBuffer(GetCurrentFrame().Commands.ComputeBuffer, 0);
+
+		//m_SwapchainFrame->WaitSemaphores.push_back(GetCurrentFrame().Semaphores.ComputeFinishedSemaphore);
 
 		return true;
+	}
+
+	/**
+	 * Clears resources form last frames garbage collection.
+	 * Queries performance results form last Frame.
+	 * Prepares preProcess ComputeResources.
+	 */
+	bool VulkanRenderer::BeginFrame()
+	{
+		PX_PROFILE_FUNCTION();
+
+
+		GetQueryResults();
+		//VulkanContext::FreeFrameResources(m_CurrentFrameIndex);
+
+
+
+		return PrepareRenderFrame() && PrepareComputeFrame();
 	}
 	void VulkanRenderer::EndFrame()
 	{
@@ -816,9 +849,47 @@ namespace Povox {
 		vkCmdBindPipeline(m_ActiveCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_ActivePipeline->GetVulkanObj());
 	}
 
+	// Compute
+
+	/**
+	 * This also start the ComputeCommandBuffer of the current frame! This function should always be called AFTER PrepareComputeFrame has been called,
+	 * which also resets the currents frame ComputeCommandBuffer.
+	 */
+	void VulkanRenderer::BeginComputePass(Ref<ComputePass> computePass)
+	{
+		m_ActiveComputePass = std::static_pointer_cast<VulkanComputePass>(computePass);
+		VkCommandBuffer computeCmd = GetCurrentFrame().Commands.ComputeBuffer;
+
+		VkCommandBufferBeginInfo beginInfo{};
+		beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+		beginInfo.pNext = nullptr;
+
+		beginInfo.flags = 0;
+		beginInfo.pInheritanceInfo = nullptr;
+		
+		PX_CORE_VK_ASSERT(vkBeginCommandBuffer(computeCmd, &beginInfo), VK_SUCCESS, "Failed to end ComputeCommandbuffer!");
+	}
+
 	void VulkanRenderer::DispatchCompute(Ref<ComputePipeline> pipeline)
 	{
+		PX_PROFILE_FUNCTION();
 
+
+		Ref<VulkanComputePipeline> vkComputePipeline = std::dynamic_pointer_cast<VulkanComputePipeline>(pipeline);
+		VkCommandBuffer computeCmd = GetCurrentFrame().Commands.ComputeBuffer;
+
+		vkCmdBindPipeline(computeCmd, VK_PIPELINE_BIND_POINT_COMPUTE, vkComputePipeline->GetVulkanObj());
+
+		//vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, computePipelineLayout, 0, 1, &computeDescriptorSets[currentFrame], 0, nullptr);
+
+		//vkCmdDispatch(computeCmd, PARTICLE_COUNT / 256, 1, 1);
+	}
+
+	void VulkanRenderer::EndComputePass()
+	{
+		VkCommandBuffer computeCmd = GetCurrentFrame().Commands.ComputeBuffer;
+
+		PX_CORE_VK_ASSERT(vkEndCommandBuffer(computeCmd), VK_SUCCESS, "Failed to end ComputeCommandbuffer!");
 	}
 
 	// GUI
@@ -954,6 +1025,42 @@ namespace Povox {
 
 
 		PX_CORE_INFO("Completed Object DescriptorLayouts creation. ");
+		PX_CORE_INFO("Creating Particle DescriptorLayouts... ");
+
+// 		VkDescriptorSetLayoutBinding particleBinding{};
+// 		{
+// 			particleBinding.binding = 0;
+// 			particleBinding.descriptorCount = 1;
+// 			particleBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+// 			particleBinding.pImmutableSamplers = nullptr;
+// 			particleBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+// 
+// 			VkDescriptorSetLayoutCreateInfo particleInfo{};
+// 			particleInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+// 			particleInfo.pNext = nullptr;
+// 
+// 			particleInfo.flags = 0;
+// 			particleInfo.bindingCount = 0;
+// 			particleInfo.pBindings = &particleBinding;
+// 
+// 			m_ObjectDescriptorSetLayout = VulkanContext::GetDescriptorLayoutCache()->CreateDescriptorLayout(&particleInfo);
+// 		}
+// 		for (uint32_t i = 0; i < m_Specification.MaxFramesInFlight; i++)
+// 		{
+// 			VulkanDescriptorBuilder builder = VulkanDescriptorBuilder::Begin(VulkanContext::GetDescriptorLayoutCache(), VulkanContext::GetDescriptorAllocator());
+// 			VkDescriptorBufferInfo particleInfo{};
+// 			particleInfo.buffer = m_Frames[i].ParticleBuffer.Buffer;
+// 			particleInfo.offset = 0;
+// 			particleInfo.range = 0;
+// 			//particleInfo.range = sizeof(ParticleLayout) * MAX_PARTICLES;
+// 			builder.BindBuffer(particleBinding, &particleInfo);
+// 
+// 			builder.Build(m_Frames[i].ParticleDescriptorSet, m_ParticleDescriptorSetLayout, "ParticleDS");
+// 		}
+
+
+		PX_CORE_INFO("Completed Particle DescriptorLayouts creation. ");
+
 		PX_CORE_INFO("Creating TextureArray DescriptorLayouts... ");
 
 		//TextureDescriptorLayoutCreation

@@ -23,6 +23,9 @@ namespace Povox {
 	};
 
 
+	/**
+	 * This is just a helper class. There is no actual concept of a ComputePass in Vulkan. This help chaining resources together.
+	 */
 	class VulkanComputePass : public ComputePass
 	{
 	public:

@@ -65,6 +65,8 @@ namespace Povox {
 		std::string DebugName = "Pipeline";
 	};
 
+	class Buffer;
+	class Image2D;
 	class Pipeline
 	{
 	public:
@@ -72,6 +74,8 @@ namespace Povox {
 		virtual void Free() = 0;
 
 		virtual PipelineSpecification& GetSpecification() = 0;
+		virtual void BindShaderResourceBuffer(const std::string& name, Ref<Buffer> buffer) = 0;
+		virtual void BindShaderResourceImage(const std::string& name, Ref<Image2D> image) = 0;
 
 		virtual void Recreate() = 0;
 

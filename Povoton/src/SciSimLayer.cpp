@@ -80,9 +80,19 @@ namespace Povox {
 
 		m_SciRenderer->ResetStatistics();
 		
-		m_SciRenderer->BeginScene(m_EditorCamera);
+		// Update particles
+		//m_ActiveParticleSet->OnUpdate(deltatime);
+
+		// Start sci renderer / prepare for render
+		m_SciRenderer->Begin(m_EditorCamera);
+
+		// Render particle sets(s)
 		m_SciRenderer->DrawParticleSet(m_ActiveParticleSet);
-		m_SciRenderer->EndScene();
+
+		// Finish sci renderer and send stuff to GPU ?!
+		m_SciRenderer->End();
+
+
 
 		//CopyFinalImage into current SwapchainImage
 		if (!Application::Get()->GetSpecification().ImGuiEnabled)

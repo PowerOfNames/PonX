@@ -113,6 +113,7 @@ namespace Povox {
 
 			indexBufferSpecs.DebugName = "Renderer2D Batch Indices Frame: " + std::to_string(i);
 			m_QuadIndexBuffers[i] = Buffer::Create(indexBufferSpecs);
+
 		}
 		delete[] quadIndices;
 		m_QuadMaterial = Material::Create(Renderer::GetShaderLibrary()->Get("Renderer2D_Quad"), "Quad");

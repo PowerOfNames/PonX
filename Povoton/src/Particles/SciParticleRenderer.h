@@ -39,17 +39,23 @@ namespace Povox {
 		void OnResize(uint32_t width, uint32_t height);
 
 		// Workflow
-		void BeginScene(const EditorCamera& camera);
+		void Begin(const EditorCamera& camera);
 		
 		void DrawParticleSet(Povox::Ref<SciParticleSet> particleSet);
 		
 		void Flush();
-		void EndScene();
+		void End();
 
 		inline const Povox::Ref<Povox::Image2D> GetFinalImage() const { return m_FinalImage; }
 
 		const SciParticleRendererStatistics& GetStatistics() const { return m_Statistics; }
 		void ResetStatistics();
+
+	private:
+		void PreProcess(Povox::Ref<SciParticleSet> particleSet);
+		void BeginRender();
+		void FinishRender();
+
 
 	private:
 		SciParticleRendererSpecification m_Specification{};	

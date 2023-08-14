@@ -1,11 +1,13 @@
 #pragma once
 #include "Povox/Renderer/Buffer.h"
-#include "Povox/Renderer/Material.h"
 #include "Povox/Renderer/Pipeline.h"
 #include "Povox/Renderer/Renderable.h"
 #include "Povox/Renderer/RenderPass.h"
 #include "Povox/Renderer/Shader.h"
-#include "Povox/Renderer/TextureSystem.h"
+#include "Povox/Systems/MaterialSystem.h"
+#include "Povox/Systems/ShaderResourceSystem.h"
+#include "Povox/Systems/TextureSystem.h"
+
 
 #include <glm/glm.hpp>
 #include <iostream>
@@ -65,6 +67,9 @@ namespace Povox {
 		// Resources
 		virtual Ref<ShaderLibrary> GetShaderLibrary() const = 0;
 		virtual Ref<TextureSystem> GetTextureSystem() const = 0;
+		virtual Ref<MaterialSystem> GetMaterialSystem() const = 0;
+		virtual Ref<ShaderResourceSystem> GetShaderResourceSystem() const = 0;
+
 		virtual const RendererSpecification& GetSpecification() const = 0;
 		virtual void* GetGUIDescriptorSet(Ref<Image2D> image) const = 0;
 
@@ -79,8 +84,10 @@ namespace Povox {
 		virtual void EndRenderPass() = 0;
 
 		// Compute
+		virtual void BeginComputePass(Ref<ComputePass> computePass) = 0;
 		virtual void DispatchCompute(Ref<ComputePipeline> pipeline) = 0;
-		
+		virtual void EndComputePass() = 0;
+
 		// GUI
 		virtual void DrawGUI() = 0;
 		virtual void BeginGUIRenderPass() = 0;

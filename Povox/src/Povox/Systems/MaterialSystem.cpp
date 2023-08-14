@@ -1,10 +1,9 @@
 #include "pxpch.h"
-#include "Povox/Renderer/Material.h"
+#include "Povox/Systems/MaterialSystem.h"
+#include "Platform/Vulkan/VulkanMaterialSystem.h"
 
-#include "Platform/Vulkan/VulkanMaterial.h"
-
-#include "Povox/Renderer/RendererAPI.h"
 #include "Povox/Renderer/Renderer.h"
+#include "Povox/Renderer/RendererAPI.h"
 
 namespace Povox {
 

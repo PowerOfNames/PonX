@@ -64,7 +64,13 @@ namespace Povox {
 		particleBufferSpecs.MemUsage = MemoryUtils::MemoryUsage::GPU_ONLY;
 		particleBufferSpecs.ElementCount = m_Specification.MaxParticles;
 		particleBufferSpecs.ElementSize = sizeof(SciParticle);
-		particleBufferSpecs.Size = sizeof(SciParticle) * m_Specification.MaxParticles;	
+		particleBufferSpecs.Size = sizeof(SciParticle) * m_Specification.MaxParticles;
+		particleBufferSpecs.SetLayout({
+				{ ShaderDataType::Float2, "Position" },
+				{ ShaderDataType::Float2, "Velocity" },
+				{ ShaderDataType::Float3, "Color" },
+				{ ShaderDataType::Long, "ID" }
+			});
 
 		ImageSpecification distanceFieldSpecs{};
 		distanceFieldSpecs.Width = 2048;
@@ -118,7 +124,7 @@ namespace Povox {
 			for (uint32_t i = 0; i < 4; i++)
 			{
 				fullscreenQuadVertices[i].Position = vertexPositions[i];
-				fullscreenQuadVertices[i].Color = glm::vec4(0.33f);
+				fullscreenQuadVertices[i].Color = glm::vec4(0.0f);
 				fullscreenQuadVertices[i].TexCoord = textureCoords[i];
 				fullscreenQuadVertices[i].TexID = 0;
 			}
@@ -128,13 +134,17 @@ namespace Povox {
 
 			delete[] fullscreenQuadVertices;
 		}
+
 		m_RayMarchingMaterial = Material::Create(Renderer::GetShaderLibrary()->Get("RayMarchingShader"), "RayMarching");
+
+
+
+
+
 
 		PX_CORE_TRACE("SciRenderer::Init: Completed.");
 		return true;
 	}
-
-
 	void SciParticleRenderer::Shutdown()
 	{
 
@@ -165,27 +175,20 @@ namespace Povox {
 	}
 
 
-	void SciParticleRenderer::BeginScene(const EditorCamera& camera)
+	void SciParticleRenderer::Begin(const EditorCamera& camera)
 	{
 		PX_PROFILE_FUNCTION();
 
 
-		uint32_t currentFrameIndex = Renderer::GetCurrentFrameIndex();
-		auto cmd = Renderer::GetCommandBuffer(currentFrameIndex);
+		
 
-
-		Renderer::BeginCommandBuffer(cmd);
-		// Renderer::StartTimestampQuery("RayMarchingRenderpass");
-		Renderer::BeginRenderPass(m_RayMarchingRenderpass);
-
-		Renderer::BindPipeline(m_RayMarchingPipeline);
+		//First do the Compute stuff, then wait until compute is finished (barries connecting ComputePass (THere is no actual computePass, ist just to connect resources) and Renderpass)
 
 		m_CameraData.ViewMatrix = camera.GetViewMatrix();
 		m_CameraData.ProjectionMatrix = camera.GetProjectionMatrix();
 		m_CameraData.ViewProjMatrix = camera.GetViewProjectionMatrix();
 		Renderer::UpdateCamera(m_CameraData);
 
-		// Start batch -> followed by everything the ParticleRenderer needs to do BEFORE any particles are drawn
 	}
 
 
@@ -195,16 +198,12 @@ namespace Povox {
 	}
 
 
-	void SciParticleRenderer::EndScene()
+	void SciParticleRenderer::End()
 	{
 		PX_PROFILE_FUNCTION();
 
 		Flush();
-
-
-		Renderer::EndRenderPass();
-		// Renderer::StopTimestampQuery("RayMarchingRenderpass");
-		Renderer::EndCommandBuffer();
+		FinishRender();				
 
 		m_FinalImage = m_RayMarchingFramebuffer->GetColorAttachment(0);
 	}
@@ -215,8 +214,12 @@ namespace Povox {
 	void SciParticleRenderer::DrawParticleSet(Povox::Ref<SciParticleSet> particleSet)
 	{
 		//	Fullscreen Quad -> rays paint this during ray marching
-		
+		PreProcess(particleSet);
+
+		BeginRender();
 		Renderer::Draw(m_FullscreenQuadVertexBuffer, m_RayMarchingMaterial, m_FullscreenQuadIndexBuffer, 6);
+
+
 	}
 
 	void SciParticleRenderer::ResetStatistics()
@@ -225,6 +228,47 @@ namespace Povox {
 		m_Statistics.RenderedParticles = 0;
 
 		m_Statistics.ParticleSets = 0;
+	}
+
+	/**
+	 * Do compute shader stuff
+	 */
+	void SciParticleRenderer::PreProcess(Povox::Ref<SciParticleSet> particleSet)
+	{
+		PX_PROFILE_FUNCTION();
+
+
+		//Renderer::BeginComputePass(m_DistanceFieldComputePass);
+		//Renderer::DispatchCompute(m_DistanceFieldComputePipeline);
+		//Renderer::EndComputePass();
+	}
+
+	/**
+	 * Start the graphical rendering
+	 */
+	void SciParticleRenderer::BeginRender()
+	{
+
+		uint32_t currentFrameIndex = Renderer::GetCurrentFrameIndex();
+		auto cmd = Renderer::GetCommandBuffer(currentFrameIndex);
+
+		Renderer::BeginCommandBuffer(cmd);
+		// Renderer::StartTimestampQuery("RayMarchingRenderpass");
+		Renderer::BeginRenderPass(m_RayMarchingRenderpass);
+
+		Renderer::BindPipeline(m_RayMarchingPipeline);
+
+
+	}
+
+	/**
+	 * Finish the graphical rendering
+	 */
+	void SciParticleRenderer::FinishRender()
+	{
+		Renderer::EndRenderPass();
+		// Renderer::StopTimestampQuery("RayMarchingRenderpass");
+		Renderer::EndCommandBuffer();
 	}
 
 }

@@ -1,5 +1,5 @@
 #include "pxpch.h"
-#include "Povox/Renderer/TextureSystem.h"
+#include "Povox/Systems/TextureSystem.h"
 
 #include "Povox/Core/Log.h"
 #include "Povox/Renderer/Renderer.h"

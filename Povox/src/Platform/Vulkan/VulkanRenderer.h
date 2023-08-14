@@ -3,9 +3,11 @@
 
 #include "Platform/Vulkan/VulkanImGui.h"
 
+#include "Platform/Vulkan/VulkanMaterialSystem.h"
+#include "Platform/Vulkan/VulkanShaderResourceSystem.h"
 #include "Platform/Vulkan/VulkanPipeline.h"
-#include "Platform/Vulkan/VulkanSwapchain.h"
 #include "Platform/Vulkan/VulkanRenderPass.h"
+#include "Platform/Vulkan/VulkanSwapchain.h"
 
 #include "Povox/Core/Application.h"
 #include "Povox/Core/Core.h"
@@ -15,7 +17,8 @@
 #include "Povox/Renderer/Renderer.h"
 #include "Povox/Renderer/RendererAPI.h"
 #include "Povox/Renderer/Shader.h"
-#include "Povox/Renderer/TextureSystem.h"
+
+#include "Povox/Systems/TextureSystem.h"
 
 
 
@@ -48,6 +51,9 @@ namespace Povox {
 
 		AllocatedBuffer	ObjectBuffer;
 		VkDescriptorSet ObjectDescriptorSet;
+
+		AllocatedBuffer ParticleBuffer;
+		VkDescriptorSet ParticleDescriptorSet;
 
 		VkDescriptorSet TextureDescriptorSet;
 	};
@@ -95,7 +101,9 @@ namespace Povox {
 		virtual void BindPipeline(Ref<Pipeline> pipeline) override;
 
 		// Compute
+		virtual void BeginComputePass(Ref<ComputePass> computePass) override;
 		virtual void DispatchCompute(Ref<ComputePipeline> pipeline) override;
+		virtual void EndComputePass() override;
 
 		// GUI
 		virtual void BeginGUIRenderPass() override;
@@ -115,11 +123,13 @@ namespace Povox {
 
 
 		// Resource Getters
-		virtual Ref<ShaderLibrary> GetShaderLibrary() const override { return m_ShaderLibrary; }
-		virtual Ref<TextureSystem> GetTextureSystem() const override { return m_TextureSystem; }
+		virtual inline Ref<ShaderLibrary> GetShaderLibrary() const override { return m_ShaderLibrary; }
+		virtual inline Ref<TextureSystem> GetTextureSystem() const override { return m_TextureSystem; }
+		virtual inline Ref<MaterialSystem> GetMaterialSystem() const override { return m_MaterialSystem; }
+		virtual inline Ref<ShaderResourceSystem> GetShaderResourceSystem() const override { return m_ShaderResourceSystem; }
 		virtual inline Ref<Image2D> GetFinalImage(uint32_t frameIndex) const override;
 
-		virtual const RendererStatistics& GetStatistics() const override { return m_Statistics; }
+		virtual inline const RendererStatistics& GetStatistics() const override { return m_Statistics; }
 		virtual inline const RendererSpecification& GetSpecification() const override { return m_Specification; }
 
 	private:
@@ -128,6 +138,8 @@ namespace Povox {
 		void InitFrameData();
 		inline FrameData& GetCurrentFrame() { return m_Frames[m_CurrentFrameIndex]; }
 		FrameData& GetFrame(uint32_t index);
+		bool PrepareRenderFrame();
+		bool PrepareComputeFrame();
 
 		// Resources
 		void InitCommandControl();
@@ -156,6 +168,9 @@ namespace Povox {
 		VkCommandBuffer m_ActiveCommandBuffer = VK_NULL_HANDLE;
 		Ref<VulkanRenderPass> m_ActiveRenderPass = nullptr;
 		Ref<VulkanPipeline> m_ActivePipeline = nullptr;
+		
+		Ref<VulkanComputePass> m_ActiveComputePass = nullptr;
+
 
 		bool m_FramebufferResized = false, m_ViewportResized = false;
 		uint32_t m_FramebufferWidth = 0, m_FramebufferHeight = 0, m_ViewportWidth = 0, m_ViewportHeight = 0;
@@ -175,6 +190,8 @@ namespace Povox {
 
 		Ref<ShaderLibrary> m_ShaderLibrary = nullptr;
 		Ref<TextureSystem> m_TextureSystem = nullptr;
+		Ref<VulkanMaterialSystem> m_MaterialSystem = nullptr;
+		Ref<VulkanShaderResourceSystem> m_ShaderResourceSystem = nullptr;
 
 		std::vector<Ref<VulkanImage2D>> m_FinalImages;
 
@@ -188,6 +205,8 @@ namespace Povox {
 		VkDescriptorSetLayout m_GlobalDescriptorSetLayout = VK_NULL_HANDLE;
 		VkDescriptorSetLayout m_ObjectDescriptorSetLayout = VK_NULL_HANDLE;
 		VkDescriptorSetLayout m_TextureDescriptorSetLayout = VK_NULL_HANDLE;
+
+		VkDescriptorSetLayout m_ParticleDescriptorSetLayout = VK_NULL_HANDLE;
 
 		std::unordered_map<Ref<VulkanShader>, std::vector<VkDescriptorSet>> m_DescriptorSetShaderMap;
 

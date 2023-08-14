@@ -115,6 +115,8 @@ namespace Povox {
 		CreateLayout();
 		CreatePipeline();
 
+		QueryShaderResources();
+
 		PX_CORE_TRACE("VulkanPipeline::Construct Finished!");
 	}
 	VulkanPipeline::~VulkanPipeline() {}
@@ -147,6 +149,16 @@ namespace Povox {
 		if (m_Pipeline)
 			vkDestroyPipeline(device, m_Pipeline, nullptr);
 		CreatePipeline();
+	}
+
+	void VulkanPipeline::BindShaderResourceBuffer(const std::string& name, Ref<Buffer> buffer)
+	{
+
+	}
+
+	void VulkanPipeline::BindShaderResourceImage(const std::string& name, Ref<Image2D> image)
+	{
+
 	}
 
 	void VulkanPipeline::CreateLayout()
@@ -383,6 +395,15 @@ namespace Povox {
 		NameVkObject(VulkanContext::GetDevice()->GetVulkanDevice(), nameInfo);
 #endif // DEBUG
 
+	}
+
+
+	void VulkanPipeline::QueryShaderResources()
+	{
+		VkDevice device = VulkanContext::GetDevice()->GetVulkanDevice();
+		Ref<VulkanShader> shader = std::dynamic_pointer_cast<VulkanShader>(m_Specification.Shader);
+
+	
 	}
 
 

@@ -1,21 +1,24 @@
 #type compute
-#version 450
+#version 460
+#extension GL_EXT_shader_explicit_arithmetic_types_int64 : enable
 
-layout (binding = 0) uniform ParameterUBO {
-    float deltaTime;
+
+layout (set = 0, binding = 0) uniform ParameterUBO {
+    float DeltaTime;
 } ubo;
 
 struct Particle {
-    vec2 position;
-    vec2 velocity;
-    vec4 color;
+    vec2 Position;
+    vec2 Velocity;
+    vec4 Color;
+    uint64_t ID;
 };
 
-layout(std140, binding = 1) readonly buffer ParticleSSBOIn {
+layout(std140, set = 1, binding = 0) readonly buffer ParticleSSBOIn {
    Particle particlesIn[ ];
-};
+}ParticleIn;
 
-layout(std140, binding = 2) buffer ParticleSSBOOut {
+layout(std140, set = 1, binding = 1) buffer ParticleSSBOOut {
    Particle particlesOut[ ];
 };
 
@@ -25,8 +28,8 @@ void main()
 {
     uint index = gl_GlobalInvocationID.x;  
 
-    Particle particleIn = particlesIn[index];
+    Particle particleIn = ParticleIn.particlesIn[index];
 
-    particlesOut[index].position = particleIn.position + particleIn.velocity.xy * ubo.deltaTime;
-    particlesOut[index].velocity = particleIn.velocity;    
+    particlesOut[index].Position = particleIn.Position + particleIn.Velocity.xy * ubo.DeltaTime;
+    particlesOut[index].Velocity = particleIn.Velocity;    
 }

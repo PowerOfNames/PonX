@@ -1,13 +1,14 @@
 #pragma once
 
 #include "Povox/Renderer/Buffer.h"
-#include "Povox/Renderer/Material.h"
 #include "Povox/Renderer/OrthographicCamera.h"
 #include "Povox/Renderer/Renderable.h"
 #include "Povox/Renderer/RendererAPI.h"
 #include "Povox/Renderer/RenderPass.h"
 #include "Povox/Renderer/Shader.h"
-#include "Povox/Renderer/TextureSystem.h"
+#include "Povox/Systems/MaterialSystem.h"
+#include "Povox/Systems/ShaderResourceSystem.h"
+#include "Povox/Systems/TextureSystem.h"
 
 
 
@@ -122,6 +123,8 @@ namespace Povox {
 		// Resources
 		static Ref<ShaderLibrary> GetShaderLibrary();
 		static Ref<TextureSystem> GetTextureSystem();
+		static Ref<MaterialSystem> GetMaterialSystem();
+		static Ref<ShaderResourceSystem> GetShaderResourceSystem();
 		static const RendererSpecification& GetSpecification();
 		static void* GetGUIDescriptorSet(Ref<Image2D> image);
 
@@ -137,6 +140,11 @@ namespace Povox {
 
 		// Pipeline
 		static void BindPipeline(Ref<Pipeline> pipeline);
+
+		// Compute
+		static void BeginComputePass(Ref<ComputePass> computePass);
+		static void DispatchCompute(Ref<ComputePipeline> pipeline);
+		static void EndComputePass();
 
 		// Gui
 		static void BeginGUIRenderPass();
