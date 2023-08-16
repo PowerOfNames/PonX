@@ -130,6 +130,7 @@ namespace Povox {
 		glm::vec4 m_QuadVertexPositions[4];
 
 		// FullscreenQuad
+		Ref<RenderPass> m_FullscreenQuadRenderpass = nullptr;
 		Ref<Pipeline> m_FullscreenQuadPipeline = nullptr;
 
 		Ref<Buffer> m_FullscreenQuadVertexBuffer = nullptr;

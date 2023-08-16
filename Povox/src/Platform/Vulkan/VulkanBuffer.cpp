@@ -31,6 +31,8 @@ namespace Povox {
 		PX_CORE_ASSERT(specs.Size > 0, "A size needs to be defined!");
 		m_Allocation = CreateAllocation(specs.Size, VulkanUtils::GetVulkanBufferUsage(specs.Usage) | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VulkanUtils::GetVmaUsage(specs.MemUsage));
 
+		CreateDescriptorInfo();
+
 #ifdef PX_DEBUG
 		VkDebugUtilsObjectNameInfoEXT bufInfo{};
 		bufInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
@@ -117,6 +119,16 @@ namespace Povox {
 #endif // DEBUG
 
 		return newBuffer;
+	}
+
+	void VulkanBuffer::CreateDescriptorInfo()
+	{
+		VkDescriptorBufferInfo descInfo{};
+		descInfo.buffer = m_Allocation.Buffer;
+		descInfo.offset = 0;
+		descInfo.range = m_Specification.Size;
+
+		m_DescriptorInfo = descInfo;
 	}
 
 }

@@ -17,20 +17,18 @@ namespace Povox {
 		virtual void Free() override;
 
 		virtual void Recreate() override;
-		
-		virtual void BindShaderResourceBuffer(const std::string& name, Ref<Buffer> buffer) override;
-		virtual void BindShaderResourceImage(const std::string& name, Ref<Image2D> image) override;
 
 		inline VkPipeline GetVulkanObj() { return m_Pipeline; }
 		inline VkPipelineLayout GetLayout() { return m_Layout; }
 		virtual inline  PipelineSpecification& GetSpecification() override { return m_Specification; }
 		virtual inline const std::string& GetDebugName() const override { return m_Specification.DebugName; }
 
+		//helper for renderpass to actually create the framebuffer
+		void Construct();
 
 	private:
 		void CreateLayout();
 		void CreatePipeline();
-		void QueryShaderResources();
 
 	private:
 		VkPipeline m_Pipeline = VK_NULL_HANDLE;

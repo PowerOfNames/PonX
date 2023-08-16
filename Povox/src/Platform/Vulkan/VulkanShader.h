@@ -36,11 +36,6 @@ namespace Povox {
 
 		virtual uint64_t GetRendererID() const override { return m_RID; }
 
-		inline const std::vector<VkDescriptorSetLayoutBinding>& GetDescriptorSetBufferBindings() const { return m_DescriptorSetBufferBindings; }
-		inline const std::vector<VkDescriptorSetLayoutBinding>& GetDescriptorSetImageBindings() const { return m_DescriptorSetImageBindings; }
-		inline std::vector<VkDescriptorSetLayoutBinding>& GetDescriptorSetBufferBindings() { return m_DescriptorSetBufferBindings; }
-		inline std::vector<VkDescriptorSetLayoutBinding>& GetDescriptorSetImageBindings() { return m_DescriptorSetImageBindings; }
-
 		inline const std::vector<VkDescriptorSetLayout>& GetDescriptorSetLayouts() const { return m_DescriptorSetLayouts; }
 		inline std::vector<VkDescriptorSetLayout>& GetDescriptorSetLayouts() { return m_DescriptorSetLayouts; }
 
@@ -66,8 +61,8 @@ namespace Povox {
 		std::unordered_map<VkShaderStageFlagBits, std::vector<uint32_t>> m_SourceCodes;
 		std::unordered_map<VkShaderStageFlagBits, VkShaderModule> m_Modules;
 
-		std::vector<VkDescriptorSetLayoutBinding> m_DescriptorSetBufferBindings;
-		std::vector<VkDescriptorSetLayoutBinding> m_DescriptorSetImageBindings;
+		//std::vector<VkDescriptorSetLayoutBinding> m_DescriptorSetBufferBindings;
+		//std::vector<VkDescriptorSetLayoutBinding> m_DescriptorSetImageBindings;
 		std::vector<VkDescriptorSetLayout> m_DescriptorSetLayouts;
 
 		VertexInputDescription m_VertexInputDescription{};

@@ -10,11 +10,11 @@ namespace Povox {
 		VulkanRenderPass(const RenderPassSpecification& spec);
 		virtual ~VulkanRenderPass();
 
-		virtual void Recreate() override;
+		virtual void Recreate(uint32_t width, uint32_t height) override;
 
 		virtual inline const RenderPassSpecification& GetSpecification() const override { return m_Specification; }
 
-		inline VkRenderPass GetVulkanObj() const { return m_RenderPass; }
+		inline VkRenderPass GetRenderPass() const { return m_RenderPass; }
 
 		virtual inline const std::string& GetDebugName() const override { return m_Specification.DebugName; }
 	private:

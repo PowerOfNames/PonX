@@ -1,23 +1,23 @@
 #pragma once
 #include "Povox/Core/Core.h"
-#include "Povox/Renderer/Framebuffer.h"
 
 namespace Povox {
 
+	class Framebuffer;
+	class Pipeline;
 	struct RenderPassSpecification
 	{
-		Ref<Framebuffer> TargetFramebuffer = nullptr;
-		uint32_t ColorAttachmentCount = 0;
-		bool HasDepthAttachment = false;
-
 		std::string DebugName = "Renderpass";
+
+		Ref<Pipeline> Pipeline = nullptr;
+		Ref<Framebuffer> TargetFramebuffer = nullptr;
 	};
 
 	class RenderPass
 	{
 	public:
 		virtual ~RenderPass() = default;
-		virtual void Recreate() = 0;
+		virtual void Recreate(uint32_t width, uint32_t height) = 0;
 
 		virtual const RenderPassSpecification& GetSpecification() const = 0;
 

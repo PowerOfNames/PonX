@@ -35,6 +35,9 @@ namespace Povox {
 			float Y = 1.0f;
 		} Scale;
 		FramebufferAttachmentSpecification Attachments;
+		uint32_t ColorAttachmentCount = 0;
+		bool HasDepthAttachment = false;
+
 		std::vector<Ref<Image2D>> OriginalImages;
 
 		uint32_t Samples = 1;

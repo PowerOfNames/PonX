@@ -38,10 +38,17 @@ namespace Povox {
 		virtual const std::string& GetDebugName() const override { return m_Specification.DebugName; }
 
 		virtual bool operator==(const Buffer& other) const override { return m_RID == ((VulkanBuffer&)other).m_RID; }
+
+	private:
+		void CreateDescriptorInfo();
+
+
 	private:
 		RendererUID m_RID;
 
 		BufferSpecification m_Specification;
 		AllocatedBuffer m_Allocation{};
+
+		VkDescriptorBufferInfo m_DescriptorInfo{};
 	};
 }

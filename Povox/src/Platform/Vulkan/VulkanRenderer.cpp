@@ -803,8 +803,8 @@ namespace Povox {
 		VkRenderPassBeginInfo info{};
 		info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 		info.pNext = nullptr;
-		info.renderPass = m_ActiveRenderPass->GetVulkanObj();
-		info.framebuffer = fb->GetVulkanObj();
+		info.renderPass = m_ActiveRenderPass->GetRenderPass();
+		info.framebuffer = fb->GetFramebuffer();
 		info.renderArea.offset = { 0, 0 };
 		info.renderArea.extent = { fb->GetSpecification().Width, fb->GetSpecification().Height };
 

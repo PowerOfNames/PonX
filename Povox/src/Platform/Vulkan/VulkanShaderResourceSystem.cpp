@@ -10,8 +10,6 @@
 namespace Povox {
 
 
-
-
 	VulkanShaderResourceSystem::VulkanShaderResourceSystem()
 	{
 		Init();

@@ -61,23 +61,20 @@ namespace Povox {
 
 		inline bool Resizable() const { return m_Specification.Resizable; }
 
-		inline VkFramebuffer GetVulkanObj() { return m_Framebuffer; }
+		inline VkFramebuffer GetFramebuffer() { return m_Framebuffer; }
 		inline VkRenderPass GetRenderPass() { return m_RenderPass; }
-		inline VkRenderPass SetRenderPass(VkRenderPass renderPass) { m_RenderPass = renderPass; Construct(); }
-		
-		//helper for renderpass to actually create the framebuffer
-		void Construct(VkRenderPass renderpass = VK_NULL_HANDLE);
 
 		virtual const std::string& GetDebugName() const override { return m_Specification.DebugName; }
 	private:
 		void CreateAttachments();
+		void CreateRenderPass();
+		void CreateFramebuffer();
 	private:
 		FramebufferSpecification m_Specification;
 		VkFramebuffer m_Framebuffer = VK_NULL_HANDLE;
+		VkRenderPass m_RenderPass = VK_NULL_HANDLE;
 
 		std::vector<Ref<Image2D>> m_ColorAttachments;
 		Ref<Image2D> m_DepthAttachment = nullptr;
-
-		VkRenderPass m_RenderPass = VK_NULL_HANDLE;
 	};
 }

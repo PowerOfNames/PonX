@@ -469,7 +469,7 @@ namespace Povox {
 
 						if (VulkanUtils::IsImageBinding(binding.descriptorType))
 						{
-							m_DescriptorSetImageBindings.push_back(binding);
+							//m_DescriptorSetImageBindings.push_back(binding);
 							const char* name = reflBinding.name;
 							if (name)
 							{
@@ -495,7 +495,7 @@ namespace Povox {
 						}
 						else
 						{
-							m_DescriptorSetBufferBindings.push_back(binding);
+							//m_DescriptorSetBufferBindings.push_back(binding);
 
 							const char* name = reflBinding.type_description->type_name;
 							if (name)
@@ -550,10 +550,8 @@ namespace Povox {
 							}
 							binding.stageFlags = static_cast<VkShaderStageFlagBits>(module.shader_stage);
 
-							if (VulkanUtils::IsImageBinding(binding.descriptorType))
-								m_DescriptorSetImageBindings.push_back(binding);
-							else
-								m_DescriptorSetBufferBindings.push_back(binding);
+							//if (VulkanUtils::IsImageBinding(binding.descriptorType))
+							//else
 							currentSetLayoutData.Bindings.push_back(binding);
 						}
 						else

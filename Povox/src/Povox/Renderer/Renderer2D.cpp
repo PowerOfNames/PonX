@@ -19,41 +19,6 @@ namespace Povox {
 		Renderer::GetShaderLibrary()->Add("Renderer2D_Quad", Shader::Create("assets/shaders/Renderer2D_Quad.glsl"));
 		Renderer::GetShaderLibrary()->Add("Renderer2D_FullscreenQuad", Shader::Create("assets/shaders/Renderer2D_FullscreenQuad.glsl"));
 
-		//Quads
-		{
-			FramebufferSpecification quadFBSpecs{};
-			quadFBSpecs.DebugName = "RenderFramebuffer";
-			quadFBSpecs.Attachments = { {ImageFormat::RGBA8}, {ImageFormat::Depth} };
-			quadFBSpecs.Width = m_Specification.ViewportWidth;
-			quadFBSpecs.Height = m_Specification.ViewportHeight;
-			quadFBSpecs.SwapChainTarget = false;
-			m_QuadFramebuffer = Framebuffer::Create(quadFBSpecs);
-
-
-			RenderPassSpecification quadRPSpecs{};
-			quadRPSpecs.DebugName = "RenderRenderpass";
-			quadRPSpecs.TargetFramebuffer = m_QuadFramebuffer;
-			quadRPSpecs.ColorAttachmentCount = 1;
-			quadRPSpecs.HasDepthAttachment = true;
-			m_QuadRenderpass = RenderPass::Create(quadRPSpecs);
-
-
-			PipelineSpecification quadPLSpecs{};
-			quadPLSpecs.DebugName = "TexturePipeline";
-			quadPLSpecs.DynamicViewAndScissors = true;
-			quadPLSpecs.Culling = PipelineUtils::CullMode::BACK;
-			quadPLSpecs.TargetRenderPass = m_QuadRenderpass;
-			quadPLSpecs.Shader = Renderer::GetShaderLibrary()->Get("Renderer2D_Quad");
-			m_QuadPipeline = Pipeline::Create(quadPLSpecs);
-
-			PipelineSpecification fullscreenQuadPLSpecs{};
-			fullscreenQuadPLSpecs.DebugName = "FullscreenPipeline";
-			fullscreenQuadPLSpecs.DynamicViewAndScissors = true;
-			fullscreenQuadPLSpecs.Culling = PipelineUtils::CullMode::BACK;
-			fullscreenQuadPLSpecs.TargetRenderPass = m_QuadRenderpass;
-			fullscreenQuadPLSpecs.Shader = Renderer::GetShaderLibrary()->Get("Renderer2D_FullscreenQuad");
-			m_FullscreenQuadPipeline = Pipeline::Create(fullscreenQuadPLSpecs);
-		}
 	}
 
 	bool Renderer2D::Init()
@@ -63,6 +28,36 @@ namespace Povox {
 
 		PX_CORE_TRACE("Renderer2D::Init: Starting...");		
 		
+		//Quads
+		{
+			FramebufferSpecification framebufferSpecs{};
+			framebufferSpecs.DebugName = "RenderFramebuffer";
+			framebufferSpecs.Attachments = { {ImageFormat::RGBA8}, {ImageFormat::Depth} };
+			framebufferSpecs.Width = m_Specification.ViewportWidth;
+			framebufferSpecs.Height = m_Specification.ViewportHeight;
+			m_QuadFramebuffer = Framebuffer::Create(framebufferSpecs);		
+
+			PipelineSpecification pipelineSpecs{};
+			pipelineSpecs.DebugName = "TexturePipeline";
+			pipelineSpecs.DynamicViewAndScissors = true;
+			pipelineSpecs.Culling = PipelineUtils::CullMode::BACK;
+			pipelineSpecs.Shader = Renderer::GetShaderLibrary()->Get("Renderer2D_Quad");
+			m_QuadPipeline = Pipeline::Create(pipelineSpecs);
+
+			RenderPassSpecification renderpassSpecs{};
+			renderpassSpecs.DebugName = "RenderRenderpass";
+			renderpassSpecs.TargetFramebuffer = m_QuadFramebuffer;
+			renderpassSpecs.Pipeline = m_QuadPipeline;
+			m_QuadRenderpass = RenderPass::Create(renderpassSpecs);
+
+		// Fullscreen
+			pipelineSpecs.Shader = Renderer::GetShaderLibrary()->Get("Renderer2D_FullscreenQuad");
+			m_FullscreenQuadPipeline = Pipeline::Create(pipelineSpecs);
+			renderpassSpecs.Pipeline = m_FullscreenQuadPipeline;
+			m_FullscreenQuadRenderpass = RenderPass::Create(renderpassSpecs);
+
+		}
+
 		BufferSpecification vertexBufferSpecs{};
 		vertexBufferSpecs.Usage = BufferUsage::VERTEX_BUFFER;
 		vertexBufferSpecs.MemUsage = MemoryUtils::MemoryUsage::GPU_ONLY;
@@ -193,11 +188,8 @@ namespace Povox {
 		m_Specification.ViewportHeight = height;
 
 		// Quads
-		m_QuadFramebuffer->Recreate(width, height);
-		m_QuadRenderpass->Recreate();
-		m_QuadPipeline->Recreate();
-
-		m_FullscreenQuadPipeline->Recreate();
+		m_QuadRenderpass->Recreate(width, height);
+		m_FullscreenQuadRenderpass->Recreate(width, height);
 	}
 
 	void Renderer2D::BeginScene(const OrthographicCamera& camera)

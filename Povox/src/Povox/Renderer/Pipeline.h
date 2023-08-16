@@ -1,8 +1,10 @@
 #pragma once
 #include "Povox/Core/Core.h"
 
-#include "RenderPass.h"
-#include "Shader.h"
+#include "Povox/Renderer/Framebuffer.h"
+#include "Povox/Renderer/RenderPass.h"
+#include "Povox/Renderer/Shader.h"
+#include "Povox/Renderer/Buffer.h"
 
 namespace Povox {
 
@@ -45,11 +47,13 @@ namespace Povox {
 
 	}
 
-
+	
 	struct PipelineSpecification
 	{
-		Ref<RenderPass> TargetRenderPass = nullptr;
+		Ref<Framebuffer> TargetFramebuffer = nullptr;
+
 		Ref<Shader> Shader = nullptr;
+		BufferLayout VertexInputLayout;
 
 		PipelineUtils::PrimitiveTopology Primitive = PipelineUtils::PrimitiveTopology::DEFAULT;
 		PipelineUtils::PolygonMode FillMode = PipelineUtils::PolygonMode::DEFAULT;
@@ -61,6 +65,23 @@ namespace Povox {
 
 
 		bool DynamicViewAndScissors = true;
+		struct Viewport
+		{
+			uint32_t X = 0;
+			uint32_t Y = 0;
+			uint32_t Width = 0;
+			uint32_t Height = 0;
+			float MinDepth = 0.0f;
+			float MaxDepth = 1.0f;
+		}Viewport;
+
+		struct Scissor
+		{
+			uint32_t X = 0;
+			uint32_t Y = 0;
+			uint32_t Width = 0;
+			uint32_t Height = 0;
+		}Scissor;
 
 		std::string DebugName = "Pipeline";
 	};
@@ -74,8 +95,6 @@ namespace Povox {
 		virtual void Free() = 0;
 
 		virtual PipelineSpecification& GetSpecification() = 0;
-		virtual void BindShaderResourceBuffer(const std::string& name, Ref<Buffer> buffer) = 0;
-		virtual void BindShaderResourceImage(const std::string& name, Ref<Image2D> image) = 0;
 
 		virtual void Recreate() = 0;
 

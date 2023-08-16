@@ -2,7 +2,7 @@
 #include "Platform/Vulkan/VulkanContext.h"
 #include "Platform/Vulkan/VulkanDebug.h"
 #include "Platform/Vulkan/VulkanPipeline.h"
-#include "Platform/Vulkan/VulkanRenderPass.h"
+#include "Platform/Vulkan/VulkanFramebuffer.h"
 #include "Platform/Vulkan/VulkanShader.h"
 
 #include "Povox/Renderer/Renderable.h"
@@ -108,16 +108,9 @@ namespace Povox {
 		PX_PROFILE_FUNCTION();
 
 
-		PX_CORE_TRACE("VulkanPipeline::Construct Begin!");
-		VkDevice device = VulkanContext::GetDevice()->GetVulkanDevice();
-		Ref<VulkanShader> shader = std::dynamic_pointer_cast<VulkanShader>(specs.Shader);
-
-		CreateLayout();
+		PX_CORE_ASSERT(m_Specification.TargetFramebuffer, "There was no Framebuffer attached to this Pipeline!");
+		CreateLayout();	
 		CreatePipeline();
-
-		QueryShaderResources();
-
-		PX_CORE_TRACE("VulkanPipeline::Construct Finished!");
 	}
 	VulkanPipeline::~VulkanPipeline() {}
 
@@ -147,18 +140,13 @@ namespace Povox {
 			return;
 		
 		if (m_Pipeline)
+		{
 			vkDestroyPipeline(device, m_Pipeline, nullptr);
+			m_Pipeline = VK_NULL_HANDLE;
+		}
+
+		//Check if I need to recreate the layout as well!
 		CreatePipeline();
-	}
-
-	void VulkanPipeline::BindShaderResourceBuffer(const std::string& name, Ref<Buffer> buffer)
-	{
-
-	}
-
-	void VulkanPipeline::BindShaderResourceImage(const std::string& name, Ref<Image2D> image)
-	{
-
 	}
 
 	void VulkanPipeline::CreateLayout()
@@ -199,17 +187,22 @@ namespace Povox {
 		PX_CORE_TRACE("VulkanPipeline::Construct Created PipelineLayout!");
 	}
 
+
 	void VulkanPipeline::CreatePipeline()
 	{
+		PX_CORE_ASSERT(m_Specification.TargetFramebuffer, "Framebuffer missing!");
+
+
 		VkDevice device = VulkanContext::GetDevice()->GetVulkanDevice();
 		Ref<VulkanShader> shader = std::dynamic_pointer_cast<VulkanShader>(m_Specification.Shader);
+		Ref<VulkanFramebuffer> framebuffer = std::dynamic_pointer_cast<VulkanFramebuffer>(m_Specification.TargetFramebuffer);
 
 		{
 			VkPipelineVertexInputStateCreateInfo info{};
 			info.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
 			info.pNext = nullptr;
 
-			//VertexInputDescription comes from shader-reflect
+			//VertexInputDescription comes from shader-reflect -> should be validated with m_Specification.Layout
 			VertexInputDescription& description = shader->GetVertexInputDescription();
 			info.vertexBindingDescriptionCount = static_cast<uint32_t>(description.Bindings.size());
 			info.pVertexBindingDescriptions = description.Bindings.data();
@@ -239,12 +232,15 @@ namespace Povox {
 			m_AssemblyStateInfo = info;
 		}
 		{
-			m_Viewport.x = 0.0f;
-			m_Viewport.y = 0.0f;
-			m_Viewport.width = (float)m_Specification.TargetRenderPass->GetSpecification().TargetFramebuffer->GetSpecification().Width;
-			m_Viewport.height = (float)m_Specification.TargetRenderPass->GetSpecification().TargetFramebuffer->GetSpecification().Height;
-			m_Viewport.minDepth = 0.0f;
-			m_Viewport.maxDepth = 1.0f;
+			m_Scissor.extent.width = m_Specification.Scissor.Width;
+			m_Scissor.extent.height = m_Specification.Scissor.Height;
+			m_Scissor.offset.x = m_Specification.Scissor.X;
+			m_Scissor.offset.y = m_Specification.Scissor.Y;
+
+			m_Viewport.x = m_Specification.Viewport.X;
+			m_Viewport.y = m_Specification.Viewport.Y;
+			m_Viewport.minDepth = m_Specification.Viewport.MinDepth;
+			m_Viewport.maxDepth = m_Specification.Viewport.MaxDepth;
 		}
 		{
 			VkPipelineRasterizationStateCreateInfo info{};
@@ -329,13 +325,12 @@ namespace Povox {
 			m_ViewportStateInfo = info;
 		}
 
-		Ref<VulkanRenderPass> rp = std::dynamic_pointer_cast<VulkanRenderPass>(m_Specification.TargetRenderPass);
 		{
 			VkPipelineColorBlendStateCreateInfo info{};
 			info.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
 			info.logicOpEnable = VK_FALSE;
 			info.logicOp = VK_LOGIC_OP_COPY;
-			info.attachmentCount = rp->GetSpecification().ColorAttachmentCount;
+			info.attachmentCount = m_Specification.TargetFramebuffer->GetSpecification().ColorAttachmentCount;
 			info.pAttachments = m_ColorBlendAttachmentStateInfos.data();
 			info.blendConstants[0] = 0.0f;
 			info.blendConstants[1] = 0.0f;
@@ -343,7 +338,6 @@ namespace Povox {
 			info.blendConstants[3] = 0.0f;
 			m_ColorBlendStateInfo = info;
 		}
-
 
 		std::vector<VkDynamicState> dynamicStates =
 		{
@@ -358,7 +352,6 @@ namespace Povox {
 		dynamicStateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
 		dynamicStateInfo.dynamicStateCount = static_cast<uint32_t>(dynamicStates.size());
 		dynamicStateInfo.pDynamicStates = dynamicStates.data();
-
 
 		// The Pipeline
 		VkGraphicsPipelineCreateInfo pipelineInfo{};
@@ -377,7 +370,7 @@ namespace Povox {
 		else
 			pipelineInfo.pDynamicState = nullptr;
 		pipelineInfo.layout = m_Layout;
-		pipelineInfo.renderPass = rp->GetVulkanObj();
+		pipelineInfo.renderPass = framebuffer->GetRenderPass();
 		pipelineInfo.subpass = 0; // index
 
 		pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;	// only used if VK_PIPELINE_CREATE_DERIVATIVE_BIT is specified under flags in VkGraphicsPipelineCreateInfo
@@ -394,18 +387,7 @@ namespace Povox {
 		nameInfo.pObjectName = m_Specification.DebugName.c_str();
 		NameVkObject(VulkanContext::GetDevice()->GetVulkanDevice(), nameInfo);
 #endif // DEBUG
-
 	}
-
-
-	void VulkanPipeline::QueryShaderResources()
-	{
-		VkDevice device = VulkanContext::GetDevice()->GetVulkanDevice();
-		Ref<VulkanShader> shader = std::dynamic_pointer_cast<VulkanShader>(m_Specification.Shader);
-
-	
-	}
-
 
 	//------------------ Compute -------------------------
 

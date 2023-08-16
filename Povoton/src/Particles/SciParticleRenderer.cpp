@@ -14,39 +14,6 @@ namespace Povox {
 		Povox::Renderer::GetShaderLibrary()->Add("ComputeTestShader", Povox::Shader::Create("assets/shaders/ComputeTest.glsl"));
 		Povox::Renderer::GetShaderLibrary()->Add("RayMarchingShader", Povox::Shader::Create("assets/shaders/RayMarching.glsl"));
 
-
-		// Compute
-		{
-
-		}
-
-		// RayMarch to FullscreenQuad
-		{
-			FramebufferSpecification rayMarchingFBSpecs{};
-			rayMarchingFBSpecs.DebugName = "RaymarchingFramebuffer";
-			rayMarchingFBSpecs.Attachments = { {ImageFormat::RGBA8} };
-			rayMarchingFBSpecs.Width = m_Specification.ViewportWidth;
-			rayMarchingFBSpecs.Height = m_Specification.ViewportHeight;
-			rayMarchingFBSpecs.SwapChainTarget = false;
-			m_RayMarchingFramebuffer = Framebuffer::Create(rayMarchingFBSpecs);
-
-
-			RenderPassSpecification rayMarchingRPSpecs{};
-			rayMarchingRPSpecs.DebugName = "RaymarchingRenderpass";
-			rayMarchingRPSpecs.TargetFramebuffer = m_RayMarchingFramebuffer;
-			rayMarchingRPSpecs.ColorAttachmentCount = 1;
-			rayMarchingRPSpecs.HasDepthAttachment = false;
-			m_RayMarchingRenderpass = RenderPass::Create(rayMarchingRPSpecs);
-
-
-			PipelineSpecification rayMarchingPLSpecs{};
-			rayMarchingPLSpecs.DebugName = "RayMarchingPipeline";
-			rayMarchingPLSpecs.DynamicViewAndScissors = true;
-			rayMarchingPLSpecs.Culling = PipelineUtils::CullMode::BACK;
-			rayMarchingPLSpecs.TargetRenderPass = m_RayMarchingRenderpass;
-			rayMarchingPLSpecs.Shader = Renderer::GetShaderLibrary()->Get("RayMarchingShader");
-			m_RayMarchingPipeline = Pipeline::Create(rayMarchingPLSpecs);
-		}
 	}
 
 
@@ -58,6 +25,58 @@ namespace Povox {
 
 
 		PX_CORE_TRACE("SciRenderer::Init: Starting...");
+
+		// General Flow:
+		// Create Framebuffers, which store the RenderTraget-Images (Inputs and outputs)
+		// Create Pipelines, which define which descriptor sets are used + metadata (winding order, ...)
+		// Create Renderpasses, which contain at least one pipeline and wrap a framebuffer, defining barriers between image operations
+
+		// Dependencies: 
+		// Renderpass needs Attachment descriptions from the Framebuffer BUT 
+		// Framebuffer needs Renderpass handle upon creation -> After the renderpass was created, it triggers the framebuffer creation (vkCreate*() )
+		// Renderpass(class) needs set of all needed descriptor sets+bindings (just string identifier) from the shader BUT
+		// Pipeline creation triggers extraction of these from the attached shader(s) -> Renderpass triggers vkCreatePipeline call when finished
+
+		// Therefore: 
+		// Framebuffer->Create and Pipeline->Create just trigger setup functionality
+		// Renderpass->Create + Construct triggers vkCreateRenderpass+Framebuffer+Pipeline in order of demand
+
+
+		// Compute
+		{
+
+		}
+
+		// RayMarch to FullscreenQuad
+		{
+			FramebufferSpecification framebufferSpecs{};
+			framebufferSpecs.DebugName = "RaymarchingFramebuffer";
+			framebufferSpecs.Attachments = { {ImageFormat::RGBA8} };
+			framebufferSpecs.Width = m_Specification.ViewportWidth;
+			framebufferSpecs.Height = m_Specification.ViewportHeight;
+			m_RayMarchingFramebuffer = Framebuffer::Create(framebufferSpecs);
+			
+
+			PipelineSpecification pipelineSpecs{};
+			pipelineSpecs.DebugName = "RayMarchingPipeline";
+			pipelineSpecs.Shader = Renderer::GetShaderLibrary()->Get("RayMarchingShader");
+			pipelineSpecs.TargetFramebuffer = m_RayMarchingFramebuffer;
+			pipelineSpecs.VertexInputLayout = {
+				{ ShaderDataType::Float3, "a_Position" },
+				{ ShaderDataType::Float4, "a_Color" },
+				{ ShaderDataType::Float2, "a_TexCoord" },
+				{ ShaderDataType::Float, "a_TexID" }
+			};
+			pipelineSpecs.DynamicViewAndScissors = true;
+			m_RayMarchingPipeline = Pipeline::Create(pipelineSpecs);
+
+
+			RenderPassSpecification renderpassSpecs{};
+			renderpassSpecs.DebugName = "RaymarchingRenderpass";
+			renderpassSpecs.Pipeline = m_RayMarchingPipeline;
+			renderpassSpecs.TargetFramebuffer = m_RayMarchingFramebuffer;
+			m_RayMarchingRenderpass = RenderPass::Create(renderpassSpecs);
+		}
 
 		BufferSpecification particleBufferSpecs{};
 		particleBufferSpecs.Usage = BufferUsage::STORAGE_BUFFER;
@@ -169,9 +188,7 @@ namespace Povox {
 		//m_DistanceFieldComputePipeline->Recreate();
 
 		// RayMarching
-		m_RayMarchingFramebuffer->Recreate(width, height);
-		m_RayMarchingRenderpass->Recreate();
-		m_RayMarchingPipeline->Recreate();
+		m_RayMarchingRenderpass->Recreate(width, height);
 	}
 
 
