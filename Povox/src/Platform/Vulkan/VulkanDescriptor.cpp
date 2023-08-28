@@ -129,7 +129,7 @@ namespace Povox
 		}
 	}
 
-	VkDescriptorSetLayout VulkanDescriptorLayoutCache::CreateDescriptorLayout(const VkDescriptorSetLayoutCreateInfo* info)
+	VkDescriptorSetLayout VulkanDescriptorLayoutCache::CreateDescriptorLayout(const VkDescriptorSetLayoutCreateInfo* info, const std::string& name)
 	{
 		DescriptorLayoutInfo layoutInfo;
 		layoutInfo.Bindings.reserve(info->bindingCount);
@@ -167,8 +167,16 @@ namespace Povox
 			vkCreateDescriptorSetLayout(VulkanContext::GetDevice()->GetVulkanDevice(), info, nullptr, &layout);
 
 			m_LayoutCache[layoutInfo] = layout;
+			m_UniqueLayouts[name] = layout;
 			return layout;
 		}		
+	}
+
+	VkDescriptorSetLayout VulkanDescriptorLayoutCache::GetLayout(const std::string& name)
+	{
+		PX_CORE_ASSERT(m_UniqueLayouts.find(name) != m_UniqueLayouts.end(), "Layout not in cache!");
+
+		return m_UniqueLayouts[name];
 	}
 
 	bool VulkanDescriptorLayoutCache::DescriptorLayoutInfo::operator==(const DescriptorLayoutInfo& other) const
@@ -312,7 +320,7 @@ namespace Povox
 		info.bindingCount = static_cast<uint32_t>(m_Bindings.size());
 		info.pBindings = m_Bindings.data();
 
-		layout = m_Cache->CreateDescriptorLayout(&info);
+		layout = m_Cache->CreateDescriptorLayout(&info, debugName);
 
 		bool success = m_Allocator->Allocate(&set, layout);
 		if (!success)
@@ -344,7 +352,7 @@ namespace Povox
 		info.bindingCount = static_cast<uint32_t>(m_Bindings.size());
 		info.pBindings = m_Bindings.data();
 
-		VkDescriptorSetLayout layout = m_Cache->CreateDescriptorLayout(&info);
+		VkDescriptorSetLayout layout = m_Cache->CreateDescriptorLayout(&info, debugName);
 
 		bool success = m_Allocator->Allocate(&set, layout);
 		if (!success)
@@ -364,6 +372,20 @@ namespace Povox
 
 		vkUpdateDescriptorSets(VulkanContext::GetDevice()->GetVulkanDevice(), static_cast<uint32_t>(m_Writes.size()), m_Writes.data(), 0, nullptr);
 		return true;
+	}
+
+	bool VulkanDescriptorBuilder::BuildNoWrites(VkDescriptorSet& set, VkDescriptorSetLayout layout, const std::string& debugName /*= ""*/)
+	{
+		bool success = m_Allocator->Allocate(&set, layout);
+		if (!success)
+			return false;
+
+		VkDebugUtilsObjectNameInfoEXT nameInfo{};
+		nameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+		nameInfo.objectType = VK_OBJECT_TYPE_DESCRIPTOR_SET;
+		nameInfo.objectHandle = (uint64_t)set;
+		nameInfo.pObjectName = debugName.c_str();
+		NameVkObject(VulkanContext::GetDevice()->GetVulkanDevice(), nameInfo);
 	}
 
 }

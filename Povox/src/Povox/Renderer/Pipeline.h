@@ -95,8 +95,11 @@ namespace Povox {
 		virtual void Free() = 0;
 
 		virtual PipelineSpecification& GetSpecification() = 0;
+		virtual const std::unordered_map<std::string, Ref<ShaderResourceDescription>>& GetResourceDescriptions() const = 0;
 
 		virtual void Recreate() = 0;
+
+		virtual void PrintShaderLayout() const = 0;
 
 		virtual const std::string& GetDebugName() const = 0;
 

@@ -4,8 +4,10 @@
 #include "Platform/Vulkan/VulkanRenderPass.h"
 
 #include "Povox/Renderer/Renderer.h"
+#include "Povox/Utils/ShaderResources.h"
 
 namespace Povox {
+
 
 
 	Ref<RenderPass> RenderPass::Create(const RenderPassSpecification& spec)

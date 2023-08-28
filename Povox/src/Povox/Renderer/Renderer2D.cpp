@@ -92,7 +92,6 @@ namespace Povox {
 		indexBufferSpecs.ElementCount = m_Specification.MaxIndices;
 		indexBufferSpecs.ElementSize = sizeof(uint32_t);
 		indexBufferSpecs.Size = sizeof(uint32_t) * m_Specification.MaxIndices;
-		indexBufferSpecs.Data = quadIndices;
 		
 
 		uint32_t maxFrames = Renderer::GetSpecification().MaxFramesInFlight;
@@ -108,7 +107,7 @@ namespace Povox {
 
 			indexBufferSpecs.DebugName = "Renderer2D Batch Indices Frame: " + std::to_string(i);
 			m_QuadIndexBuffers[i] = Buffer::Create(indexBufferSpecs);
-
+			m_QuadIndexBuffers[i]->SetData(quadIndices, sizeof(uint32_t) * m_Specification.MaxIndices);
 		}
 		delete[] quadIndices;
 		m_QuadMaterial = Material::Create(Renderer::GetShaderLibrary()->Get("Renderer2D_Quad"), "Quad");
@@ -151,10 +150,10 @@ namespace Povox {
 			fullscreenIndexBufferSpecs.ElementCount = 6;
 			fullscreenIndexBufferSpecs.ElementSize = sizeof(uint32_t);
 			fullscreenIndexBufferSpecs.Size = sizeof(uint32_t) * 6;
-			fullscreenIndexBufferSpecs.Data = m_FullscreenQuadIndices;
 			fullscreenIndexBufferSpecs.DebugName = "Renderer2D FullscreenIndicexBuffer";
 
-			m_FullscreenQuadIndexBuffer = Buffer::Create(fullscreenIndexBufferSpecs);		
+			m_FullscreenQuadIndexBuffer = Buffer::Create(fullscreenIndexBufferSpecs);
+			m_FullscreenQuadIndexBuffer->SetData(m_FullscreenQuadIndices, sizeof(uint32_t) * 6);
 		}
 
 		PX_CORE_TRACE("Renderer2D::Init: Completed.");
@@ -254,7 +253,6 @@ namespace Povox {
 		m_QuadVertexBufferPtr = m_QuadVertexBufferBases[currentFrame];
 
 		Renderer::GetTextureSystem()->ResetActiveTextures();
-		//m_RenderedObjects.clear();
 	}
 
 	void Renderer2D::Flush()

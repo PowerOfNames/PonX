@@ -224,6 +224,7 @@
     <ClInclude Include="src\Povox\Scene\ScriptableEntity.h" />
     <ClInclude Include="src\Povox\Utils\FileUtility.h" />
     <ClInclude Include="src\Povox\Utils\PlatformsUtils.h" />
+    <ClInclude Include="src\Povox\Utils\ShaderResources.h" />
     <ClInclude Include="src\pxpch.h" />
     <ClInclude Include="vendor\ImGuizmo\ImGuizmo.h" />
     <ClInclude Include="vendor\SPIRV-Reflect\spirv_reflect.h" />

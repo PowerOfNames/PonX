@@ -367,7 +367,18 @@ namespace Povox {
 		builder.Build(m_DescriptorSet, "ImageDS");
 	}
 
+	VkDescriptorImageInfo VulkanImage2D::GetImageInfo()
+	{
 
+		//TODO: get layout from context of image (is it attachment, or storage, or...)
+		VkDescriptorImageInfo info{};
+		info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		info.imageView = m_View;
+		info.sampler = m_Sampler;
+
+		//return info;
+		return m_DescImageInfo;
+	}
 
 // ----------------- Texture2D -----------------
 

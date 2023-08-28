@@ -7,7 +7,6 @@
 
 #include <vulkan/vulkan.h>
 namespace Povox {
-	
 
 	class VulkanPipeline : public Pipeline
 	{
@@ -21,10 +20,10 @@ namespace Povox {
 		inline VkPipeline GetVulkanObj() { return m_Pipeline; }
 		inline VkPipelineLayout GetLayout() { return m_Layout; }
 		virtual inline  PipelineSpecification& GetSpecification() override { return m_Specification; }
+		virtual inline const std::unordered_map<std::string, Ref<ShaderResourceDescription>>& GetResourceDescriptions() const override { return m_Specification.Shader->GetResourceDescriptions(); };
 		virtual inline const std::string& GetDebugName() const override { return m_Specification.DebugName; }
 
-		//helper for renderpass to actually create the framebuffer
-		void Construct();
+		virtual void PrintShaderLayout() const override;
 
 	private:
 		void CreateLayout();
@@ -34,6 +33,7 @@ namespace Povox {
 		VkPipeline m_Pipeline = VK_NULL_HANDLE;
 		VkPipelineLayout m_Layout = VK_NULL_HANDLE;
 		PipelineSpecification m_Specification{};
+
 
 		std::vector<VkPipelineShaderStageCreateInfo> m_ShaderStageInfos;
 		VkPipelineVertexInputStateCreateInfo m_VertexInputStateInfo;
@@ -67,11 +67,14 @@ namespace Povox {
 	private:
 		void CreateLayout();
 		void CreatePipeline();
+		
 
 	private:
 		VkPipeline m_Pipeline = VK_NULL_HANDLE;
 		VkPipelineLayout m_Layout = VK_NULL_HANDLE;
 		ComputePipelineSpecification m_Specification{};
+
+		std::unordered_map<std::string, std::pair<VkDescriptorSetLayout, VkDescriptorSet>> m_DescriptorSets;
 
 		VkPipelineShaderStageCreateInfo m_ShaderStageInfo;
 	};

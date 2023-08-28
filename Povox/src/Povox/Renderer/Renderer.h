@@ -10,7 +10,7 @@
 #include "Povox/Systems/ShaderResourceSystem.h"
 #include "Povox/Systems/TextureSystem.h"
 
-
+#include "Povox/Utils/ShaderResources.h"
 
 #include <glm/glm.hpp>
 
@@ -64,6 +64,15 @@ namespace Povox {
 		glm::vec4 AmbientColor; //.a = ambientFactor
 		glm::vec4 SunlightDirection;
 		glm::vec4 SunlightColor;
+	};
+
+	// TODO: temp
+	struct ParticleUniform
+	{
+		glm::vec2 Position;
+		glm::vec2 Velocity;
+		glm::vec4 Color;
+		uint64_t ID;
 	};
 
 	struct PickingUniform

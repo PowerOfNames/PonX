@@ -235,63 +235,47 @@ namespace Povox {
 
 
 		uint32_t frameIndex = m_CurrentFrameIndex % m_Specification.MaxFramesInFlight;
-		uint32_t camUniformOffset = PadUniformBuffer(sizeof(SceneUniform), VulkanContext::GetDevice()->GetPhysicalDeviceProperties().limits.minUniformBufferOffsetAlignment) * (size_t)frameIndex;
-
-
-		uint32_t width = m_ViewportWidth;
-		uint32_t height = m_ViewportHeight;
-		VkViewport viewport{};
-		viewport.x = 0.0f;
-		viewport.y = static_cast<float>(height);
-		viewport.width = static_cast<float>(width);
-		viewport.height = -static_cast<float>(height);
-		viewport.minDepth = 0.0f;
-		viewport.maxDepth = 1.0f;
-		vkCmdSetViewport(m_ActiveCommandBuffer, 0, 1, &viewport);
-
-		VkRect2D scissor{};
-		scissor.offset = { 0, 0 };
-		scissor.extent = { width, height };
-		vkCmdSetScissor(m_ActiveCommandBuffer, 0, 1, &scissor);
-
-
-		vkCmdBindDescriptorSets(
-			m_ActiveCommandBuffer, 
-			VK_PIPELINE_BIND_POINT_GRAPHICS, 
-			m_ActivePipeline->GetLayout(), 
-			0, 
-			1, 
-			&GetCurrentFrame().GlobalDescriptorSet, 
-			1, 
-			&camUniformOffset
-		);
+		//uint32_t camUniformOffset = PadUniformBuffer(sizeof(SceneUniform), VulkanContext::GetDevice()->GetPhysicalDeviceProperties().limits.minUniformBufferOffsetAlignment) * (size_t)frameIndex;
+		
+// 		vkCmdBindDescriptorSets(
+// 			m_ActiveCommandBuffer, 
+// 			VK_PIPELINE_BIND_POINT_GRAPHICS, 
+// 			m_ActivePipeline->GetLayout(), 
+// 			0, 
+// 			1, 
+// 			&GetCurrentFrame().GlobalDescriptorSet, 
+// 			0, 
+// 			nullptr
+// 		);
 
 		/* Instead of using memcpy here, we are doing a different trick. It is possible to cast the void* from mapping the buffer into another type, and write into it normally.
 		* This will work completely fine, and makes it easier to write complex types into a buffer.
 		**/
 		//mapping of model data into the SSBO object buffer
-		uint32_t objectUniformOffset = PadUniformBuffer(sizeof(ObjectUniform), VulkanContext::GetDevice()->GetPhysicalDeviceProperties().limits.minUniformBufferOffsetAlignment) * (size_t)frameIndex;
+// 		uint32_t objectUniformOffset = PadUniformBuffer(sizeof(ObjectUniform), VulkanContext::GetDevice()->GetPhysicalDeviceProperties().limits.minUniformBufferOffsetAlignment) * (size_t)frameIndex;
+// 
+// 		ObjectUniform objectUniform;
+// 		//objectUniform.ModelMatrix = renderable.ModelMatrix;
+// 		objectUniform.TexID = 0;
+// 		objectUniform.TilingFactor = 1.0f;
+// 
+// 		void* data;
+// 		vmaMapMemory(VulkanContext::GetAllocator(), GetCurrentFrame().ObjectBuffer.Allocation, &data);
+// 		memcpy(data, &objectUniform, sizeof(ObjectUniform));
+// 		vmaUnmapMemory(VulkanContext::GetAllocator(), GetCurrentFrame().ObjectBuffer.Allocation);
 
-		ObjectUniform objectUniform;
-		//objectUniform.ModelMatrix = renderable.ModelMatrix;
-		objectUniform.TexID = 0;
-		objectUniform.TilingFactor = 1.0f;
-
-		void* data;
-		vmaMapMemory(VulkanContext::GetAllocator(), GetCurrentFrame().ObjectBuffer.Allocation, &data);
-		memcpy(data, &objectUniform, sizeof(ObjectUniform));
-		vmaUnmapMemory(VulkanContext::GetAllocator(), GetCurrentFrame().ObjectBuffer.Allocation);
-
-		vkCmdBindDescriptorSets(
-			m_ActiveCommandBuffer, 
-			VK_PIPELINE_BIND_POINT_GRAPHICS, 
-			m_ActivePipeline->GetLayout(), 
-			1, 
-			1, 
-			&GetCurrentFrame().ObjectDescriptorSet, 
-			0, 
-			&objectUniformOffset);
+// 		vkCmdBindDescriptorSets(
+// 			m_ActiveCommandBuffer, 
+// 			VK_PIPELINE_BIND_POINT_GRAPHICS, 
+// 			m_ActivePipeline->GetLayout(), 
+// 			1, 
+// 			1, 
+// 			&GetCurrentFrame().ObjectDescriptorSet, 
+// 			0, 
+// 			&objectUniformOffset);
 		
+
+		// only bind material descriptor sets here -> better store them all in one descriptor set and pass the offsets
 		
 		VkWriteDescriptorSet samplerWrite{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
 		samplerWrite.dstBinding = 0;
@@ -325,16 +309,16 @@ namespace Povox {
 
 		vkUpdateDescriptorSets(m_Device, 2, writes, 0, nullptr);
 
-		vkCmdBindDescriptorSets(
-			m_ActiveCommandBuffer, 
-			VK_PIPELINE_BIND_POINT_GRAPHICS, 
-			m_ActivePipeline->GetLayout(), 
-			2, 
-			1, 
-			&GetCurrentFrame().TextureDescriptorSet, 
-			0, 
-			nullptr
-		);
+// 		vkCmdBindDescriptorSets(
+// 			m_ActiveCommandBuffer, 
+// 			VK_PIPELINE_BIND_POINT_GRAPHICS, 
+// 			m_ActivePipeline->GetLayout(), 
+// 			2, 
+// 			1, 
+// 			&GetCurrentFrame().TextureDescriptorSet, 
+// 			0, 
+// 			nullptr
+// 		);
 		
 
 		VkBuffer vertexBuffer = std::dynamic_pointer_cast<VulkanBuffer>(vertices)->GetAllocation().Buffer;
@@ -812,6 +796,31 @@ namespace Povox {
 		info.pClearValues = clearColor.data();
 
 		vkCmdBeginRenderPass(m_ActiveCommandBuffer, &info, VK_SUBPASS_CONTENTS_INLINE);
+
+		// Bind pipeline. TODO: Behaviour if multiple pipelines are used during one renderpass (logic not supported yet)
+		BindPipeline(renderPass->GetSpecification().Pipeline);
+
+		// Now bind global descriptor sets (all sets 0-2)
+		auto& descriptors = m_ActiveRenderPass->GetDescriptors();
+		std::vector<VkDescriptorSet> descriptorSets;
+		
+		for (auto& [number, set] : descriptors)
+		{
+			if (number < 3)
+				descriptorSets.push_back(set.Sets[m_CurrentFrameIndex]);
+		}
+
+		// TODO: catch dynamic descriptor sets and there offset
+		vkCmdBindDescriptorSets(
+			m_ActiveCommandBuffer, 
+			VK_PIPELINE_BIND_POINT_GRAPHICS, 
+			m_ActivePipeline->GetLayout(), 
+			0,
+			static_cast<uint32_t>(descriptorSets.size()), 
+			descriptorSets.data(), 
+			0, 
+			nullptr);
+
 	}
 	void VulkanRenderer::EndRenderPass()
 	{
@@ -826,23 +835,24 @@ namespace Povox {
 
 
 		m_ActivePipeline = std::dynamic_pointer_cast<VulkanPipeline>(pipeline);
-
+		
 		if (pipeline->GetSpecification().DynamicViewAndScissors)
 		{
-			VkRect2D scissor;
-			scissor.offset = { 0, 0 };
-			scissor.extent = { m_Swapchain->GetProperties().Width, m_Swapchain->GetProperties().Height };
-
-			VkViewport viewport;
+			uint32_t width = m_ViewportWidth;
+			uint32_t height = m_ViewportHeight;
+			VkViewport viewport{};
+			viewport.x = 0.0f;
+			viewport.y = static_cast<float>(height);
+			viewport.width = static_cast<float>(width);
+			viewport.height = -static_cast<float>(height);
 			viewport.minDepth = 0.0f;
 			viewport.maxDepth = 1.0f;
-			viewport.x = 0.0f;
-			viewport.y = 0.0f;
-			viewport.width = (float)m_ActiveRenderPass->GetSpecification().TargetFramebuffer->GetSpecification().Width;
-			viewport.height = (float)m_ActiveRenderPass->GetSpecification().TargetFramebuffer->GetSpecification().Height;
-
-			vkCmdSetScissor(m_ActiveCommandBuffer, 0, 1, &scissor);
 			vkCmdSetViewport(m_ActiveCommandBuffer, 0, 1, &viewport);
+
+			VkRect2D scissor{};
+			scissor.offset = { 0, 0 };
+			scissor.extent = { width, height };
+			vkCmdSetScissor(m_ActiveCommandBuffer, 0, 1, &scissor);
 		}
 
 		vkCmdBeginQuery(m_ActiveCommandBuffer, m_PipelineStatisticsQueryPool, 0, 0);
@@ -969,7 +979,7 @@ namespace Povox {
 			globalInfo.bindingCount = static_cast<uint32_t>(globalBindings.size());
 			globalInfo.pBindings = globalBindings.data();
 
-			m_GlobalDescriptorSetLayout = VulkanContext::GetDescriptorLayoutCache()->CreateDescriptorLayout(&globalInfo);
+			m_GlobalDescriptorSetLayout = VulkanContext::GetDescriptorLayoutCache()->CreateDescriptorLayout(&globalInfo, "GlobalUBOs");
 		}
 		for (uint32_t i = 0; i < m_Specification.MaxFramesInFlight; i++)
 		{
@@ -1009,7 +1019,7 @@ namespace Povox {
 			objectInfo.bindingCount = 0;
 			objectInfo.pBindings = &objectBinding;
 
-			m_ObjectDescriptorSetLayout = VulkanContext::GetDescriptorLayoutCache()->CreateDescriptorLayout(&objectInfo);
+			m_ObjectDescriptorSetLayout = VulkanContext::GetDescriptorLayoutCache()->CreateDescriptorLayout(&objectInfo, "GlobalSSBOs");
 		}
 		for (uint32_t i = 0; i < m_Specification.MaxFramesInFlight; i++)
 		{
@@ -1090,7 +1100,7 @@ namespace Povox {
 			textureInfo.bindingCount = static_cast<uint32_t>(textureBindings.size());
 			textureInfo.pBindings = textureBindings.data();
 
-			m_TextureDescriptorSetLayout = VulkanContext::GetDescriptorLayoutCache()->CreateDescriptorLayout(&textureInfo);
+			m_TextureDescriptorSetLayout = VulkanContext::GetDescriptorLayoutCache()->CreateDescriptorLayout(&textureInfo, "Textures");
 		}
 
 		auto& activeTextures = m_TextureSystem->GetActiveTextures();

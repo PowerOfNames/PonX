@@ -50,7 +50,8 @@ namespace Povox {
 		void Cleanup();
 
 
-		VkDescriptorSetLayout CreateDescriptorLayout(const VkDescriptorSetLayoutCreateInfo* info);
+		VkDescriptorSetLayout CreateDescriptorLayout(const VkDescriptorSetLayoutCreateInfo* info, const std::string& name);
+		VkDescriptorSetLayout GetLayout(const std::string& name);
 
 		struct DescriptorLayoutInfo {
 			std::vector<VkDescriptorSetLayoutBinding> Bindings;
@@ -71,6 +72,7 @@ namespace Povox {
 		};
 
 		std::unordered_map<DescriptorLayoutInfo, VkDescriptorSetLayout, DescriptorLayoutHash> m_LayoutCache;
+		std::unordered_map<std::string, VkDescriptorSetLayout> m_UniqueLayouts;
 	};
 
 
@@ -89,6 +91,7 @@ namespace Povox {
 
 		bool Build(VkDescriptorSet& set, VkDescriptorSetLayout& layout, const std::string& debugName = "");
 		bool Build(VkDescriptorSet& set, const std::string& debugName = "");
+		bool BuildNoWrites(VkDescriptorSet& set, VkDescriptorSetLayout layout, const std::string& debugName = "");
 
 	private:
 		std::vector<VkWriteDescriptorSet> m_Writes;

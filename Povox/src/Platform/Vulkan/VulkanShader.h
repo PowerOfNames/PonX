@@ -32,12 +32,12 @@ namespace Povox {
 		virtual ~VulkanShader() = default;
 		virtual void Free() override;
 
-		virtual const std::unordered_map<std::string, ShaderResourceDescription>& GetResourceDescriptions() const override { return m_ShaderResourceDescriptions; }
+		virtual const std::unordered_map<std::string, Ref<ShaderResourceDescription>>& GetResourceDescriptions() const override { return m_ShaderResourceDescriptions; }
 
 		virtual uint64_t GetRendererID() const override { return m_RID; }
 
-		inline const std::vector<VkDescriptorSetLayout>& GetDescriptorSetLayouts() const { return m_DescriptorSetLayouts; }
-		inline std::vector<VkDescriptorSetLayout>& GetDescriptorSetLayouts() { return m_DescriptorSetLayouts; }
+		inline const std::map<uint32_t, VkDescriptorSetLayout>& GetDescriptorSetLayouts() const { return m_DescriptorSetLayouts; }
+		inline std::map<uint32_t, VkDescriptorSetLayout>& GetDescriptorSetLayouts() { return m_DescriptorSetLayouts; }
 
 		inline VertexInputDescription& GetVertexInputDescription() { return m_VertexInputDescription; }
 		inline const VertexInputDescription& GetVertexInputDescription() const { return m_VertexInputDescription; }
@@ -56,14 +56,12 @@ namespace Povox {
 	private:
 		RendererUID m_RID;
 
-		std::unordered_map<std::string, ShaderResourceDescription> m_ShaderResourceDescriptions;
+		std::unordered_map<std::string, Ref<ShaderResourceDescription>> m_ShaderResourceDescriptions;
 
 		std::unordered_map<VkShaderStageFlagBits, std::vector<uint32_t>> m_SourceCodes;
 		std::unordered_map<VkShaderStageFlagBits, VkShaderModule> m_Modules;
 
-		//std::vector<VkDescriptorSetLayoutBinding> m_DescriptorSetBufferBindings;
-		//std::vector<VkDescriptorSetLayoutBinding> m_DescriptorSetImageBindings;
-		std::vector<VkDescriptorSetLayout> m_DescriptorSetLayouts;
+		std::map<uint32_t, VkDescriptorSetLayout> m_DescriptorSetLayouts;
 
 		VertexInputDescription m_VertexInputDescription{};
 

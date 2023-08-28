@@ -1625,6 +1625,7 @@
     </ClInclude>
     <ClInclude Include="src\Povox\Systems\ShaderResourceSystem.h" />
     <ClInclude Include="src\Platform\Vulkan\VulkanShaderResourceSystem.h" />
+    <ClInclude Include="src\Povox\Utils\ShaderResources.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Platform\OpenGL\OpenGLContext.cpp">

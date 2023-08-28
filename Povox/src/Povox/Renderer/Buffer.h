@@ -4,6 +4,7 @@
 #include "Povox/Renderer/Utilities.h"
 
 #include "Povox/Renderer/Shader.h"
+#include "Povox/Utils/ShaderResources.h"
 
 namespace Povox {
 
@@ -55,6 +56,7 @@ namespace Povox {
 
 		inline const std::vector<BufferElement>& GetElements() const { return m_BufferElements; }
 		inline const uint32_t GetStride() const { return m_Stride; }
+		inline const BufferElement* GetElement(const std::string& name) { return FindElement(name); };
 
 		std::vector<BufferElement>::iterator begin() { return m_BufferElements.begin(); }
 		std::vector<BufferElement>::iterator end() { return m_BufferElements.end(); }
@@ -70,6 +72,17 @@ namespace Povox {
 				m_Stride += element.Size;
 			}
 		}
+		const BufferElement* FindElement(const std::string& name)
+		{
+			for (auto& element : m_BufferElements)
+			{
+				if (element.Name == name)
+					return &element;
+			}
+			PX_CORE_ASSERT(true, "Element not set in Layout!");
+			return nullptr;
+		}
+
 	private:
 		std::vector<BufferElement> m_BufferElements;
 		uint32_t m_Stride = 0;
@@ -112,18 +125,10 @@ namespace Povox {
 		BufferLayout Layout;
 
 		uint32_t ElementCount = 0;
-		uint32_t ElementOffset = 0;
 		uint32_t ElementSize = 0;
-
-		size_t Size = ElementCount * ElementSize;
-		void* Data;
+		size_t Size = 0;
 
 		std::string DebugName = "Buffer";
-
-		void SetLayout(const BufferLayout& layout)
-		{
-			Layout = layout;
-		}
 	};
 
 	class Buffer
@@ -133,6 +138,8 @@ namespace Povox {
 		virtual void Free() = 0;
 
 		virtual void SetData(void* data, size_t size) = 0;
+		virtual void SetData(void* inputData, uint32_t index, size_t size) = 0;
+
 		virtual void SetLayout(const BufferLayout& layout) = 0;
 		virtual BufferSpecification& GetSpecification() = 0;
 
@@ -144,4 +151,44 @@ namespace Povox {
 
 		virtual bool operator==(const Buffer& other) const = 0;
 	};
+
+	class UniformBuffer
+	{
+	public:
+		UniformBuffer(const BufferLayout& layout, bool perFrame = true);
+		~UniformBuffer() = default;
+
+		void SetData(void* data, size_t size);
+		void Set(void* data, const std::string& name, size_t size);
+
+		void CreateBuffers();
+		Ref<Buffer> GetBuffer(uint32_t frameIndex = 0);
+
+	private:
+		BufferLayout m_Layout{};
+		bool m_PerFrame;
+		std::vector<Ref<Buffer>> m_Buffers;
+	};
+
+	class StorageBuffer
+	{
+	public:
+		StorageBuffer(const BufferLayout& layout, size_t count, bool perFrame = true);
+		~StorageBuffer() = default;
+
+		void SetData(void* data, size_t size);
+		void SetData(void* data, uint32_t index, size_t size);
+		void Set(void* data, uint32_t index, const std::string& name, size_t size);
+
+		void CreateBuffers();
+		Ref<Buffer> GetBuffer(uint32_t frameIndex = 0);
+
+	private:
+		BufferLayout m_Layout{};
+		size_t m_ElementCount = 0;
+		bool m_PerFrame;
+		std::vector<Ref<Buffer>> m_Buffers;
+	};
+
+
 }

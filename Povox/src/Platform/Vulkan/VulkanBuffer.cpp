@@ -29,7 +29,10 @@ namespace Povox {
 		: m_Specification(specs)
 	{
 		PX_CORE_ASSERT(specs.Size > 0, "A size needs to be defined!");
-		m_Allocation = CreateAllocation(specs.Size, VulkanUtils::GetVulkanBufferUsage(specs.Usage) | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VulkanUtils::GetVmaUsage(specs.MemUsage));
+		m_Size = specs.Size;
+
+		m_Allocation = CreateAllocation(m_Size, VulkanUtils::GetVulkanBufferUsage(specs.Usage) | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VulkanUtils::GetVmaUsage(specs.MemUsage));
+		m_Staging = CreateAllocation(m_Size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 
 		CreateDescriptorInfo();
 
@@ -42,12 +45,14 @@ namespace Povox {
 		NameVkObject(VulkanContext::GetDevice()->GetVulkanDevice(), bufInfo);
 #endif // DEBUG
 
-		if(specs.Data != nullptr)
-			SetData(specs.Data, specs.Size);
-// 
+//		// Differentiate between Buffers that live durign the whole runtime and time based buffers -> depending on that the resource 
+//		// free call needs to take place here or Free() needs to be called
 // 		VulkanContext::SubmitResourceFree([=]()
 // 			{
-// 				vmaDestroyBuffer(VulkanContext::GetAllocator(), m_Allocation.Buffer, m_Allocation.Allocation);
+//				VmaAllocator allocator = VulkanContext::GetAllocator();
+// 
+// 				vmaDestroyBuffer(allocator, m_Allocation.Buffer, m_Allocation.Allocation);
+// 				vmaDestroyBuffer(allocator, m_Staging.Buffer, m_Staging.Allocation);
 // 			});
 	}
 
@@ -59,36 +64,73 @@ namespace Povox {
 			{
 				PX_CORE_WARN("VulkanBuffer Destroying Buffer {}", m_Specification.DebugName);
 
-				vmaDestroyBuffer(VulkanContext::GetAllocator(), m_Allocation.Buffer, m_Allocation.Allocation);
+				VmaAllocator allocator = VulkanContext::GetAllocator();
+
+				vmaDestroyBuffer(allocator, m_Allocation.Buffer, m_Allocation.Allocation);
+				vmaDestroyBuffer(allocator, m_Staging.Buffer, m_Staging.Allocation);
+			});
+	}
+
+	void VulkanBuffer::UploadToGPU()
+	{	
+		PX_CORE_ASSERT(m_StagingMapped, "Something went wrong, staging should be mapped!");
+
+		VmaAllocator allocator = VulkanContext::GetAllocator();
+		vmaUnmapMemory(allocator, m_Staging.Allocation);
+		m_StagingMapped = false;
+
+		VulkanCommandControl::ImmidiateSubmit(VulkanCommandControl::SubmitType::SUBMIT_TYPE_TRANSFER, [=](VkCommandBuffer cmd)
+			{
+				VkBufferCopy copyRegion{};
+				copyRegion.size = m_Size;
+
+				vkCmdCopyBuffer(cmd, m_Staging.Buffer, m_Allocation.Buffer, 1, &copyRegion);
 			});
 	}
 
 	void VulkanBuffer::SetData(void* inputData, const size_t size)
 	{
-		if(m_Allocation.Buffer == VK_NULL_HANDLE)
-			m_Allocation = CreateAllocation(m_Specification.Size, VulkanUtils::GetVulkanBufferUsage(m_Specification.Usage) | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VulkanUtils::GetVmaUsage(m_Specification.MemUsage));
-		
-		m_Specification.Size = size;
-		m_Specification.Data = inputData;
-		AllocatedBuffer stagingBuffer = CreateAllocation(size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_ONLY);
+		if (m_Specification.Size > size)
+			PX_CORE_WARN("VulkanBuffer::SetData: The BufferSpecification size does not match the data size!");
 
-		VmaAllocator allocator = VulkanContext::GetAllocator();
-		void* data;
-		vmaMapMemory(allocator, stagingBuffer.Allocation, &data);
-		memcpy(data, inputData, size);
-		vmaUnmapMemory(allocator, stagingBuffer.Allocation);
+		if (m_Specification.Size < size)
+		{
+			PX_CORE_ERROR("VulkanBuffer::SetData: The BufferSpecification.Size and therefore the initial buffer size is too small for this dataset!");
+			return;
+		}
 
+		if (!m_StagingMapped)
+		{
+			VmaAllocator allocator = VulkanContext::GetAllocator();
+			vmaMapMemory(allocator, m_Staging.Allocation, &m_Data);
+			m_StagingMapped = true;
+		}
 
-		VulkanCommandControl::ImmidiateSubmit(VulkanCommandControl::SubmitType::SUBMIT_TYPE_TRANSFER, [=](VkCommandBuffer cmd)
-			{
-				VkBufferCopy copyRegion{};
-				copyRegion.size = size;
+		memcpy(m_Data, inputData, size);
 
-				vkCmdCopyBuffer(cmd, stagingBuffer.Buffer, m_Allocation.Buffer, 1, &copyRegion);
-			});
-
-		vmaDestroyBuffer(allocator, stagingBuffer.Buffer, stagingBuffer.Allocation);
+		UploadToGPU();
 	}
+	void VulkanBuffer::SetData(void* inputData, uint32_t offset, size_t size)
+	{
+		PX_CORE_ASSERT((offset + size) < m_Specification.Size, "Out of bounds!");
+		//char* input = (char*)inputData;
+
+		if (!m_StagingMapped)
+		{
+			VmaAllocator allocator = VulkanContext::GetAllocator();
+			vmaMapMemory(allocator, m_Staging.Allocation, &m_Data);
+			m_StagingMapped = true;
+		}
+
+		char* data = (char*)m_Data;
+
+		memcpy(data + offset, inputData, size);
+
+
+
+
+		UploadToGPU();
+	}	
 
 	AllocatedBuffer VulkanBuffer::CreateAllocation(size_t allocSize, VkBufferUsageFlags usage, VmaMemoryUsage memUsage, std::string debugName)
 	{
@@ -121,14 +163,14 @@ namespace Povox {
 		return newBuffer;
 	}
 
-	void VulkanBuffer::CreateDescriptorInfo()
+	VkDescriptorBufferInfo VulkanBuffer::CreateDescriptorInfo()
 	{
 		VkDescriptorBufferInfo descInfo{};
 		descInfo.buffer = m_Allocation.Buffer;
 		descInfo.offset = 0;
-		descInfo.range = m_Specification.Size;
+		descInfo.range = m_Size;
 
-		m_DescriptorInfo = descInfo;
-	}
+		return descInfo;
+	}	
 
 }

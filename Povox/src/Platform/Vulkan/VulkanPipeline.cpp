@@ -154,7 +154,14 @@ namespace Povox {
 		VkDevice device = VulkanContext::GetDevice()->GetVulkanDevice();
 		Ref<VulkanShader> shader = std::dynamic_pointer_cast<VulkanShader>(m_Specification.Shader);
 
-		std::vector<VkDescriptorSetLayout>& layouts = shader->GetDescriptorSetLayouts();
+		auto& layoutMap = shader->GetDescriptorSetLayouts();
+		std::vector<VkDescriptorSetLayout> layouts;
+		for (const auto& [setNumber, layout] : layoutMap)
+		{
+			layouts.push_back(layout);
+		}
+
+
 		PX_CORE_WARN("Layouts: {0}", layouts.size());
 		VkPipelineLayoutCreateInfo layoutInfo{};
 		layoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
@@ -389,6 +396,19 @@ namespace Povox {
 #endif // DEBUG
 	}
 
+	void VulkanPipeline::PrintShaderLayout() const
+	{
+		auto& shaderLayout = m_Specification.Shader->GetResourceDescriptions();
+		for (auto&& [name, binding] : shaderLayout)
+		{
+			PX_CORE_TRACE("Pipeline: {}", m_Specification.DebugName);
+			PX_CORE_TRACE("Shader: {}", m_Specification.Shader->GetDebugName());
+			PX_CORE_INFO("BindingName: {}", name, binding->Name);
+			PX_CORE_INFO("Set {}, Binding {}, Type: {}", binding->Set, binding->Binding, ToStringUtility::ShaderResourceTypeToString(binding->ResourceType));
+			PX_CORE_INFO("{}", ToStringUtility::ShaderStageToString(binding->Stages));
+		}
+	}
+
 	//------------------ Compute -------------------------
 
 
@@ -442,7 +462,12 @@ namespace Povox {
 		VkDevice device = VulkanContext::GetDevice()->GetVulkanDevice();
 		Ref<VulkanShader> shader = std::dynamic_pointer_cast<VulkanShader>(m_Specification.Shader);
 
-		std::vector<VkDescriptorSetLayout>& layouts = shader->GetDescriptorSetLayouts();
+		auto& layoutMap = shader->GetDescriptorSetLayouts();
+		std::vector<VkDescriptorSetLayout> layouts;
+		for (const auto& [setNumber, layout] : layoutMap)
+		{
+			layouts.push_back(layout);
+		}
 		PX_CORE_WARN("Layouts: {0}", layouts.size());
 		VkPipelineLayoutCreateInfo layoutInfo{};
 		layoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;

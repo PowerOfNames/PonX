@@ -8,6 +8,7 @@ layout(location = 1) in vec4 a_Color;
 layout(location = 2) in vec2 a_TexCoord;
 layout(location = 3) in float a_TexID;
 
+layout(location = 0) out vec4 o_Color;
 
 layout(std140, set = 0, binding = 0) uniform CameraData
 {
@@ -26,26 +27,9 @@ layout(std140, set = 0, binding = 1) uniform SceneData
 } u_Scene;
 
 
-struct ObjectData
-{
-	//mat4 ModelMatrix;
-	uint TexID;
-	float TilingFactor;
-};
-layout(std140, set = 1, binding = 0) readonly buffer Objects
-{
-	ObjectData objects[];
-}b_Objects;
-
-layout(location = 0) out flat float o_TexID;
-layout(location = 1) out vec4 o_Color;
-
-
 void main()
 {
-	o_TexID = a_TexID;
 	o_Color = a_Color;
-
 	gl_Position = vec4(a_Position, 1.0f);
 }
 
@@ -54,8 +38,7 @@ void main()
 #extension GL_ARB_shader_draw_parameters : require
 #extension GL_EXT_shader_explicit_arithmetic_types : require
 
-layout(location = 0) in flat float v_TexID;
-layout(location = 1) in vec4 v_Color;
+layout(location = 0) in vec4 v_Color;
 
 layout(location = 0) out vec4 color;
 
@@ -77,30 +60,20 @@ layout(std140, set = 0, binding = 1) uniform SceneData
 } u_Scene;
 
 
-struct ObjectData
-{
-	//mat4 ModelMatrix;
-	uint TexID;
-	float TilingFactor;
+struct Particle {
+    vec2 Position;
+    vec2 Velocity;
+    vec4 Color;
+    uint64_t ID;
 };
-layout(std140, set = 1, binding = 0) readonly buffer Objects
-{
-	ObjectData objects[];
-}b_Objects;
 
-/*struct Particle
-{
-	vec4 Spatial;
-	vec4 Color;
-	uint64_t ID;
-};
-layout(std140, set = 1, binding = 0) readonly buffer ParticleData
-{
-	Particle particles[];
-}b_Particles;*/
+layout(std140, set = 1, binding = 0) readonly buffer ParticlesIn {
+   Particle particles[ ];
+}ParticleIn;
 
-layout(set = 2, binding = 0) uniform sampler u_Sampler;
-layout(set = 2, binding = 1) uniform texture2D u_DistanceMaps[32];
+//layout(set = 2, binding = 0) uniform sampler u_Sampler;
+//layout(set = 2, binding = 1) uniform texture2D u_DistanceMaps[32];
+
 
 
 struct Ray
@@ -124,5 +97,6 @@ void main()
 	currentRay.Position = vec3(0.0, 0.0, 0.0);
 
 	//color = vec4(RayMarch(currentRay), 1.0);
-	color = v_Color;
+	color = ParticleIn.particles[0].Color;
+	//color = u_Scene.AmbientColor;
 }

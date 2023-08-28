@@ -25,6 +25,7 @@ namespace Povox {
 	};
 
 
+
 	class SciParticleRenderer
 	{
 	public:
@@ -62,7 +63,14 @@ namespace Povox {
 
 		Povox::Ref<Povox::Image2D> m_FinalImage = nullptr;
 
-		Povox::CameraUniform m_CameraData;
+		CameraUniform m_CameraUniform{};
+		SceneUniform m_SceneUniform{};
+		ParticleUniform m_ParticleUniform{};
+
+		Povox::Ref<UniformBuffer> m_CameraData = nullptr;
+		Povox::Ref<UniformBuffer> m_SceneData = nullptr;
+		Povox::Ref<StorageBuffer> m_ParticleData = nullptr;
+		std::vector<Povox::Ref<Povox::Buffer>> m_ParticleDataSSBOs;
 
 
 		// Particles
@@ -83,7 +91,6 @@ namespace Povox {
 		Povox::Ref<Povox::Buffer> m_FullscreenQuadIndexBuffer = nullptr;
 
 		// TODO: here or completely managed by ParticleSet - objects
-		std::vector<Povox::Ref<Povox::Buffer>> m_ParticleDataSSBOs;
 		std::vector<Povox::Ref<Povox::Image2D>> m_DistanceFields;
 
 		// Stats
