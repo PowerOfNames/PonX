@@ -34,30 +34,31 @@ namespace Povox {
 		VkDevice device = VulkanContext::GetDevice()->GetVulkanDevice();
 
 		uint32_t index = 0;
-		for (auto& attachment : m_Specification.Attachments.Attachments)
+		m_Specification.HasDepthAttachment = false;
+		//First check if images come from elsewhere, if so, use those. If not, create new
+		if (!m_Specification.OriginalImages.empty())
 		{
-			//First check if images come from elsewhere, if so, use those. If not, create new
-			if (!m_Specification.OriginalImages.empty())
+			PX_CORE_ASSERT(m_Specification.OriginalImages.size() == m_Specification.Attachments.Attachments.size(), "Framebuffer specification: Original images size does not match attachments size!");
+			for (uint32_t i = 0; i < m_Specification.OriginalImages.size(); i++)
 			{
-				PX_CORE_ASSERT(m_Specification.OriginalImages.size() == m_Specification.Attachments.Attachments.size(), "Framebuffer specification: Original images size does not match attachments size!");
-				for (uint32_t i = 0; i < m_Specification.OriginalImages.size(); i++)
+				if (Utils::IsDepthFormat(m_Specification.Attachments.Attachments[i].Format))
 				{
-					if (Utils::IsDepthFormat(m_Specification.Attachments.Attachments[i].Format))
-					{
-						PX_CORE_ASSERT(m_Specification.HasDepthAttachment, "VulkanFramebuffer: Only one Depth-Atachment allowed!");
-					
-						m_DepthAttachment = m_Specification.OriginalImages[i];
-						m_Specification.HasDepthAttachment = true;
-					}
-					else
-					{
-						m_ColorAttachments.push_back(m_Specification.OriginalImages[i]);
-						m_Specification.ColorAttachmentCount++;
-					}
+					PX_CORE_ASSERT(!m_Specification.HasDepthAttachment, "VulkanFramebuffer: Only one Depth-Atachment allowed!");
+
+					m_DepthAttachment = m_Specification.OriginalImages[i];
+					m_Specification.HasDepthAttachment = true;
+				}
+				else
+				{
+					m_ColorAttachments.push_back(m_Specification.OriginalImages[i]);
+					m_Specification.ColorAttachmentCount++;
 				}
 			}
-			else
-			{
+		}
+		else
+		{
+			for (auto& attachment : m_Specification.Attachments.Attachments)
+			{			
 				ImageSpecification imageSpec;
 				imageSpec.Format = attachment.Format;
 				imageSpec.Width = (uint32_t)((float)m_Specification.Width * m_Specification.Scale.X); //float to int conversion
@@ -67,7 +68,7 @@ namespace Povox {
 				imageSpec.Tiling = ImageTiling::OPTIMAL;
 				if (Utils::IsDepthFormat(attachment.Format))
 				{
-					PX_CORE_ASSERT(m_Specification.HasDepthAttachment, "VulkanFramebuffer: Only one Depth-Atachment allowed!");
+					PX_CORE_ASSERT(!m_Specification.HasDepthAttachment, "VulkanFramebuffer: Only one Depth-Atachment allowed!");
 
 					imageSpec.DebugName = m_Specification.DebugName + "-DepthAttachment";
 					imageSpec.Usages = { ImageUsage::DEPTH_ATTACHMENT };

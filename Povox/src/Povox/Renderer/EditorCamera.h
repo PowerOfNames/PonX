@@ -33,7 +33,7 @@ namespace Povox {
 		glm::vec3 GetRightVector() const;
 		glm::vec3 GetUpVector() const;
 		glm::quat GetOrientation() const;
-		const glm::vec3& GetPostion() { return m_Position; }
+		const glm::vec3& GetPosition() const { return m_Position; }
 
 		float GetPitch() const { return m_Pitch; }
 		float GetYaw() const { return m_Yaw; }

@@ -8,9 +8,9 @@ layout (set = 0, binding = 0) uniform ParameterUBO {
 } ubo;
 
 struct Particle {
-    vec2 Position;
-    vec2 Velocity;
-    vec4 Color;
+    vec4 PositionRadius;
+    vec3 Velocity;
+    vec3 Color;
     uint64_t ID;
 };
 
@@ -30,6 +30,7 @@ void main()
 
     Particle particleIn = ParticleIn.particlesIn[index];
 
-    particlesOut[index].Position = particleIn.Position + particleIn.Velocity.xy * ubo.DeltaTime;
+    particlesOut[index].PositionRadius.xyz = particleIn.PositionRadius.xyz + particleIn.Velocity.xyz * ubo.DeltaTime;
+    particlesOut[index].PositionRadius.w = particleIn.PositionRadius.w;
     particlesOut[index].Velocity = particleIn.Velocity;    
 }

@@ -41,6 +41,7 @@ namespace Povox {
 
 		// Workflow
 		void Begin(const EditorCamera& camera);
+		void Begin(const PerspectiveCamera& camera);
 		
 		void DrawParticleSet(Povox::Ref<SciParticleSet> particleSet);
 		
@@ -64,11 +65,11 @@ namespace Povox {
 		Povox::Ref<Povox::Image2D> m_FinalImage = nullptr;
 
 		CameraUniform m_CameraUniform{};
-		SceneUniform m_SceneUniform{};
+		RayMarchingUniform m_RayMarchingUniform{};
 		ParticleUniform m_ParticleUniform{};
 
 		Povox::Ref<UniformBuffer> m_CameraData = nullptr;
-		Povox::Ref<UniformBuffer> m_SceneData = nullptr;
+		Povox::Ref<UniformBuffer> m_RayMarchingData = nullptr;
 		Povox::Ref<StorageBuffer> m_ParticleData = nullptr;
 		std::vector<Povox::Ref<Povox::Buffer>> m_ParticleDataSSBOs;
 

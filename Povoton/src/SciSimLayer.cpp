@@ -13,7 +13,7 @@
 namespace Povox {
 
 	SciSimLayer::SciSimLayer()
-        : Layer("Povoton")
+        : Layer("Povoton"), m_PerspectiveController(m_ViewportSize.x, m_ViewportSize.y)
     {
     }
 
@@ -25,9 +25,8 @@ namespace Povox {
 		m_WindowSize = m_ViewportSize = { Povox::Application::Get()->GetWindow().GetWidth(), Povox::Application::Get()->GetWindow().GetHeight() };
 
 
-        m_EditorCamera = Povox::EditorCamera(90.0f, (m_ViewportSize.x / m_ViewportSize.y * 1.0f), 0.1f, 1000.0f);
+        //m_EditorCamera = Povox::EditorCamera(90.0f, (m_ViewportSize.x / m_ViewportSize.y * 1.0f), 0.1f, 1000.0f);
 		PX_INFO("Camera Aspect Ratio: {}", (m_ViewportSize.x / m_ViewportSize.y * 1.0f));
-
 
 
 		{
@@ -69,14 +68,15 @@ namespace Povox {
 			Povox::Renderer::WaitForDeviceFinished();
 			Povox::Renderer::OnViewportResize(m_ViewportSize.x, m_ViewportSize.y);
 
-            m_EditorCamera.SetViewportSize(m_ViewportSize.x, m_ViewportSize.y);
+            //m_EditorCamera.SetViewportSize(m_ViewportSize.x, m_ViewportSize.y);
 
             m_SciRenderer->OnResize((uint32_t)m_ViewportSize.x, (uint32_t)m_ViewportSize.y);
 			m_ViewportResized = false;
         }
 
 
-        m_EditorCamera.OnUpdate(deltatime);
+        //m_EditorCamera.OnUpdate(deltatime);
+		m_PerspectiveController.OnUpdate(deltatime);
 
 		m_SciRenderer->ResetStatistics();
 		
@@ -84,7 +84,8 @@ namespace Povox {
 		//m_ActiveParticleSet->OnUpdate(deltatime);
 
 		// Start sci renderer / prepare for render
-		m_SciRenderer->Begin(m_EditorCamera);
+		m_SciRenderer->Begin(m_PerspectiveController.GetCamera());
+		//m_SciRenderer->Begin(m_EditorCamera);
 
 		// Render particle sets(s)
 		m_SciRenderer->DrawParticleSet(m_ActiveParticleSet);
@@ -248,8 +249,17 @@ namespace Povox {
 			ImGui::End();
 
 			ImGui::Begin("Editor Camera");
-			glm::vec3 cameraPos = m_EditorCamera.GetPostion();
+			glm::vec3 cameraPos = m_PerspectiveController.GetCamera().GetPosition();
+			glm::vec3 front = m_PerspectiveController.GetCamera().GetForward();
+			glm::mat4 view = glm::inverse(m_PerspectiveController.GetCamera().GetViewMatrix());
+
+			//glm::vec3 cameraPos = m_EditorCamera.GetPosition();
 			ImGui::Text("Camera Position: {%f|%f|%f}", cameraPos.x, cameraPos.y, cameraPos.z);
+			ImGui::Text("Camera Direction: {%f|%f|%f}", front.x, front.y, front.z);
+			ImGui::Text("Camera ViewMatrix: {%f|%f|%f|%f}", view[0][0], view[1][0], view[2][0], view[3][0]);
+			ImGui::Text("Camera ViewMatrix: {%f|%f|%f|%f}", view[0][1], view[1][1], view[2][1], view[3][1]);
+			ImGui::Text("Camera ViewMatrix: {%f|%f|%f|%f}", view[0][2], view[1][2], view[2][2], view[3][2]);
+			ImGui::Text("Camera ViewMatrix: {%f|%f|%f|%f}", view[0][3], view[1][3], view[2][3], view[3][3]);
 			ImGui::End();
 
 
@@ -289,7 +299,7 @@ namespace Povox {
 		if (final)
 		{
 			ImTextureID texID = Povox::Renderer::GetGUIDescriptorSet(final);
-			ImGui::Image(texID, ImVec2(m_ViewportSize.x, m_ViewportSize.y), ImVec2{ 0, 1 }, ImVec2{ 1, 0 });
+			ImGui::Image(texID, ImVec2(m_ViewportSize.x, m_ViewportSize.y));
 		}
 
 		// Gizmos
@@ -367,7 +377,8 @@ namespace Povox {
 
     void SciSimLayer::OnEvent(Povox::Event& e)
     {
-        m_EditorCamera.OnEvent(e);
+        //m_EditorCamera.OnEvent(e);
+		m_PerspectiveController.OnEvent(e);
 
 		Povox::EventDispatcher dispatcher(e);
         dispatcher.Dispatch<Povox::KeyPressedEvent>(PX_BIND_EVENT_FN(SciSimLayer::OnKeyPressed));

@@ -34,7 +34,8 @@ namespace Povox {
 
 		void CloseApp();
 	private:
-		Povox::EditorCamera m_EditorCamera;
+		//Povox::EditorCamera m_EditorCamera;
+		Povox::PerspectiveCameraController m_PerspectiveController;
 		
 		Povox::Ref<SciParticleRenderer> m_SciRenderer = nullptr;
 

@@ -11,19 +11,19 @@ namespace Povox {
 		PerspectiveCamera(float aspecRatio);
 		~PerspectiveCamera() = default;
 
-		inline const glm::vec3& GetPosition() { return m_Position; }
+		inline const glm::vec3& GetPosition() const { return m_Position; }
 		void SetPosition(const glm::vec3& position);
 
-		inline const glm::mat4& GetView() { return m_ViewMatrix; }
+		inline const glm::mat4& GetViewMatrix() const { return m_ViewMatrix; }
 		void RecalculateViewMatrix();
 
-		inline const glm::mat4& GetProjection() { return m_ProjectionMatrix; }
+		inline const glm::mat4& GetProjectionMatrix() const { return m_ProjectionMatrix; }
 		void SetProjectionMatrix(float aspectRatio, float FOV = 45.0f);
 
-		inline const glm::mat4& GetViewProjection() { return m_ViewProjectionMatrix; }
+		inline const glm::mat4& GetViewProjectionMatrix() const { return m_ViewProjectionMatrix; }
 
-		void SetCameraFront(glm::vec3 front);
-		inline const glm::vec3& GetFront() { return m_CameraFront; }
+		void SetForward(glm::vec3 front);
+		inline const glm::vec3& GetForward() const { return m_CameraFront; }
 	private:
 		glm::mat4 m_ViewMatrix;
 		glm::mat4 m_ProjectionMatrix;

@@ -236,7 +236,7 @@ namespace Povox {
 			ImGui::End();
 
 			ImGui::Begin("Editor Camera");
-			glm::vec3 cameraPos = m_EditorCamera.GetPostion();
+			glm::vec3 cameraPos = m_EditorCamera.GetPosition();
 			ImGui::Text("Camera Position: {%f|%f|%f}", cameraPos.x, cameraPos.y, cameraPos.z);
 			ImGui::End();
 

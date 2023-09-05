@@ -72,7 +72,7 @@ namespace Povox {
 
 		// FrameData
 		virtual bool BeginFrame() override;
-		virtual void Draw(Ref<Buffer> vertices, Ref<Material> material, Ref<Buffer> indices, size_t indexCount) override;
+		virtual void Draw(Ref<Buffer> vertices, Ref<Material> material, Ref<Buffer> indices, size_t indexCount, bool textureless) override;
 		virtual void DrawRenderable(const Renderable& renderable) override;
 		virtual void EndFrame() override;
 		virtual inline uint32_t GetCurrentFrameIndex() const override { return m_CurrentFrameIndex; }		
@@ -86,7 +86,6 @@ namespace Povox {
 		virtual void OnResize(uint32_t width, uint32_t height) override;
 		virtual void OnViewportResize(uint32_t width, uint32_t height) override;
 		virtual void OnSwapchainRecreate() override;
-		virtual void UpdateCamera(const CameraUniform& cam) override;
 
 		// Commands
 		virtual void BeginCommandBuffer(const void* cmd) override;

@@ -155,7 +155,7 @@ namespace Povox {
 	class UniformBuffer
 	{
 	public:
-		UniformBuffer(const BufferLayout& layout, bool perFrame = true);
+		UniformBuffer(const BufferLayout& layout, const std::string& name, bool perFrame = true);
 		~UniformBuffer() = default;
 
 		void SetData(void* data, size_t size);
@@ -166,6 +166,7 @@ namespace Povox {
 
 	private:
 		BufferLayout m_Layout{};
+		std::string m_DebugName = "UniformBufferDefault";
 		bool m_PerFrame;
 		std::vector<Ref<Buffer>> m_Buffers;
 	};
@@ -173,7 +174,7 @@ namespace Povox {
 	class StorageBuffer
 	{
 	public:
-		StorageBuffer(const BufferLayout& layout, size_t count, bool perFrame = true);
+		StorageBuffer(const BufferLayout& layout, size_t count, const std::string& name, bool perFrame = true);
 		~StorageBuffer() = default;
 
 		void SetData(void* data, size_t size);
@@ -185,6 +186,8 @@ namespace Povox {
 
 	private:
 		BufferLayout m_Layout{};
+		std::string m_DebugName = "StorageBufferDefault";
+
 		size_t m_ElementCount = 0;
 		bool m_PerFrame;
 		std::vector<Ref<Buffer>> m_Buffers;

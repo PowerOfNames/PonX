@@ -34,7 +34,7 @@ namespace Povox {
 		inline const AllocatedBuffer& GetAllocation() const { return m_Allocation; }
 		inline AllocatedBuffer& GetAllocation() { return m_Allocation; }
 
-		inline VkDescriptorBufferInfo GetBufferInfo() { return CreateDescriptorInfo(); }
+		inline VkDescriptorBufferInfo& GetBufferInfo() { return m_DescriptorInfo; }
 
 		static AllocatedBuffer CreateAllocation(size_t allocSize, VkBufferUsageFlags usage, VmaMemoryUsage memUsage, std::string debugName = std::string());
 
@@ -53,6 +53,7 @@ namespace Povox {
 		BufferSpecification m_Specification;
 
 		AllocatedBuffer m_Allocation{};
+		VkDescriptorBufferInfo m_DescriptorInfo{};
 
 		AllocatedBuffer m_Staging{};
 		bool m_StagingMapped = false;

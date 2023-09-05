@@ -80,10 +80,10 @@ namespace Povox {
 		return s_RendererAPI->BeginFrame();
 	}
 	void Renderer::DrawRenderable(const Renderable& renderable) { s_RendererAPI->DrawRenderable(renderable); }
-	void Renderer::Draw(Ref<Buffer> vertices, Ref<Material> material, Ref<Buffer> indices, size_t indexCount)
+	void Renderer::Draw(Ref<Buffer> vertices, Ref<Material> material, Ref<Buffer> indices, size_t indexCount, bool textureless)
 	{
 		PX_PROFILE_FUNCTION();
-		s_RendererAPI->Draw(vertices, material, indices, indexCount);
+		s_RendererAPI->Draw(vertices, material, indices, indexCount, textureless);
 	}
 	void Renderer::DrawGUI()
 	{
@@ -121,7 +121,6 @@ namespace Povox {
 	}
 	void Renderer::OnViewportResize(uint32_t width, uint32_t height) { s_RendererAPI->OnViewportResize(width, height); }
 	void Renderer::OnSwapchainRecreate() { s_RendererAPI->OnSwapchainRecreate(); }
-	void Renderer::UpdateCamera(const CameraUniform& cam) { s_RendererAPI->UpdateCamera(cam); }
 
 	// Commands
 	void Renderer::BeginCommandBuffer(const void* cmd) { s_RendererAPI->BeginCommandBuffer(cmd); }

@@ -46,7 +46,7 @@ namespace Povox {
 		virtual bool BeginFrame() = 0;
 		virtual void EndFrame() = 0;
 		virtual void DrawRenderable(const Renderable& renderable) = 0;
-		virtual void Draw(Ref<Buffer> vertices, Ref<Material> material, Ref<Buffer> indices, size_t indexCount) = 0;
+		virtual void Draw(Ref<Buffer> vertices, Ref<Material> material, Ref<Buffer> indices, size_t indexCount, bool textureless) = 0;
 
 		virtual uint32_t GetCurrentFrameIndex() const = 0;
 		virtual uint32_t GetLastFrameIndex() const = 0;
@@ -61,7 +61,6 @@ namespace Povox {
 		virtual void OnSwapchainRecreate() = 0;
 		virtual void WaitForDeviceFinished() = 0;
 
-		virtual void UpdateCamera(const CameraUniform& cam) = 0;
 
 
 		// Resources

@@ -46,9 +46,12 @@ namespace Povox {
 
 	struct CameraUniform
 	{
-		glm::mat4 ViewMatrix;
-		glm::mat4 ProjectionMatrix;
-		glm::mat4 ViewProjMatrix;
+		glm::mat4 View;
+		glm::mat4 Projection;
+		glm::mat4 ViewProjection;
+		glm::vec4 Forward;
+		glm::vec4 Position;
+		float FOV;
 	};
 
 	struct MouseUniform
@@ -66,11 +69,17 @@ namespace Povox {
 		glm::vec4 SunlightColor;
 	};
 
+	struct RayMarchingUniform
+	{
+		glm::vec4 BackgroundColor;
+		glm::vec2 Resolution;
+	};
+
 	// TODO: temp
 	struct ParticleUniform
 	{
-		glm::vec2 Position;
-		glm::vec2 Velocity;
+		glm::vec4 PositionRadius;
+		glm::vec4 Velocity;
 		glm::vec4 Color;
 		uint64_t ID;
 	};
@@ -113,12 +122,11 @@ namespace Povox {
 		static void OnSwapchainRecreate();
 
 		static void WaitForDeviceFinished();
-		static void UpdateCamera(const CameraUniform& cam);
 
 		// Render
 		static bool BeginFrame();
 		static void DrawRenderable(const Renderable& renderable);
-		static void Draw(Ref<Buffer> vertices, Ref<Material> material, Ref<Buffer> indices, size_t indexCount);
+		static void Draw(Ref<Buffer> vertices, Ref<Material> material, Ref<Buffer> indices, size_t indexCount, bool textureless);
 		static void DrawGUI();
 		static void EndFrame();
 

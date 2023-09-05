@@ -41,7 +41,7 @@ namespace Povox {
 		m_ViewProjectionMatrix = m_ProjectionMatrix * m_ViewMatrix;
 	}
 
-	void PerspectiveCamera::SetCameraFront(glm::vec3 front)
+	void PerspectiveCamera::SetForward(glm::vec3 front)
 	{
 		m_CameraFront = front;
 		RecalculateViewMatrix();

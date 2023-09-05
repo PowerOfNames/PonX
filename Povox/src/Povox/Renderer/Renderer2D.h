@@ -110,8 +110,14 @@ namespace Povox {
 		uint32_t m_WhiteTextureSlot;
 		Ref<Texture2D> m_GreenTexture = nullptr;
 
-		CameraUniform m_CameraData; // -> Scene
+		CameraUniform m_CameraUniform{};
+		Ref<UniformBuffer> m_CameraData = nullptr;
 
+		SceneUniform m_SceneUniform{};
+		Ref<UniformBuffer> m_SceneData = nullptr;
+
+		ObjectUniform m_ObjectUnifrom{};
+		Ref<StorageBuffer> m_ObjectData = nullptr;
 
 		// 2D Renderpasses
 		// Quads

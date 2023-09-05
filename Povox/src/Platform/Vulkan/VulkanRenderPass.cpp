@@ -51,10 +51,14 @@ namespace Povox {
 
 	void VulkanRenderPass::BindResource(const std::string& name, Ref<UniformBuffer> resource)
 	{
+		//PX_CORE_ASSERT(m_UniformBuffers.find(name) != m_UniformBuffers.end(), "UniformBuffer name is not set in m_UniformBuffers");
+
 		m_UniformBuffers[name] = resource;
 	}
 	void VulkanRenderPass::BindResource(const std::string& name, Ref<StorageBuffer> resource)
 	{
+		//PX_CORE_ASSERT(m_StorageBuffers.find(name) != m_StorageBuffers.end(), "StroageBuffer name is not set in m_StorageBuffers");
+
 		m_StorageBuffers[name] = resource;
 	}
 
@@ -63,11 +67,11 @@ namespace Povox {
 		VkDevice device = VulkanContext::GetDevice()->GetVulkanDevice();
 
 		std::vector<VkWriteDescriptorSet> writes;
-		writes.reserve(m_AllShaderResourceDescs.size());
-
 		uint32_t framesInFlight = Application::Get()->GetSpecification().MaxFramesInFlight;
+		writes.reserve(m_AllShaderResourceDescs.size() * framesInFlight);
 
-		for (const auto& [name, description] : m_AllShaderResourceDescs)
+
+		for (const auto [name, description] : m_AllShaderResourceDescs)
 		{
 			ShaderResourceType type = description->ResourceType;
 
@@ -112,13 +116,12 @@ namespace Povox {
 				{
 					VkWriteDescriptorSet write{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
 					write.pNext = nullptr;
-					write.descriptorCount = 1; // for arrays
+					write.descriptorCount = description->Count;
 					write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 					write.dstBinding = description->Binding;
-					PX_CORE_TRACE("Baking: ShaderResourceType::Uniform_Buffer Named {}", name);
 					for (uint32_t frame = 0; frame < framesInFlight; frame++)
 					{
-						write.pBufferInfo = &(std::dynamic_pointer_cast<VulkanBuffer>(m_UniformBuffers.at(name)->GetBuffer(frame)))->GetBufferInfo();
+						write.pBufferInfo = &((std::dynamic_pointer_cast<VulkanBuffer>(m_UniformBuffers.at(name)->GetBuffer(frame)))->GetBufferInfo());
 						write.dstSet = m_DescriptorSets.at(description->Set).Sets[frame];
 						writes.push_back(write);
 					}
@@ -129,14 +132,13 @@ namespace Povox {
 				{
 					VkWriteDescriptorSet write{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
 					write.pNext = nullptr;
-					write.descriptorCount = 1;
+					write.descriptorCount = description->Count;
 					write.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
 					write.dstBinding = description->Binding;
-					PX_CORE_TRACE("Baking: ShaderResourceType::Storage_Buffer Named {}", name);
 
 					for (uint32_t frame = 0; frame < framesInFlight; frame++)
 					{
-						write.pBufferInfo = &(std::dynamic_pointer_cast<VulkanBuffer>(m_StorageBuffers.at(name)->GetBuffer(frame)))->GetBufferInfo();
+						write.pBufferInfo = &((std::dynamic_pointer_cast<VulkanBuffer>(m_StorageBuffers.at(name)->GetBuffer(frame)))->GetBufferInfo());
 						write.dstSet = m_DescriptorSets.at(description->Set).Sets[frame];
 						writes.push_back(write);
 					}
@@ -184,8 +186,8 @@ namespace Povox {
 		const std::unordered_map<uint32_t, std::string> setNames = {
 			{0, "GlobalUBOs"},
 			{1, "GlobalSSBOs"},
-			{2, "ObjectMaterials"},
-			{3, "Textures"}
+			{2, "Textures"},
+			{3, "ObjectMaterials"}
 		};
 
 		auto& layoutCache = VulkanContext::GetDescriptorLayoutCache();

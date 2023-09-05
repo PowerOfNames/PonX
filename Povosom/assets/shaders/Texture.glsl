@@ -9,9 +9,10 @@ layout(location = 3) in float a_TexID;
 layout(location = 4) in int a_EntityID;	
 
 
-layout(std140, set = 0, binding = 0) uniform Camera
+layout(std140, set = 0, binding = 0) uniform CameraData
 {
 	mat4 View;
+	mat4 InverseView;
 	mat4 Projection;
 	mat4 ViewProjection;
 } u_Camera;
@@ -25,15 +26,15 @@ layout(std140, set = 0, binding = 1) uniform SceneData
 	vec4 SunlightColor;
 } u_Scene;
 
-struct ObjectData
+struct Object
 {
 	//mat4 ModelMatrix;
 	uint TexID;
 	float TilingFactor;
 };
-layout(std140, set = 1, binding = 0) readonly buffer Objects
+layout(std140, set = 1, binding = 0) readonly buffer ObjectData
 {
-	ObjectData objects[];
+	Object objects[];
 }b_Objects;
 
 struct VertexOutput
@@ -74,9 +75,10 @@ layout(location = 0) in VertexInput Input;
 layout(location = 2) in flat int v_EntityID;
 layout(location = 3) in flat float v_TexID;
 
-layout(std140, set = 0, binding = 0) uniform Camera
+layout(std140, set = 0, binding = 0) uniform CameraData
 {
 	mat4 View;
+	mat4 InverseView;
 	mat4 Projection;
 	mat4 ViewProjection;
 } u_Camera;
@@ -91,15 +93,15 @@ layout(std140, set = 0, binding = 1) uniform SceneData
 } u_Scene;
 
 
-struct ObjectData
+struct Object
 {
 	//mat4 ModelMatrix;
 	uint TexID;
 	float TilingFactor;
 };
-layout(std140, set = 1, binding = 0) readonly buffer Objects
+layout(std140, set = 1, binding = 0) readonly buffer ObjectData
 {
-	ObjectData objects[];
+	Object objects[];
 }b_Objects;
 
 //layout(binding = 0) uniform sampler2D u_Textures[32];

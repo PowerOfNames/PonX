@@ -15,10 +15,9 @@ namespace Povox {
 		m_GreenTexture = std::dynamic_pointer_cast<Texture2D>(Renderer::GetTextureSystem()->GetTexture("green"));
 
 		// TODO: Instead of taking a name and a path, just take in a name and pass the path upon ShaderLib creation inside the RendererBackend, pointing to root/.../assets/shaders/
-		Renderer::GetShaderLibrary()->Add("TextureShader", Shader::Create("assets/shaders/Texture.glsl"));
+		//Renderer::GetShaderLibrary()->Add("TextureShader", Shader::Create("assets/shaders/Texture.glsl"));
 		Renderer::GetShaderLibrary()->Add("Renderer2D_Quad", Shader::Create("assets/shaders/Renderer2D_Quad.glsl"));
 		Renderer::GetShaderLibrary()->Add("Renderer2D_FullscreenQuad", Shader::Create("assets/shaders/Renderer2D_FullscreenQuad.glsl"));
-
 	}
 
 	bool Renderer2D::Init()
@@ -28,6 +27,30 @@ namespace Povox {
 
 		PX_CORE_TRACE("Renderer2D::Init: Starting...");		
 		
+		m_CameraData = CreateRef<UniformBuffer>(BufferLayout({
+			{ ShaderDataType::Mat4, "View" },
+			{ ShaderDataType::Mat4, "InverseView" },
+			{ ShaderDataType::Mat4, "Projection" },
+			{ ShaderDataType::Mat4, "ViewProjection" }}),
+			"CameraData2DUBO"
+			);
+
+		m_SceneData = CreateRef<UniformBuffer>(BufferLayout({
+			{ ShaderDataType::Float4 , "FogColor" },
+			{ ShaderDataType::Float4 , "FogDistance" },
+			{ ShaderDataType::Float4 , "AmbientColor" },
+			{ ShaderDataType::Float4 , "SunlightDirection" },
+			{ ShaderDataType::Float4 , "SunlightColor" } }),
+			"SceneData2DUBO"
+			);
+
+		m_ObjectData = CreateRef<StorageBuffer>(BufferLayout({
+			{ ShaderDataType::UInt , "TexID" },
+			{ ShaderDataType::Float , "TilingFactor" } }),
+			m_Specification.MaxQuads,
+			"ObjectDataSSBO"
+			);
+
 		//Quads
 		{
 			FramebufferSpecification framebufferSpecs{};
@@ -35,13 +58,20 @@ namespace Povox {
 			framebufferSpecs.Attachments = { {ImageFormat::RGBA8}, {ImageFormat::Depth} };
 			framebufferSpecs.Width = m_Specification.ViewportWidth;
 			framebufferSpecs.Height = m_Specification.ViewportHeight;
-			m_QuadFramebuffer = Framebuffer::Create(framebufferSpecs);		
+			m_QuadFramebuffer = Framebuffer::Create(framebufferSpecs);	
 
 			PipelineSpecification pipelineSpecs{};
 			pipelineSpecs.DebugName = "TexturePipeline";
+			pipelineSpecs.TargetFramebuffer = m_QuadFramebuffer;
 			pipelineSpecs.DynamicViewAndScissors = true;
 			pipelineSpecs.Culling = PipelineUtils::CullMode::BACK;
 			pipelineSpecs.Shader = Renderer::GetShaderLibrary()->Get("Renderer2D_Quad");
+			pipelineSpecs.VertexInputLayout = {
+			{ ShaderDataType::Float3, "a_Position" },
+			{ ShaderDataType::Float4, "a_Color" },
+			{ ShaderDataType::Float2, "a_TexCoord" },
+			{ ShaderDataType::Int, "a_EntityID" }
+				};
 			m_QuadPipeline = Pipeline::Create(pipelineSpecs);
 
 			RenderPassSpecification renderpassSpecs{};
@@ -49,12 +79,25 @@ namespace Povox {
 			renderpassSpecs.TargetFramebuffer = m_QuadFramebuffer;
 			renderpassSpecs.Pipeline = m_QuadPipeline;
 			m_QuadRenderpass = RenderPass::Create(renderpassSpecs);
+			m_QuadRenderpass->BindResource("CameraData", m_CameraData);
+			m_QuadRenderpass->BindResource("SceneData", m_SceneData);
+			m_QuadRenderpass->BindResource("ObjectData", m_ObjectData);
+			m_QuadRenderpass->Bake();
+
+			m_QuadPipeline->PrintShaderLayout();
 
 		// Fullscreen
 			pipelineSpecs.Shader = Renderer::GetShaderLibrary()->Get("Renderer2D_FullscreenQuad");
 			m_FullscreenQuadPipeline = Pipeline::Create(pipelineSpecs);
 			renderpassSpecs.Pipeline = m_FullscreenQuadPipeline;
 			m_FullscreenQuadRenderpass = RenderPass::Create(renderpassSpecs);
+
+			m_FullscreenQuadRenderpass->BindResource("CameraData", m_CameraData);
+			m_FullscreenQuadRenderpass->BindResource("SceneData", m_SceneData);
+			m_FullscreenQuadRenderpass->BindResource("ObjectData", m_ObjectData);
+			m_FullscreenQuadRenderpass->Bake();
+
+			m_FullscreenQuadPipeline->PrintShaderLayout();
 
 		}
 
@@ -114,12 +157,7 @@ namespace Povox {
 		m_FullscreenQuadMaterial = Material::Create(Renderer::GetShaderLibrary()->Get("Renderer2D_FullscreenQuad"), "FullscreenQuad");
 
 		/* -> move to Pipeline.Layout to check against Pipeline.Shader.Layout -> For VertexInput checkup
-		m_QuadVertexBuffer->SetLayout({
-			{ ShaderUtils::ShaderDataType::Float3, "a_Position" },
-			{ ShaderUtils::ShaderDataType::Float4, "a_Color" },
-			{ ShaderUtils::ShaderDataType::Float2, "a_TexCoord" },
-			{ ShaderUtils::ShaderDataType::Int, "a_EntityID" }
-			});
+		m_QuadVertexBuffer
 		*/
 
 		m_WhiteTexture = Texture2D::Create(1, 1, 4, "WhiteTexture");
@@ -129,6 +167,13 @@ namespace Povox {
 
 		m_WhiteTextureSlot = Renderer::GetTextureSystem()->BindFixedTexture(m_WhiteTexture);
 		
+		glm::vec4 vec = glm::vec4(1.0f);
+		m_SceneUniform.AmbientColor = vec;
+		m_SceneUniform.FogColor = vec;
+		m_SceneUniform.FogDistance = vec;
+		m_SceneUniform.SunlightColor = vec;
+		m_SceneUniform.SunlightDirection = vec;
+		m_SceneData->SetData((void*)&m_SceneUniform, sizeof(SceneUniform));
 
 		// Fullscreen
 		{
@@ -195,7 +240,9 @@ namespace Povox {
 	{
 		PX_PROFILE_FUNCTION();
 
-		m_CameraData.ViewProjMatrix = camera.GetViewProjectionMatrix();
+		m_CameraUniform.Projection = camera.GetProjectionMatrix();
+		m_CameraUniform.ViewProjection = camera.GetViewProjectionMatrix();
+		m_CameraData->SetData((void*)&m_CameraUniform, sizeof(CameraUniform));
 		StartBatch();
 	}
 
@@ -203,7 +250,9 @@ namespace Povox {
 	{
 		PX_PROFILE_FUNCTION();
 
-		m_CameraData.ViewProjMatrix = camera.GetProjectionMatrix() * glm::inverse(transform);
+		m_CameraUniform.Projection = camera.GetProjectionMatrix();
+		m_CameraUniform.ViewProjection = camera.GetProjectionMatrix() * glm::inverse(transform);
+		m_CameraData->SetData((void*)&m_CameraUniform, sizeof(CameraUniform));
 		StartBatch();
 	}
 
@@ -218,12 +267,12 @@ namespace Povox {
 		Renderer::StartTimestampQuery("QuadRenderpass");
 		Renderer::BeginRenderPass(m_QuadRenderpass);
 
-		Renderer::BindPipeline(m_QuadPipeline);		
-
-		m_CameraData.ViewMatrix = camera.GetViewMatrix();
-		m_CameraData.ProjectionMatrix = camera.GetProjectionMatrix();
-		m_CameraData.ViewProjMatrix = camera.GetViewProjectionMatrix();
-		Renderer::UpdateCamera(m_CameraData);
+		m_CameraUniform.View = camera.GetViewMatrix();
+		m_CameraUniform.Projection = camera.GetProjectionMatrix();
+		m_CameraUniform.ViewProjection = camera.GetViewProjectionMatrix();
+		m_CameraUniform.Forward = glm::vec4(camera.GetForwardVector(), 0.0f);
+		m_CameraUniform.Position = glm::vec4(camera.GetPosition(), 0.0f);
+		m_CameraData->SetData((void*)&m_CameraUniform, sizeof(CameraUniform));
 
 		StartBatch();
 
@@ -266,7 +315,7 @@ namespace Povox {
 
 		uint32_t dataSize = (uint32_t)((uint8_t*)m_QuadVertexBufferPtr - (uint8_t*)m_QuadVertexBufferBases[currentFrame]);
 		m_QuadVertexBuffers[currentFrame]->SetData(m_QuadVertexBufferBases[currentFrame], dataSize);		
-		Renderer::Draw(m_QuadVertexBuffers[currentFrame], m_QuadMaterial, m_QuadIndexBuffers[currentFrame], m_QuadIndexCount);
+		Renderer::Draw(m_QuadVertexBuffers[currentFrame], m_QuadMaterial, m_QuadIndexBuffers[currentFrame], m_QuadIndexCount, false);
 
 		
 		m_Stats.DrawCalls++;
@@ -314,7 +363,7 @@ namespace Povox {
 
 		uint32_t dataSize = sizeof(QuadVertex) * 4;
 		m_FullscreenQuadVertexBuffer->SetData(fullscreenQuadVertices, dataSize);
-		Renderer::Draw(m_FullscreenQuadVertexBuffer, m_FullscreenQuadMaterial, m_FullscreenQuadIndexBuffer, 6);
+		Renderer::Draw(m_FullscreenQuadVertexBuffer, m_FullscreenQuadMaterial, m_FullscreenQuadIndexBuffer, 6, false);
 
 		delete[] fullscreenQuadVertices;
 

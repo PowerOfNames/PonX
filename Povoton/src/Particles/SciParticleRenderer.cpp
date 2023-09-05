@@ -15,7 +15,7 @@ namespace Povox {
 		: m_Specification(specs)
 	{
 		//Povox::Renderer::GetShaderLibrary()->Add("DistanceFieldComputeShader", Povox::Shader::Create("assets/shaders/DistanceFieldCompute.glsl"));
-		Povox::Renderer::GetShaderLibrary()->Add("ComputeTestShader", Povox::Shader::Create("assets/shaders/ComputeTest.glsl"));
+		//Povox::Renderer::GetShaderLibrary()->Add("ComputeTestShader", Povox::Shader::Create("assets/shaders/ComputeTest.glsl"));
 		Povox::Renderer::GetShaderLibrary()->Add("RayMarchingShader", Povox::Shader::Create("assets/shaders/RayMarching.glsl"));
 
 	}
@@ -48,23 +48,27 @@ namespace Povox {
 		m_CameraData = Povox::CreateRef<Povox::UniformBuffer>(Povox::BufferLayout({
 			{ Povox::ShaderDataType::Mat4, "View" },
 			{ Povox::ShaderDataType::Mat4, "Projection" },
-			{ Povox::ShaderDataType::Mat4, "ViewProjection" }
-			}));
+			{ Povox::ShaderDataType::Mat4, "ViewProjection" },
+			{ Povox::ShaderDataType::Float4, "Forward" },
+			{ Povox::ShaderDataType::Float4, "Position" },
+			{ Povox::ShaderDataType::Float, "FOV" } }),
+			"CameraDataUBO"
+			);
 
-		m_SceneData = Povox::CreateRef<Povox::UniformBuffer>(Povox::BufferLayout({
-			{ Povox::ShaderDataType::Float4 , "FogColor" },
-			{ Povox::ShaderDataType::Float4 , "FogDistance" },
-			{ Povox::ShaderDataType::Float4 , "AmbientColor" },
-			{ Povox::ShaderDataType::Float4 , "SunlightDirection" },
-			{ Povox::ShaderDataType::Float4 , "SunlightColor" }})
+		m_RayMarchingData = Povox::CreateRef<Povox::UniformBuffer>(Povox::BufferLayout({
+			{Povox::ShaderDataType::Float4 , "BackgroundColor"},
+			{ Povox::ShaderDataType::Float2 , "Resolution" } }),
+			"RayMarchingUBO",
+			false
 			);
 
 		m_ParticleData = Povox::CreateRef<Povox::StorageBuffer>(Povox::BufferLayout({
-			{ Povox::ShaderDataType::Float2, "Position" },
-			{ Povox::ShaderDataType::Float2, "Velocity" },
-			{ Povox::ShaderDataType::Float3, "Color" },
+			{ Povox::ShaderDataType::Float4, "PositionRadius" },
+			{ Povox::ShaderDataType::Float4, "Velocity" },
+			{ Povox::ShaderDataType::Float4, "Color" },
 			{ Povox::ShaderDataType::Long, "ID" }}),
-			m_Specification.MaxParticles
+			m_Specification.MaxParticles,
+			"ParticleDataSSBO"
 			);
 
 		ImageSpecification distanceFieldSpecs{};
@@ -99,6 +103,20 @@ namespace Povox {
 // 			m_DistanceFieldComputePass = ComputePass::Create(passSpecs);
 // 		}
 
+		//First do the Compute stuff, then wait until compute is finished (barriers connecting ComputePass (THere is no actual computePass, is just to connect resources) and Renderpass)
+		glm::mat4 init = glm::mat4(1.0f);
+		m_CameraUniform.View = init;
+		m_CameraUniform.Projection = init;
+		m_CameraUniform.ViewProjection = init;
+		m_CameraUniform.Forward = glm::vec4(0.0f, 0.0f, -1.0f, 0.0f);
+		m_CameraUniform.Position = glm::vec4(0.0f);
+		m_CameraUniform.FOV = 90.0f;
+		m_CameraData->SetData((void*)&m_CameraUniform, sizeof(CameraUniform));
+
+		m_RayMarchingUniform.BackgroundColor = glm::vec4(0.3f);
+		m_RayMarchingUniform.Resolution = glm::vec2((float)m_Specification.ViewportWidth, (float)m_Specification.ViewportHeight);
+		m_RayMarchingData->SetData((void*)&m_RayMarchingUniform, sizeof(RayMarchingUniform));
+
 		// RayMarch to FullscreenQuad
 		{
 			FramebufferSpecification framebufferSpecs{};
@@ -129,26 +147,12 @@ namespace Povox {
 			renderpassSpecs.TargetFramebuffer = m_RayMarchingFramebuffer;
 			m_RayMarchingRenderpass = RenderPass::Create(renderpassSpecs);
 			m_RayMarchingRenderpass->BindResource("CameraData", m_CameraData);
-			m_RayMarchingRenderpass->BindResource("SceneData", m_SceneData);
+			m_RayMarchingRenderpass->BindResource("RayMarchingData", m_RayMarchingData);
 			m_RayMarchingRenderpass->BindResource("ParticlesIn", m_ParticleData);
 			m_RayMarchingRenderpass->Bake();
 
 			m_RayMarchingPipeline->PrintShaderLayout();
 		}
-
-		glm::vec4 vec = glm::vec4(1.0f);
-		m_SceneUniform.AmbientColor = vec;
-		m_SceneUniform.FogColor = vec;
-		m_SceneUniform.FogDistance = vec;
-		m_SceneUniform.SunlightColor = vec;
-		m_SceneUniform.SunlightDirection = vec;
-		m_SceneData->SetData((void*)&m_SceneUniform, sizeof(SceneUniform));
-
-		m_ParticleUniform.Position = glm::vec2(0.0f);
-		m_ParticleUniform.Velocity = glm::vec2(0.0f);
-		m_ParticleUniform.Color = glm::vec4(1.0f);
-		m_ParticleUniform.ID = 0;
-		m_ParticleData->SetData((void*)&m_ParticleUniform, 0, sizeof(ParticleUniform));
 
 		// Fullscreen
 		{
@@ -173,8 +177,8 @@ namespace Povox {
 			m_FullscreenQuadIndexBuffer = Buffer::Create(fullscreenIndexBufferSpecs);
 			m_FullscreenQuadIndexBuffer->SetData(m_FullscreenQuadIndices, sizeof(uint32_t) * 6);
 
-			constexpr glm::vec2 textureCoords[4] = { {1.0f, 1.0f}, {1.0f, 0.0f}, {0.0f, 0.0f}, {0.0f, 1.0f} };
-			constexpr glm::vec3 vertexPositions[4] = { { -1.0f, -1.0f, 0.0f }, { 1.0f, -1.0f, 0.0f }, { 1.0f, 1.0f, 0.0f }, { -1.0f, 1.0f, 0.0f } };
+			constexpr glm::vec2 textureCoords[4] = { {0.0f, 1.0f}, {1.0f, 1.0f}, {1.0f, 0.0f}, {0.0f, 0.0f} };
+			constexpr glm::vec3 vertexPositions[4] = { { -1.0, -1.0f, 0.0f }, { 1.0f, -1.0f, 0.0f }, { 1.0f, 1.0f, 0.0f }, { -1.0f, 1.0f, 0.0f } };
 
 			QuadVertex* fullscreenQuadVertices = new QuadVertex[4];
 			for (uint32_t i = 0; i < 4; i++)
@@ -215,6 +219,10 @@ namespace Povox {
 		m_Specification.ViewportWidth = width;
 		m_Specification.ViewportHeight = height;
 
+
+		m_RayMarchingUniform.Resolution = glm::vec2((float)m_Specification.ViewportWidth, (float)m_Specification.ViewportHeight);
+		m_RayMarchingData->SetData((void*)&m_RayMarchingUniform, sizeof(RayMarchingUniform));
+
 		// Compute
 		//m_DistanceFieldComputePass->Recreate();
 		//m_DistanceFieldComputePipeline->Recreate();
@@ -227,39 +235,37 @@ namespace Povox {
 	void SciParticleRenderer::Begin(const EditorCamera& camera)
 	{
 		PX_PROFILE_FUNCTION();
+			
 
+		//First do the Compute stuff, then wait until compute is finished (barriers connecting ComputePass (THere is no actual computePass, is just to connect resources) and Renderpass)
 
-		
-
-		//First do the Compute stuff, then wait until compute is finished (barries connecting ComputePass (THere is no actual computePass, ist just to connect resources) and Renderpass)
-
-		//m_CameraData.ViewMatrix = camera.GetViewMatrix();
-		//m_CameraData.ProjectionMatrix = camera.GetProjectionMatrix();
-		//m_CameraData.ViewProjMatrix = camera.GetViewProjectionMatrix();
-		//Renderer::UpdateCamera(m_CameraData);
-
-		
-		m_CameraUniform.ViewMatrix = camera.GetViewMatrix();
-		m_CameraUniform.ProjectionMatrix = camera.GetProjectionMatrix();
-		m_CameraUniform.ViewProjMatrix = camera.GetViewProjectionMatrix();
-
+		m_CameraUniform.Forward = glm::vec4(camera.GetForwardVector(), 0.0f);
+		m_CameraUniform.Position = glm::vec4(camera.GetPosition(), 0.0f);
 		m_CameraData->SetData((void*)&m_CameraUniform, sizeof(CameraUniform));
-		//m_CameraData->Set("View", camera.GetViewMatrix());
-
-		glm::vec4 ambientColor = glm::vec4(1.0f);
-		m_SceneData->Set((void*)&ambientColor, "AmbientColor", sizeof(float) * 4);
-
-		m_ParticleUniform.Position = glm::vec2(0.0f);
-		m_ParticleUniform.Velocity = glm::vec2(0.0f);
-		m_ParticleUniform.Color = glm::vec4(0.5f, 0.6f, 0.4f, 1.0f);
-		m_ParticleUniform.ID = 0;
-		m_ParticleData->SetData((void*)&m_ParticleUniform, 0, sizeof(ParticleUniform));
 	}
 
 
+	void SciParticleRenderer::Begin(const PerspectiveCamera& camera)
+	{
+		PX_PROFILE_FUNCTION();
+
+
+		//First do the Compute stuff, then wait until compute is finished (barriers connecting ComputePass (THere is no actual computePass, is just to connect resources) and Renderpass)
+		m_CameraUniform.View = camera.GetViewMatrix();
+		m_CameraUniform.Projection = camera.GetProjectionMatrix();
+		m_CameraUniform.ViewProjection = camera.GetViewProjectionMatrix();
+		m_CameraUniform.Forward = glm::vec4(camera.GetForward(), 0.0f);
+		m_CameraUniform.Position = glm::vec4(camera.GetPosition(), 0.0f);
+		m_CameraData->SetData((void*)&m_CameraUniform, sizeof(CameraUniform));
+	}
+
 	void SciParticleRenderer::Flush()
 	{
-		//Do all the drawings
+		m_ParticleUniform.PositionRadius = glm::vec4(0.0f, 0.0f, -10.0f, 1.0f);
+		m_ParticleUniform.Velocity = glm::vec4(0.0f);
+		m_ParticleUniform.Color = glm::vec4(0.5f, 0.6f, 0.4f, 1.0f);
+		m_ParticleUniform.ID = 0;
+		m_ParticleData->SetData((void*)&m_ParticleUniform, 0, sizeof(ParticleUniform));
 	}
 
 
@@ -282,7 +288,7 @@ namespace Povox {
 		PreProcess(particleSet);
 
 		BeginRender();
-		Renderer::Draw(m_FullscreenQuadVertexBuffer, m_RayMarchingMaterial, m_FullscreenQuadIndexBuffer, 6);
+		Renderer::Draw(m_FullscreenQuadVertexBuffer, m_RayMarchingMaterial, m_FullscreenQuadIndexBuffer, 6, true);
 
 
 	}
@@ -320,10 +326,6 @@ namespace Povox {
 		Renderer::BeginCommandBuffer(cmd);
 		// Renderer::StartTimestampQuery("RayMarchingRenderpass");
 		Renderer::BeginRenderPass(m_RayMarchingRenderpass);
-
-		//Renderer::BindPipeline(m_RayMarchingPipeline);
-
-
 	}
 
 	/**

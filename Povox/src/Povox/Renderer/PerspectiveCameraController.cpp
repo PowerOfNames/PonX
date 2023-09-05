@@ -82,17 +82,30 @@ namespace Povox {
 	{
 		PX_PROFILE_FUNCTION();
 
+		if (!mouseCaught)
+		{
+			m_MousePosX = e.GetX();
+			m_MousePosY = e.GetY();
+			mouseCaught = true;
+		}
+
 		float xOffset = e.GetX() - m_MousePosX;
 		float yOffset = m_MousePosY - e.GetY();
 		m_MousePosX	= e.GetX();
 		m_MousePosY	= e.GetY();
 
-		float sensitivity = 0.1f;
+		PX_CORE_INFO("Mouse pos {} {}", m_MousePosX, m_MousePosY);
+		
+
+		float sensitivity = 0.2f;
 		xOffset	*= sensitivity;
 		yOffset *= sensitivity;
 
+		PX_CORE_INFO("m_Pitch: {} + offset {}", m_Pitch, yOffset);
+		PX_CORE_INFO("m_yaw: {} + offset {}", m_Yaw, xOffset);
 		m_Yaw	+= xOffset;
 		m_Pitch += yOffset;
+
 
 		if (m_Pitch > 89)
 			m_Pitch = 89;
@@ -109,7 +122,7 @@ namespace Povox {
 		direction.z = sin(glm::radians(m_Yaw)) * cos(glm::radians(m_Pitch));
 
 		m_CameraFront = glm::normalize(direction);
-		m_Camera.SetCameraFront(m_CameraFront);
+		m_Camera.SetForward(m_CameraFront);
 		return false;
 	}
 

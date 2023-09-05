@@ -330,7 +330,7 @@ namespace Povox {
 	{
 		VkDevice device = VulkanContext::GetDevice()->GetVulkanDevice();
 		VkPhysicalDeviceProperties physicalProps = VulkanContext::GetDevice()->GetPhysicalDeviceProperties();
-		bool debug = false;
+		bool debug = true;
 
 		struct DescriptorSetLayoutData {
 			uint32_t SetNumber = 0;
@@ -473,8 +473,6 @@ namespace Povox {
 					DescriptorSetLayoutData ld;
 					descriptorSetsData[reflSet.set] = ld;
 					auto& newSetLayoutData = descriptorSetsData[reflSet.set];
-
-
 					newSetLayoutData.CreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
 					newSetLayoutData.CreateInfo.pNext = nullptr;
 					newSetLayoutData.SetNumber = reflSet.set;
@@ -490,7 +488,7 @@ namespace Povox {
 						else
 							name = reflBinding.type_description->type_name;
 
-						VkDescriptorSetLayoutBinding binding{};
+						VkDescriptorSetLayoutBinding binding{};						
 						binding.binding = reflBinding.binding;
 						binding.descriptorType = SpirvUtils::IsDynamic(std::string(name), static_cast<VkDescriptorType>(reflBinding.descriptor_type));
 						binding.descriptorCount = 1;
@@ -498,27 +496,19 @@ namespace Povox {
 						{
 							binding.descriptorCount *= reflBinding.array.dims[dim];
 						}
-						binding.stageFlags = static_cast<VkShaderStageFlagBits>(module.shader_stage);
-
+						binding.stageFlags |= static_cast<VkShaderStageFlagBits>(module.shader_stage);
 
 						if (name)
 						{
-							// If the binding already was found in another shader(stage) just add this stage
-							if (m_ShaderResourceDescriptions.find(name) == m_ShaderResourceDescriptions.end())
-							{
-								Ref<ShaderResourceDescription> resource = CreateRef<ShaderResourceDescription>();
-								resource->Set = reflSet.set;
-								resource->Binding = reflBinding.binding;
-								resource->Name = std::string(name);
-								resource->ResourceType = SpirvUtils::ReflectDescriptorTypeToShaderResourceType(reflBinding.descriptor_type);
-								resource->Stages = SpirvUtils::ReflectShaderStageToStage(module.shader_stage);
+							Ref<ShaderResourceDescription> resource = CreateRef<ShaderResourceDescription>();
+							resource->Set = reflSet.set;
+							resource->Binding = reflBinding.binding;
+							resource->Count = binding.descriptorCount;
+							resource->Name = std::string(name);
+							resource->ResourceType = SpirvUtils::ReflectDescriptorTypeToShaderResourceType(reflBinding.descriptor_type);
+							resource->Stages |= SpirvUtils::ReflectShaderStageToStage(module.shader_stage);
 
-								m_ShaderResourceDescriptions[name] = std::move(resource);
-							}
-							else
-							{
-								m_ShaderResourceDescriptions[name]->Stages |= SpirvUtils::ReflectShaderStageToStage(module.shader_stage);
-							}
+							m_ShaderResourceDescriptions[name] = std::move(resource);
 						}
 						else
 							PX_CORE_WARN("VulkanShader::Reflect: Found an unnamed Resource!");						
@@ -537,18 +527,18 @@ namespace Povox {
 					for (size_t j = 0; j < reflSet.binding_count; j++)
 					{
 						const SpvReflectDescriptorBinding& reflBinding = *(reflSet.bindings[j]);
+
+						//Not found -> add new binding
+						const char* name;
+						if (VulkanUtils::IsImageBinding(static_cast<VkDescriptorType>(reflBinding.descriptor_type)))
+							name = reflBinding.name;
+						else
+							name = reflBinding.type_description->type_name;
+
 						//check if binding is already in Set
 						if (std::find_if(currentSetLayoutData.Bindings.begin(), currentSetLayoutData.Bindings.end(),
 							[=](const VkDescriptorSetLayoutBinding& binding) {return binding.binding == reflBinding.binding; }) == currentSetLayoutData.Bindings.end())
 						{
-
-							const char* name;
-							if (VulkanUtils::IsImageBinding(static_cast<VkDescriptorType>(reflBinding.descriptor_type)))
-								name = reflBinding.name;
-							else
-								name = reflBinding.type_description->type_name;
-
-							//Not found -> add new binding
 							VkDescriptorSetLayoutBinding binding{};
 							binding.binding = reflBinding.binding;
 							binding.descriptorType = SpirvUtils::IsDynamic(std::string(name), static_cast<VkDescriptorType>(reflBinding.descriptor_type));
@@ -557,9 +547,19 @@ namespace Povox {
 							{
 								binding.descriptorCount *= reflBinding.array.dims[dim];
 							}
-							binding.stageFlags = static_cast<VkShaderStageFlagBits>(module.shader_stage);
+							binding.stageFlags |= static_cast<VkShaderStageFlagBits>(module.shader_stage);
 														
 							currentSetLayoutData.Bindings.push_back(binding);
+
+							Ref<ShaderResourceDescription> resource = CreateRef<ShaderResourceDescription>();
+							resource->Set = reflSet.set;
+							resource->Binding = reflBinding.binding;
+							resource->Count = binding.descriptorCount;
+							resource->Name = name;
+							resource->ResourceType = VulkanUtils::VulkanDescriptorTypeToShaderResourceType(SpirvUtils::IsDynamic(std::string(name), static_cast<VkDescriptorType>(reflBinding.descriptor_type)));
+							resource->Stages |= SpirvUtils::ReflectShaderStageToStage(module.shader_stage);
+
+							m_ShaderResourceDescriptions[name] = std::move(resource);
 						}
 						else
 						{
@@ -570,27 +570,12 @@ namespace Povox {
 								auto index = std::distance(currentSetLayoutData.Bindings.begin(), it);
 								currentSetLayoutData.Bindings[index].stageFlags |= static_cast<VkShaderStageFlagBits>(module.shader_stage);
 							}
+
+							m_ShaderResourceDescriptions[name]->Stages |= SpirvUtils::ReflectShaderStageToStage(module.shader_stage);
 						}
 
 						currentSetLayoutData.CreateInfo.bindingCount = static_cast<uint32_t>(currentSetLayoutData.Bindings.size());
-						currentSetLayoutData.CreateInfo.pBindings = currentSetLayoutData.Bindings.data();
-
-						std::string name = reflBinding.type_description->type_name;
-						if (m_ShaderResourceDescriptions.find(name) == m_ShaderResourceDescriptions.end())
-						{
-							Ref<ShaderResourceDescription> resource = CreateRef<ShaderResourceDescription>();
-							resource->Set = reflSet.set;
-							resource->Binding = reflBinding.binding;
-							resource->Name = name;
-							resource->ResourceType = VulkanUtils::VulkanDescriptorTypeToShaderResourceType(SpirvUtils::IsDynamic(std::string(name), static_cast<VkDescriptorType>(reflBinding.descriptor_type)));
-							resource->Stages = SpirvUtils::ReflectShaderStageToStage(module.shader_stage);
-							
-							m_ShaderResourceDescriptions[name] = std::move(resource);
-						}
-						else
-						{
-							m_ShaderResourceDescriptions[name]->Stages |= SpirvUtils::ReflectShaderStageToStage(module.shader_stage);
-						}
+						currentSetLayoutData.CreateInfo.pBindings = currentSetLayoutData.Bindings.data();						
 					}
 				}
 			}
@@ -642,8 +627,8 @@ namespace Povox {
 		const std::unordered_map<uint32_t, std::string> setNames = {
 			{0, "GlobalUBOs"},
 			{1, "GlobalSSBOs"},
-			{2, "ObjectMaterials"},
-			{3, "Textures"}
+			{2, "Textures"},
+			{3, "ObjectMaterials"}
 		};
 		for (auto const& [key, setLayoutData] : descriptorSetsData)
 		{

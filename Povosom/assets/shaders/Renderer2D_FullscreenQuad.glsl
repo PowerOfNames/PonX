@@ -9,9 +9,10 @@ layout(location = 2) in vec2 a_TexCoord;
 layout(location = 3) in float a_TexID;
 
 
-layout(std140, set = 0, binding = 0) uniform Camera
+layout(std140, set = 0, binding = 0) uniform CameraData
 {
 	mat4 View;
+	mat4 InverseView;
 	mat4 Projection;
 	mat4 ViewProjection;
 } u_Camera;
@@ -26,15 +27,15 @@ layout(std140, set = 0, binding = 1) uniform SceneData
 } u_Scene;
 
 
-struct ObjectData
+struct Object
 {
 	//mat4 ModelMatrix;
 	uint TexID;
 	float TilingFactor;
 };
-layout(std140, set = 1, binding = 0) readonly buffer Objects
+layout(std140, set = 1, binding = 0) readonly buffer ObjectData
 {
-	ObjectData objects[];
+	Object objects[];
 }b_Objects;
 
 struct VertexOutput
@@ -72,9 +73,10 @@ struct VertexInput
 layout(location = 0) in VertexInput Input;
 layout(location = 2) in flat float v_TexID;
 
-layout(std140, set = 0, binding = 0) uniform Camera
+layout(std140, set = 0, binding = 0) uniform CameraData
 {
 	mat4 View;
+	mat4 InverseView;
 	mat4 Projection;
 	mat4 ViewProjection;
 } u_Camera;
@@ -89,15 +91,15 @@ layout(std140, set = 0, binding = 1) uniform SceneData
 } u_Scene;
 
 
-struct ObjectData
+struct Object
 {
 	//mat4 ModelMatrix;
 	uint TexID;
 	float TilingFactor;
 };
-layout(std140, set = 1, binding = 0) readonly buffer Objects
+layout(std140, set = 1, binding = 0) readonly buffer ObjectData
 {
-	ObjectData objects[];
+	Object objects[];
 }b_Objects;
 
 

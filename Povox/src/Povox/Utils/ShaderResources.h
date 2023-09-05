@@ -123,12 +123,13 @@ namespace Povox {
 
 	enum class ShaderStage : std::uint32_t
 	{
-		VERTEX = 1 << 0,
-		TESSELLATION_CONTROL = 1 << 1,
-		TESSELLATION_EVALUATION = 1 << 2,
-		GEOMETRY = 1 << 3,
-		FRAGMENT = 1 << 4,
-		COMPUTE = 1 << 5
+		NONE = 0,
+		VERTEX = 1 << 1,
+		TESSELLATION_CONTROL = 1 << 2,
+		TESSELLATION_EVALUATION = 1 << 3,
+		GEOMETRY = 1 << 4,
+		FRAGMENT = 1 << 5,
+		COMPUTE = 1 << 6
 	};
 	inline ShaderStage operator|(ShaderStage stage1, ShaderStage stage2)
 	{
@@ -137,12 +138,10 @@ namespace Povox {
 			static_cast<std::underlying_type_t<ShaderStage>>(stage2)
 			);
 	}
-	inline ShaderStage operator|=(ShaderStage stage1, ShaderStage stage2)
+	inline ShaderStage& operator|=(ShaderStage& stage1, ShaderStage stage2)
 	{
-		return static_cast<ShaderStage>(
-			static_cast<std::underlying_type_t<ShaderStage>>(stage1) |
-			static_cast<std::underlying_type_t<ShaderStage>>(stage2)
-			);
+		stage1 = stage1 | stage2;
+		return stage1;
 	}
 	inline ShaderStage operator&(ShaderStage stage1, ShaderStage stage2)
 	{
@@ -185,6 +184,7 @@ namespace Povox {
 
 		uint32_t Set;
 		uint32_t Binding;
+		uint32_t Count;
 		ShaderStage Stages;
 	};
 	

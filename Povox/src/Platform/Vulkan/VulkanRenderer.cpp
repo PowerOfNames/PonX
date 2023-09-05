@@ -226,7 +226,7 @@ namespace Povox {
 		m_Specification.State.TotalFrames++;
 	}
 	
-	void VulkanRenderer::Draw(Ref<Buffer> vertices, Ref<Material> material, Ref<Buffer> indices, size_t indexCount)
+	void VulkanRenderer::Draw(Ref<Buffer> vertices, Ref<Material> material, Ref<Buffer> indices, size_t indexCount, bool textureless)
 	{
 		PX_PROFILE_FUNCTION();
 
@@ -235,18 +235,7 @@ namespace Povox {
 
 
 		uint32_t frameIndex = m_CurrentFrameIndex % m_Specification.MaxFramesInFlight;
-		//uint32_t camUniformOffset = PadUniformBuffer(sizeof(SceneUniform), VulkanContext::GetDevice()->GetPhysicalDeviceProperties().limits.minUniformBufferOffsetAlignment) * (size_t)frameIndex;
 		
-// 		vkCmdBindDescriptorSets(
-// 			m_ActiveCommandBuffer, 
-// 			VK_PIPELINE_BIND_POINT_GRAPHICS, 
-// 			m_ActivePipeline->GetLayout(), 
-// 			0, 
-// 			1, 
-// 			&GetCurrentFrame().GlobalDescriptorSet, 
-// 			0, 
-// 			nullptr
-// 		);
 
 		/* Instead of using memcpy here, we are doing a different trick. It is possible to cast the void* from mapping the buffer into another type, and write into it normally.
 		* This will work completely fine, and makes it easier to write complex types into a buffer.
@@ -277,48 +266,52 @@ namespace Povox {
 
 		// only bind material descriptor sets here -> better store them all in one descriptor set and pass the offsets
 		
-		VkWriteDescriptorSet samplerWrite{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
-		samplerWrite.dstBinding = 0;
-		samplerWrite.dstArrayElement = 0;
-		samplerWrite.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
-		samplerWrite.descriptorCount = 1;
-		samplerWrite.dstSet = GetCurrentFrame().TextureDescriptorSet;
-
-		VkDescriptorImageInfo samplerInfo{};
-		samplerInfo.sampler = m_TextureSampler;
-		samplerWrite.pImageInfo = &samplerInfo;
-
-		auto& activeTextures = m_TextureSystem->GetActiveTextures();
-		//TODO: Get maxImageSlots from config as const
-		std::array<VkDescriptorImageInfo, 32> imageInfos;
-		for (uint32_t i = 0; i < activeTextures.size(); i++)
+		if (!textureless)
 		{
-			imageInfos[i] = std::dynamic_pointer_cast<VulkanImage2D>(activeTextures[i]->GetImage())->GetImageInfo();
+			VkWriteDescriptorSet samplerWrite{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
+			samplerWrite.dstBinding = 0;
+			samplerWrite.dstArrayElement = 0;
+			samplerWrite.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
+			samplerWrite.descriptorCount = 1;
+			samplerWrite.dstSet = GetCurrentFrame().TextureDescriptorSet;
+
+			VkDescriptorImageInfo samplerInfo{};
+			samplerInfo.sampler = m_TextureSampler;
+			samplerWrite.pImageInfo = &samplerInfo;
+
+			auto& activeTextures = m_TextureSystem->GetActiveTextures();
+			//TODO: Get maxImageSlots from config as const
+			std::array<VkDescriptorImageInfo, 32> imageInfos;
+			for (uint32_t i = 0; i < activeTextures.size(); i++)
+			{
+				imageInfos[i] = std::dynamic_pointer_cast<VulkanImage2D>(activeTextures[i]->GetImage())->GetImageInfo();
+			}
+			VkWriteDescriptorSet setWrites{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
+			setWrites.dstBinding = 1;
+			setWrites.dstArrayElement = 0;
+			setWrites.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+			setWrites.descriptorCount = imageInfos.size();
+			setWrites.pBufferInfo = 0;
+			setWrites.dstSet = GetCurrentFrame().TextureDescriptorSet;
+			setWrites.pImageInfo = imageInfos.data();
+
+
+			VkWriteDescriptorSet writes[2] = { samplerWrite, setWrites };
+
+			vkUpdateDescriptorSets(m_Device, 2, writes, 0, nullptr);
+
+			vkCmdBindDescriptorSets(
+				m_ActiveCommandBuffer,
+				VK_PIPELINE_BIND_POINT_GRAPHICS,
+				m_ActivePipeline->GetLayout(),
+				2,
+				1,
+				&GetCurrentFrame().TextureDescriptorSet,
+				0,
+				nullptr
+			);
 		}
-		VkWriteDescriptorSet setWrites{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
-		setWrites.dstBinding = 1;
-		setWrites.dstArrayElement = 0;
-		setWrites.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-		setWrites.descriptorCount = imageInfos.size();
-		setWrites.pBufferInfo = 0;
-		setWrites.dstSet = GetCurrentFrame().TextureDescriptorSet;
-		setWrites.pImageInfo = imageInfos.data();
-
-
-		VkWriteDescriptorSet writes[2] = {samplerWrite, setWrites};
-
-		vkUpdateDescriptorSets(m_Device, 2, writes, 0, nullptr);
-
-// 		vkCmdBindDescriptorSets(
-// 			m_ActiveCommandBuffer, 
-// 			VK_PIPELINE_BIND_POINT_GRAPHICS, 
-// 			m_ActivePipeline->GetLayout(), 
-// 			2, 
-// 			1, 
-// 			&GetCurrentFrame().TextureDescriptorSet, 
-// 			0, 
-// 			nullptr
-// 		);
+		
 		
 
 		VkBuffer vertexBuffer = std::dynamic_pointer_cast<VulkanBuffer>(vertices)->GetAllocation().Buffer;
@@ -689,33 +682,6 @@ namespace Povox {
 		m_ImGui->OnSwapchainRecreate(Application::Get()->GetWindow().GetSwapchain()->GetImageViews(), extent);
 	}
 
-	void VulkanRenderer::UpdateCamera(const CameraUniform& cam)
-	{
-		PX_PROFILE_FUNCTION();
-
-
-		CameraUniform camOut;
-		camOut.ViewMatrix = cam.ViewMatrix;
-		camOut.ProjectionMatrix = cam.ProjectionMatrix;
-		camOut.ProjectionMatrix[1][1] *= -1; // either this or flip the viewport
-		camOut.ViewProjMatrix = camOut.ProjectionMatrix * camOut.ViewMatrix;
-
-		void* data;
-		vmaMapMemory(VulkanContext::GetAllocator(), GetCurrentFrame().CamUniformBuffer.Allocation, &data);
-		memcpy(data, &camOut, sizeof(CameraUniform));
-		vmaUnmapMemory(VulkanContext::GetAllocator(), GetCurrentFrame().CamUniformBuffer.Allocation);
-
-
-		//m_SceneParameter.AmbientColor = glm::vec4(glm::cos(m_DebugInfo.TotalFrames /10.0f), 1.0f, glm::sin(m_DebugInfo.TotalFrames /10.0f), 0.5f);
-		m_SceneParameter.AmbientColor = glm::vec4(1.0f, 1.0f, 1.0f, 0.1f);
-		char* sceneData;
-		vmaMapMemory(VulkanContext::GetAllocator(), m_SceneParameterBuffer.Allocation, (void**)&sceneData);
-		sceneData += PadUniformBuffer(sizeof(SceneUniform), VulkanContext::GetDevice()->GetPhysicalDeviceProperties().limits.minUniformBufferOffsetAlignment) * m_CurrentFrameIndex;
-		memcpy(sceneData, &m_SceneParameter, sizeof(SceneUniform));
-		vmaUnmapMemory(VulkanContext::GetAllocator(), m_SceneParameterBuffer.Allocation);
-		
-	}
-
 	// Commands
 	void VulkanRenderer::BeginCommandBuffer(const void* commBuf)
 	{
@@ -807,7 +773,9 @@ namespace Povox {
 		for (auto& [number, set] : descriptors)
 		{
 			if (number < 3)
+			{
 				descriptorSets.push_back(set.Sets[m_CurrentFrameIndex]);
+			}
 		}
 
 		// TODO: catch dynamic descriptor sets and there offset

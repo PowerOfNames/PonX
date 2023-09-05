@@ -31,8 +31,8 @@ namespace Povox {
 		PX_CORE_ASSERT(specs.Size > 0, "A size needs to be defined!");
 		m_Size = specs.Size;
 
-		m_Allocation = CreateAllocation(m_Size, VulkanUtils::GetVulkanBufferUsage(specs.Usage) | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VulkanUtils::GetVmaUsage(specs.MemUsage));
-		m_Staging = CreateAllocation(m_Size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+		m_Allocation = CreateAllocation(m_Size, VulkanUtils::GetVulkanBufferUsage(specs.Usage) | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VulkanUtils::GetVmaUsage(specs.MemUsage), specs.DebugName+ "Allocation");
+		m_Staging = CreateAllocation(m_Size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU, specs.DebugName + "Staging");
 
 		CreateDescriptorInfo();
 
@@ -86,6 +86,8 @@ namespace Povox {
 
 				vkCmdCopyBuffer(cmd, m_Staging.Buffer, m_Allocation.Buffer, 1, &copyRegion);
 			});
+
+		CreateDescriptorInfo();
 	}
 
 	void VulkanBuffer::SetData(void* inputData, const size_t size)
@@ -105,7 +107,6 @@ namespace Povox {
 			vmaMapMemory(allocator, m_Staging.Allocation, &m_Data);
 			m_StagingMapped = true;
 		}
-
 		memcpy(m_Data, inputData, size);
 
 		UploadToGPU();
@@ -121,13 +122,8 @@ namespace Povox {
 			vmaMapMemory(allocator, m_Staging.Allocation, &m_Data);
 			m_StagingMapped = true;
 		}
-
 		char* data = (char*)m_Data;
-
 		memcpy(data + offset, inputData, size);
-
-
-
 
 		UploadToGPU();
 	}	
@@ -145,7 +141,6 @@ namespace Povox {
 		vmaAllocInfo.usage = memUsage;
 
 		AllocatedBuffer newBuffer;
-
 		PX_CORE_VK_ASSERT(vmaCreateBuffer(VulkanContext::GetAllocator(), &bufferInfo, &vmaAllocInfo, &newBuffer.Buffer, &newBuffer.Allocation, nullptr), VK_SUCCESS, "Failed to create Buffer!");
 
 #ifdef PX_DEBUG
@@ -170,7 +165,8 @@ namespace Povox {
 		descInfo.offset = 0;
 		descInfo.range = m_Size;
 
-		return descInfo;
+		m_DescriptorInfo = descInfo;
+		return m_DescriptorInfo;
 	}	
 
 }

@@ -34,6 +34,8 @@ namespace Povox {
 		float m_ZoomLevel;
 		PerspectiveCamera m_Camera;
 
+		bool mouseCaught = false;
+
 		glm::vec3 m_CameraPosition = { 0.0f, 0.0f, 0.0f };
 		glm::vec3 m_CameraFront = { 0.0f, 0.0f, -1.0f };
 		glm::vec3 m_CameraUp = { 0.0f, 1.0f, 0.0f };
