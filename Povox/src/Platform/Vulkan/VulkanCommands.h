@@ -18,19 +18,32 @@ namespace Povox {
 	{
 	public:
 		VulkanCommandControl() = default;
-		~VulkanCommandControl() = default;
+		~VulkanCommandControl();
+
+		void Destroy();
+		Ref<UploadContext> CreateUploadContext();
 
 		enum class SubmitType
 		{
 			SUBMIT_TYPE_UNDEFINED,
-			SUBMIT_TYPE_GRAPHICS,
-			SUBMIT_TYPE_TRANSFER
+			SUBMIT_TYPE_GRAPHICS_GRAPHICS,
+			SUBMIT_TYPE_GRAPHICS_TRANSFER,
+			SUBMIT_TYPE_TRANSFER_TRANSFER,
+			SUBMIT_TYPE_TRANSFER_GRAPHICS,
+			SUBMIT_TYPE_GRAPHICS_COMPUTE,
+			SUBMIT_TYPE_COMPUTE_COMPUTE,
+			SUBMIT_TYPE_COMPUTE_TRANSFER,
+			SUBMIT_TYPE_TRANSFER_COMPUTE,
+			SUBMIT_TYPE_COMPUTE_GRAPHICS
 		};
+
+		static void ImmidiateSubmitOwnershipTransfer(SubmitType submitType,
+			std::function<void(VkCommandBuffer releasingCmd)> && releaseFunction,
+			std::function<void(VkCommandBuffer acquireCmd)> && acquireFunction);
 
 		static void ImmidiateSubmit(SubmitType submitType, std::function<void(VkCommandBuffer cmd)>&& function);
 
 		inline const Ref<UploadContext> GetUploadContext() { return s_UploadContext; }
-		Ref<UploadContext> CreateUploadContext();
 
 		static inline CommandControlState& GetState() { return s_CommandControlState; }
 		static inline bool IsInitialized() { return s_CommandControlState.IsInitialized; }

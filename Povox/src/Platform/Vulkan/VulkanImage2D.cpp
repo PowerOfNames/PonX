@@ -5,6 +5,7 @@
 #include "Platform/Vulkan/VulkanContext.h"
 #include "Platform/Vulkan/VulkanBuffer.h"
 #include "Platform/Vulkan/VulkanDebug.h"
+#include "Platform/Vulkan/VulkanUtilities.h"
 
 
 #include <stb_image.h>
@@ -17,14 +18,14 @@ namespace Povox {
 		: m_Specification(spec)
 	{		
 		CreateImage();
-		if (!m_Specification.Usages.ContainsUsage(ImageUsage::STORAGE))
-		{
-			CreateImageView();
-		}
+		CreateImageView();
+		if (m_Specification.DedicatedSampler)
+			CreateSampler();
+		CreateDescriptorInfo();
+
 		if(m_Specification.Usages.ContainsUsage(ImageUsage::SAMPLED))
 		{
-			if(m_Specification.DedicatedSampler)
-				CreateSampler();
+			
 			if(m_Specification.CreateDescriptorOnInit)
 				CreateDescriptorSet();
 		}
@@ -44,6 +45,7 @@ namespace Povox {
 		CreateImageView();
 		if (m_Specification.DedicatedSampler)
 			CreateSampler();
+		CreateDescriptorInfo();
 		CreateDescriptorSet();
 	}
 
@@ -77,7 +79,7 @@ namespace Povox {
 		
 	}
 
-	AllocatedImage VulkanImage2D::CreateAllocation(VkExtent3D extent, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VmaMemoryUsage memUsage, VkImageLayout initialLayout, std::string debugName)
+	AllocatedImage VulkanImage2D::CreateAllocation(VkExtent3D extent, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VmaMemoryUsage memUsage, VkImageLayout initialLayout, QueueFamilyOwnership* ownership, std::string debugName)
 	{
 		VkImageCreateInfo info{};
 		info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -86,16 +88,23 @@ namespace Povox {
 		info.imageType = VK_IMAGE_TYPE_2D;
 
 		info.extent = extent;
-		info.format = format;	// may not be supported by all hardware
+		info.format = format;
 
 		info.arrayLayers = 1;
 		info.mipLevels = 1;
 		info.tiling = tiling;
 		info.initialLayout = initialLayout;
 		info.usage = usage;
-		info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;	// exclusive means it will only be used by one queue family (graphics and therefore also transfer possible)
-		info.samples = VK_SAMPLE_COUNT_1_BIT;	// related to multi sampling -> in attachments
-		info.flags = 0;	// optional, can be used for sparse textures, in for examples for voxel terrain, to avoid using memory with AIR
+		info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+		info.queueFamilyIndexCount = 1;
+ 		auto& families = VulkanContext::GetDevice()->GetQueueFamilies();
+		uint32_t familyIndex[] = { families.GraphicsFamilyIndex };
+		info.pQueueFamilyIndices = familyIndex;
+		if (ownership)
+			*ownership = QueueFamilyOwnership::QFO_GRAPHICS;
+		
+		info.samples = VK_SAMPLE_COUNT_1_BIT;
+		info.flags = 0;
 		
 		VmaAllocationCreateInfo allocationInfo{};
 		allocationInfo.usage = memUsage;
@@ -122,31 +131,327 @@ namespace Povox {
 		return output;
 	}
 
-	void VulkanImage2D::TransitionImageLayout(VkImageLayout initialLayout, VkImageLayout finalLayout, VkAccessFlags srcMask, VkAccessFlags dstMask, 
-		VkPipelineStageFlags srcStage, VkPipelineStageFlags dstStage)
+
+	// TODO: image layout transitions should happen as often as possible in subpasses!
+	/**
+	 * Will automatically switch ownership to QFO_TRANSFER if finalLayout contains LAYOUT_TRANSFER_*_
+	 */
+	void VulkanImage2D::TransitionImageLayout(
+		VkImageLayout initialLayout, VkImageLayout finalLayout, 
+		VkPipelineStageFlags2 srcStage, VkAccessFlags2 srcMask, 
+		VkPipelineStageFlags2 dstStage, VkAccessFlags2 dstMask,
+		QueueFamilyOwnership targetOwner /*= QueueFamilyOwnership::DONT_CARE*/)
 	{
-		VkImageAspectFlags aspectMask;
-		if(VulkanUtils::GetVulkanImageFormat(m_Specification.Format))
+		PX_PROFILE_FUNCTION();
+
+
+		QueueFamilyOwnership originalOwnership = m_Ownership;
+
+		auto& queueFamilies = VulkanContext::GetDevice()->GetQueueFamilies();
+		VkQueue currentQueue;
+		uint32_t currentIndex;
+		VulkanCommandControl::SubmitType submitType = VulkanCommandControl::SubmitType::SUBMIT_TYPE_UNDEFINED;
+
+		/* If the image layout currently is in a transfer layout, it was target to a transfer command OR will likely switch from SRD to DST or vice versa
+		*  If the final layout is a transfer layout, it will be target to a transfer command and therefore always transfers ownership to TransferQueue, if its not already there and transfer is not an exclusive queue
+		*  For now, when changing the layout from transfer to something else, it will end up in the graphics queue and a separate ownership transfer is needed when the image is planned to be used in a different queue
+		*/
+		switch (m_Ownership)
+		{
+			case QueueFamilyOwnership::QFO_GRAPHICS:
+			{
+				currentQueue = queueFamilies.Queues.GraphicsQueue;
+				currentIndex = queueFamilies.GraphicsFamilyIndex;
+
+				if (finalLayout == VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL || finalLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
+				{
+					submitType = VulkanCommandControl::SubmitType::SUBMIT_TYPE_GRAPHICS_TRANSFER;
+					break;
+				}
+				switch (targetOwner)
+				{
+					case QueueFamilyOwnership::QFO_UNDEFINED:
+					case QueueFamilyOwnership::QFO_GRAPHICS:
+					{
+						submitType = VulkanCommandControl::SubmitType::SUBMIT_TYPE_GRAPHICS_GRAPHICS;
+						break;
+					}
+					case QueueFamilyOwnership::QFO_COMPUTE:
+					{
+						submitType = VulkanCommandControl::SubmitType::SUBMIT_TYPE_GRAPHICS_COMPUTE;
+						break;
+					}
+					case QueueFamilyOwnership::QFO_TRANSFER:
+					{
+						submitType = VulkanCommandControl::SubmitType::SUBMIT_TYPE_GRAPHICS_TRANSFER;
+						break;
+					}
+					default:
+					{
+						PX_CORE_WARN("Unknown QueueFamilyOwnership!");
+					}
+				}
+				break;
+			}
+			case QueueFamilyOwnership::QFO_TRANSFER:
+			{
+				currentQueue = queueFamilies.Queues.TransferQueue;
+				currentIndex = queueFamilies.TransferFamilyIndex;
+
+				if (finalLayout == VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL || finalLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
+				{
+					submitType = VulkanCommandControl::SubmitType::SUBMIT_TYPE_TRANSFER_TRANSFER;
+					break;
+				}
+				switch (targetOwner)
+				{
+					case QueueFamilyOwnership::QFO_UNDEFINED:
+					case QueueFamilyOwnership::QFO_GRAPHICS:
+					{
+						submitType = VulkanCommandControl::SubmitType::SUBMIT_TYPE_TRANSFER_GRAPHICS;
+						break;
+					}
+					case QueueFamilyOwnership::QFO_COMPUTE:
+					{
+						submitType = VulkanCommandControl::SubmitType::SUBMIT_TYPE_TRANSFER_COMPUTE;
+						break;
+					}
+					case QueueFamilyOwnership::QFO_TRANSFER:
+					{
+						submitType = VulkanCommandControl::SubmitType::SUBMIT_TYPE_TRANSFER_TRANSFER;
+						break;
+					}
+					default:
+					{
+						PX_CORE_WARN("Unknown QueueFamilyOwnership!");
+					}
+				}
+				break;
+			}
+			case QueueFamilyOwnership::QFO_COMPUTE:
+			{
+				currentQueue = queueFamilies.Queues.ComputeQueue;
+				currentIndex = queueFamilies.ComputeFamilyIndex;
+				if (finalLayout == VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL || finalLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
+				{
+					submitType = VulkanCommandControl::SubmitType::SUBMIT_TYPE_COMPUTE_TRANSFER;
+					break;
+				}
+				switch (targetOwner)
+				{
+					case QueueFamilyOwnership::QFO_UNDEFINED:
+					case QueueFamilyOwnership::QFO_GRAPHICS:
+					{
+						submitType = VulkanCommandControl::SubmitType::SUBMIT_TYPE_COMPUTE_GRAPHICS;
+						break;
+					}
+					case QueueFamilyOwnership::QFO_COMPUTE:
+					{
+						submitType = VulkanCommandControl::SubmitType::SUBMIT_TYPE_COMPUTE_COMPUTE;
+						break;
+					}
+					case QueueFamilyOwnership::QFO_TRANSFER:
+					{
+						PX_CORE_WARN("Transferring Ownership to TransferQueue without setting a Transfer Layout!");
+						submitType = VulkanCommandControl::SubmitType::SUBMIT_TYPE_COMPUTE_TRANSFER;
+						break;
+					}
+					default: {
+						PX_CORE_WARN("Unknown QueueFamilyOwnership!");
+						break;
+					}
+				}
+			}
+			default:
+			{
+				PX_CORE_ASSERT(true, "QueueFamilyOwnership not caught!");
+			}
+			break;
+		}			
 		
-		VulkanCommandControl::ImmidiateSubmit(VulkanCommandControl::SubmitType::SUBMIT_TYPE_GRAPHICS, [=](VkCommandBuffer cmd) {
-			VkImageMemoryBarrier barrier{};
-		barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-		barrier.image = m_Allocation.Image;
-		barrier.oldLayout = initialLayout;
-		barrier.newLayout = finalLayout;
-		barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-		barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-		barrier.subresourceRange.aspectMask = VulkanUtils::GetAspectFlagsFromUsages(m_Specification.Usages);
-		barrier.subresourceRange.baseMipLevel = 0;
-		barrier.subresourceRange.levelCount = 1;
-		barrier.subresourceRange.baseArrayLayer = 0;
-		barrier.subresourceRange.layerCount = 1;
+		switch (submitType)
+		{
+			case VulkanCommandControl::SubmitType::SUBMIT_TYPE_COMPUTE_COMPUTE:
+			case VulkanCommandControl::SubmitType::SUBMIT_TYPE_GRAPHICS_GRAPHICS:
+			case VulkanCommandControl::SubmitType::SUBMIT_TYPE_TRANSFER_TRANSFER:
+			{
+				VulkanCommandControl::ImmidiateSubmit(submitType, [=](VkCommandBuffer cmd)
+					{
+						VkImageMemoryBarrier2 barrier{ VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2 };
+						barrier.image = m_Allocation.Image;
+						barrier.oldLayout = initialLayout;
+						barrier.newLayout = finalLayout;
+						barrier.srcQueueFamilyIndex = currentIndex;
+						barrier.dstQueueFamilyIndex = currentIndex;
+						barrier.subresourceRange.aspectMask = VulkanUtils::GetAspectFlagsFromUsages(m_Specification.Usages);
+						barrier.subresourceRange.baseMipLevel = 0;
+						barrier.subresourceRange.levelCount = 1;
+						barrier.subresourceRange.baseArrayLayer = 0;
+						barrier.subresourceRange.layerCount = 1;
 
-		barrier.srcAccessMask = srcMask;
-		barrier.dstAccessMask = dstMask;
+						barrier.srcStageMask = srcStage;
+						barrier.srcAccessMask = srcMask;
+						barrier.dstStageMask = dstStage;
+						barrier.dstAccessMask = dstMask;
 
-		vkCmdPipelineBarrier(cmd, srcStage, dstStage, 0, 0, nullptr, 0, nullptr, 1, &barrier);
-		});
+						VkDependencyInfo dependency{ VK_STRUCTURE_TYPE_DEPENDENCY_INFO };
+						dependency.imageMemoryBarrierCount = 1;
+						dependency.pImageMemoryBarriers = &barrier;
+						vkCmdPipelineBarrier2(cmd, &dependency);
+					});
+				m_CurrentLayout = finalLayout;
+				break;
+			}
+			case VulkanCommandControl::SubmitType::SUBMIT_TYPE_TRANSFER_GRAPHICS:
+			case VulkanCommandControl::SubmitType::SUBMIT_TYPE_COMPUTE_GRAPHICS:
+			{	
+				VulkanCommandControl::ImmidiateSubmitOwnershipTransfer(submitType, [=](VkCommandBuffer releaseCmd)				
+					{
+						VkImageMemoryBarrier2 barrier{ VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2 };
+						barrier.image = m_Allocation.Image;
+						barrier.oldLayout = initialLayout;
+						barrier.newLayout = finalLayout;
+						barrier.srcQueueFamilyIndex = currentIndex;
+						barrier.dstQueueFamilyIndex = queueFamilies.GraphicsFamilyIndex;
+						barrier.subresourceRange.aspectMask = VulkanUtils::GetAspectFlagsFromUsages(m_Specification.Usages);
+						barrier.subresourceRange.baseMipLevel = 0;
+						barrier.subresourceRange.levelCount = 1;
+						barrier.subresourceRange.baseArrayLayer = 0;
+						barrier.subresourceRange.layerCount = 1;
+
+						barrier.srcStageMask = srcStage;
+						barrier.srcAccessMask = srcMask;
+
+						VkDependencyInfo dependency{ VK_STRUCTURE_TYPE_DEPENDENCY_INFO };
+						dependency.imageMemoryBarrierCount = 1;
+						dependency.pImageMemoryBarriers = &barrier;
+						vkCmdPipelineBarrier2(releaseCmd, &dependency);
+					}, [=](VkCommandBuffer acquireCmd) 
+					{
+						VkImageMemoryBarrier2 barrier{ VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2 };
+						barrier.image = m_Allocation.Image;
+						barrier.oldLayout = initialLayout;
+						barrier.newLayout = finalLayout;
+						barrier.srcQueueFamilyIndex = currentIndex;
+						barrier.dstQueueFamilyIndex = queueFamilies.GraphicsFamilyIndex;
+						barrier.subresourceRange.aspectMask = VulkanUtils::GetAspectFlagsFromUsages(m_Specification.Usages);
+						barrier.subresourceRange.baseMipLevel = 0;
+						barrier.subresourceRange.levelCount = 1;
+						barrier.subresourceRange.baseArrayLayer = 0;
+						barrier.subresourceRange.layerCount = 1;
+
+						barrier.dstStageMask = dstStage;
+						barrier.dstAccessMask = dstMask;
+
+						VkDependencyInfo dependency{ VK_STRUCTURE_TYPE_DEPENDENCY_INFO };
+						dependency.imageMemoryBarrierCount = 1;
+						dependency.pImageMemoryBarriers = &barrier;
+						vkCmdPipelineBarrier2(acquireCmd, &dependency);
+					});
+				m_Ownership = QueueFamilyOwnership::QFO_GRAPHICS;
+				break;
+			}
+			case VulkanCommandControl::SubmitType::SUBMIT_TYPE_GRAPHICS_TRANSFER:
+			case VulkanCommandControl::SubmitType::SUBMIT_TYPE_COMPUTE_TRANSFER:
+			{
+				VulkanCommandControl::ImmidiateSubmitOwnershipTransfer(submitType, [=](VkCommandBuffer releaseCmd)
+					{
+						VkImageMemoryBarrier2 barrier{ VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2 };
+						barrier.image = m_Allocation.Image;
+						barrier.oldLayout = initialLayout;
+						barrier.newLayout = finalLayout;
+						barrier.srcQueueFamilyIndex = currentIndex;
+						barrier.dstQueueFamilyIndex = queueFamilies.TransferFamilyIndex;
+						barrier.subresourceRange.aspectMask = VulkanUtils::GetAspectFlagsFromUsages(m_Specification.Usages);
+						barrier.subresourceRange.baseMipLevel = 0;
+						barrier.subresourceRange.levelCount = 1;
+						barrier.subresourceRange.baseArrayLayer = 0;
+						barrier.subresourceRange.layerCount = 1;
+
+						barrier.srcStageMask = srcStage;
+						barrier.srcAccessMask = srcMask;
+
+						VkDependencyInfo dependency{ VK_STRUCTURE_TYPE_DEPENDENCY_INFO };
+						dependency.imageMemoryBarrierCount = 1;
+						dependency.pImageMemoryBarriers = &barrier;
+						vkCmdPipelineBarrier2(releaseCmd, &dependency);
+					}, [=](VkCommandBuffer acquireCmd)
+					{
+						VkImageMemoryBarrier2 barrier{ VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2 };
+						barrier.image = m_Allocation.Image;
+						barrier.oldLayout = initialLayout;
+						barrier.newLayout = finalLayout;
+						barrier.srcQueueFamilyIndex = currentIndex;
+						barrier.dstQueueFamilyIndex = queueFamilies.TransferFamilyIndex;
+						barrier.subresourceRange.aspectMask = VulkanUtils::GetAspectFlagsFromUsages(m_Specification.Usages);
+						barrier.subresourceRange.baseMipLevel = 0;
+						barrier.subresourceRange.levelCount = 1;
+						barrier.subresourceRange.baseArrayLayer = 0;
+						barrier.subresourceRange.layerCount = 1;
+
+						barrier.dstStageMask = dstStage;
+						barrier.dstAccessMask = dstMask;
+
+						VkDependencyInfo dependency{ VK_STRUCTURE_TYPE_DEPENDENCY_INFO_KHR };
+						dependency.imageMemoryBarrierCount = 1;
+						dependency.pImageMemoryBarriers = &barrier;
+						vkCmdPipelineBarrier2(acquireCmd, &dependency);
+					});
+				m_Ownership = QueueFamilyOwnership::QFO_TRANSFER;
+				break;
+			}
+			case VulkanCommandControl::SubmitType::SUBMIT_TYPE_TRANSFER_COMPUTE:
+			case VulkanCommandControl::SubmitType::SUBMIT_TYPE_GRAPHICS_COMPUTE:
+			{
+				VulkanCommandControl::ImmidiateSubmitOwnershipTransfer(submitType, [=](VkCommandBuffer releaseCmd)
+					{
+						VkImageMemoryBarrier2 barrier{ VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2 };
+						barrier.image = m_Allocation.Image;
+						barrier.oldLayout = initialLayout;
+						barrier.newLayout = finalLayout;
+						barrier.srcQueueFamilyIndex = currentIndex;
+						barrier.dstQueueFamilyIndex = queueFamilies.ComputeFamilyIndex;
+						barrier.subresourceRange.aspectMask = VulkanUtils::GetAspectFlagsFromUsages(m_Specification.Usages);
+						barrier.subresourceRange.baseMipLevel = 0;
+						barrier.subresourceRange.levelCount = 1;
+						barrier.subresourceRange.baseArrayLayer = 0;
+						barrier.subresourceRange.layerCount = 1;
+
+						barrier.srcStageMask = srcStage;
+						barrier.srcAccessMask = srcMask;
+
+						VkDependencyInfo dependency{ VK_STRUCTURE_TYPE_DEPENDENCY_INFO };
+						dependency.imageMemoryBarrierCount = 1;
+						dependency.pImageMemoryBarriers = &barrier;
+						vkCmdPipelineBarrier2(releaseCmd, &dependency);
+					}, [=](VkCommandBuffer acquireCmd)
+					{
+						VkImageMemoryBarrier2 barrier{ VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2 };
+						barrier.image = m_Allocation.Image;
+						barrier.oldLayout = initialLayout;
+						barrier.newLayout = finalLayout;
+						barrier.srcQueueFamilyIndex = currentIndex;
+						barrier.dstQueueFamilyIndex = queueFamilies.ComputeFamilyIndex;
+						barrier.subresourceRange.aspectMask = VulkanUtils::GetAspectFlagsFromUsages(m_Specification.Usages);
+						barrier.subresourceRange.baseMipLevel = 0;
+						barrier.subresourceRange.levelCount = 1;
+						barrier.subresourceRange.baseArrayLayer = 0;
+						barrier.subresourceRange.layerCount = 1;
+
+						barrier.dstStageMask = dstStage;
+						barrier.dstAccessMask = dstMask;
+
+						VkDependencyInfo dependency{ VK_STRUCTURE_TYPE_DEPENDENCY_INFO_KHR };
+						dependency.imageMemoryBarrierCount = 1;
+						dependency.pImageMemoryBarriers = &barrier;
+						vkCmdPipelineBarrier2(acquireCmd, &dependency);
+					});
+				m_Ownership = QueueFamilyOwnership::QFO_COMPUTE;
+				break;
+			}			
+		}
+		m_CurrentLayout = finalLayout;
+		CreateDescriptorInfo();
 	}
 
 	void VulkanImage2D::SetData(void* data)
@@ -160,14 +465,12 @@ namespace Povox {
 		vmaUnmapMemory(VulkanContext::GetAllocator(), stagingBuffer.Allocation);
 
 		TransitionImageLayout(
-			VK_IMAGE_LAYOUT_UNDEFINED,
-			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-			0,
-			VK_ACCESS_TRANSFER_WRITE_BIT,
-			VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-			VK_PIPELINE_STAGE_TRANSFER_BIT);
+			VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+			VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT, 0,
+			VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT
+		);
 
-		VulkanCommandControl::ImmidiateSubmit(VulkanCommandControl::SubmitType::SUBMIT_TYPE_TRANSFER, [=](VkCommandBuffer cmd)
+		VulkanCommandControl::ImmidiateSubmit(VulkanCommandControl::SubmitType::SUBMIT_TYPE_TRANSFER_TRANSFER, [=](VkCommandBuffer cmd)
 			{
 				VkBufferImageCopy region{};
 				region.bufferOffset = 0;
@@ -193,12 +496,11 @@ namespace Povox {
 			finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 		}
 		TransitionImageLayout(
-			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-			finalLayout,
-			VK_ACCESS_TRANSFER_WRITE_BIT,
-			VK_ACCESS_SHADER_READ_BIT,
-			VK_PIPELINE_STAGE_TRANSFER_BIT,
-			VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);		
+			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, finalLayout,
+			VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT, 
+			VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT,
+			QueueFamilyOwnership::QFO_GRAPHICS
+		);		
 
 		vmaDestroyBuffer(VulkanContext::GetAllocator(), stagingBuffer.Buffer, stagingBuffer.Allocation);
 	}
@@ -210,14 +512,11 @@ namespace Povox {
 		AllocatedBuffer stagingBuffer = VulkanBuffer::CreateAllocation(imageSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_CPU_ONLY);
 
 		TransitionImageLayout(
-			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-			VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-			0,
-			VK_ACCESS_TRANSFER_WRITE_BIT,
-			VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-			VK_PIPELINE_STAGE_TRANSFER_BIT
-		);		
-		VulkanCommandControl::ImmidiateSubmit(VulkanCommandControl::SubmitType::SUBMIT_TYPE_TRANSFER, [=](VkCommandBuffer cmd)
+			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+			VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+			VK_PIPELINE_STAGE_2_HOST_BIT, VK_ACCESS_2_HOST_WRITE_BIT
+		);
+		VulkanCommandControl::ImmidiateSubmit(VulkanCommandControl::SubmitType::SUBMIT_TYPE_TRANSFER_TRANSFER, [=](VkCommandBuffer cmd)
 			{
 				VkBufferImageCopy region{};
 				region.bufferOffset = 0;
@@ -242,12 +541,9 @@ namespace Povox {
 			newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 		}
 		TransitionImageLayout(
-			VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-			newLayout,
-			VK_ACCESS_TRANSFER_WRITE_BIT,
-			VK_ACCESS_SHADER_READ_BIT,
-			VK_PIPELINE_STAGE_TRANSFER_BIT,
-			VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT
+			VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, newLayout,
+			VK_PIPELINE_STAGE_2_HOST_BIT, VK_ACCESS_2_HOST_WRITE_BIT,
+			VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT
 		);
 		
 		void* dataBuffer;
@@ -262,8 +558,8 @@ namespace Povox {
 	void VulkanImage2D::CreateImage()
 	{
 		m_Allocation = CreateAllocation({ m_Specification.Width, m_Specification.Height, 1 }, VulkanUtils::GetVulkanImageFormat(m_Specification.Format), VulkanUtils::GetVulkanTiling(m_Specification.Tiling),
-			VulkanUtils::GetVulkanImageUsages(m_Specification.Usages), VulkanUtils::GetVmaUsage(m_Specification.Memory));
-
+			VulkanUtils::GetVulkanImageUsages(m_Specification.Usages), VulkanUtils::GetVmaUsage(m_Specification.Memory), VK_IMAGE_LAYOUT_UNDEFINED, &m_Ownership);
+		
 #ifdef PX_DEBUG
 		VkDebugUtilsObjectNameInfoEXT nameInfo{};
 		nameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
@@ -308,6 +604,20 @@ namespace Povox {
 #endif // DEBUG
 	}
 
+
+	VkDescriptorImageInfo VulkanImage2D::CreateDescriptorInfo()
+	{
+		VkDescriptorImageInfo descInfo{};
+		descInfo.imageLayout = m_CurrentLayout;
+		descInfo.imageView = m_View;
+		descInfo.sampler = nullptr;
+		if(m_Specification.DedicatedSampler)
+			descInfo.sampler = m_Sampler;
+
+		m_DescriptorInfo = descInfo;
+		return m_DescriptorInfo;
+
+	}
 
 	void VulkanImage2D::CreateSampler()
 	{
@@ -358,26 +668,13 @@ namespace Povox {
 
 		std::vector<VkDescriptorSetLayoutBinding> textureBindings = { m_Binding };
 
-		m_DescImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		m_DescImageInfo.imageView = m_View;
-		m_DescImageInfo.sampler = m_Sampler;
+		m_DescriptorInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		m_DescriptorInfo.imageView = m_View;
+		m_DescriptorInfo.sampler = m_Sampler;
 
 		VulkanDescriptorBuilder builder = VulkanDescriptorBuilder::Begin(VulkanContext::GetDescriptorLayoutCache(), VulkanContext::GetDescriptorAllocator());
-		builder.BindImage(m_Binding, &m_DescImageInfo);
+		builder.BindImage(m_Binding, &m_DescriptorInfo);
 		builder.Build(m_DescriptorSet, "ImageDS");
-	}
-
-	VkDescriptorImageInfo VulkanImage2D::GetImageInfo()
-	{
-
-		//TODO: get layout from context of image (is it attachment, or storage, or...)
-		VkDescriptorImageInfo info{};
-		info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		info.imageView = m_View;
-		info.sampler = m_Sampler;
-
-		//return info;
-		return m_DescImageInfo;
 	}
 
 // ----------------- Texture2D -----------------

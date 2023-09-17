@@ -7,6 +7,7 @@
 #include "Platform/Vulkan/VulkanCommands.h"
 #include "Platform/Vulkan/VulkanContext.h"
 #include "Platform/Vulkan/VulkanDebug.h"
+#include "Platform/Vulkan/VulkanUtilities.h"
 
 
 namespace Povox {
@@ -198,7 +199,7 @@ namespace Povox {
 			NameVkObject(VulkanContext::GetDevice()->GetVulkanDevice(), nameInfo);
 #endif // DEBUG
 
-			VulkanCommandControl::ImmidiateSubmit(VulkanCommandControl::SubmitType::SUBMIT_TYPE_GRAPHICS, [=](VkCommandBuffer cmd)
+			VulkanCommandControl::ImmidiateSubmit(VulkanCommandControl::SubmitType::SUBMIT_TYPE_GRAPHICS_GRAPHICS, [=](VkCommandBuffer cmd)
 				{
 					VkImageMemoryBarrier barrier{};
 					barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;

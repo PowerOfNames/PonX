@@ -59,6 +59,7 @@ layout(std140, set = 1, binding = 0) readonly buffer ParticlesIn {
 
 //layout(set = 2, binding = 0) uniform sampler u_Sampler;
 //layout(set = 2, binding = 1) uniform texture2D u_DistanceMaps[32];
+layout(set = 2, binding = 0) uniform sampler2D DistanceField;
 
 #define PI 3.14159
 #define epsilon 0.000000001

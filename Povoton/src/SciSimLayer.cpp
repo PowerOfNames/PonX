@@ -83,23 +83,18 @@ namespace Povox {
 		// Update particles
 		//m_ActiveParticleSet->OnUpdate(deltatime);
 
-		// Start sci renderer / prepare for render
 		m_SciRenderer->Begin(m_PerspectiveController.GetCamera());
-		//m_SciRenderer->Begin(m_EditorCamera);
-
-		// Render particle sets(s)
 		m_SciRenderer->DrawParticleSet(m_ActiveParticleSet);
-
-		// Finish sci renderer and send stuff to GPU ?!
 		m_SciRenderer->End();
 
 
-
 		//CopyFinalImage into current SwapchainImage
-		if (!Application::Get()->GetSpecification().ImGuiEnabled)
-			Renderer::PrepareSwapchainImage(m_SciRenderer->GetFinalImage());
-		else
-			Renderer::CreateFinalImage(m_SciRenderer->GetFinalImage());
+		{
+			if (!Application::Get()->GetSpecification().ImGuiEnabled)
+				Renderer::PrepareSwapchainImage(m_SciRenderer->GetFinalImage());
+			else
+				Renderer::CreateFinalImage(m_SciRenderer->GetFinalImage());
+		}
 
 		// TODO: Move to MousePicking system
 		{

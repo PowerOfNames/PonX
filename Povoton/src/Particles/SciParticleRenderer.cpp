@@ -15,7 +15,7 @@ namespace Povox {
 		: m_Specification(specs)
 	{
 		//Povox::Renderer::GetShaderLibrary()->Add("DistanceFieldComputeShader", Povox::Shader::Create("assets/shaders/DistanceFieldCompute.glsl"));
-		//Povox::Renderer::GetShaderLibrary()->Add("ComputeTestShader", Povox::Shader::Create("assets/shaders/ComputeTest.glsl"));
+		Povox::Renderer::GetShaderLibrary()->Add("ComputeTestShader", Povox::Shader::Create("assets/shaders/ComputeTest.glsl"));
 		Povox::Renderer::GetShaderLibrary()->Add("RayMarchingShader", Povox::Shader::Create("assets/shaders/RayMarching.glsl"));
 
 	}
@@ -45,6 +45,16 @@ namespace Povox {
 		// Framebuffer->Create and Pipeline->Create just trigger setup functionality
 		// Renderpass->Create + Construct triggers vkCreateRenderpass+Framebuffer+Pipeline in order of demand
 
+
+		// Renderpass chaining
+		// Renderpasses are chained via Predecessor and Successor (Normal and Compute) ( TODO: make them more general with proper abstraction)
+		// They can be set via SetPre/Successors() to chain them together or via the specification. The renderer will then take care of the synchronization of attached descriptor resources between
+		// the passes.
+		// ( The first pass that runs won't have a predecessor, but the last will contain the first as successor )
+		//
+		// Example:
+		//			DistanceField compute pass happens before the RayMarching render
+
 		m_CameraData = Povox::CreateRef<Povox::UniformBuffer>(Povox::BufferLayout({
 			{ Povox::ShaderDataType::Mat4, "View" },
 			{ Povox::ShaderDataType::Mat4, "Projection" },
@@ -59,6 +69,7 @@ namespace Povox {
 			{Povox::ShaderDataType::Float4 , "BackgroundColor"},
 			{ Povox::ShaderDataType::Float2 , "Resolution" } }),
 			"RayMarchingUBO",
+			false,
 			false
 			);
 
@@ -71,37 +82,7 @@ namespace Povox {
 			"ParticleDataSSBO"
 			);
 
-		ImageSpecification distanceFieldSpecs{};
-		distanceFieldSpecs.Width = 2048;
-		distanceFieldSpecs.Height = 2048;
-		distanceFieldSpecs.CreateDescriptorOnInit = true;
-		distanceFieldSpecs.Format = ImageFormat::RED_INTEGER_U32;
-		distanceFieldSpecs.Memory = MemoryUtils::MemoryUsage::GPU_ONLY;
-		distanceFieldSpecs.Usages = { ImageUsage::STORAGE };
-
-
-		uint32_t framesInFlight = Renderer::GetSpecification().MaxFramesInFlight;
-		m_ParticleDataSSBOs.resize(framesInFlight);
-		m_DistanceFields.resize(framesInFlight);
-
-		for (uint32_t i = 0; i < framesInFlight; i++)
-		{
-			//m_ParticleDataSSBOs[i] = Buffer::Create(particleBufferSpecs);
-			m_DistanceFields[i] = Image2D::Create(distanceFieldSpecs);
-		}
-
-		// Compute
-// 		{
-// 			ComputePipelineSpecification pipelineSpecs{};
-// 			pipelineSpecs.DebugName = "DistanceField";
-// 			pipelineSpecs.Shader = Renderer::GetShaderLibrary()->Get("ComputeTestShader");
-// 			m_DistanceFieldComputePipeline = ComputePipeline::Create(pipelineSpecs);
-// 
-// 			ComputePassSpecification passSpecs{};
-// 			passSpecs.DebugName = "DistanceField";
-// 			passSpecs.Pipeline = m_DistanceFieldComputePipeline;
-// 			m_DistanceFieldComputePass = ComputePass::Create(passSpecs);
-// 		}
+		m_DistanceField = Povox::CreateRef<Povox::StorageImage>(ImageFormat::RED_INTEGER_U32, 2048, 2048, ImageUsages({ ImageUsage::STORAGE, ImageUsage::SAMPLED }), "DistanceField");
 
 		//First do the Compute stuff, then wait until compute is finished (barriers connecting ComputePass (THere is no actual computePass, is just to connect resources) and Renderpass)
 		glm::mat4 init = glm::mat4(1.0f);
@@ -116,6 +97,29 @@ namespace Povox {
 		m_RayMarchingUniform.BackgroundColor = glm::vec4(0.3f);
 		m_RayMarchingUniform.Resolution = glm::vec2((float)m_Specification.ViewportWidth, (float)m_Specification.ViewportHeight);
 		m_RayMarchingData->SetData((void*)&m_RayMarchingUniform, sizeof(RayMarchingUniform));
+
+		uint32_t framesInFlight = Renderer::GetSpecification().MaxFramesInFlight;
+
+		// Compute
+		{
+			ComputePipelineSpecification pipelineSpecs{};
+			pipelineSpecs.DebugName = "DistanceField";
+			pipelineSpecs.Shader = Renderer::GetShaderLibrary()->Get("ComputeTestShader");
+			m_DistanceFieldComputePipeline = ComputePipeline::Create(pipelineSpecs);
+
+			ComputePassSpecification passSpecs{};
+			passSpecs.DebugName = "DistanceField";
+			passSpecs.Pipeline = m_DistanceFieldComputePipeline;
+			m_DistanceFieldComputePass = ComputePass::Create(passSpecs);
+
+			m_DistanceFieldComputePipeline->PrintShaderLayout();
+
+			m_DistanceFieldComputePass->BindResource("CameraData", m_CameraData);
+			m_DistanceFieldComputePass->BindResource("RayMarchingData", m_RayMarchingData);
+			m_DistanceFieldComputePass->BindResource("ParticlesIn", m_ParticleData);
+			//m_DistanceFieldComputePass->Bake();
+			//m_DistanceFieldComputePass->BindResource("DistanceField", m_DistanceField);
+		}
 
 		// RayMarch to FullscreenQuad
 		{
@@ -145,13 +149,17 @@ namespace Povox {
 			renderpassSpecs.DebugName = "RaymarchingRenderpass";
 			renderpassSpecs.Pipeline = m_RayMarchingPipeline;
 			renderpassSpecs.TargetFramebuffer = m_RayMarchingFramebuffer;
+			renderpassSpecs.PredecessorComputePass = m_DistanceFieldComputePass;
 			m_RayMarchingRenderpass = RenderPass::Create(renderpassSpecs);
+
 			m_RayMarchingRenderpass->BindResource("CameraData", m_CameraData);
 			m_RayMarchingRenderpass->BindResource("RayMarchingData", m_RayMarchingData);
 			m_RayMarchingRenderpass->BindResource("ParticlesIn", m_ParticleData);
+			m_RayMarchingRenderpass->BindResource("DistanceField", m_DistanceField);
 			m_RayMarchingRenderpass->Bake();
 
-			m_RayMarchingPipeline->PrintShaderLayout();
+			//m_RayMarchingPipeline->PrintShaderLayout();
+			m_DistanceFieldComputePass->SetPredecessor(m_DistanceFieldComputePass);
 		}
 
 		// Fullscreen
@@ -257,68 +265,6 @@ namespace Povox {
 		m_CameraUniform.Forward = glm::vec4(camera.GetForward(), 0.0f);
 		m_CameraUniform.Position = glm::vec4(camera.GetPosition(), 0.0f);
 		m_CameraData->SetData((void*)&m_CameraUniform, sizeof(CameraUniform));
-	}
-
-	void SciParticleRenderer::Flush()
-	{
-		m_ParticleUniform.PositionRadius = glm::vec4(0.0f, 0.0f, -10.0f, 1.0f);
-		m_ParticleUniform.Velocity = glm::vec4(0.0f);
-		m_ParticleUniform.Color = glm::vec4(0.5f, 0.6f, 0.4f, 1.0f);
-		m_ParticleUniform.ID = 0;
-		m_ParticleData->SetData((void*)&m_ParticleUniform, 0, sizeof(ParticleUniform));
-	}
-
-
-	void SciParticleRenderer::End()
-	{
-		PX_PROFILE_FUNCTION();
-
-		Flush();
-		FinishRender();				
-
-		m_FinalImage = m_RayMarchingFramebuffer->GetColorAttachment(0);
-	}
-
-	/**
-	 * This function takes in a particle set and adds its content SSBO to the rendering pipeline. The actual rendering happens during the Flush call.
-	 */
-	void SciParticleRenderer::DrawParticleSet(Povox::Ref<SciParticleSet> particleSet)
-	{
-		//	Fullscreen Quad -> rays paint this during ray marching
-		PreProcess(particleSet);
-
-		BeginRender();
-		Renderer::Draw(m_FullscreenQuadVertexBuffer, m_RayMarchingMaterial, m_FullscreenQuadIndexBuffer, 6, true);
-
-
-	}
-
-	void SciParticleRenderer::ResetStatistics()
-	{
-		m_Statistics.TotalParticles  = 0;
-		m_Statistics.RenderedParticles = 0;
-
-		m_Statistics.ParticleSets = 0;
-	}
-
-	/**
-	 * Do compute shader stuff
-	 */
-	void SciParticleRenderer::PreProcess(Povox::Ref<SciParticleSet> particleSet)
-	{
-		PX_PROFILE_FUNCTION();
-
-
-		//Renderer::BeginComputePass(m_DistanceFieldComputePass);
-		//Renderer::DispatchCompute(m_DistanceFieldComputePipeline);
-		//Renderer::EndComputePass();
-	}
-
-	/**
-	 * Start the graphical rendering
-	 */
-	void SciParticleRenderer::BeginRender()
-	{
 
 		uint32_t currentFrameIndex = Renderer::GetCurrentFrameIndex();
 		auto cmd = Renderer::GetCommandBuffer(currentFrameIndex);
@@ -328,14 +274,43 @@ namespace Povox {
 		Renderer::BeginRenderPass(m_RayMarchingRenderpass);
 	}
 
-	/**
-	 * Finish the graphical rendering
-	 */
-	void SciParticleRenderer::FinishRender()
+
+	void SciParticleRenderer::End()
 	{
+		PX_PROFILE_FUNCTION();
+
+		Renderer::Draw(m_FullscreenQuadVertexBuffer, m_RayMarchingMaterial, m_FullscreenQuadIndexBuffer, 6, true);
+
 		Renderer::EndRenderPass();
 		// Renderer::StopTimestampQuery("RayMarchingRenderpass");
 		Renderer::EndCommandBuffer();
+
+		m_FinalImage = m_RayMarchingFramebuffer->GetColorAttachment(0);
+	}
+
+	/**
+	 * This function takes in a particle set and adds its content SSBO to the rendering pipeline. The actual rendering happens during the Flush call.
+	 */
+	void SciParticleRenderer::DrawParticleSet(Povox::Ref<SciParticleSet> particleSet)
+	{
+		//	Fullscreen Quad -> rays paint this during ray marching		
+		m_ParticleUniform.PositionRadius = glm::vec4(0.0f, 0.0f, -10.0f, 1.0f);
+		m_ParticleUniform.Velocity = glm::vec4(0.0f);
+		m_ParticleUniform.Color = glm::vec4(0.5f, 0.6f, 0.4f, 1.0f);
+		m_ParticleUniform.ID = 0;
+		m_ParticleData->SetData((void*)&m_ParticleUniform, 0, sizeof(ParticleUniform));
+
+		//CompteTimestampBegin
+		//Renderer::DispatchCompute(m_DistanceFieldComputePass);
+		//CompteTimestampEnd
+	}
+
+	void SciParticleRenderer::ResetStatistics()
+	{
+		m_Statistics.TotalParticles  = 0;
+		m_Statistics.RenderedParticles = 0;
+
+		m_Statistics.ParticleSets = 0;
 	}
 
 }

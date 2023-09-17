@@ -160,7 +160,7 @@ namespace Povox {
 
 		// Compute
 		static void BeginComputePass(Ref<ComputePass> computePass);
-		static void DispatchCompute(Ref<ComputePipeline> pipeline);
+		static void DispatchCompute(Ref<ComputePass> computePass);
 		static void EndComputePass();
 
 		// Gui

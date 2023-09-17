@@ -4,6 +4,7 @@
 #include "Povox/Renderer/Buffer.h"
 #include "Povox/Renderer/Renderable.h"
 
+#include "Platform/Vulkan/VulkanUtilities.h"
 
 #include "vk_mem_alloc.h"
 
@@ -36,7 +37,7 @@ namespace Povox {
 
 		inline VkDescriptorBufferInfo& GetBufferInfo() { return m_DescriptorInfo; }
 
-		static AllocatedBuffer CreateAllocation(size_t allocSize, VkBufferUsageFlags usage, VmaMemoryUsage memUsage, std::string debugName = std::string());
+		static AllocatedBuffer CreateAllocation(size_t allocSize, VkBufferUsageFlags usage, VmaMemoryUsage memUsage, QueueFamilyOwnership* ownership = nullptr, std::string debugName = std::string());
 
 		virtual const std::string& GetDebugName() const override { return m_Specification.DebugName; }
 
@@ -44,7 +45,6 @@ namespace Povox {
 
 	private:
 		void UploadToGPU();
-
 
 		VkDescriptorBufferInfo CreateDescriptorInfo();
 
@@ -60,5 +60,6 @@ namespace Povox {
 		void* m_Data = nullptr;
 		size_t m_Size = 0;
 
+		QueueFamilyOwnership m_Ownership = QueueFamilyOwnership::QFO_UNDEFINED;
 	};
 }

@@ -94,15 +94,12 @@ namespace Povox {
 		m_MousePosX	= e.GetX();
 		m_MousePosY	= e.GetY();
 
-		PX_CORE_INFO("Mouse pos {} {}", m_MousePosX, m_MousePosY);
 		
 
 		float sensitivity = 0.2f;
 		xOffset	*= sensitivity;
 		yOffset *= sensitivity;
 
-		PX_CORE_INFO("m_Pitch: {} + offset {}", m_Pitch, yOffset);
-		PX_CORE_INFO("m_yaw: {} + offset {}", m_Yaw, xOffset);
 		m_Yaw	+= xOffset;
 		m_Pitch += yOffset;
 

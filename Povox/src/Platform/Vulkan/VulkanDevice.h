@@ -25,6 +25,7 @@ namespace Povox {
 		bool IsComplete() { return (GraphicsFamilyIndex != -1) && (PresentFamilyIndex != -1); }
 		bool HasTransfer() { return TransferFamilyIndex != -1; }
 		bool HasCompute() { return ComputeFamilyIndex  != -1; }
+		bool TransferExclusive() { return TransferFamilyIndex != GraphicsFamilyIndex; }
 	};
 
 	
@@ -69,7 +70,8 @@ namespace Povox {
 		void PickPhysicalDevice(const std::vector<const char*>& deviceExtensions);
 		void CreateLogicalDevice(const std::vector<const char*>& deviceExtensions, const std::vector<const char*> validationLayers);
 
-		inline const QueueFamilies& GetQueueFamilies() { return m_QueueFamilies; }
+		inline const QueueFamilies& GetQueueFamilies() const { return m_QueueFamilies; }
+		inline QueueFamilies& GetQueueFamilies() { return m_QueueFamilies; }
 
 		inline VkPhysicalDeviceProperties GetPhysicalDeviceProperties() const { return m_PhysicalLimits.Properties; }
 		inline const PhysicalDeviceLimits& GetLimits() const { return m_PhysicalLimits; }

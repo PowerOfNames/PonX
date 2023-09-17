@@ -49,7 +49,7 @@ namespace Povox {
 		}
 
 		// Here we specify the features we queried to with vkGetPhysicalDeviceFeatures in RateDeviceSuitability
-		VkPhysicalDeviceFeatures deviceFeatures{};
+		VkPhysicalDeviceFeatures deviceFeatures{};		
 		deviceFeatures.fillModeNonSolid = VK_TRUE;
 		deviceFeatures.samplerAnisotropy = VK_TRUE;
 		deviceFeatures.independentBlend = VK_TRUE;
@@ -58,9 +58,14 @@ namespace Povox {
 		deviceFeatures.shaderInt64 = VK_TRUE;
 
 		
+		// TEMP -> should check this in deviceFeatures2 first
+		VkPhysicalDeviceVulkan13Features device13Features{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES };
+		device13Features.maintenance4 = VK_TRUE;
+		device13Features.synchronization2 = VK_TRUE;
+		
 
 		VkPhysicalDeviceShaderDrawParametersFeatures shaderDrawParametersFeatures{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_DRAW_PARAMETERS_FEATURES };
-		shaderDrawParametersFeatures.pNext = nullptr;
+		shaderDrawParametersFeatures.pNext = &device13Features;
 
 		shaderDrawParametersFeatures.shaderDrawParameters = VK_TRUE;
 

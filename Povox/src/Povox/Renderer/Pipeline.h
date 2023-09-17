@@ -94,13 +94,13 @@ namespace Povox {
 		virtual ~Pipeline() = default;
 		virtual void Free() = 0;
 
-		virtual PipelineSpecification& GetSpecification() = 0;
 		virtual const std::unordered_map<std::string, Ref<ShaderResourceDescription>>& GetResourceDescriptions() const = 0;
 
 		virtual void Recreate() = 0;
 
 		virtual void PrintShaderLayout() const = 0;
 
+		virtual PipelineSpecification& GetSpecification() = 0;
 		virtual const std::string& GetDebugName() const = 0;
 
 		static Ref<Pipeline> Create(const PipelineSpecification& specs);
@@ -111,6 +111,9 @@ namespace Povox {
 	{
 		Ref<Shader> Shader = nullptr;
 
+		uint32_t WorkGroupSizeX = 0;
+		uint32_t WorkGroupSizeY = 0;
+		uint32_t WorkGroupSizeZ = 0;
 
 		std::string DebugName = "ComputePipeline";
 	};
@@ -122,6 +125,10 @@ namespace Povox {
 		virtual void Free() = 0;
 
 		virtual void Recreate() = 0;
+
+		virtual void PrintShaderLayout() const = 0;
+
+		virtual const std::unordered_map<std::string, Ref<ShaderResourceDescription>>& GetResourceDescriptions() const = 0;
 
 		virtual ComputePipelineSpecification& GetSpecification() = 0;
 		virtual const std::string& GetDebugName() const = 0;

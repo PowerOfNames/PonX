@@ -1,4 +1,5 @@
 #include "pxpch.h"
+#include "Povox/Core/Log.h"
 #include "Povox/Renderer/Buffer.h"
 #include "Platform/Vulkan/VulkanBuffer.h"
 
@@ -27,10 +28,30 @@ namespace Povox {
 	
 
 	// ShaderResources
-	UniformBuffer::UniformBuffer(const BufferLayout& layout, const std::string& name, bool perFrame /*= true*/)
-		: m_Layout(layout), m_DebugName(name), m_PerFrame(perFrame)
+	UniformBuffer::UniformBuffer(const BufferLayout& layout, const std::string& name /*= "UniformBufferDefault"*/, bool shared /* =false*/, bool perFrame /*= true*/)
+		: m_Layout(layout), m_DebugName(name), m_Shared(shared), m_PerFrame(perFrame)
 	{
-		CreateBuffers();
+		BufferSpecification specs{};
+		specs.Usage = BufferUsage::UNIFORM_BUFFER;
+		specs.MemUsage = MemoryUtils::MemoryUsage::GPU_ONLY;
+		specs.Layout = m_Layout;
+		specs.ElementSize = m_Layout.GetStride();
+		specs.Size = m_Layout.GetStride();
+
+		if (!m_PerFrame)
+		{
+			specs.DebugName = m_DebugName + "_Single";
+			m_Buffers.push_back(Buffer::Create(specs));
+			return;
+		}
+
+		uint32_t framesPerFlight = Renderer::GetSpecification().MaxFramesInFlight;
+		m_Buffers.resize(framesPerFlight);
+		for (uint32_t i = 0; i < m_Buffers.size(); i++)
+		{
+			specs.DebugName = m_DebugName + "_Frame" + std::to_string(i);
+			m_Buffers[i] = Buffer::Create(specs);
+		}
 	}
 
 	void UniformBuffer::SetData(void* data, size_t size)
@@ -63,30 +84,6 @@ namespace Povox {
 		}		
 	}
 
-	void UniformBuffer::CreateBuffers()
-	{
-		BufferSpecification specs{};
-		specs.Usage = BufferUsage::UNIFORM_BUFFER;
-		specs.MemUsage = MemoryUtils::MemoryUsage::GPU_ONLY;
-		specs.Layout = m_Layout;
-		specs.ElementSize = m_Layout.GetStride();
-		specs.Size = m_Layout.GetStride();
-
-		if (!m_PerFrame)
-		{
-			m_Buffers.push_back(Buffer::Create(specs));
-			return;
-		}
-
-		uint32_t framesPerFlight = Renderer::GetSpecification().MaxFramesInFlight;
-		m_Buffers.resize(framesPerFlight);
-		for (uint32_t i = 0; i < m_Buffers.size(); i++)
-		{
-			specs.DebugName = m_DebugName + "_Frame" + std::to_string(i);
-			m_Buffers[i] = Buffer::Create(specs);
-		}
-	}
-
 	Ref<Buffer> UniformBuffer::GetBuffer(uint32_t frameIndex /*= 0*/)
 	{
 		PX_CORE_ASSERT(m_Buffers.size(), "Buffers are unset!");
@@ -99,10 +96,31 @@ namespace Povox {
 	}
 
 
-	StorageBuffer::StorageBuffer(const BufferLayout& layout, size_t count, const std::string& name, bool perFrame /*= true*/)
-		: m_Layout(layout), m_ElementCount(count), m_DebugName(name), m_PerFrame(perFrame)
+	StorageBuffer::StorageBuffer(const BufferLayout& layout, size_t count, const std::string& name /*= "StorageBufferDefault"*/, bool shared /* =false*/, bool perFrame /*= true*/)
+		: m_Layout(layout), m_ElementCount(count), m_DebugName(name), m_Shared(shared), m_PerFrame(perFrame)
 	{
-		CreateBuffers();
+		BufferSpecification specs{};
+		specs.Usage = BufferUsage::STORAGE_BUFFER;
+		specs.MemUsage = MemoryUtils::MemoryUsage::GPU_ONLY;
+		specs.Layout = m_Layout;
+		specs.ElementCount = m_ElementCount;
+		specs.ElementSize = m_Layout.GetStride();
+		specs.Size = specs.ElementSize * m_ElementCount;
+
+		if (!m_PerFrame)
+		{
+			specs.DebugName = m_DebugName + "_Single";
+			m_Buffers.push_back(Buffer::Create(specs));
+			return;
+		}
+
+		uint32_t framesPerFlight = Renderer::GetSpecification().MaxFramesInFlight;
+		m_Buffers.resize(framesPerFlight);
+		for (uint32_t i = 0; i < m_Buffers.size(); i++)
+		{
+			specs.DebugName = m_DebugName + "_Frame" + std::to_string(i);
+			m_Buffers[i] = Buffer::Create(specs);
+		}
 	}
 
 	void StorageBuffer::SetData(void* data, size_t size)
@@ -148,31 +166,6 @@ namespace Povox {
 			uint32_t offset = index * element->Size + element->Offset;
 
 			m_Buffers[frameIndex]->SetData(data, offset, size);
-		}
-	}
-
-	void StorageBuffer::CreateBuffers()
-	{
-		BufferSpecification specs{};
-		specs.Usage = BufferUsage::STORAGE_BUFFER;
-		specs.MemUsage = MemoryUtils::MemoryUsage::GPU_ONLY;
-		specs.Layout = m_Layout;
-		specs.ElementCount = m_ElementCount;
-		specs.ElementSize = m_Layout.GetStride();
-		specs.Size = specs.ElementSize * m_ElementCount;
-
-		if (!m_PerFrame)
-		{
-			m_Buffers.push_back(Buffer::Create(specs));
-			return;
-		}
-
-		uint32_t framesPerFlight = Renderer::GetSpecification().MaxFramesInFlight;
-		m_Buffers.resize(framesPerFlight);
-		for (uint32_t i = 0; i < m_Buffers.size(); i++)
-		{
-			specs.DebugName = m_DebugName + "_Frame" + std::to_string(i);
-			m_Buffers[i] = Buffer::Create(specs);
 		}
 	}
 

@@ -413,6 +413,7 @@ namespace Povox {
 
 
 	VulkanComputePipeline::VulkanComputePipeline(const ComputePipelineSpecification& specs)
+		: m_Specification(specs)
 	{
 		PX_PROFILE_FUNCTION();
 
@@ -546,4 +547,17 @@ namespace Povox {
 #endif // DEBUG
 	}
 
+
+	void VulkanComputePipeline::PrintShaderLayout() const
+	{
+		auto& shaderLayout = m_Specification.Shader->GetResourceDescriptions();
+		for (auto&& [name, binding] : shaderLayout)
+		{
+			PX_CORE_TRACE("Pipeline: {}", m_Specification.DebugName);
+			PX_CORE_TRACE("Shader: {}", m_Specification.Shader->GetDebugName());
+			PX_CORE_INFO("BindingName: {}", name, binding->Name);
+			PX_CORE_INFO("Set {}, Binding {}, Type: {}", binding->Set, binding->Binding, ToStringUtility::ShaderResourceTypeToString(binding->ResourceType));
+			PX_CORE_INFO("{}", ToStringUtility::ShaderStageToString(binding->Stages));
+		}
+	}
 }

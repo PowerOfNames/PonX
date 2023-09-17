@@ -111,6 +111,7 @@ namespace Povox {
 		virtual ~VulkanImage2D() = default;
 		virtual void Free() override;
 
+		virtual uint64_t GetRendererID() const override { return m_RID; }
 
 		virtual const ImageSpecification& GetSpecification() const override { return m_Specification; }
 		virtual void SetData(void* data) override;
@@ -120,16 +121,22 @@ namespace Povox {
 
 		virtual int ReadPixel(int posX, int posY) override;
 
-		static AllocatedImage CreateAllocation(VkExtent3D extent, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VmaMemoryUsage memUsage, VkImageLayout initialLayout = VK_IMAGE_LAYOUT_UNDEFINED, std::string debugName = std::string());
+		static AllocatedImage CreateAllocation(VkExtent3D extent, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VmaMemoryUsage memUsage, VkImageLayout initialLayout = VK_IMAGE_LAYOUT_UNDEFINED, QueueFamilyOwnership* ownership = nullptr, std::string debugName = std::string());
 
-		void TransitionImageLayout(VkImageLayout initialLayout, VkImageLayout finalLayout, VkAccessFlags srcMask, VkAccessFlags dstMask, 
-			VkPipelineStageFlags srcStage, VkPipelineStageFlags dstStage);
+		void TransitionImageLayout(
+			VkImageLayout initialLayout, VkImageLayout finalLayout,
+			VkPipelineStageFlags2 srcStage, VkAccessFlags2 srcMask,
+			VkPipelineStageFlags2 dstStage, VkAccessFlags2 dstMask,
+			QueueFamilyOwnership targetOwner = QueueFamilyOwnership::QFO_UNDEFINED);
 
 		inline VkImageView GetImageView() const { return m_View; }
 		inline VkSampler GetSampler() const { return m_Sampler; }
 		inline VkImage GetImage() { return m_Allocation.Image; }
-		VkDescriptorImageInfo GetImageInfo();
+		inline VkDescriptorImageInfo& GetImageInfo() { return m_DescriptorInfo; };
 		
+
+		virtual inline const bool IsShared() const { return m_Specification.Shared; };
+
 		void CreateDescriptorSet();
 		void CreateSampler();
 
@@ -138,19 +145,27 @@ namespace Povox {
 	private:
 		void CreateImage();
 		void CreateImageView();
+		VkDescriptorImageInfo CreateDescriptorInfo();
 
 	private:
+		RendererUID m_RID;
+
 		ImageSpecification m_Specification;
 
 		AllocatedImage m_Allocation{};
+		VkImageLayout m_CurrentLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 		VkImageView m_View = VK_NULL_HANDLE;
 		VkSampler m_Sampler = VK_NULL_HANDLE;
 		bool m_OwnsSampler = false;
 		VkWriteDescriptorSet m_Write{};
+
+		VkDescriptorImageInfo m_DescriptorInfo{};
+
 		VkDescriptorSetLayoutBinding m_Binding{};
-		VkDescriptorImageInfo m_DescImageInfo{};
 		VkDescriptorSet m_DescriptorSet = VK_NULL_HANDLE;
 		VkDescriptorSetLayout m_DescriptorSetLayout = VK_NULL_HANDLE;
+
+		QueueFamilyOwnership m_Ownership = QueueFamilyOwnership::QFO_UNDEFINED;
 	};
 
 
@@ -170,9 +185,8 @@ namespace Povox {
 
 		virtual const Ref<Image2D> GetImage() const override { return m_Image; }
 		virtual Ref<Image2D> GetImage() override { return m_Image; }
+
 		virtual uint64_t GetRendererID() const override { return m_RUID; }
-
-
 		virtual inline const std::string& GetDebugName() const override { return m_Image->GetDebugName(); }
 
 		virtual bool operator==(const Texture& other) const override { return m_RUID == ((VulkanTexture2D&)other).m_RUID; }

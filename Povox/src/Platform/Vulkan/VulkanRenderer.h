@@ -42,6 +42,8 @@ namespace Povox {
 		{
 			VkCommandPool Pool;
 			VkCommandBuffer RenderBuffer;
+
+			VkCommandPool ComputePool;
 			VkCommandBuffer ComputeBuffer;
 		};
 		FrameCommandBuffer Commands;
@@ -101,7 +103,7 @@ namespace Povox {
 
 		// Compute
 		virtual void BeginComputePass(Ref<ComputePass> computePass) override;
-		virtual void DispatchCompute(Ref<ComputePipeline> pipeline) override;
+		virtual void DispatchCompute(Ref<ComputePass> computePass) override;
 		virtual void EndComputePass() override;
 
 		// GUI

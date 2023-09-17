@@ -45,7 +45,6 @@ namespace Povox {
 		
 		void DrawParticleSet(Povox::Ref<SciParticleSet> particleSet);
 		
-		void Flush();
 		void End();
 
 		inline const Povox::Ref<Povox::Image2D> GetFinalImage() const { return m_FinalImage; }
@@ -54,9 +53,6 @@ namespace Povox {
 		void ResetStatistics();
 
 	private:
-		void PreProcess(Povox::Ref<SciParticleSet> particleSet);
-		void BeginRender();
-		void FinishRender();
 
 
 	private:
@@ -72,7 +68,7 @@ namespace Povox {
 		Povox::Ref<UniformBuffer> m_RayMarchingData = nullptr;
 		Povox::Ref<StorageBuffer> m_ParticleData = nullptr;
 		std::vector<Povox::Ref<Povox::Buffer>> m_ParticleDataSSBOs;
-
+		Povox::Ref<StorageImage> m_DistanceField = nullptr;
 
 		// Particles
 		// Compute
@@ -92,7 +88,6 @@ namespace Povox {
 		Povox::Ref<Povox::Buffer> m_FullscreenQuadIndexBuffer = nullptr;
 
 		// TODO: here or completely managed by ParticleSet - objects
-		std::vector<Povox::Ref<Povox::Image2D>> m_DistanceFields;
 
 		// Stats
 		SciParticleRendererStatistics m_Statistics{};

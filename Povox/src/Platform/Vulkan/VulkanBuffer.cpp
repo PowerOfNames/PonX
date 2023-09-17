@@ -31,8 +31,8 @@ namespace Povox {
 		PX_CORE_ASSERT(specs.Size > 0, "A size needs to be defined!");
 		m_Size = specs.Size;
 
-		m_Allocation = CreateAllocation(m_Size, VulkanUtils::GetVulkanBufferUsage(specs.Usage) | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VulkanUtils::GetVmaUsage(specs.MemUsage), specs.DebugName+ "Allocation");
-		m_Staging = CreateAllocation(m_Size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU, specs.DebugName + "Staging");
+		m_Allocation = CreateAllocation(m_Size, VulkanUtils::GetVulkanBufferUsage(specs.Usage) | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VulkanUtils::GetVmaUsage(specs.MemUsage), &m_Ownership, specs.DebugName+ "Allocation");
+		m_Staging = CreateAllocation(m_Size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU, nullptr, specs.DebugName + "Staging");
 
 		CreateDescriptorInfo();
 
@@ -79,7 +79,7 @@ namespace Povox {
 		vmaUnmapMemory(allocator, m_Staging.Allocation);
 		m_StagingMapped = false;
 
-		VulkanCommandControl::ImmidiateSubmit(VulkanCommandControl::SubmitType::SUBMIT_TYPE_TRANSFER, [=](VkCommandBuffer cmd)
+		VulkanCommandControl::ImmidiateSubmit(VulkanCommandControl::SubmitType::SUBMIT_TYPE_TRANSFER_TRANSFER, [=](VkCommandBuffer cmd)
 			{
 				VkBufferCopy copyRegion{};
 				copyRegion.size = m_Size;
@@ -128,7 +128,7 @@ namespace Povox {
 		UploadToGPU();
 	}	
 
-	AllocatedBuffer VulkanBuffer::CreateAllocation(size_t allocSize, VkBufferUsageFlags usage, VmaMemoryUsage memUsage, std::string debugName)
+	AllocatedBuffer VulkanBuffer::CreateAllocation(size_t allocSize, VkBufferUsageFlags usage, VmaMemoryUsage memUsage, QueueFamilyOwnership* ownership, std::string debugName)
 	{
 		VkBufferCreateInfo bufferInfo{};
 		bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -137,6 +137,23 @@ namespace Povox {
 		bufferInfo.size = allocSize;
 		bufferInfo.usage = usage;
 
+		bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+		bufferInfo.queueFamilyIndexCount = 1;
+		auto& families = VulkanContext::GetDevice()->GetQueueFamilies();
+		if (usage & VK_BUFFER_USAGE_TRANSFER_SRC_BIT || usage & VK_BUFFER_USAGE_TRANSFER_DST_BIT)
+		{
+			uint32_t familyIndex[] = { families.TransferFamilyIndex };
+			bufferInfo.pQueueFamilyIndices = familyIndex;
+			if(ownership)
+				*ownership = QueueFamilyOwnership::QFO_TRANSFER;
+		}
+		else
+		{
+			uint32_t familyIndex[] = { families.TransferFamilyIndex };
+			bufferInfo.pQueueFamilyIndices = familyIndex;
+			if(ownership)
+				*ownership = QueueFamilyOwnership::QFO_GRAPHICS;
+		}
 		VmaAllocationCreateInfo vmaAllocInfo{};
 		vmaAllocInfo.usage = memUsage;
 

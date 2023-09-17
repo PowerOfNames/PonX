@@ -1,11 +1,13 @@
 #include "pxpch.h"
-#include "VulkanImGui.h"
+#include "Platform/Vulkan/VulkanImGui.h"
 
-#include "VulkanContext.h"
-#include "VulkanDebug.h"
-#include "VulkanCommands.h"
+#include "Platform/Vulkan/VulkanContext.h"
+#include "Platform/Vulkan/VulkanDebug.h"
+#include "Platform/Vulkan/VulkanCommands.h"
+#include "Platform/Vulkan/VulkanFramebuffer.h"
 
-#include "VulkanFramebuffer.h"
+#include "Platform/Vulkan/VulkanUtilities.h"
+
 
 #include <imgui.h>
 
@@ -65,7 +67,7 @@ namespace Povox {
 		init_info.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
 		ImGui_ImplVulkan_Init(&init_info, m_RenderPass);
 		
-		VulkanCommandControl::ImmidiateSubmit(VulkanCommandControl::SubmitType::SUBMIT_TYPE_GRAPHICS, [=](VkCommandBuffer cmd)
+		VulkanCommandControl::ImmidiateSubmit(VulkanCommandControl::SubmitType::SUBMIT_TYPE_GRAPHICS_GRAPHICS, [=](VkCommandBuffer cmd)
 			{
 				ImGui_ImplVulkan_CreateFontsTexture(cmd);
 			});

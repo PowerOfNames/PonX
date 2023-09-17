@@ -120,7 +120,7 @@ namespace Povox {
 		m_PipelineStatisticsQueryPool = VK_NULL_HANDLE;
 
 		PX_CORE_INFO("Started destruction of performance pools...");
-		PX_CORE_INFO("Started destruction of FrameObjects (Synch, Commands, UBOs) for {0} frames...", m_Frames.size());
+		PX_CORE_INFO("Started destruction of FrameObjects (Sync, Commands, UBOs) for {0} frames...", m_Frames.size());
 
 		for (size_t i = 0; i < m_Frames.size(); i++)
 		{
@@ -142,15 +142,9 @@ namespace Povox {
 		PX_CORE_INFO("Completed FrameObjects (Synch, Commands, UBOs) destruction for {0} frames...", m_Frames.size());
 		PX_CORE_WARN("Started destruction of leftovers and other things...");
 
-		//TODO:: Move UploadContext cleanup to respective place!!!
-		vkDestroyFence(m_Device, m_UploadContext->Fence, nullptr);
-
 		vmaDestroyBuffer(VulkanContext::GetAllocator(), m_SceneParameterBuffer.Buffer, m_SceneParameterBuffer.Allocation);
 
-		//Layouts get destroyed by LayoutCache
-
-		vkDestroyCommandPool(m_Device, m_UploadContext->CmdPoolGfx, nullptr);
-		vkDestroyCommandPool(m_Device, m_UploadContext->CmdPoolTrsf, nullptr);
+		m_CommandControl->Destroy();
 
 		m_ImGui->Destroy();
 
@@ -472,6 +466,13 @@ namespace Povox {
 				bufferci.commandPool = m_Frames[i].Commands.Pool;
 				PX_CORE_VK_ASSERT(vkAllocateCommandBuffers(m_Device, &bufferci, &m_Frames[i].Commands.RenderBuffer), VK_SUCCESS, "Failed to create Render CommandBuffer!");
 
+			}
+			poolci.queueFamilyIndex = VulkanContext::GetDevice()->GetQueueFamilies().ComputeFamilyIndex;
+			for (uint32_t i = 0; i < maxFrames; i++)
+			{
+				PX_CORE_VK_ASSERT(vkCreateCommandPool(m_Device, &poolci, nullptr, &m_Frames[i].Commands.ComputePool), VK_SUCCESS, "Failed to create graphics command pool!");
+
+				bufferci.commandPool = m_Frames[i].Commands.ComputePool;
 				PX_CORE_VK_ASSERT(vkAllocateCommandBuffers(m_Device, &bufferci, &m_Frames[i].Commands.ComputeBuffer), VK_SUCCESS, "Failed to create Compute CommandBuffer!");
 			}
 
@@ -522,46 +523,46 @@ namespace Povox {
 
 		//Transition final image
 		m_FinalImages[m_CurrentFrameIndex]->TransitionImageLayout(
-			VK_IMAGE_LAYOUT_UNDEFINED,	
-			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-			VK_ACCESS_MEMORY_READ_BIT, 
-			VK_ACCESS_TRANSFER_READ_BIT,	
-			VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, 
-			VK_PIPELINE_STAGE_TRANSFER_BIT);
+			VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+			VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT, 0,
+			VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT
+		);
 
 		//Transition source image
 		sourceImageVK->TransitionImageLayout(
-			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-			VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-			VK_ACCESS_MEMORY_READ_BIT,
-			VK_ACCESS_TRANSFER_READ_BIT,
-			VK_PIPELINE_STAGE_TRANSFER_BIT,
-			VK_PIPELINE_STAGE_TRANSFER_BIT);
+			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+			VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+			VK_PIPELINE_STAGE_2_TRANSFER_BIT,	VK_ACCESS_2_TRANSFER_READ_BIT
+		);
 		
 		//Image copying
-		m_CommandControl->ImmidiateSubmit(VulkanCommandControl::SubmitType::SUBMIT_TYPE_TRANSFER, [=](VkCommandBuffer cmd)
+		m_CommandControl->ImmidiateSubmit(VulkanCommandControl::SubmitType::SUBMIT_TYPE_TRANSFER_TRANSFER, [=](VkCommandBuffer cmd)
 			{
 				VkImageCopy imageCopyRegion{};
 				imageCopyRegion.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 				imageCopyRegion.srcSubresource.layerCount = 1;
 				imageCopyRegion.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 				imageCopyRegion.dstSubresource.layerCount = 1;
-				//imageCopyRegion.extent.width = sourceImageVK->GetSpecification().Width;
 				imageCopyRegion.extent.width = m_ViewportWidth;
-				//imageCopyRegion.extent.height = sourceImageVK->GetSpecification().Height;
 				imageCopyRegion.extent.height = m_ViewportHeight;
 				imageCopyRegion.extent.depth = 1;
 
 				vkCmdCopyImage(cmd, sourceImageVK->GetImage(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, m_FinalImages[m_CurrentFrameIndex]->GetImage(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &imageCopyRegion);
 			});
+		// Transition framebuffer image back to graphics queue
+		sourceImageVK->TransitionImageLayout(
+			VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+			VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_READ_BIT,
+			VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+			QueueFamilyOwnership::QFO_GRAPHICS
+		);
 		//Transition swapchain image back into color
 		m_FinalImages[m_CurrentFrameIndex]->TransitionImageLayout(
-			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-			VK_ACCESS_MEMORY_READ_BIT,
-			VK_ACCESS_SHADER_READ_BIT, 
-			VK_PIPELINE_STAGE_TRANSFER_BIT, 
-			VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
+			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+			VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT,
+			VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT,
+			QueueFamilyOwnership::QFO_GRAPHICS
+		);
 	}
 	void VulkanRenderer::PrepareSwapchainImage(Ref<Image2D> sourceImage)
 	{
@@ -571,7 +572,7 @@ namespace Povox {
 		Ref<VulkanImage2D> sourceImageVK = std::dynamic_pointer_cast<VulkanImage2D>(sourceImage);
 
 		//Transition swapchain image
-		m_CommandControl->ImmidiateSubmit(VulkanCommandControl::SubmitType::SUBMIT_TYPE_GRAPHICS, [=](VkCommandBuffer cmd) {
+		m_CommandControl->ImmidiateSubmit(VulkanCommandControl::SubmitType::SUBMIT_TYPE_GRAPHICS_GRAPHICS, [=](VkCommandBuffer cmd) {
 			VkImageMemoryBarrier barrier{};
 			barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
 			barrier.image = m_SwapchainFrame->CurrentImage;
@@ -597,15 +598,12 @@ namespace Povox {
 			});
 		//Transition final rendered image
 		sourceImageVK->TransitionImageLayout(
-			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-			VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-			VK_ACCESS_MEMORY_READ_BIT,
-			VK_ACCESS_TRANSFER_READ_BIT,
-			VK_PIPELINE_STAGE_TRANSFER_BIT,
-			VK_PIPELINE_STAGE_TRANSFER_BIT
+			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+			VK_PIPELINE_STAGE_2_TRANSFER_BIT,	VK_ACCESS_2_MEMORY_READ_BIT,
+			VK_PIPELINE_STAGE_2_TRANSFER_BIT,	VK_ACCESS_2_TRANSFER_READ_BIT
 		);
 		//Image copying
-		m_CommandControl->ImmidiateSubmit(VulkanCommandControl::SubmitType::SUBMIT_TYPE_TRANSFER, [=](VkCommandBuffer cmd)
+		m_CommandControl->ImmidiateSubmit(VulkanCommandControl::SubmitType::SUBMIT_TYPE_TRANSFER_TRANSFER, [=](VkCommandBuffer cmd)
 			{
 				VkImageCopy imageCopyRegion{};
 				imageCopyRegion.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -619,7 +617,7 @@ namespace Povox {
 				vkCmdCopyImage(cmd, sourceImageVK->GetImage(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, m_SwapchainFrame->CurrentImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &imageCopyRegion);
 			});
 		//Transition swapchain image back into present
-		m_CommandControl->ImmidiateSubmit(VulkanCommandControl::SubmitType::SUBMIT_TYPE_GRAPHICS, [=](VkCommandBuffer cmd) {
+		m_CommandControl->ImmidiateSubmit(VulkanCommandControl::SubmitType::SUBMIT_TYPE_GRAPHICS_GRAPHICS, [=](VkCommandBuffer cmd) {
 			VkImageMemoryBarrier barrier{};
 			barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
 			barrier.image = m_SwapchainFrame->CurrentImage;
@@ -722,12 +720,7 @@ namespace Povox {
 		PX_CORE_ASSERT(m_CommandControl, "Failed to create CommandControl!");
 
 		m_UploadContext = m_CommandControl->CreateUploadContext();
-		PX_CORE_ASSERT(m_UploadContext, "Failed to get UploadContext!");
-
-		VkFenceCreateInfo createFenceInfo{};
-		createFenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-		createFenceInfo.flags = 0;
-		PX_CORE_VK_ASSERT(vkCreateFence(m_Device, &createFenceInfo, nullptr, &m_UploadContext->Fence), VK_SUCCESS, "Failed to create upload fence!");
+		PX_CORE_ASSERT(m_UploadContext, "Failed to get UploadContext!");		
 
 		PX_CORE_INFO("VulkanRenderer::InitCommandControl: Completed.");
 	}
@@ -835,8 +828,16 @@ namespace Povox {
 	 */
 	void VulkanRenderer::BeginComputePass(Ref<ComputePass> computePass)
 	{
+		
+	}
+
+	void VulkanRenderer::DispatchCompute(Ref<ComputePass> computePass)
+	{
+		PX_PROFILE_FUNCTION();
+
 		m_ActiveComputePass = std::static_pointer_cast<VulkanComputePass>(computePass);
 		VkCommandBuffer computeCmd = GetCurrentFrame().Commands.ComputeBuffer;
+		m_SwapchainFrame->Commands.push_back(computeCmd);
 
 		VkCommandBufferBeginInfo beginInfo{};
 		beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -844,30 +845,50 @@ namespace Povox {
 
 		beginInfo.flags = 0;
 		beginInfo.pInheritanceInfo = nullptr;
-		
+
 		PX_CORE_VK_ASSERT(vkBeginCommandBuffer(computeCmd, &beginInfo), VK_SUCCESS, "Failed to end ComputeCommandbuffer!");
-	}
 
-	void VulkanRenderer::DispatchCompute(Ref<ComputePipeline> pipeline)
-	{
-		PX_PROFILE_FUNCTION();
+		
+		Ref<VulkanComputePass> vkComputePass = std::static_pointer_cast<VulkanComputePass>(computePass);
+		auto& passSpecs = vkComputePass->GetSpecification();
+		Ref<VulkanComputePipeline> vkComputePipeline = std::dynamic_pointer_cast<VulkanComputePipeline>(passSpecs.Pipeline);
+
+		uint32_t computeFamIndex = VulkanContext::GetDevice()->GetQueueFamilies().ComputeFamilyIndex;
+		uint32_t graphicsFamIndex = VulkanContext::GetDevice()->GetQueueFamilies().GraphicsFamilyIndex;
+		
+		
+		// Resource Acquisition / Queue ownership transfer
+		if (computeFamIndex != graphicsFamIndex)
+		{
 
 
-		Ref<VulkanComputePipeline> vkComputePipeline = std::dynamic_pointer_cast<VulkanComputePipeline>(pipeline);
-		VkCommandBuffer computeCmd = GetCurrentFrame().Commands.ComputeBuffer;
 
+			//auto& sharedResources = VulkanRenderPass::CreateOwnershipBarriers(computePass, passSpecs.SuccessorPass, );
+		}		
+		
 		vkCmdBindPipeline(computeCmd, VK_PIPELINE_BIND_POINT_COMPUTE, vkComputePipeline->GetVulkanObj());
 
-		//vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, computePipelineLayout, 0, 1, &computeDescriptorSets[currentFrame], 0, nullptr);
+		auto& descriptorSetMap = vkComputePass->GetDescriptorSets();
+		std::vector<VkDescriptorSet> descriptorSets;
 
-		//vkCmdDispatch(computeCmd, PARTICLE_COUNT / 256, 1, 1);
+		for (auto& [number, set] : descriptorSetMap)
+		{
+			descriptorSets.push_back(set.Sets[m_CurrentFrameIndex]);
+		}
+
+		vkCmdBindDescriptorSets(computeCmd, VK_PIPELINE_BIND_POINT_COMPUTE, vkComputePipeline->GetLayout(), 0, static_cast<uint32_t>(descriptorSets.size()), descriptorSets.data(), 0, nullptr);
+
+		auto& pipelineSpecs = passSpecs.Pipeline->GetSpecification();
+
+		vkCmdDispatch(computeCmd, pipelineSpecs.WorkGroupSizeX, pipelineSpecs.WorkGroupSizeY, pipelineSpecs.WorkGroupSizeZ);
+
+
+		PX_CORE_VK_ASSERT(vkEndCommandBuffer(computeCmd), VK_SUCCESS, "Failed to end ComputeCommandbuffer!");
 	}
 
 	void VulkanRenderer::EndComputePass()
 	{
-		VkCommandBuffer computeCmd = GetCurrentFrame().Commands.ComputeBuffer;
-
-		PX_CORE_VK_ASSERT(vkEndCommandBuffer(computeCmd), VK_SUCCESS, "Failed to end ComputeCommandbuffer!");
+		
 	}
 
 	// GUI
@@ -1113,12 +1134,9 @@ namespace Povox {
 			m_ImGui->FreeImGuiDescriptorSet((VkDescriptorSet)vkImage->GetDescriptorSet());
 
 		vkImage->TransitionImageLayout(
-			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-			VK_ACCESS_MEMORY_WRITE_BIT,
-			VK_ACCESS_SHADER_READ_BIT,
-			VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-			VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT
+			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+			VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT, VK_ACCESS_2_MEMORY_WRITE_BIT,
+			VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT
 		);
 		
 		vkImage->SetDescriptorSet(m_ImGui->GetImGUIDescriptorSet(vkImage->GetImageView(), vkImage->GetSampler(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL));

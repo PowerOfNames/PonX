@@ -20,7 +20,7 @@ namespace Povox {
 		inline VkPipeline GetVulkanObj() { return m_Pipeline; }
 		inline VkPipelineLayout GetLayout() { return m_Layout; }
 		virtual inline  PipelineSpecification& GetSpecification() override { return m_Specification; }
-		virtual inline const std::unordered_map<std::string, Ref<ShaderResourceDescription>>& GetResourceDescriptions() const override { return m_Specification.Shader->GetResourceDescriptions(); };
+		virtual inline const std::unordered_map<std::string, Ref<ShaderResourceDescription>>& GetResourceDescriptions() const override { return m_Specification.Shader->GetResourceDescriptions(); }
 		virtual inline const std::string& GetDebugName() const override { return m_Specification.DebugName; }
 
 		virtual void PrintShaderLayout() const override;
@@ -60,9 +60,13 @@ namespace Povox {
 
 		inline VkPipeline GetVulkanObj() { return m_Pipeline; }
 		inline VkPipelineLayout GetLayout() { return m_Layout; }
+
+		virtual inline const std::unordered_map<std::string, Ref<ShaderResourceDescription>>& GetResourceDescriptions() const override { return m_Specification.Shader->GetResourceDescriptions(); }
+
 		virtual inline ComputePipelineSpecification& GetSpecification() { return m_Specification; }
 		virtual inline const std::string& GetDebugName() const { return m_Specification.DebugName; }
 
+		virtual void PrintShaderLayout() const override;
 
 	private:
 		void CreateLayout();

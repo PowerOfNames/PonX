@@ -74,12 +74,10 @@ namespace Povox {
 					imageSpec.Usages = { ImageUsage::DEPTH_ATTACHMENT };
 					m_DepthAttachment = Image2D::Create(imageSpec);
 					std::dynamic_pointer_cast<VulkanImage2D>(m_DepthAttachment)->TransitionImageLayout(
-						VK_IMAGE_LAYOUT_UNDEFINED,
-						VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
-						0,
-						VK_ACCESS_MEMORY_READ_BIT,
-						VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
-						VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT);
+						VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
+						VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0,
+						VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_ACCESS_MEMORY_READ_BIT
+					);
 					PX_CORE_TRACE("FB: Creating DepthAttachment");
 					m_Specification.HasDepthAttachment = true;
 				}
@@ -89,12 +87,10 @@ namespace Povox {
 					imageSpec.Usages = { ImageUsage::COLOR_ATTACHMENT, ImageUsage::COPY_SRC };
 					Ref<Image2D> colorImage = Image2D::Create(imageSpec);
 					std::dynamic_pointer_cast<VulkanImage2D>(colorImage)->TransitionImageLayout(
-						VK_IMAGE_LAYOUT_UNDEFINED,
-						VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-						0,
-						VK_ACCESS_MEMORY_READ_BIT,
-						VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
-						VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT);
+						VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+						VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0,
+						VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_ACCESS_MEMORY_READ_BIT
+					);
 					m_ColorAttachments.emplace_back(colorImage);
 					m_Specification.ColorAttachmentCount++;
 					PX_CORE_TRACE("FB: Creating ColorAttachment");

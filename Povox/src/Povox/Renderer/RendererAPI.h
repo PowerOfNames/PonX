@@ -84,7 +84,7 @@ namespace Povox {
 
 		// Compute
 		virtual void BeginComputePass(Ref<ComputePass> computePass) = 0;
-		virtual void DispatchCompute(Ref<ComputePipeline> pipeline) = 0;
+		virtual void DispatchCompute(Ref<ComputePass> computePass) = 0;
 		virtual void EndComputePass() = 0;
 
 		// GUI

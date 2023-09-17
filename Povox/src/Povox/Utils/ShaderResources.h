@@ -124,12 +124,12 @@ namespace Povox {
 	enum class ShaderStage : std::uint32_t
 	{
 		NONE = 0,
-		VERTEX = 1 << 1,
-		TESSELLATION_CONTROL = 1 << 2,
-		TESSELLATION_EVALUATION = 1 << 3,
-		GEOMETRY = 1 << 4,
-		FRAGMENT = 1 << 5,
-		COMPUTE = 1 << 6
+		VERTEX = 1,
+		TESSELLATION_CONTROL = 1 << 1,
+		TESSELLATION_EVALUATION = 1 << 2,
+		GEOMETRY = 1 << 3,
+		FRAGMENT = 1 << 4,
+		COMPUTE = 1 << 5
 	};
 	inline ShaderStage operator|(ShaderStage stage1, ShaderStage stage2)
 	{
@@ -187,7 +187,6 @@ namespace Povox {
 		uint32_t Count;
 		ShaderStage Stages;
 	};
-	
 
 }
 

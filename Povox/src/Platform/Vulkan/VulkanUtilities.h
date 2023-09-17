@@ -83,12 +83,41 @@ namespace Povox {
 
 	struct UploadContext
 	{
-		VkCommandPool CmdPoolGfx;
-		VkCommandBuffer CmdBufferGfx;
+		VkCommandPool GraphicsCmdPool;
+		VkCommandBuffer GraphicsCmdBuffer;
+		VkFence GraphicsFence;
 
-		VkCommandPool CmdPoolTrsf;
-		VkCommandBuffer CmdBufferTrsf;
+		VkCommandPool TransferCmdPool;
+		VkCommandBuffer TransferCmdBuffer;
+		VkFence TransferFence;
 
-		VkFence Fence;
+		VkCommandPool ComputeCmdPool;
+		VkCommandBuffer ComputeCmdBuffer;
+		VkFence ComputeFence;
 	};
+
+	enum class QueueFamilyOwnership
+	{
+		QFO_UNDEFINED,
+		QFO_TRANSFER,
+		QFO_GRAPHICS,
+		QFO_COMPUTE
+	};
+	namespace ToStringUtility {
+		static std::string QueueFamilyOwnershipToString(QueueFamilyOwnership type)
+		{
+			switch (type)
+			{
+				case QueueFamilyOwnership::QFO_UNDEFINED: return "QueueFamilyOwnership::QFO_UNDEFINED";
+				case QueueFamilyOwnership::QFO_GRAPHICS: return "QueueFamilyOwnership::QFO_GRAPHICS";
+				case QueueFamilyOwnership::QFO_TRANSFER: return "QueueFamilyOwnership::QFO_TRANSFER";
+				case QueueFamilyOwnership::QFO_COMPUTE: return "QueueFamilyOwnership::QFO_COMPUTE";
+				default:
+				{
+					PX_CORE_WARN("QueueFamilyOwnership not defined!");
+					return "Missing QueueFamilyOwnership!";
+				}
+			}
+		}
+	}
 }

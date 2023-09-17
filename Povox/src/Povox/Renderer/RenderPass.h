@@ -7,18 +7,27 @@ namespace Povox {
 
 	class Framebuffer;
 	class Pipeline;
+	class ComputePass;
+	class RenderPass;
 	struct RenderPassSpecification
 	{
-		std::string DebugName = "Renderpass";
+		std::string DebugName = "RenderPass";
 
-		Ref<Pipeline> Pipeline;
+		Ref<Pipeline> Pipeline = nullptr;
 
+		Ref<RenderPass> PredecessorPass = nullptr;
+		Ref<RenderPass> SuccessorPass = nullptr;
+
+		Ref<ComputePass> PredecessorComputePass = nullptr;
+		Ref<ComputePass> SuccessorComputePass = nullptr;
 
 		Ref<Framebuffer> TargetFramebuffer = nullptr;
 	};
 
-	struct UniformBuffer;
-	struct StorageBuffer;
+	class UniformBuffer;
+	class StorageBuffer;
+	class StorageImage;
+	class Image2D;
 	class RenderPass
 	{
 	public:
@@ -27,8 +36,16 @@ namespace Povox {
 
 		virtual void BindResource(const std::string& name, Ref<UniformBuffer> resource) = 0;
 		virtual void BindResource(const std::string& name, Ref<StorageBuffer> resource) = 0;
+		virtual void BindResource(const std::string& name, Ref<StorageImage> resource) = 0;
+		virtual void BindResource(const std::string& name, Ref<Image2D> resource) = 0;
 
 		virtual void Bake() = 0;
+
+		virtual void SetPredecessor(Ref<RenderPass> predecessor) = 0;
+		virtual void SetPredecessor(Ref<ComputePass> predecessor) = 0;
+		virtual void SetSuccessor(Ref<RenderPass> successor) = 0;
+		virtual void SetSuccessor(Ref<ComputePass> successor) = 0;
+
 
 		virtual const RenderPassSpecification& GetSpecification() const = 0;
 
@@ -41,9 +58,15 @@ namespace Povox {
 	class ComputePipeline;
 	struct ComputePassSpecification
 	{
+		std::string DebugName = "ComputePass";
+
 		Ref<ComputePipeline> Pipeline = nullptr;
 
-		std::string DebugName = "ComputePass";
+		Ref<RenderPass> PredecessorPass = nullptr;
+		Ref<RenderPass> SuccessorPass = nullptr;
+
+		Ref<ComputePass> PredecessorComputePass = nullptr;
+		Ref<ComputePass> SuccessorComputePass = nullptr;
 	};
 
 	class ComputePass
@@ -51,6 +74,18 @@ namespace Povox {
 	public:
 		virtual ~ComputePass() = default;
 		virtual void Recreate() = 0;
+
+		virtual void BindResource(const std::string& name, Ref<UniformBuffer> resource) = 0;
+		virtual void BindResource(const std::string& name, Ref<StorageBuffer> resource) = 0;
+		virtual void BindResource(const std::string& name, Ref<StorageImage> resource) = 0;
+		virtual void BindResource(const std::string& name, Ref<Image2D> resource) = 0;
+
+		virtual void Bake() = 0;
+
+		virtual void SetPredecessor(Ref<RenderPass> predecessor) = 0;
+		virtual void SetPredecessor(Ref<ComputePass> predecessor) = 0;
+		virtual void SetSuccessor(Ref<RenderPass> successor) = 0;
+		virtual void SetSuccessor(Ref<ComputePass> successor) = 0;
 
 		virtual const ComputePassSpecification& GetSpecification() const = 0;
 
