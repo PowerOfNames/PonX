@@ -523,7 +523,7 @@ namespace Povox {
 
 		//Transition final image
 		m_FinalImages[m_CurrentFrameIndex]->TransitionImageLayout(
-			VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 			VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT, 0,
 			VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT
 		);
@@ -558,7 +558,7 @@ namespace Povox {
 		);
 		//Transition swapchain image back into color
 		m_FinalImages[m_CurrentFrameIndex]->TransitionImageLayout(
-			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
 			VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT,
 			VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT,
 			QueueFamilyOwnership::QFO_GRAPHICS
@@ -1133,11 +1133,11 @@ namespace Povox {
 		if ((VkDescriptorSet)vkImage->GetDescriptorSet())
 			m_ImGui->FreeImGuiDescriptorSet((VkDescriptorSet)vkImage->GetDescriptorSet());
 
-		vkImage->TransitionImageLayout(
+		/*vkImage->TransitionImageLayout(
 			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
 			VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT, VK_ACCESS_2_MEMORY_WRITE_BIT,
 			VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT
-		);
+		);*/
 		
 		vkImage->SetDescriptorSet(m_ImGui->GetImGUIDescriptorSet(vkImage->GetImageView(), vkImage->GetSampler(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL));
 		return vkImage->GetDescriptorSet();
@@ -1362,7 +1362,7 @@ namespace Povox {
 		imageSpec.Memory = MemoryUtils::MemoryUsage::GPU_ONLY;
 		imageSpec.MipLevels = 1;
 		imageSpec.Tiling = ImageTiling::OPTIMAL;
-		imageSpec.Usages = { ImageUsage::SAMPLED, ImageUsage::COLOR_ATTACHMENT, ImageUsage::COPY_DST };
+		imageSpec.Usages = { ImageUsage::SAMPLED, ImageUsage::COPY_DST };
 		imageSpec.DedicatedSampler = true;
 		imageSpec.CreateDescriptorOnInit = false;
 		m_FinalImages[m_CurrentFrameIndex] = CreateRef<VulkanImage2D>(imageSpec);

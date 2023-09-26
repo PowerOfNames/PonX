@@ -31,8 +31,9 @@ namespace Povox {
 		PX_CORE_ASSERT(specs.Size > 0, "A size needs to be defined!");
 		m_Size = specs.Size;
 
-		m_Allocation = CreateAllocation(m_Size, VulkanUtils::GetVulkanBufferUsage(specs.Usage) | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VulkanUtils::GetVmaUsage(specs.MemUsage), &m_Ownership, specs.DebugName+ "Allocation");
-		m_Staging = CreateAllocation(m_Size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU, nullptr, specs.DebugName + "Staging");
+		m_Ownership = QueueFamilyOwnership::QFO_GRAPHICS;
+		m_Allocation = CreateAllocation(m_Size, VulkanUtils::GetVulkanBufferUsage(specs.Usage) | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VulkanUtils::GetVmaUsage(specs.MemUsage), m_Ownership, specs.DebugName+ "Allocation");
+		m_Staging = CreateAllocation(m_Size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU, QueueFamilyOwnership::QFO_TRANSFER, specs.DebugName + "Staging");
 
 		CreateDescriptorInfo();
 
@@ -45,7 +46,7 @@ namespace Povox {
 		NameVkObject(VulkanContext::GetDevice()->GetVulkanDevice(), bufInfo);
 #endif // DEBUG
 
-//		// Differentiate between Buffers that live durign the whole runtime and time based buffers -> depending on that the resource 
+//		// Differentiate between Buffers that live during the 'whole' runtime and time based buffers -> depending on that the resource 
 //		// free call needs to take place here or Free() needs to be called
 // 		VulkanContext::SubmitResourceFree([=]()
 // 			{
@@ -79,6 +80,84 @@ namespace Povox {
 		vmaUnmapMemory(allocator, m_Staging.Allocation);
 		m_StagingMapped = false;
 
+		QueueFamilyOwnership originalOwnership = m_Ownership;
+
+		auto& queueFamilies = VulkanContext::GetDevice()->GetQueueFamilies();
+		uint32_t currentIndex;
+		VulkanCommandControl::SubmitType submitType = VulkanCommandControl::SubmitType::SUBMIT_TYPE_UNDEFINED;
+		VulkanCommandControl::SubmitType reverseSubmitType = VulkanCommandControl::SubmitType::SUBMIT_TYPE_UNDEFINED;
+
+		switch (m_Ownership)
+		{
+			case QueueFamilyOwnership::QFO_GRAPHICS:
+			{
+				currentIndex = queueFamilies.GraphicsFamilyIndex;
+				submitType = VulkanCommandControl::SubmitType::SUBMIT_TYPE_GRAPHICS_TRANSFER;
+				reverseSubmitType = VulkanCommandControl::SubmitType::SUBMIT_TYPE_TRANSFER_GRAPHICS;
+
+				break;
+			}
+			case QueueFamilyOwnership::QFO_TRANSFER:
+			{
+				currentIndex = queueFamilies.TransferFamilyIndex;				
+				submitType = VulkanCommandControl::SubmitType::SUBMIT_TYPE_TRANSFER_TRANSFER;
+				
+				break;
+			}
+			case QueueFamilyOwnership::QFO_COMPUTE:
+			{
+				currentIndex = queueFamilies.ComputeFamilyIndex;				
+				submitType = VulkanCommandControl::SubmitType::SUBMIT_TYPE_COMPUTE_TRANSFER;
+				reverseSubmitType = VulkanCommandControl::SubmitType::SUBMIT_TYPE_TRANSFER_COMPUTE;
+				break;
+			}
+			default:
+			{
+				PX_CORE_ASSERT(true, "QueueFamilyOwnership not caught!");
+				break;
+			}
+		}
+
+		VulkanCommandControl::ImmidiateSubmitOwnershipTransfer(submitType, [=](VkCommandBuffer releaseCmd)
+			{
+				VkBufferMemoryBarrier2 barrier{ VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2 };
+				barrier.pNext = nullptr;
+				barrier.buffer = m_Allocation.Buffer;
+				barrier.size = m_Size;
+				barrier.offset = 0; // TODO:
+				barrier.srcQueueFamilyIndex = currentIndex;
+				barrier.dstQueueFamilyIndex = queueFamilies.TransferFamilyIndex;
+
+				barrier.srcStageMask = VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT;
+				barrier.srcAccessMask = 0;
+
+				VkDependencyInfo dependency{ VK_STRUCTURE_TYPE_DEPENDENCY_INFO };
+				dependency.bufferMemoryBarrierCount = 1;
+				dependency.pBufferMemoryBarriers = &barrier;
+
+				vkCmdPipelineBarrier2(releaseCmd, &dependency);
+
+			}, [=](VkCommandBuffer acquireCmd)
+			{
+				VkBufferMemoryBarrier2 barrier{ VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2 };
+				barrier.pNext = nullptr;
+				barrier.buffer = m_Allocation.Buffer;
+				barrier.size = m_Size;
+				barrier.offset = 0; // TODO:
+				barrier.srcQueueFamilyIndex = currentIndex;
+				barrier.dstQueueFamilyIndex = queueFamilies.TransferFamilyIndex;
+
+				barrier.dstStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
+				barrier.dstAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT;
+
+				VkDependencyInfo dependency{ VK_STRUCTURE_TYPE_DEPENDENCY_INFO };
+				dependency.bufferMemoryBarrierCount = 1;
+				dependency.pBufferMemoryBarriers = &barrier;
+
+				vkCmdPipelineBarrier2(acquireCmd, &dependency);
+			});
+		m_Ownership = QueueFamilyOwnership::QFO_TRANSFER;
+
 		VulkanCommandControl::ImmidiateSubmit(VulkanCommandControl::SubmitType::SUBMIT_TYPE_TRANSFER_TRANSFER, [=](VkCommandBuffer cmd)
 			{
 				VkBufferCopy copyRegion{};
@@ -86,6 +165,47 @@ namespace Povox {
 
 				vkCmdCopyBuffer(cmd, m_Staging.Buffer, m_Allocation.Buffer, 1, &copyRegion);
 			});
+
+		VulkanCommandControl::ImmidiateSubmitOwnershipTransfer(reverseSubmitType, [=](VkCommandBuffer releaseCmd)
+			{
+				VkBufferMemoryBarrier2 barrier{ VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2 };
+				barrier.pNext = nullptr;
+				barrier.buffer = m_Allocation.Buffer;
+				barrier.size = m_Size;
+				barrier.offset = 0; // TODO:
+				barrier.srcQueueFamilyIndex = queueFamilies.TransferFamilyIndex;
+				barrier.dstQueueFamilyIndex = currentIndex;
+
+				barrier.srcStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
+				barrier.srcAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT;
+
+				VkDependencyInfo dependency{ VK_STRUCTURE_TYPE_DEPENDENCY_INFO };
+				dependency.bufferMemoryBarrierCount = 1;
+				dependency.pBufferMemoryBarriers = &barrier;
+
+				vkCmdPipelineBarrier2(releaseCmd, &dependency);
+
+			}, [=](VkCommandBuffer acquireCmd)
+			{
+				VkBufferMemoryBarrier2 barrier{ VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2 };
+				barrier.pNext = nullptr;
+				barrier.buffer = m_Allocation.Buffer;
+				barrier.size = m_Size;
+				barrier.offset = 0; // TODO:
+				barrier.srcQueueFamilyIndex = queueFamilies.TransferFamilyIndex;
+				barrier.dstQueueFamilyIndex = currentIndex;
+
+
+				barrier.dstStageMask = VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT;
+				barrier.dstAccessMask = VK_ACCESS_2_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT;
+
+				VkDependencyInfo dependency{ VK_STRUCTURE_TYPE_DEPENDENCY_INFO };
+				dependency.bufferMemoryBarrierCount = 1;
+				dependency.pBufferMemoryBarriers = &barrier;
+
+				vkCmdPipelineBarrier2(acquireCmd, &dependency);
+			});
+		m_Ownership = originalOwnership;
 
 		CreateDescriptorInfo();
 	}
@@ -114,7 +234,7 @@ namespace Povox {
 	void VulkanBuffer::SetData(void* inputData, uint32_t offset, size_t size)
 	{
 		PX_CORE_ASSERT((offset + size) < m_Specification.Size, "Out of bounds!");
-		//char* input = (char*)inputData;
+
 
 		if (!m_StagingMapped)
 		{
@@ -128,7 +248,7 @@ namespace Povox {
 		UploadToGPU();
 	}	
 
-	AllocatedBuffer VulkanBuffer::CreateAllocation(size_t allocSize, VkBufferUsageFlags usage, VmaMemoryUsage memUsage, QueueFamilyOwnership* ownership, std::string debugName)
+	AllocatedBuffer VulkanBuffer::CreateAllocation(size_t allocSize, VkBufferUsageFlags usage, VmaMemoryUsage memUsage, QueueFamilyOwnership ownership, std::string debugName)
 	{
 		VkBufferCreateInfo bufferInfo{};
 		bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -140,20 +260,34 @@ namespace Povox {
 		bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 		bufferInfo.queueFamilyIndexCount = 1;
 		auto& families = VulkanContext::GetDevice()->GetQueueFamilies();
-		if (usage & VK_BUFFER_USAGE_TRANSFER_SRC_BIT || usage & VK_BUFFER_USAGE_TRANSFER_DST_BIT)
+		
+		switch (ownership)
 		{
-			uint32_t familyIndex[] = { families.TransferFamilyIndex };
-			bufferInfo.pQueueFamilyIndices = familyIndex;
-			if(ownership)
-				*ownership = QueueFamilyOwnership::QFO_TRANSFER;
+			case QueueFamilyOwnership::QFO_UNDEFINED:
+			case QueueFamilyOwnership::QFO_GRAPHICS:
+			{
+				uint32_t familyIndex[] = { families.GraphicsFamilyIndex };
+				bufferInfo.pQueueFamilyIndices = familyIndex;
+				break;
+			}
+			case QueueFamilyOwnership::QFO_TRANSFER:
+			{
+				uint32_t familyIndex[] = { families.TransferFamilyIndex };
+				bufferInfo.pQueueFamilyIndices = familyIndex;
+				break;
+			}
+			case QueueFamilyOwnership::QFO_COMPUTE:
+			{
+				uint32_t familyIndex[] = { families.ComputeFamilyIndex };
+				bufferInfo.pQueueFamilyIndices = familyIndex;
+				break;
+			}
+			default:
+			{
+				PX_CORE_ASSERT(true, "QueueFamilyOwnership not caught!");
+			}
 		}
-		else
-		{
-			uint32_t familyIndex[] = { families.TransferFamilyIndex };
-			bufferInfo.pQueueFamilyIndices = familyIndex;
-			if(ownership)
-				*ownership = QueueFamilyOwnership::QFO_GRAPHICS;
-		}
+
 		VmaAllocationCreateInfo vmaAllocInfo{};
 		vmaAllocInfo.usage = memUsage;
 

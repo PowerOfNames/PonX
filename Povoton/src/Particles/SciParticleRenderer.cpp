@@ -67,9 +67,9 @@ namespace Povox {
 
 		m_RayMarchingData = Povox::CreateRef<Povox::UniformBuffer>(Povox::BufferLayout({
 			{Povox::ShaderDataType::Float4 , "BackgroundColor"},
-			{ Povox::ShaderDataType::Float2 , "Resolution" } }),
+			{ Povox::ShaderDataType::Float4 , "ResolutionTime"},
+			{ Povox::ShaderDataType::UInt , "ParticleCount"} }),
 			"RayMarchingUBO",
-			false,
 			false
 			);
 
@@ -77,7 +77,8 @@ namespace Povox {
 			{ Povox::ShaderDataType::Float4, "PositionRadius" },
 			{ Povox::ShaderDataType::Float4, "Velocity" },
 			{ Povox::ShaderDataType::Float4, "Color" },
-			{ Povox::ShaderDataType::Long, "ID" }}),
+			{ Povox::ShaderDataType::ULong, "ID" },
+			{ Povox::ShaderDataType::ULong, "IDPad" }}),
 			m_Specification.MaxParticles,
 			"ParticleDataSSBO"
 			);
@@ -95,7 +96,7 @@ namespace Povox {
 		m_CameraData->SetData((void*)&m_CameraUniform, sizeof(CameraUniform));
 
 		m_RayMarchingUniform.BackgroundColor = glm::vec4(0.3f);
-		m_RayMarchingUniform.Resolution = glm::vec2((float)m_Specification.ViewportWidth, (float)m_Specification.ViewportHeight);
+		m_RayMarchingUniform.ResolutionTime = glm::vec4((float)m_Specification.ViewportWidth, (float)m_Specification.ViewportHeight, 0.0f, 0.0f);
 		m_RayMarchingData->SetData((void*)&m_RayMarchingUniform, sizeof(RayMarchingUniform));
 
 		uint32_t framesInFlight = Renderer::GetSpecification().MaxFramesInFlight;
@@ -213,6 +214,12 @@ namespace Povox {
 
 	}
 
+
+	void SciParticleRenderer::OnUpdate(float deltaTime)
+	{
+		m_ElapsedTime += deltaTime;
+	}
+
 	void SciParticleRenderer::OnResize(uint32_t width, uint32_t height)
 	{
 		PX_PROFILE_FUNCTION();
@@ -228,7 +235,7 @@ namespace Povox {
 		m_Specification.ViewportHeight = height;
 
 
-		m_RayMarchingUniform.Resolution = glm::vec2((float)m_Specification.ViewportWidth, (float)m_Specification.ViewportHeight);
+		m_RayMarchingUniform.ResolutionTime = glm::vec4((float)m_Specification.ViewportWidth, (float)m_Specification.ViewportHeight, m_ElapsedTime, 0.0f);
 		m_RayMarchingData->SetData((void*)&m_RayMarchingUniform, sizeof(RayMarchingUniform));
 
 		// Compute
@@ -265,7 +272,7 @@ namespace Povox {
 		m_CameraUniform.Forward = glm::vec4(camera.GetForward(), 0.0f);
 		m_CameraUniform.Position = glm::vec4(camera.GetPosition(), 0.0f);
 		m_CameraData->SetData((void*)&m_CameraUniform, sizeof(CameraUniform));
-
+		
 		uint32_t currentFrameIndex = Renderer::GetCurrentFrameIndex();
 		auto cmd = Renderer::GetCommandBuffer(currentFrameIndex);
 
@@ -294,11 +301,22 @@ namespace Povox {
 	void SciParticleRenderer::DrawParticleSet(Povox::Ref<SciParticleSet> particleSet)
 	{
 		//	Fullscreen Quad -> rays paint this during ray marching		
-		m_ParticleUniform.PositionRadius = glm::vec4(0.0f, 0.0f, -10.0f, 1.0f);
+		m_ParticleUniform.PositionRadius = glm::vec4(0.0f, 0.0f, -10.0f, 0.9f);
 		m_ParticleUniform.Velocity = glm::vec4(0.0f);
 		m_ParticleUniform.Color = glm::vec4(0.5f, 0.6f, 0.4f, 1.0f);
 		m_ParticleUniform.ID = 0;
-		m_ParticleData->SetData((void*)&m_ParticleUniform, 0, sizeof(ParticleUniform));
+		m_ParticleUniform.IDPad = 0;
+		m_ParticleData->SetData((void*)&m_ParticleUniform, 0 * sizeof(ParticleUniform), sizeof(ParticleUniform));
+
+		m_ParticleUniform.PositionRadius = glm::vec4(0.0f, 1.0f, -10.0f, 0.9f);
+		m_ParticleUniform.Velocity = glm::vec4(0.0f);
+		m_ParticleUniform.Color = glm::vec4(0.5f, 1.f, 0.8f, 1.0f);
+		m_ParticleUniform.ID = 1;
+		m_ParticleData->SetData((void*)&m_ParticleUniform, 1 * sizeof(ParticleUniform), sizeof(ParticleUniform));
+
+		m_RayMarchingUniform.ResolutionTime.z = m_ElapsedTime;
+		m_RayMarchingUniform.ParticleCount = 2;
+		m_RayMarchingData->SetData((void*)&m_RayMarchingUniform, sizeof(RayMarchingUniform));
 
 		//CompteTimestampBegin
 		//Renderer::DispatchCompute(m_DistanceFieldComputePass);

@@ -72,7 +72,8 @@ namespace Povox {
 	struct RayMarchingUniform
 	{
 		glm::vec4 BackgroundColor;
-		glm::vec2 Resolution;
+		glm::vec4 ResolutionTime;
+		uint32_t ParticleCount;
 	};
 
 	// TODO: temp
@@ -82,6 +83,7 @@ namespace Povox {
 		glm::vec4 Velocity;
 		glm::vec4 Color;
 		uint64_t ID;
+		uint64_t IDPad;
 	};
 
 	struct PickingUniform

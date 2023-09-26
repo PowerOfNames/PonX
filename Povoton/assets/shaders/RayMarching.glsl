@@ -42,7 +42,8 @@ layout(std140, set = 0, binding = 0) uniform CameraData
 layout(set = 0, binding = 1) uniform RayMarchingData
 {
 	vec4 BackgroundColor;
-	vec2 Resolution;
+	vec4 ResolutionTime;
+	uint32_t ParticleCount;
 } u_RayMarching;
 
 
@@ -51,6 +52,7 @@ struct Particle {
     vec3 Velocity;
     vec3 Color;
     uint64_t ID;
+    uint64_t IDPad;
 };
 
 layout(std140, set = 1, binding = 0) readonly buffer ParticlesIn {
@@ -74,14 +76,23 @@ struct Ray
 
 float SphereSDF(in vec3 rayPos, in vec3 spherePos, in float sphereRadius)
 {
-	return abs(length(rayPos-spherePos)) - sphereRadius;
+	float time = u_RayMarching.ResolutionTime.z * 1.6f;
+	float displacement = sin(time + 7.0 * rayPos.x) * -cos(time + 7.0 * rayPos.y) * cos(time + 7.0 * rayPos.z) * 0.1 -0.5;
+	float dist = abs(length(rayPos-spherePos)) - sphereRadius;
+
+	return dist + displacement;
 }
 
-vec3 CalculateSurfaceNormal(in vec3 hitPos, in vec3 center)
+vec3 CalculateSurfaceNormal(in vec3 hitPos, in vec4 particleDims)
 {
-	vec3 normal = hitPos - center;
+	vec3 offset = vec3(0.01, 0.0, 0.0);
+	
+	
+	float gradient_x = SphereSDF(hitPos + offset.xyy, particleDims.xyz, particleDims.w) - SphereSDF(hitPos - offset.xyy, particleDims.xyz, particleDims.w);
+	float gradient_y = SphereSDF(hitPos + offset.yxy, particleDims.xyz, particleDims.w) - SphereSDF(hitPos - offset.yxy, particleDims.xyz, particleDims.w);
+	float gradient_z = SphereSDF(hitPos + offset.yyx, particleDims.xyz, particleDims.w) - SphereSDF(hitPos - offset.yyx, particleDims.xyz, particleDims.w);
 
-	return normalize(normal);
+	return normalize(vec3(gradient_x, gradient_y, gradient_z));
 }
 
 vec3 Phongg(in vec3 viewDir, in vec3 hitPos, in vec3 lightPos, in vec3 normal, in vec4 ambient, in vec2 specular, in vec4 diffuse)
@@ -100,20 +111,35 @@ const float MAX_STEPS = 128;
 const float HIT_DISTANCE = 0.001;
 const float MAX_DISTANCE = 1000.0;
 
-const vec2 SPECULAR = vec2(0.4, 2.0);
+const vec2 SPECULAR = vec2(2.0, 2.0);
 const vec3 LIGHT = vec3(0.0, 5.0, 0.0);
 
 vec3 RayMarch(in Ray currentRay)
 {
-	Particle currentParticle = ssbo_ParticlesIn.particles[0];
+	Particle firstParticle = ssbo_ParticlesIn.particles[0];
+	Particle secondParticle = ssbo_ParticlesIn.particles[1];
+	Particle nearestParticle;
 	float totalDistanceTraveled = 0.0f;
 	for(int i = 0; i < MAX_STEPS; i++)
 	{
-		float stepSize = SphereSDF(currentRay.Position, currentParticle.PositionRadius.xyz, currentParticle.PositionRadius.w);
+		float stepSize0 = SphereSDF(currentRay.Position, firstParticle.PositionRadius.xyz, firstParticle.PositionRadius.w);
+		float stepSize1 = SphereSDF(currentRay.Position, secondParticle.PositionRadius.xyz, secondParticle.PositionRadius.w);
+		float stepSize;
+		if(stepSize0 > -stepSize1)
+		{
+			stepSize = stepSize0;
+			nearestParticle = firstParticle;
+		}
+		else
+		{
+			stepSize = -stepSize1;
+			nearestParticle = secondParticle;
+		}
+
 		if(stepSize <= HIT_DISTANCE)
 		{
-			vec3 normal = CalculateSurfaceNormal(currentRay.Position, currentParticle.PositionRadius.xyz);
-			return Phongg(currentRay.Direction, currentRay.Position, LIGHT, normal, vec4(u_RayMarching.BackgroundColor.rgb, 1.0), SPECULAR, vec4(currentParticle.Color, 0.3));			
+			vec3 normal = CalculateSurfaceNormal(currentRay.Position, nearestParticle.PositionRadius);
+			return Phongg(currentRay.Direction, currentRay.Position, LIGHT, normal, vec4(u_RayMarching.BackgroundColor.rgb, 1.0), SPECULAR, vec4(nearestParticle.Color, 0.3));			
 		}
 		
 		totalDistanceTraveled += stepSize;
@@ -145,7 +171,7 @@ void main()
 	Ray currentRay;
 	currentRay.Origin = u_Camera.Position.xyz;
 	currentRay.Position = currentRay.Origin;
-	currentRay.Direction = CalculateDirection(currentRay.Origin, v_UV, u_Camera.Forward.xyz, u_Camera.FOV, u_RayMarching.Resolution);
+	currentRay.Direction = CalculateDirection(currentRay.Origin, v_UV, u_Camera.Forward.xyz, u_Camera.FOV, u_RayMarching.ResolutionTime.xy);
 	
 	//finalColor = vec4(SphereSDF, 1.0);
 	finalColor = vec4(RayMarch(currentRay), 1.0);

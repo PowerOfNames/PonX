@@ -37,7 +37,7 @@ namespace Povox {
 
 		inline VkDescriptorBufferInfo& GetBufferInfo() { return m_DescriptorInfo; }
 
-		static AllocatedBuffer CreateAllocation(size_t allocSize, VkBufferUsageFlags usage, VmaMemoryUsage memUsage, QueueFamilyOwnership* ownership = nullptr, std::string debugName = std::string());
+		static AllocatedBuffer CreateAllocation(size_t allocSize, VkBufferUsageFlags usage, VmaMemoryUsage memUsage, QueueFamilyOwnership ownership = QueueFamilyOwnership::QFO_UNDEFINED, std::string debugName = std::string());
 
 		virtual const std::string& GetDebugName() const override { return m_Specification.DebugName; }
 
@@ -59,6 +59,7 @@ namespace Povox {
 		bool m_StagingMapped = false;
 		void* m_Data = nullptr;
 		size_t m_Size = 0;
+				
 
 		QueueFamilyOwnership m_Ownership = QueueFamilyOwnership::QFO_UNDEFINED;
 	};

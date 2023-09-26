@@ -83,6 +83,7 @@ namespace Povox {
 		// Update particles
 		//m_ActiveParticleSet->OnUpdate(deltatime);
 
+		m_SciRenderer->OnUpdate(deltatime);
 		m_SciRenderer->Begin(m_PerspectiveController.GetCamera());
 		m_SciRenderer->DrawParticleSet(m_ActiveParticleSet);
 		m_SciRenderer->End();

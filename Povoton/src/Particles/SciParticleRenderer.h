@@ -37,6 +37,7 @@ namespace Povox {
 		bool Init();
 		void Shutdown();
 
+		void OnUpdate(float deltaTime);
 		void OnResize(uint32_t width, uint32_t height);
 
 		// Workflow
@@ -56,7 +57,8 @@ namespace Povox {
 
 
 	private:
-		SciParticleRendererSpecification m_Specification{};	
+		SciParticleRendererSpecification m_Specification{};
+		float m_ElapsedTime = 0.0f;
 
 		Povox::Ref<Povox::Image2D> m_FinalImage = nullptr;
 

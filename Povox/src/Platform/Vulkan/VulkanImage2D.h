@@ -121,7 +121,7 @@ namespace Povox {
 
 		virtual int ReadPixel(int posX, int posY) override;
 
-		static AllocatedImage CreateAllocation(VkExtent3D extent, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VmaMemoryUsage memUsage, VkImageLayout initialLayout = VK_IMAGE_LAYOUT_UNDEFINED, QueueFamilyOwnership* ownership = nullptr, std::string debugName = std::string());
+		static AllocatedImage CreateAllocation(VkExtent3D extent, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VmaMemoryUsage memUsage, VkImageLayout initialLayout = VK_IMAGE_LAYOUT_UNDEFINED, QueueFamilyOwnership ownership = QueueFamilyOwnership::QFO_UNDEFINED, std::string debugName = std::string());
 
 		void TransitionImageLayout(
 			VkImageLayout initialLayout, VkImageLayout finalLayout,

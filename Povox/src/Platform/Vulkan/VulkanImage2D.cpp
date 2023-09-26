@@ -24,8 +24,7 @@ namespace Povox {
 		CreateDescriptorInfo();
 
 		if(m_Specification.Usages.ContainsUsage(ImageUsage::SAMPLED))
-		{
-			
+		{			
 			if(m_Specification.CreateDescriptorOnInit)
 				CreateDescriptorSet();
 		}
@@ -79,7 +78,7 @@ namespace Povox {
 		
 	}
 
-	AllocatedImage VulkanImage2D::CreateAllocation(VkExtent3D extent, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VmaMemoryUsage memUsage, VkImageLayout initialLayout, QueueFamilyOwnership* ownership, std::string debugName)
+	AllocatedImage VulkanImage2D::CreateAllocation(VkExtent3D extent, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VmaMemoryUsage memUsage, VkImageLayout initialLayout, QueueFamilyOwnership ownership, std::string debugName)
 	{
 		VkImageCreateInfo info{};
 		info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -93,15 +92,37 @@ namespace Povox {
 		info.arrayLayers = 1;
 		info.mipLevels = 1;
 		info.tiling = tiling;
-		info.initialLayout = initialLayout;
+		info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 		info.usage = usage;
 		info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 		info.queueFamilyIndexCount = 1;
  		auto& families = VulkanContext::GetDevice()->GetQueueFamilies();
-		uint32_t familyIndex[] = { families.GraphicsFamilyIndex };
-		info.pQueueFamilyIndices = familyIndex;
-		if (ownership)
-			*ownership = QueueFamilyOwnership::QFO_GRAPHICS;
+		switch (ownership)
+		{
+			case QueueFamilyOwnership::QFO_UNDEFINED:
+			case QueueFamilyOwnership::QFO_GRAPHICS:
+			{
+				uint32_t familyIndex[] = { families.GraphicsFamilyIndex };
+				info.pQueueFamilyIndices = familyIndex;
+				break;
+			}
+			case QueueFamilyOwnership::QFO_TRANSFER:
+			{
+				uint32_t familyIndex[] = { families.TransferFamilyIndex };
+				info.pQueueFamilyIndices = familyIndex;
+				break;
+			}
+			case QueueFamilyOwnership::QFO_COMPUTE:
+			{
+				uint32_t familyIndex[] = { families.ComputeFamilyIndex };
+				info.pQueueFamilyIndices = familyIndex;
+				break;
+			}
+			default:
+			{
+				PX_CORE_ASSERT(true, "QueueFamilyOwnership not caught!");
+			}
+		}
 		
 		info.samples = VK_SAMPLE_COUNT_1_BIT;
 		info.flags = 0;
@@ -127,7 +148,7 @@ namespace Povox {
 			NameVkObject(VulkanContext::GetDevice()->GetVulkanDevice(), nameInfo);
 		}
 #endif // DEBUG
-
+		
 		return output;
 	}
 
@@ -148,7 +169,6 @@ namespace Povox {
 		QueueFamilyOwnership originalOwnership = m_Ownership;
 
 		auto& queueFamilies = VulkanContext::GetDevice()->GetQueueFamilies();
-		VkQueue currentQueue;
 		uint32_t currentIndex;
 		VulkanCommandControl::SubmitType submitType = VulkanCommandControl::SubmitType::SUBMIT_TYPE_UNDEFINED;
 
@@ -160,7 +180,6 @@ namespace Povox {
 		{
 			case QueueFamilyOwnership::QFO_GRAPHICS:
 			{
-				currentQueue = queueFamilies.Queues.GraphicsQueue;
 				currentIndex = queueFamilies.GraphicsFamilyIndex;
 
 				if (finalLayout == VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL || finalLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
@@ -195,7 +214,6 @@ namespace Povox {
 			}
 			case QueueFamilyOwnership::QFO_TRANSFER:
 			{
-				currentQueue = queueFamilies.Queues.TransferQueue;
 				currentIndex = queueFamilies.TransferFamilyIndex;
 
 				if (finalLayout == VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL || finalLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
@@ -230,7 +248,6 @@ namespace Povox {
 			}
 			case QueueFamilyOwnership::QFO_COMPUTE:
 			{
-				currentQueue = queueFamilies.Queues.ComputeQueue;
 				currentIndex = queueFamilies.ComputeFamilyIndex;
 				if (finalLayout == VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL || finalLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
 				{
@@ -457,7 +474,7 @@ namespace Povox {
 	void VulkanImage2D::SetData(void* data)
 	{
 		size_t imageSize = m_Specification.Width * m_Specification.Height * m_Specification.ChannelCount;
-		AllocatedBuffer stagingBuffer = VulkanBuffer::CreateAllocation(imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_ONLY);
+		AllocatedBuffer stagingBuffer = VulkanBuffer::CreateAllocation(imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_ONLY, QueueFamilyOwnership::QFO_TRANSFER, "Image:SetData StagingBuffer");
 		
 		void* databuffer;
 		vmaMapMemory(VulkanContext::GetAllocator(), stagingBuffer.Allocation, &databuffer);
@@ -509,7 +526,7 @@ namespace Povox {
 	{
 		// TODO: Check if the image I want to read from is readable (was downloaded from GPU after rendering)
 		size_t imageSize = m_Specification.Width * m_Specification.Height * m_Specification.ChannelCount;
-		AllocatedBuffer stagingBuffer = VulkanBuffer::CreateAllocation(imageSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_CPU_ONLY);
+		AllocatedBuffer stagingBuffer = VulkanBuffer::CreateAllocation(imageSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_CPU_ONLY, QueueFamilyOwnership::QFO_TRANSFER, "ReadPixel StaginBuffer");
 
 		TransitionImageLayout(
 			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
@@ -552,14 +569,21 @@ namespace Povox {
 		vmaUnmapMemory(VulkanContext::GetAllocator(), stagingBuffer.Allocation);
 		vmaDestroyBuffer(VulkanContext::GetAllocator(), stagingBuffer.Buffer, stagingBuffer.Allocation);
 
-		return data[m_Specification.Width * posY + posX];;
+		return data[m_Specification.Width * posY + posX];
 	}
 
 	void VulkanImage2D::CreateImage()
 	{
+		m_Ownership = QueueFamilyOwnership::QFO_GRAPHICS;
 		m_Allocation = CreateAllocation({ m_Specification.Width, m_Specification.Height, 1 }, VulkanUtils::GetVulkanImageFormat(m_Specification.Format), VulkanUtils::GetVulkanTiling(m_Specification.Tiling),
-			VulkanUtils::GetVulkanImageUsages(m_Specification.Usages), VulkanUtils::GetVmaUsage(m_Specification.Memory), VK_IMAGE_LAYOUT_UNDEFINED, &m_Ownership);
+			VulkanUtils::GetVulkanImageUsages(m_Specification.Usages), VulkanUtils::GetVmaUsage(m_Specification.Memory), VK_IMAGE_LAYOUT_UNDEFINED, m_Ownership, m_Specification.DebugName);
 		
+		if (VulkanUtils::GetImageLayout(m_Specification.Usages) != VK_IMAGE_LAYOUT_UNDEFINED)
+			TransitionImageLayout(VK_IMAGE_LAYOUT_UNDEFINED, VulkanUtils::GetImageLayout(m_Specification.Usages),
+				VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT, 0,
+				VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT, 0
+			);
+
 #ifdef PX_DEBUG
 		VkDebugUtilsObjectNameInfoEXT nameInfo{};
 		nameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
