@@ -83,9 +83,7 @@ namespace Povox {
 		virtual void EndRenderPass() = 0;
 
 		// Compute
-		virtual void BeginComputePass(Ref<ComputePass> computePass) = 0;
 		virtual void DispatchCompute(Ref<ComputePass> computePass) = 0;
-		virtual void EndComputePass() = 0;
 
 		// GUI
 		virtual void DrawGUI() = 0;

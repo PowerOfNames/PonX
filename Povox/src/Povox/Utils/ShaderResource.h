@@ -1,80 +1,10 @@
 #pragma once
+#include "Povox/Core/Core.h"
+
+#include "Povox/Renderer/Buffer.h"
+#include "Povox/Renderer/Image2D.h"
 
 namespace Povox {
-
-	enum class ShaderDataType
-	{
-		None = 0,
-		Float,
-		Float2,
-		Float3,
-		Float4,
-		Mat3,
-		Mat4,
-		Int,
-		Int2,
-		Int3,
-		Int4,
-		UInt,
-		Long,
-		ULong,
-		Bool
-	};
-	namespace ToStringUtility {
-		static std::string ShaderDataTypeToString(ShaderDataType type)
-		{
-			switch (type)
-			{
-				case ShaderDataType::None: return "ShaderDataType::NONE";
-				case ShaderDataType::Float: return "ShaderDataType::Float";
-				case ShaderDataType::Float2: return "ShaderDataType::Float2";
-				case ShaderDataType::Float3: return "ShaderDataType::Float3";
-				case ShaderDataType::Float4: return "ShaderDataType::Float4";
-				case ShaderDataType::Mat3: return "ShaderDataType::Mat3";
-				case ShaderDataType::Mat4: return "ShaderDataType::Mat4";
-				case ShaderDataType::Int: return "ShaderDataType::Int";
-				case ShaderDataType::Int2: return "ShaderDataType::Int2";
-				case ShaderDataType::Int3: return "ShaderDataType::Int3";
-				case ShaderDataType::Int4: return "ShaderDataType::Int4";
-				case ShaderDataType::UInt: return "ShaderDataType::UInt";
-				case ShaderDataType::Long: return "ShaderDataType::Long";
-				case ShaderDataType::ULong: return "ShaderDataType::ULong";
-				case ShaderDataType::Bool: return "ShaderDataType::Bool";
-				default:
-				{
-					PX_CORE_WARN("ShaderDataType not defined!");
-					return "Missing ShaderDataType!";
-				}
-
-			}
-		}
-	}
-	namespace ShaderUtility {
-
-		static uint32_t ShaderDataTypeSize(ShaderDataType type)
-		{
-			switch (type)
-			{
-				case ShaderDataType::Float:		return 4;
-				case ShaderDataType::Int:		return 4;
-				case ShaderDataType::UInt:		return 4;
-				case ShaderDataType::Float2:	return 4 * 2;
-				case ShaderDataType::Float3:	return 4 * 3;
-				case ShaderDataType::Float4:	return 4 * 4;
-				case ShaderDataType::Mat3:		return 4 * 3 * 3;
-				case ShaderDataType::Mat4:		return 4 * 4 * 4;
-				case ShaderDataType::Int2:		return 4 * 2;
-				case ShaderDataType::Int3:		return 4 * 3;
-				case ShaderDataType::Int4:		return 4 * 4;
-				case ShaderDataType::Long:		return 8;
-				case ShaderDataType::ULong:		return 8;
-				case ShaderDataType::Bool:		return 1;
-			}
-
-			PX_CORE_ASSERT(false, "No such ShaderDataType defined!");
-			return 0;
-		}
-	}
 
 	enum class ShaderResourceType
 	{
@@ -188,5 +118,87 @@ namespace Povox {
 		ShaderStage Stages;
 	};
 
+
+	struct ShaderResourceSpecification
+	{
+		std::string Name = "ShaderResource";
+		bool PerFrame = true;
+		ShaderResourceType ResourceType = ShaderResourceType::NONE;
+
+		BufferSpecification* BufferSpec = nullptr;
+		ImageSpecification* ImageSpec = nullptr;
+		//SamplerSpecification SamplerSpec{};
+	};
+
+	class ShaderResource
+	{
+	public:
+		ShaderResource(bool perFrame, const std::string& debugName);
+		virtual ~ShaderResource() = default;
+
+	protected:
+		std::string m_DebugName;
+		bool m_PerFrame;
+	};
+
+	class StorageImage : public ShaderResource
+	{
+	public:
+		StorageImage(ImageSpecification& spec, bool perFrame = true);
+		virtual ~StorageImage() = default;
+
+		void SetData(void* data, size_t size);
+		void SetData(void* data, uint32_t index, size_t size);
+		void Set(void* data, uint32_t index, const std::string& name, size_t size);
+
+
+		Ref<Image2D> GetImage(uint32_t frameIndex = 0);
+
+	private:
+		ImageFormat m_Format{};
+		ImageUsages m_Usages;
+
+		uint32_t m_Width;
+		uint32_t m_Height;
+		std::vector<Ref<Image2D>> m_Images;
+	};
+
+	class UniformBuffer : public ShaderResource
+	{
+	public:
+		UniformBuffer(const BufferLayout& layout, const std::string& name = "UniformBufferDefault", bool perFrame = true);
+		~UniformBuffer() = default;
+
+		void SetData(void* data, size_t size);
+		void Set(void* data, const std::string& name, size_t size);
+
+
+		Ref<Buffer> GetBuffer(uint32_t frameIndex = 0);
+
+	private:
+		BufferLayout m_Layout;
+
+		std::vector<Ref<Buffer>> m_Buffers;
+	};
+
+	class StorageBuffer : public ShaderResource
+	{
+	public:
+		StorageBuffer(const BufferLayout& layout, size_t count, const std::string& name = "StorageBufferDefault", bool perFrame = true);
+		~StorageBuffer() = default;
+
+		void SetData(void* data, size_t size);
+		void SetData(void* data, uint32_t index, size_t size);
+		void Set(void* data, uint32_t index, const std::string& name, size_t size);
+
+
+		Ref<Buffer> GetBuffer(uint32_t frameIndex = 0);
+
+	private:
+		BufferLayout m_Layout;
+
+		size_t m_ElementCount;
+		std::vector<Ref<Buffer>> m_Buffers;
+	};
 }
 

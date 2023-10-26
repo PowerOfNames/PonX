@@ -43,6 +43,8 @@ namespace Povox {
 
 		float m_Deltatime = 0.0f;
 
+		uint32_t m_MaxParticleDraws = 1;
+
 		bool m_GUICollapsed = false;
 		bool m_ViewportIsFocused = false, m_ViewportIsHovered = false;
 		glm::vec2 m_WindowSize = { 0.0f, 0.0f };

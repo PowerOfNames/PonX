@@ -1,6 +1,5 @@
 #pragma once
-#include "Povox/Core/Core.h"
-#include "Povox/Core/Log.h"
+#include "Povox.h"
 
 // TODO: Fix include pathing in project
 #include "../Particles/SciParticles.h"
@@ -19,12 +18,12 @@ namespace Povox {
 		void OnImGuiRender();
 
 	private:
-		void DrawParticleNode(SciParticleLayout particle);
+		void DrawParticleNode(const BufferLayout& particle);
 
 	private:
 		Povox::Ref<SciParticleSet> m_Context;
 
-		Povox::Ref<SciParticleLayout> m_SelectionContext;
+		Povox::Ref<BufferLayout> m_SelectionContext;
 	};
 
 

@@ -135,8 +135,6 @@ namespace Povox {
 		inline VkDescriptorImageInfo& GetImageInfo() { return m_DescriptorInfo; };
 		
 
-		virtual inline const bool IsShared() const { return m_Specification.Shared; };
-
 		void CreateDescriptorSet();
 		void CreateSampler();
 

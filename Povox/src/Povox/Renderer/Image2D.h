@@ -2,7 +2,6 @@
 #include "Povox/Renderer/RendererUID.h"
 #include "Povox/Renderer/Utilities.h"
 
-
 namespace Povox {
 
 	enum class ImageFormat
@@ -31,12 +30,12 @@ namespace Povox {
 		{
 			switch (format)
 			{
-			case ImageFormat::DEPTH24STENCIL8: return true;
+				case ImageFormat::DEPTH24STENCIL8: return true;
 			}
 			return false;
 		}
 
-		static uint32_t GetChannelsFormFormat(ImageFormat format)
+		static uint32_t GetChannelsFromFormat(ImageFormat format)
 		{
 			switch (format)
 			{
@@ -92,8 +91,8 @@ namespace Povox {
 
 	struct ImageSpecification
 	{
-		uint32_t Width = 0, Height = 0, ChannelCount = 4;
 		ImageFormat Format = ImageFormat::None;
+		uint32_t Width = 0, Height = 0, ChannelCount = 4;
 		MemoryUtils::MemoryUsage Memory = MemoryUtils::MemoryUsage::UNDEFINED;
 		ImageUsages Usages;
 		ImageTiling Tiling = ImageTiling::LINEAR; //check whether this is supported or not upon startup end set it then globally
@@ -101,8 +100,6 @@ namespace Povox {
 
 		bool DedicatedSampler = false;
 		bool CreateDescriptorOnInit = true;
-
-		bool Shared = false;
 
 		std::string DebugName = "Image";
 	};
@@ -122,8 +119,6 @@ namespace Povox {
 
 		virtual void* GetDescriptorSet() = 0;
 
-		virtual const bool IsShared() const = 0;
-
 		virtual uint64_t GetRendererID() const = 0;
 
 		virtual const std::string& GetDebugName() const = 0;
@@ -131,31 +126,5 @@ namespace Povox {
 		static Ref<Image2D> Create(const ImageSpecification& spec);
 		static Ref<Image2D> Create(uint32_t width, uint32_t height, uint32_t channels = 4);
 	};
-
-
-	class StorageImage
-	{
-	public:
-		StorageImage(ImageFormat format, uint32_t width, uint32_t height, const ImageUsages& usages = {ImageUsage::STORAGE}, const std::string& name = "StorageImageDefault", bool shared = false, bool perFrame = true);
-		~StorageImage() = default;
-
-		void SetData(void* data, size_t size);
-		void SetData(void* data, uint32_t index, size_t size);
-		void Set(void* data, uint32_t index, const std::string& name, size_t size);
-
-		inline const bool IsShared() const { return m_Shared; }
-
-		Ref<Image2D> GetImage(uint32_t frameIndex = 0);
-
-	private:
-		ImageFormat m_Format{};
-		ImageUsages m_Usages;
-		std::string m_DebugName;
-
-		uint32_t m_Width;
-		uint32_t m_Height;
-		bool m_PerFrame;
-		bool m_Shared;
-		std::vector<Ref<Image2D>> m_Images;
-	};
+	
 }

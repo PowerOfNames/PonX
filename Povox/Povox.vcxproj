@@ -224,7 +224,7 @@
     <ClInclude Include="src\Povox\Scene\ScriptableEntity.h" />
     <ClInclude Include="src\Povox\Utils\FileUtility.h" />
     <ClInclude Include="src\Povox\Utils\PlatformsUtils.h" />
-    <ClInclude Include="src\Povox\Utils\ShaderResources.h" />
+    <ClInclude Include="src\Povox\Utils\ShaderResource.h" />
     <ClInclude Include="src\pxpch.h" />
     <ClInclude Include="vendor\ImGuizmo\ImGuizmo.h" />
     <ClInclude Include="vendor\SPIRV-Reflect\spirv_reflect.h" />
@@ -717,6 +717,7 @@
     <ClCompile Include="src\Povox\Scene\Scene.cpp" />
     <ClCompile Include="src\Povox\Scene\SceneCamera.cpp" />
     <ClCompile Include="src\Povox\Scene\SceneSerializer.cpp" />
+    <ClCompile Include="src\Povox\Utils\ShaderResource.cpp" />
     <ClCompile Include="src\pxpch.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>

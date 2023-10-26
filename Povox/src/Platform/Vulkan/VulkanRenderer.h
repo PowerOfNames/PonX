@@ -102,9 +102,7 @@ namespace Povox {
 		virtual void BindPipeline(Ref<Pipeline> pipeline) override;
 
 		// Compute
-		virtual void BeginComputePass(Ref<ComputePass> computePass) override;
 		virtual void DispatchCompute(Ref<ComputePass> computePass) override;
-		virtual void EndComputePass() override;
 
 		// GUI
 		virtual void BeginGUIRenderPass() override;

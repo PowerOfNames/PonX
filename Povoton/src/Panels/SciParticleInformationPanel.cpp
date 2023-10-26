@@ -50,7 +50,7 @@ namespace Povox {
 // 		ImGui::End();
 	}
 
-	void SciParticleInformationPanel::DrawParticleNode(SciParticleLayout particle)
+	void SciParticleInformationPanel::DrawParticleNode(const BufferLayout& particle)
 	{
 // 		auto& tag = entity.GetComponent<TagComponent>().Tag;
 // 		ImGuiTreeNodeFlags flags = ((m_SelectionContext == entity) ? ImGuiTreeNodeFlags_Selected : 0) | ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_SpanAvailWidth;

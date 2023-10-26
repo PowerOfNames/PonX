@@ -1,6 +1,7 @@
 #pragma once
-#include "Povox/Core/Core.h"
-#include "Povox/Core/UUID.h"
+#include "Povox.h"
+
+
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -11,71 +12,48 @@
 
 namespace Povox {
 
-	// Maybe temp
-	struct SciParticle
+	struct SciParticleSetSpecification
 	{
-		//Base -> Position in 3D and Radius
-		glm::vec4 SpatialXYZR = glm::vec4(1.0f);
+		const uint64_t MaxParticleCount = 10000;
+		BufferLayout ParticleLayout;
 
-		//Properties -> Just color for now
-		glm::vec3 Color = glm::vec3(1.0f);
-
-		//Optional
-		uint64_t UID = Povox::UUID();
-	};
-	
-	// TODO: create Particle from layout. PArticle is just an array of byte data. 
-	//       Layout is description of the byte array -> contains the offsets to the set parameters in bytes
-	struct SciParticleLayout
-	{
-		SciParticle BaseParicle{};
-
-
-
-	};
-
-	
-
-
-	struct SciParticleSetProperties
-	{
-		uint64_t ParticleCount = 0;
+		bool RandomGeneration = false;
+		std::string DebugName = "SciParticleSet";
 	};
 
 	class SciParticleSet
 	{
 	public:
-		SciParticleSet(const std::string& debugName = "ParticleDataSet_Debug");
+		SciParticleSet(const SciParticleSetSpecification& specs);
 		~SciParticleSet();
 
-		bool LoadSet(const std::string& path);
+		void OnUpdate(uint32_t deltaTime);
 
-		void SetLayout(const SciParticleLayout& layout) { m_Layout = layout; }
-		SciParticleLayout GetLayout() { return m_Layout; }
-		const SciParticleLayout& GetLayout() const { return m_Layout; }
+		//bool LoadSet(const std::string& path);
 
-		/**
-		 * Adds a particle of layout to the set. Layout must match the layout of this set.
-		 * Returns the uuid of the new particle.
-		 */
-		uint64_t AddParticle(const SciParticleLayout& particle);
+		inline Povox::Ref<Povox::StorageBuffer> GetDataBuffer() { return m_Data; }
+		inline const Povox::Ref<Povox::StorageBuffer>& GetDataBuffer() const { return m_Data; }
 
-		/**
-		 * Tries to remove the particle of uuid form the set.
-		 */
-		void RemoveParticle(long uuid);
+		inline BufferLayout GetLayout() { return m_Specification.ParticleLayout; }
+		inline const BufferLayout& GetLayout() const { return m_Specification.ParticleLayout; }
 
-		inline const SciParticleSetProperties& GetProperties() const { return m_Properties; }
+		inline uint64_t GetMaxParticleCount() { return m_Specification.MaxParticleCount; }
+		inline uint64_t GetParticleCount() { return m_ParticleCount; }
+		inline uint32_t GetMaxSize() { return m_Specification.MaxParticleCount * m_Specification.ParticleLayout.GetStride(); }
+		inline uint32_t GetSize() { return m_Size; }
 
-		static Povox::Ref<SciParticleSet> CreateCustomSet(uint64_t particleCount, const SciParticleLayout& layout, long rngSeed, const std::string& debugName = "CustomParticleSet_Debug");
+		
+		inline const SciParticleSetSpecification& GetSpecifications() const { return m_Specification; }
 
 	private:
-		SciParticleSetProperties m_Properties{};
-		SciParticleLayout m_Layout{};
+		SciParticleSetSpecification m_Specification{};
 
-		//char m_Data[];
+		uint64_t m_ParticleCount = 0;
+		uint32_t m_Size = 0;
 
-		std::string m_DebugName = "ParticleDataSet_Debug";
+
+		Povox::Ref<Povox::StorageBuffer> m_Data = nullptr;
+
 	};
 }
 

@@ -14,8 +14,7 @@ namespace Povox {
 	{
 		VkBuffer Buffer = VK_NULL_HANDLE;
 		VmaAllocation Allocation = nullptr;
-	};
-	
+	};	
 
 	class VulkanBuffer : public Buffer
 	{

@@ -10,7 +10,7 @@
 #include "Povox/Systems/ShaderResourceSystem.h"
 #include "Povox/Systems/TextureSystem.h"
 
-#include "Povox/Utils/ShaderResources.h"
+#include "Povox/Utils/ShaderResource.h"
 
 #include <glm/glm.hpp>
 
@@ -161,9 +161,7 @@ namespace Povox {
 		static void BindPipeline(Ref<Pipeline> pipeline);
 
 		// Compute
-		static void BeginComputePass(Ref<ComputePass> computePass);
 		static void DispatchCompute(Ref<ComputePass> computePass);
-		static void EndComputePass();
 
 		// Gui
 		static void BeginGUIRenderPass();

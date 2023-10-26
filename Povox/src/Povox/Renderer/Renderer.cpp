@@ -135,9 +135,7 @@ namespace Povox {
 	void Renderer::BindPipeline(Ref<Pipeline> pipeline) { s_RendererAPI->BindPipeline(pipeline); }
 	
 	// Compute
-	void Renderer::BeginComputePass(Ref<ComputePass> computePass) { s_RendererAPI->BeginComputePass(computePass); }
 	void Renderer::DispatchCompute(Ref<ComputePass> computePass) { s_RendererAPI->DispatchCompute(computePass); }
-	void Renderer::EndComputePass() { s_RendererAPI->EndComputePass(); }
 
 	// GUI
 	void Renderer::BeginGUIRenderPass() { s_RendererAPI->BeginGUIRenderPass(); }

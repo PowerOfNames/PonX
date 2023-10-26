@@ -2,9 +2,7 @@
 #include "Povox/Renderer/Renderer.h"
 #include "Povox/Renderer/Shader.h"
 
-
 #include "Platform/Vulkan/VulkanShader.h"
-
 
 
 namespace Povox {

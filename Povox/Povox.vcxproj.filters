@@ -1625,7 +1625,7 @@
     </ClInclude>
     <ClInclude Include="src\Povox\Systems\ShaderResourceSystem.h" />
     <ClInclude Include="src\Platform\Vulkan\VulkanShaderResourceSystem.h" />
-    <ClInclude Include="src\Povox\Utils\ShaderResources.h" />
+    <ClInclude Include="src\Povox\Utils\ShaderResource.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Platform\OpenGL\OpenGLContext.cpp">
@@ -1903,5 +1903,6 @@
     </ClCompile>
     <ClCompile Include="src\Povox\Systems\ShaderResourceSystem.cpp" />
     <ClCompile Include="src\Platform\Vulkan\VulkanShaderResourceSystem.cpp" />
+    <ClCompile Include="src\Povox\Utils\ShaderResource.cpp" />
   </ItemGroup>
 </Project>

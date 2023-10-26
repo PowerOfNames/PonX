@@ -4,7 +4,7 @@
 #include "Platform/Vulkan/VulkanRenderPass.h"
 
 #include "Povox/Renderer/Renderer.h"
-#include "Povox/Utils/ShaderResources.h"
+#include "Povox/Utils/ShaderResource.h"
 
 namespace Povox {
 

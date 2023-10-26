@@ -3,7 +3,6 @@
 #include "Povox/Renderer/Utilities.h"
 
 #include "Povox/Renderer/Shader.h"
-#include "Povox/Utils/ShaderResources.h"
 
 namespace Povox {
 
@@ -150,52 +149,4 @@ namespace Povox {
 
 		virtual bool operator==(const Buffer& other) const = 0;
 	};
-
-	class UniformBuffer
-	{
-	public:
-		UniformBuffer(const BufferLayout& layout, const std::string& name = "UniformBufferDefault", bool shared = false, bool perFrame = true);
-		~UniformBuffer() = default;
-
-		void SetData(void* data, size_t size);
-		void Set(void* data, const std::string& name, size_t size);
-
-		inline const bool IsShared() const { return m_Shared; }
-
-		Ref<Buffer> GetBuffer(uint32_t frameIndex = 0);
-
-	private:
-		BufferLayout m_Layout;
-		std::string m_DebugName;
-		bool m_PerFrame;
-		bool m_Shared;
-		std::vector<Ref<Buffer>> m_Buffers;
-	};
-
-	class StorageBuffer
-	{
-	public:
-		StorageBuffer(const BufferLayout& layout, size_t count, const std::string& name = "StorageBufferDefault", bool shared = false, bool perFrame = true);
-		~StorageBuffer() = default;
-
-		void SetData(void* data, size_t size);
-		void SetData(void* data, uint32_t index, size_t size);
-		void Set(void* data, uint32_t index, const std::string& name, size_t size);
-
-
-		inline const bool IsShared() const { return m_Shared; }
-
-		Ref<Buffer> GetBuffer(uint32_t frameIndex = 0);
-
-	private:
-		BufferLayout m_Layout;
-		std::string m_DebugName;
-
-		size_t m_ElementCount;
-		bool m_PerFrame;
-		bool m_Shared;
-		std::vector<Ref<Buffer>> m_Buffers;
-	};
-
-
 }

@@ -27,20 +27,31 @@ namespace Povox {
 
         //m_EditorCamera = Povox::EditorCamera(90.0f, (m_ViewportSize.x / m_ViewportSize.y * 1.0f), 0.1f, 1000.0f);
 		PX_INFO("Camera Aspect Ratio: {}", (m_ViewportSize.x / m_ViewportSize.y * 1.0f));
-
-
+		
+		{
+			SciParticleSetSpecification specs{};
+			specs.ParticleLayout = {
+				{ Povox::ShaderDataType::Float4, "PositionRadius" },
+				{ Povox::ShaderDataType::Float4, "Velocity" },
+				{ Povox::ShaderDataType::Float4, "Color" },
+				{ Povox::ShaderDataType::ULong, "ID" },
+				{ Povox::ShaderDataType::ULong, "IDPad" } };
+			specs.RandomGeneration = true;
+			specs.DebugName = "ParticleTestSet";
+			m_ActiveParticleSet = Povox::CreateRef<SciParticleSet>(specs);
+		}
+		m_ParticleInformationPanel.SetContext(m_ActiveParticleSet);	
+		
 		{
 			SciParticleRendererSpecification specs{};
 			specs.ViewportWidth = m_ViewportSize.x;
 			specs.ViewportHeight = m_ViewportSize.y;
-
+			specs.ParticleSet = m_ActiveParticleSet;
 			m_SciRenderer = Povox::CreateRef<SciParticleRenderer>(specs);
 			m_SciRenderer->Init();
 		}
 
-		m_ActiveParticleSet = Povox::CreateRef<SciParticleSet>();
 
-		m_ParticleInformationPanel.SetContext(m_ActiveParticleSet);
     }
 
 
@@ -81,11 +92,13 @@ namespace Povox {
 		m_SciRenderer->ResetStatistics();
 		
 		// Update particles
-		//m_ActiveParticleSet->OnUpdate(deltatime);
+		m_ActiveParticleSet->OnUpdate(deltatime);
 
 		m_SciRenderer->OnUpdate(deltatime);
 		m_SciRenderer->Begin(m_PerspectiveController.GetCamera());
-		m_SciRenderer->DrawParticleSet(m_ActiveParticleSet);
+
+		m_SciRenderer->DrawParticleSet(m_ActiveParticleSet, m_MaxParticleDraws);
+
 		m_SciRenderer->End();
 
 
@@ -114,9 +127,9 @@ namespace Povox {
 		}
     }
 
-    void SciSimLayer::OnImGuiRender()
-    {
-        PX_PROFILE_FUNCTION();
+	void SciSimLayer::OnImGuiRender()
+	{
+		PX_PROFILE_FUNCTION();
 
 		//PX_TRACE("SciSimLayer::OnImguiRender Started!");
 		static bool dockspaceOpen = true;
@@ -201,15 +214,15 @@ namespace Povox {
 		// Renderer Stats
 		//auto stats = m_ActiveScene->GetStats();
 
-		
+
 
 		if (!m_GUICollapsed)
 		{
 			ImGui::Begin(" Stats ", &m_GUICollapsed);
-// 			ImGui::Text("DrawCalls: %d", stats.DrawCalls);
-// 			ImGui::Text("Quads: %d", stats.QuadCount);
-// 			ImGui::Text("Vertices: %d", stats.GetTotalVertexCount());
-// 			ImGui::Text("Indices: %d", stats.GetTotalIndexCount());
+			// 			ImGui::Text("DrawCalls: %d", stats.DrawCalls);
+			// 			ImGui::Text("Quads: %d", stats.QuadCount);
+			// 			ImGui::Text("Vertices: %d", stats.GetTotalVertexCount());
+			// 			ImGui::Text("Indices: %d", stats.GetTotalIndexCount());
 			ImGui::Text("Deltatime: %f", m_Deltatime);
 			ImGui::Separator();
 
@@ -238,11 +251,11 @@ namespace Povox {
 			ImGui::End(); // Renderer Stats
 
 
-			ImGui::Begin("Test Tab");
+			/*ImGui::Begin("Test Tab");
 			ImGui::Checkbox("Demo ImGui", &m_DemoActive);
 			if (m_DemoActive)
 				ImGui::ShowDemoWindow();
-			ImGui::End();
+			ImGui::End();*/
 
 			ImGui::Begin("Editor Camera");
 			glm::vec3 cameraPos = m_PerspectiveController.GetCamera().GetPosition();
@@ -277,11 +290,11 @@ namespace Povox {
 
 		m_ViewportIsFocused = ImGui::IsWindowFocused();
 		m_ViewportIsHovered = ImGui::IsWindowHovered();
-		Povox::Application::Get()->GetImGuiVulkanLayer()->BlockEvents(!m_ViewportIsFocused || !m_ViewportIsHovered);
+		Povox::Application::Get()->GetImGuiVulkanLayer()->BlockEvents(!m_ViewportIsFocused/* || !m_ViewportIsHovered*/);
 		ImGui::GetWindowSize();
 
 		ImGui::GetForegroundDrawList()->AddRect(
-			ImVec2(viewportMinRegion.x + viewPortOffset.x, viewportMinRegion.y + viewPortOffset.y), 
+			ImVec2(viewportMinRegion.x + viewPortOffset.x, viewportMinRegion.y + viewPortOffset.y),
 			ImVec2(viewportMaxRegion.x + viewPortOffset.x, viewportMaxRegion.y + viewPortOffset.y), IM_COL32(255, 0, 0, 255));
 
 		ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail();
@@ -304,6 +317,10 @@ namespace Povox {
 		//Viewport
 		ImGui::End();
 		ImGui::PopStyleVar();
+
+		ImGui::Begin("ParticleRenderingControl");
+		ImGui::DragInt("MaxParticleDraws", (int*)&m_MaxParticleDraws, 1, 0, 10000);
+		ImGui::End();
 		
     }
 // /*
@@ -469,6 +486,8 @@ namespace Povox {
                     CloseApp();
                     break;
                 }
+				else
+					ImGui::SetWindowFocus();
             }
         }
     }

@@ -4,8 +4,9 @@
 #include "Platform/Vulkan/VulkanContext.h"
 #include "Platform/Vulkan/VulkanDebug.h"
 
-#include "Povox/Utils/FileUtility.h"
 #include "Povox/Core/Time.h"
+#include "Povox/Utils/FileUtility.h"
+#include "Povox/Utils/ShaderResource.h"
 
 #include <cstdint>
 #include <fstream>

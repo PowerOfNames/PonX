@@ -55,17 +55,13 @@ namespace Povox {
 			PX_CORE_WARN("Renderpass {}, UniformBuffer {} already bound to map!", m_Specification.DebugName, name);
 
 		m_UniformBuffers[name] = resource;
-		if (resource->IsShared())
-			m_SharedResources.push_back(name);
 	}
 	void VulkanRenderPass::BindResource(const std::string& name, Ref<StorageBuffer> resource)
 	{
 		if (m_StorageBuffers.find(name) != m_StorageBuffers.end())
-			PX_CORE_WARN("Renderpass {}, StroageBuffer {} already bound to map!", m_Specification.DebugName, name);
+			PX_CORE_WARN("Renderpass {}, StorageBuffer {} already bound to map!", m_Specification.DebugName, name);
 
 		m_StorageBuffers[name] = resource;
-		if (resource->IsShared())
-			m_SharedResources.push_back(name);
 	}
 	void VulkanRenderPass::BindResource(const std::string& name, Ref<StorageImage> resource)
 	{
@@ -73,8 +69,6 @@ namespace Povox {
 			PX_CORE_WARN("Renderpass {}, StorageImage {} already bound to map!", m_Specification.DebugName, name);
 
 		m_StorageImages[name] = resource;
-		if (resource->IsShared())
-			m_SharedResources.push_back(name);
 	}
 	void VulkanRenderPass::BindResource(const std::string& name, Ref<Image2D> resource)
 	{
@@ -82,8 +76,6 @@ namespace Povox {
 			PX_CORE_WARN("Renderpass {}, Image2D {} already bound to map!", m_Specification.DebugName, name);
 
 		m_Images[name] = resource;
-		if (resource->IsShared())
-			m_SharedResources.push_back(name);
 	}
 
 	void VulkanRenderPass::Bake()
@@ -279,7 +271,6 @@ namespace Povox {
 	void VulkanComputePass::Recreate()
 	{
 	}
-
 	
 
 	void VulkanComputePass::BindResource(const std::string& name, Ref<UniformBuffer> resource)
@@ -288,8 +279,6 @@ namespace Povox {
 			PX_CORE_WARN("Renderpass {}, UniformBuffer {} already bound to map!", m_Specification.DebugName, name);
 
 		m_UniformBuffers[name] = resource;
-		if (resource->IsShared())
-			m_SharedResources.push_back(name);
 	}
 	void VulkanComputePass::BindResource(const std::string& name, Ref<StorageBuffer> resource)
 	{
@@ -297,8 +286,6 @@ namespace Povox {
 			PX_CORE_WARN("Renderpass {}, StroageBuffer {} already bound to map!", m_Specification.DebugName, name);
 
 		m_StorageBuffers[name] = resource;
-		if (resource->IsShared())
-			m_SharedResources.push_back(name);
 	}
 	void VulkanComputePass::BindResource(const std::string& name, Ref<StorageImage> resource)
 	{
@@ -306,8 +293,6 @@ namespace Povox {
 			PX_CORE_WARN("Renderpass {}, StorageImage {} already bound to map!", m_Specification.DebugName, name);
 
 		m_StorageImages[name] = resource;
-		if (resource->IsShared())
-			m_SharedResources.push_back(name);
 	}
 	void VulkanComputePass::BindResource(const std::string& name, Ref<Image2D> resource)
 	{
@@ -315,8 +300,6 @@ namespace Povox {
 			PX_CORE_WARN("Renderpass {}, Image2D {} already bound to map!", m_Specification.DebugName, name);
 
 		m_Images[name] = resource;
-		if (resource->IsShared())
-			m_SharedResources.push_back(name);
 	}
 
 	void VulkanComputePass::Bake()

@@ -821,21 +821,12 @@ namespace Povox {
 	}
 
 	// Compute
-
-	/**
-	 * This also start the ComputeCommandBuffer of the current frame! This function should always be called AFTER PrepareComputeFrame has been called,
-	 * which also resets the currents frame ComputeCommandBuffer.
-	 */
-	void VulkanRenderer::BeginComputePass(Ref<ComputePass> computePass)
-	{
-		
-	}
-
 	void VulkanRenderer::DispatchCompute(Ref<ComputePass> computePass)
 	{
 		PX_PROFILE_FUNCTION();
 
-		m_ActiveComputePass = std::static_pointer_cast<VulkanComputePass>(computePass);
+		Ref<VulkanComputePass> vkComputePass = std::static_pointer_cast<VulkanComputePass>(computePass);
+		m_ActiveComputePass = vkComputePass;
 		VkCommandBuffer computeCmd = GetCurrentFrame().Commands.ComputeBuffer;
 		m_SwapchainFrame->Commands.push_back(computeCmd);
 
@@ -845,11 +836,10 @@ namespace Povox {
 
 		beginInfo.flags = 0;
 		beginInfo.pInheritanceInfo = nullptr;
-
 		PX_CORE_VK_ASSERT(vkBeginCommandBuffer(computeCmd, &beginInfo), VK_SUCCESS, "Failed to end ComputeCommandbuffer!");
 
 		
-		Ref<VulkanComputePass> vkComputePass = std::static_pointer_cast<VulkanComputePass>(computePass);
+		
 		auto& passSpecs = vkComputePass->GetSpecification();
 		Ref<VulkanComputePipeline> vkComputePipeline = std::dynamic_pointer_cast<VulkanComputePipeline>(passSpecs.Pipeline);
 
@@ -884,11 +874,6 @@ namespace Povox {
 
 
 		PX_CORE_VK_ASSERT(vkEndCommandBuffer(computeCmd), VK_SUCCESS, "Failed to end ComputeCommandbuffer!");
-	}
-
-	void VulkanRenderer::EndComputePass()
-	{
-		
 	}
 
 	// GUI

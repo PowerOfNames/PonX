@@ -1,62 +1,60 @@
 #include "SciParticles.h"
+#include "Povox.h"
 
+#include <glm/gtc/random.hpp>
 
 namespace Povox {
-
 
 	/**
 	 * Constructor creating an empty ParticleDataSet.
 	 */
-	SciParticleSet::SciParticleSet(const std::string& debugName /*= "ParticleDataSet_Debug"*/)
-		: m_DebugName(debugName)
+	SciParticleSet::SciParticleSet(const SciParticleSetSpecification& specs)
+		: m_Specification(specs)
 	{
+		PX_PROFILE_FUNCTION();
 
+				
+		m_Data = Povox::CreateRef<Povox::StorageBuffer>(specs.ParticleLayout, specs.MaxParticleCount, specs.DebugName, false);
+
+		if (specs.RandomGeneration)
+		{
+			ParticleUniform* buffer = new ParticleUniform[specs.MaxParticleCount];
+			for (uint64_t i = 0; i < specs.MaxParticleCount; i++)
+			{
+				buffer[i].PositionRadius = glm::linearRand(glm::vec4(-5.0f, -5.0f, -5.0f, 0.1f), glm::vec4(5.0f, 5.0f, 4.0f, 2.0f));
+				buffer[i].Color = glm::linearRand(glm::vec4(0.0f, 0.0f, 0.0f, 1.0f), glm::vec4(1.0f));
+				buffer[i].Velocity = glm::vec4(1.0f);
+				buffer[i].ID = UUID();
+				buffer[i].IDPad = 0;
+			}
+			m_Size = specs.MaxParticleCount * sizeof(ParticleUniform);
+			m_ParticleCount = specs.MaxParticleCount;
+			m_Data->SetData((void*)buffer, m_Size);
+
+			delete[] buffer;
+		}
 	}
 
 
 	SciParticleSet::~SciParticleSet()
 	{
-		//delete[] m_Data;
+		
 	}
 
 
-	bool SciParticleSet::LoadSet(const std::string& path)
+	void SciParticleSet::OnUpdate(uint32_t deltaTime)
+	{
+		PX_ASSERT(m_Data, "The particle buffer hasn't been set!");
+
+
+		/*
+		*  Do particle updating here, e.g. generating all particle position deltas, remove or add particles according to life cycle (not implemented...)...
+		*/
+	}
+
+	/*bool SciParticleSet::LoadSet(const std::string& path)
 	{
 		return false;
-	}
-
-
-	uint64_t SciParticleSet::AddParticle(const SciParticleLayout& particle)
-	{
-		// TODO: add layout
-
-		m_Properties.ParticleCount++;
-		return 0;
-	}
-
-
-	void SciParticleSet::RemoveParticle(long uuid)
-	{
-		// TODO: find particle in m_Data and remove it
-
-		m_Properties.ParticleCount--;
-	}
-
-	Povox::Ref<SciParticleSet> SciParticleSet::CreateCustomSet(uint64_t particleCount, const SciParticleLayout& layout, long rngSeed, const std::string& debugName /*= "CustomParticleSet_Debug"*/)
-	{
-		Povox::Ref<SciParticleSet> set = Povox::CreateRef<SciParticleSet>(debugName);
-		//set->SetLayout(layout);
-
-		// TODO: fill ste here with random particles using the seed -> reproduceability
-		for (size_t i = 0; i < particleCount; i++)
-		{
-
-
-			set->AddParticle(layout);
-		}
-
-
-		return set;
-	}
+	}*/
 
 }

@@ -49,8 +49,8 @@ layout(set = 0, binding = 1) uniform RayMarchingData
 
 struct Particle {
     vec4 PositionRadius;
-    vec3 Velocity;
-    vec3 Color;
+    vec4 Velocity;
+    vec4 Color;
     uint64_t ID;
     uint64_t IDPad;
 };
@@ -116,37 +116,34 @@ const vec3 LIGHT = vec3(0.0, 5.0, 0.0);
 
 vec3 RayMarch(in Ray currentRay)
 {
-	Particle firstParticle = ssbo_ParticlesIn.particles[0];
-	Particle secondParticle = ssbo_ParticlesIn.particles[1];
 	Particle nearestParticle;
-	float totalDistanceTraveled = 0.0f;
+	float shortestDist = 10000.0;
+	float totalDistanceTraveled = 0.0;
 	for(int i = 0; i < MAX_STEPS; i++)
 	{
-		float stepSize0 = SphereSDF(currentRay.Position, firstParticle.PositionRadius.xyz, firstParticle.PositionRadius.w);
-		float stepSize1 = SphereSDF(currentRay.Position, secondParticle.PositionRadius.xyz, secondParticle.PositionRadius.w);
-		float stepSize;
-		if(stepSize0 > -stepSize1)
+		for(int particleID = 0; particleID < u_RayMarching.ParticleCount; particleID++)
 		{
-			stepSize = stepSize0;
-			nearestParticle = firstParticle;
-		}
-		else
-		{
-			stepSize = -stepSize1;
-			nearestParticle = secondParticle;
-		}
+			Particle currentParticle = ssbo_ParticlesIn.particles[particleID];
+			float currentDist = SphereSDF(currentRay.Position, currentParticle.PositionRadius.xyz, currentParticle.PositionRadius.w);
+			
+			if(currentDist < shortestDist)
+			{
+				shortestDist = currentDist;
+				nearestParticle = currentParticle;
 
-		if(stepSize <= HIT_DISTANCE)
-		{
-			vec3 normal = CalculateSurfaceNormal(currentRay.Position, nearestParticle.PositionRadius);
-			return Phongg(currentRay.Direction, currentRay.Position, LIGHT, normal, vec4(u_RayMarching.BackgroundColor.rgb, 1.0), SPECULAR, vec4(nearestParticle.Color, 0.3));			
-		}
+				if(currentDist <= HIT_DISTANCE)
+				{
+					vec3 normal = CalculateSurfaceNormal(currentRay.Position, nearestParticle.PositionRadius);
+					return Phongg(currentRay.Direction, currentRay.Position, LIGHT, normal, vec4(u_RayMarching.BackgroundColor.rgb, 1.0), SPECULAR, vec4(nearestParticle.Color.rgb, 0.3));			
+				}
+			}
+		}	
 		
-		totalDistanceTraveled += stepSize;
+		totalDistanceTraveled += shortestDist;
 		if(totalDistanceTraveled > MAX_DISTANCE)
 			break;
 		
-		currentRay.Position = currentRay.Position + currentRay.Direction * stepSize;
+		currentRay.Position = currentRay.Position + currentRay.Direction * shortestDist;
 	}
 
 	return u_RayMarching.BackgroundColor.rgb;

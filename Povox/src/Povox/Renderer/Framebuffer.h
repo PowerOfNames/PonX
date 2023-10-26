@@ -3,26 +3,24 @@
 
 namespace Povox {
 
-	struct FramebufferImageSpecification
+	struct FramebufferAttachmentSpecification
 	{
-		/*FramebufferImageSpecification() = default;
-		FramebufferImageSpecification(ImageFormat format)
-			: Format(format) {}*/
-
 		ImageFormat Format = ImageFormat::None;
 		MemoryUtils::MemoryUsage Memory = MemoryUtils::MemoryUsage::GPU_ONLY;
 		ImageTiling Tiling = ImageTiling::LINEAR;
 		std::vector<ImageUsage> Usages = { ImageUsage::COLOR_ATTACHMENT };
-		// TODO: Filtering/wrapping
+
+
+		// TODO: Filtering/wrapping to choose or create right sampler
 	};
 
-	struct FramebufferAttachmentSpecification
+	struct FramebufferAttachments
 	{
-		FramebufferAttachmentSpecification() = default;
-		FramebufferAttachmentSpecification(std::initializer_list<FramebufferImageSpecification> attachments)
+		FramebufferAttachments() = default;
+		FramebufferAttachments(std::initializer_list<FramebufferAttachmentSpecification> attachments)
 			: Attachments(attachments) {}
 		
-		std::vector<FramebufferImageSpecification> Attachments;
+		std::vector<FramebufferAttachmentSpecification> Attachments;
 	};
 
 	class Framebuffer;
@@ -34,7 +32,7 @@ namespace Povox {
 			float X = 1.0f;
 			float Y = 1.0f;
 		} Scale;
-		FramebufferAttachmentSpecification Attachments;
+		FramebufferAttachments Attachments;
 		uint32_t ColorAttachmentCount = 0;
 		bool HasDepthAttachment = false;
 

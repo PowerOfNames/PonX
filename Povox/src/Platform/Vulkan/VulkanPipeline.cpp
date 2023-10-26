@@ -117,19 +117,18 @@ namespace Povox {
 	void VulkanPipeline::Free()
 	{
 		VulkanContext::SubmitResourceFree([=]() {
-
 			VkDevice device = VulkanContext::GetDevice()->GetVulkanDevice();
-		if (m_Layout)
-		{
-			vkDestroyPipelineLayout(device, m_Layout, nullptr);
-			m_Layout = VK_NULL_HANDLE;
-		}
-		if (m_Pipeline)
-		{
-			vkDestroyPipeline(device, m_Pipeline, nullptr);
-			m_Pipeline = VK_NULL_HANDLE;
-		}
-			});
+			if (m_Layout)
+			{
+				vkDestroyPipelineLayout(device, m_Layout, nullptr);
+				m_Layout = VK_NULL_HANDLE;
+			}
+			if (m_Pipeline)
+			{
+				vkDestroyPipeline(device, m_Pipeline, nullptr);
+				m_Pipeline = VK_NULL_HANDLE;
+			}
+		});
 
 	}
 

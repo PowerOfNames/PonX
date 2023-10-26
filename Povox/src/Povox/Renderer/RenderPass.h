@@ -1,7 +1,7 @@
 #pragma once
 #include "Povox/Core/Core.h"
 
-#include "Povox/Utils/ShaderResources.h"
+#include "Povox/Utils/ShaderResource.h"
 
 namespace Povox {
 
