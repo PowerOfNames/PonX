@@ -49,34 +49,23 @@ namespace Povox {
 		PX_CORE_INFO("VulkanRenderpass::Recreate: Recreated Renderpass with AttachmentExtent of '{0}, {1}'", width, height);		
 	}
 
-	void VulkanRenderPass::BindResource(const std::string& name, Ref<UniformBuffer> resource)
+	void VulkanRenderPass::BindInput(const std::string& name, Ref<ShaderResource> resource)
 	{
-		if (m_UniformBuffers.find(name) != m_UniformBuffers.end())
-			PX_CORE_WARN("Renderpass {}, UniformBuffer {} already bound to map!", m_Specification.DebugName, name);
+		if (m_BoundResources.find(name) != m_BoundResources.end())
+			PX_CORE_WARN("Renderpass {}, ShaderResource {} already bound to map!", m_Specification.DebugName, name);
 
-		m_UniformBuffers[name] = resource;
+		m_BoundResources[name] = resource;
+		m_Inputs.push_back(name);
 	}
-	void VulkanRenderPass::BindResource(const std::string& name, Ref<StorageBuffer> resource)
+
+	void VulkanRenderPass::BindOutput(const std::string& name, Ref<ShaderResource> resource)
 	{
-		if (m_StorageBuffers.find(name) != m_StorageBuffers.end())
-			PX_CORE_WARN("Renderpass {}, StorageBuffer {} already bound to map!", m_Specification.DebugName, name);
+		if (m_BoundResources.find(name) != m_BoundResources.end())
+			PX_CORE_WARN("Renderpass {}, ShaderResource {} already bound to map!", m_Specification.DebugName, name);
 
-		m_StorageBuffers[name] = resource;
-	}
-	void VulkanRenderPass::BindResource(const std::string& name, Ref<StorageImage> resource)
-	{
-		if (m_StorageImages.find(name) != m_StorageImages.end())
-			PX_CORE_WARN("Renderpass {}, StorageImage {} already bound to map!", m_Specification.DebugName, name);
-
-		m_StorageImages[name] = resource;
-	}
-	void VulkanRenderPass::BindResource(const std::string& name, Ref<Image2D> resource)
-	{
-		if (m_Images.find(name) != m_Images.end())
-			PX_CORE_WARN("Renderpass {}, Image2D {} already bound to map!", m_Specification.DebugName, name);
-
-		m_Images[name] = resource;
-	}
+		m_BoundResources[name] = resource;
+		m_Outputs.push_back(name);
+	}	
 
 	void VulkanRenderPass::Bake()
 	{
@@ -86,7 +75,7 @@ namespace Povox {
 		uint32_t framesInFlight = Application::Get()->GetSpecification().MaxFramesInFlight;
 		writes.reserve(m_AllShaderResourceDescs.size() * framesInFlight);
 
-
+		// TODO: Check during Validation, if the name coming from renderpass creation and from shader are connected to the same ResourceType -> no name doubling, insure correct type casting
 		for (const auto [name, description] : m_AllShaderResourceDescs)
 		{
 			ShaderResourceType type = description->ResourceType;
@@ -123,7 +112,7 @@ namespace Povox {
 					write.dstBinding = description->Binding;
 					for (uint32_t frame = 0; frame < framesInFlight; frame++)
 					{
-						write.pImageInfo = &((std::dynamic_pointer_cast<VulkanImage2D>(m_StorageImages.at(name)->GetImage(frame)))->GetImageInfo());
+						write.pImageInfo = &((std::dynamic_pointer_cast<VulkanImage2D>(std::dynamic_pointer_cast<StorageImage>(m_BoundResources.at(name))->GetImage(frame)))->GetImageInfo());
 						write.dstSet = m_DescriptorSets.at(description->Set).Sets[frame];
 						writes.push_back(write);
 					}
@@ -150,7 +139,7 @@ namespace Povox {
 					write.dstBinding = description->Binding;
 					for (uint32_t frame = 0; frame < framesInFlight; frame++)
 					{
-						write.pBufferInfo = &((std::dynamic_pointer_cast<VulkanBuffer>(m_UniformBuffers.at(name)->GetBuffer(frame)))->GetBufferInfo());
+						write.pBufferInfo = &((std::dynamic_pointer_cast<VulkanBuffer>(std::dynamic_pointer_cast<UniformBuffer>(m_BoundResources.at(name))->GetBuffer(frame)))->GetBufferInfo());
 						write.dstSet = m_DescriptorSets.at(description->Set).Sets[frame];
 						writes.push_back(write);
 					}
@@ -167,7 +156,8 @@ namespace Povox {
 
 					for (uint32_t frame = 0; frame < framesInFlight; frame++)
 					{
-						write.pBufferInfo = &((std::dynamic_pointer_cast<VulkanBuffer>(m_StorageBuffers.at(name)->GetBuffer(frame)))->GetBufferInfo());
+						write.pBufferInfo = &((std::dynamic_pointer_cast<VulkanBuffer>(std::dynamic_pointer_cast<StorageBuffer>(m_BoundResources.at(name))->GetBuffer(frame)))->GetBufferInfo());
+
 						write.dstSet = m_DescriptorSets.at(description->Set).Sets[frame];
 						writes.push_back(write);
 					}
@@ -273,33 +263,22 @@ namespace Povox {
 	}
 	
 
-	void VulkanComputePass::BindResource(const std::string& name, Ref<UniformBuffer> resource)
+	void VulkanComputePass::BindInput(const std::string& name, Ref<ShaderResource> resource)
 	{
-		if (m_UniformBuffers.find(name) != m_UniformBuffers.end())
-			PX_CORE_WARN("Renderpass {}, UniformBuffer {} already bound to map!", m_Specification.DebugName, name);
+		if (m_BoundResources.find(name) != m_BoundResources.end())
+			PX_CORE_WARN("Renderpass {}, ShaderResource {} already bound to map!", m_Specification.DebugName, name);
 
-		m_UniformBuffers[name] = resource;
+		m_BoundResources[name] = resource;
+		m_Inputs.push_back(name);
 	}
-	void VulkanComputePass::BindResource(const std::string& name, Ref<StorageBuffer> resource)
-	{
-		if (m_StorageBuffers.find(name) != m_StorageBuffers.end())
-			PX_CORE_WARN("Renderpass {}, StroageBuffer {} already bound to map!", m_Specification.DebugName, name);
 
-		m_StorageBuffers[name] = resource;
-	}
-	void VulkanComputePass::BindResource(const std::string& name, Ref<StorageImage> resource)
+	void VulkanComputePass::BindOutput(const std::string& name, Ref<ShaderResource> resource)
 	{
-		if (m_StorageImages.find(name) != m_StorageImages.end())
-			PX_CORE_WARN("Renderpass {}, StorageImage {} already bound to map!", m_Specification.DebugName, name);
+		if (m_BoundResources.find(name) != m_BoundResources.end())
+			PX_CORE_WARN("Renderpass {}, ShaderResource {} already bound to map!", m_Specification.DebugName, name);
 
-		m_StorageImages[name] = resource;
-	}
-	void VulkanComputePass::BindResource(const std::string& name, Ref<Image2D> resource)
-	{
-		if (m_Images.find(name) != m_Images.end())
-			PX_CORE_WARN("Renderpass {}, Image2D {} already bound to map!", m_Specification.DebugName, name);
-
-		m_Images[name] = resource;
+		m_BoundResources[name] = resource;
+		m_Outputs.push_back(name);
 	}
 
 	void VulkanComputePass::Bake()
@@ -347,7 +326,7 @@ namespace Povox {
 					write.dstBinding = description->Binding;
 					for (uint32_t frame = 0; frame < framesInFlight; frame++)
 					{
-						write.pImageInfo = &((std::dynamic_pointer_cast<VulkanImage2D>(m_StorageImages.at(name)->GetImage(frame)))->GetImageInfo());
+						write.pImageInfo = &((std::dynamic_pointer_cast<VulkanImage2D>(std::dynamic_pointer_cast<StorageImage>(m_BoundResources.at(name))->GetImage(frame)))->GetImageInfo());
 						write.dstSet = m_DescriptorSets.at(description->Set).Sets[frame];
 						writes.push_back(write);
 					}
@@ -374,7 +353,7 @@ namespace Povox {
 					write.dstBinding = description->Binding;
 					for (uint32_t frame = 0; frame < framesInFlight; frame++)
 					{
-						write.pBufferInfo = &((std::dynamic_pointer_cast<VulkanBuffer>(m_UniformBuffers.at(name)->GetBuffer(frame)))->GetBufferInfo());
+						write.pBufferInfo = &((std::dynamic_pointer_cast<VulkanBuffer>(std::dynamic_pointer_cast<UniformBuffer>(m_BoundResources.at(name))->GetBuffer(frame)))->GetBufferInfo());
 						write.dstSet = m_DescriptorSets.at(description->Set).Sets[frame];
 						writes.push_back(write);
 					}
@@ -391,7 +370,8 @@ namespace Povox {
 
 					for (uint32_t frame = 0; frame < framesInFlight; frame++)
 					{
-						write.pBufferInfo = &((std::dynamic_pointer_cast<VulkanBuffer>(m_StorageBuffers.at(name)->GetBuffer(frame)))->GetBufferInfo());
+						write.pBufferInfo = &((std::dynamic_pointer_cast<VulkanBuffer>(std::dynamic_pointer_cast<StorageBuffer>(m_BoundResources.at(name))->GetBuffer(frame)))->GetBufferInfo());
+
 						write.dstSet = m_DescriptorSets.at(description->Set).Sets[frame];
 						writes.push_back(write);
 					}

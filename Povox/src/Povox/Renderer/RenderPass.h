@@ -24,20 +24,14 @@ namespace Povox {
 		Ref<Framebuffer> TargetFramebuffer = nullptr;
 	};
 
-	class UniformBuffer;
-	class StorageBuffer;
-	class StorageImage;
-	class Image2D;
 	class RenderPass
 	{
 	public:
 		virtual ~RenderPass() = default;
 		virtual void Recreate(uint32_t width, uint32_t height) = 0;
 
-		virtual void BindResource(const std::string& name, Ref<UniformBuffer> resource) = 0;
-		virtual void BindResource(const std::string& name, Ref<StorageBuffer> resource) = 0;
-		virtual void BindResource(const std::string& name, Ref<StorageImage> resource) = 0;
-		virtual void BindResource(const std::string& name, Ref<Image2D> resource) = 0;
+		virtual void BindInput(const std::string& name, Ref<ShaderResource>) = 0;
+		virtual void BindOutput(const std::string& name, Ref<ShaderResource>) = 0;
 
 		virtual void Bake() = 0;
 
@@ -75,12 +69,10 @@ namespace Povox {
 		virtual ~ComputePass() = default;
 		virtual void Recreate() = 0;
 
-		virtual void BindResource(const std::string& name, Ref<UniformBuffer> resource) = 0;
-		virtual void BindResource(const std::string& name, Ref<StorageBuffer> resource) = 0;
-		virtual void BindResource(const std::string& name, Ref<StorageImage> resource) = 0;
-		virtual void BindResource(const std::string& name, Ref<Image2D> resource) = 0;
-
 		virtual void Bake() = 0;
+
+		virtual void BindInput(const std::string& name, Ref<ShaderResource>) = 0;
+		virtual void BindOutput(const std::string& name, Ref<ShaderResource>) = 0;
 
 		virtual void SetPredecessor(Ref<RenderPass> predecessor) = 0;
 		virtual void SetPredecessor(Ref<ComputePass> predecessor) = 0;

@@ -6,7 +6,7 @@
 namespace Povox {
 
 	StorageImage::StorageImage(ImageSpecification& spec, bool perFrame /*= true*/)
-		: ShaderResource(perFrame, spec.DebugName)
+		: ShaderResource(ShaderResourceType::STORAGE_IMAGE, perFrame, spec.DebugName)
 	{
 		m_Format = spec.Format;
 		m_Usages = spec.Usages;
@@ -16,7 +16,7 @@ namespace Povox {
 
 		if (!m_PerFrame)
 		{
-			spec.DebugName = m_DebugName + "_Single";
+			spec.DebugName = m_Name + "_Single";
 			m_Images.push_back(Image2D::Create(spec));
 			return;
 		}
@@ -25,7 +25,7 @@ namespace Povox {
 		m_Images.resize(framesPerFlight);
 		for (uint32_t i = 0; i < m_Images.size(); i++)
 		{
-			spec.DebugName = m_DebugName + "_Frame" + std::to_string(i);
+			spec.DebugName = m_Name + "_Frame" + std::to_string(i);
 			m_Images[i] = Image2D::Create(spec);
 		}
 	}
@@ -57,7 +57,7 @@ namespace Povox {
 	}
 
 	UniformBuffer::UniformBuffer(const BufferLayout& layout, const std::string& name /*= "UniformBufferDefault"*/,bool perFrame /*= true*/)
-		: m_Layout(layout), ShaderResource(perFrame, name)
+		: m_Layout(layout), ShaderResource(ShaderResourceType::UNIFORM_BUFFER, perFrame, name)
 	{
 		BufferSpecification specs{};
 		specs.Usage = BufferUsage::UNIFORM_BUFFER;
@@ -68,7 +68,7 @@ namespace Povox {
 
 		if (!m_PerFrame)
 		{
-			specs.DebugName = m_DebugName + "_Single";
+			specs.DebugName = m_Name + "_Single";
 			m_Buffers.push_back(Buffer::Create(specs));
 			return;
 		}
@@ -77,7 +77,7 @@ namespace Povox {
 		m_Buffers.resize(framesPerFlight);
 		for (uint32_t i = 0; i < m_Buffers.size(); i++)
 		{
-			specs.DebugName = m_DebugName + "_Frame" + std::to_string(i);
+			specs.DebugName = m_Name + "_Frame" + std::to_string(i);
 			m_Buffers[i] = Buffer::Create(specs);
 		}
 	}
@@ -125,7 +125,7 @@ namespace Povox {
 
 
 	StorageBuffer::StorageBuffer(const BufferLayout& layout, size_t count, const std::string& name /*= "StorageBufferDefault"*/, bool perFrame /*= true*/)
-		: m_Layout(layout), m_ElementCount(count), ShaderResource(perFrame, name)
+		: m_Layout(layout), m_ElementCount(count), ShaderResource(ShaderResourceType::STORAGE_BUFFER, perFrame, name)
 	{
 		BufferSpecification specs{};
 		specs.Usage = BufferUsage::STORAGE_BUFFER;
@@ -137,7 +137,7 @@ namespace Povox {
 
 		if (!m_PerFrame)
 		{
-			specs.DebugName = m_DebugName + "_Single";
+			specs.DebugName = m_Name + "_Single";
 			m_Buffers.push_back(Buffer::Create(specs));
 			return;
 		}
@@ -146,7 +146,7 @@ namespace Povox {
 		m_Buffers.resize(framesPerFlight);
 		for (uint32_t i = 0; i < m_Buffers.size(); i++)
 		{
-			specs.DebugName = m_DebugName + "_Frame" + std::to_string(i);
+			specs.DebugName = m_Name + "_Frame" + std::to_string(i);
 			m_Buffers[i] = Buffer::Create(specs);
 		}
 	}
@@ -208,7 +208,7 @@ namespace Povox {
 		return m_Buffers[frameIndex];
 	}
 
-	ShaderResource::ShaderResource(bool perFrame, const std::string& debugName)
-		: m_PerFrame(perFrame), m_DebugName(debugName) {}
+	ShaderResource::ShaderResource(ShaderResourceType resourceType/* = ShaderResourceType::NONE*/, bool perFrame, const std::string& name)
+		: m_ResourceType(resourceType), m_PerFrame(perFrame), m_Name(name) {}
 
 }

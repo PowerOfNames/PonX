@@ -124,21 +124,22 @@ namespace Povox {
 		std::string Name = "ShaderResource";
 		bool PerFrame = true;
 		ShaderResourceType ResourceType = ShaderResourceType::NONE;
-
-		BufferSpecification* BufferSpec = nullptr;
-		ImageSpecification* ImageSpec = nullptr;
-		//SamplerSpecification SamplerSpec{};
 	};
 
 	class ShaderResource
 	{
 	public:
-		ShaderResource(bool perFrame, const std::string& debugName);
+		ShaderResource(ShaderResourceType resourceType = ShaderResourceType::NONE, bool perFrame = true, const std::string& name = "ShaderResource");
 		virtual ~ShaderResource() = default;
 
+		inline ShaderResourceType GetType() { return m_ResourceType; }
+		inline const std::string& GetName() { return m_Name; }
+		inline bool IsPerFrame() { return m_PerFrame; }
+
 	protected:
-		std::string m_DebugName;
+		ShaderResourceType m_ResourceType = ShaderResourceType::NONE;
 		bool m_PerFrame;
+		std::string m_Name;
 	};
 
 	class StorageImage : public ShaderResource
@@ -177,7 +178,6 @@ namespace Povox {
 
 	private:
 		BufferLayout m_Layout;
-
 		std::vector<Ref<Buffer>> m_Buffers;
 	};
 
@@ -196,7 +196,6 @@ namespace Povox {
 
 	private:
 		BufferLayout m_Layout;
-
 		size_t m_ElementCount;
 		std::vector<Ref<Buffer>> m_Buffers;
 	};

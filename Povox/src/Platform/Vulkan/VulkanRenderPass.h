@@ -21,10 +21,8 @@ namespace Povox {
 
 		virtual void Recreate(uint32_t width, uint32_t height) override;
 
-		virtual void BindResource(const std::string& name, Ref<UniformBuffer> resource) override;
-		virtual void BindResource(const std::string& name, Ref<StorageBuffer> resource) override;
-		virtual void BindResource(const std::string& name, Ref<StorageImage> resource) override;
-		virtual void BindResource(const std::string& name, Ref<Image2D> resource) override;
+		virtual void BindInput(const std::string& name, Ref<ShaderResource>) override;
+		virtual void BindOutput(const std::string& name, Ref<ShaderResource>) override;
 
 		/**
 		 * Writes the bound ShaderResources to the bound pipeline descriptor sets
@@ -56,15 +54,14 @@ namespace Povox {
 		//Temp here -> to me moved in DescriptorManager
 		std::unordered_map<uint32_t, DescriptorSet> m_DescriptorSets;
 
-		std::unordered_map<std::string, Ref<UniformBuffer>> m_UniformBuffers;
-		std::unordered_map<std::string, Ref<StorageBuffer>> m_StorageBuffers;
-		std::unordered_map<std::string, Ref<StorageImage>> m_StorageImages;
-		std::unordered_map<std::string, Ref<Image2D>> m_Images;
-
 		std::vector<std::string> m_InvalidResources;
 
 		//Resources shared between different passes/queues
 		std::vector<std::string> m_SharedResources;
+
+		std::unordered_map<std::string, Ref<ShaderResource>> m_BoundResources;
+		std::vector<std::string> m_Inputs;
+		std::vector<std::string> m_Outputs;
 
 	};
 
@@ -79,10 +76,8 @@ namespace Povox {
 
 		virtual void Recreate() override;
 
-		virtual void BindResource(const std::string& name, Ref<UniformBuffer> resource) override;
-		virtual void BindResource(const std::string& name, Ref<StorageBuffer> resource) override;
-		virtual void BindResource(const std::string& name, Ref<StorageImage> resource) override;
-		virtual void BindResource(const std::string& name, Ref<Image2D> resource) override;
+		virtual void BindInput(const std::string& name, Ref<ShaderResource>) override;
+		virtual void BindOutput(const std::string& name, Ref<ShaderResource>) override;
 
 		//virtual Ref<Image2D> GetFinalImage(uint32_t index) override;
 
@@ -112,10 +107,9 @@ namespace Povox {
 		//Temp here -> to me moved in DescriptorManager
 		std::unordered_map<uint32_t, DescriptorSet> m_DescriptorSets;
 
-		std::unordered_map<std::string, Ref<UniformBuffer>> m_UniformBuffers;
-		std::unordered_map<std::string, Ref<StorageBuffer>> m_StorageBuffers;
-		std::unordered_map<std::string, Ref<StorageImage>> m_StorageImages;
-		std::unordered_map<std::string, Ref<Image2D>> m_Images;
+		std::unordered_map<std::string, Ref<ShaderResource>> m_BoundResources;
+		std::vector<std::string> m_Inputs;
+		std::vector<std::string> m_Outputs;
 
 		std::vector<std::string> m_InvalidResources;
 		std::vector<std::string> m_SharedResources;

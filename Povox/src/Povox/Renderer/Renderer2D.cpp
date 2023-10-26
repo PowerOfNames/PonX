@@ -79,9 +79,9 @@ namespace Povox {
 			renderpassSpecs.TargetFramebuffer = m_QuadFramebuffer;
 			renderpassSpecs.Pipeline = m_QuadPipeline;
 			m_QuadRenderpass = RenderPass::Create(renderpassSpecs);
-			m_QuadRenderpass->BindResource("CameraData", m_CameraData);
-			m_QuadRenderpass->BindResource("SceneData", m_SceneData);
-			m_QuadRenderpass->BindResource("ObjectData", m_ObjectData);
+			m_QuadRenderpass->BindInput("CameraData", m_CameraData);
+			m_QuadRenderpass->BindInput("SceneData", m_SceneData);
+			m_QuadRenderpass->BindInput("ObjectData", m_ObjectData);
 			m_QuadRenderpass->Bake();
 
 			m_QuadPipeline->PrintShaderLayout();
@@ -92,9 +92,9 @@ namespace Povox {
 			renderpassSpecs.Pipeline = m_FullscreenQuadPipeline;
 			m_FullscreenQuadRenderpass = RenderPass::Create(renderpassSpecs);
 
-			m_FullscreenQuadRenderpass->BindResource("CameraData", m_CameraData);
-			m_FullscreenQuadRenderpass->BindResource("SceneData", m_SceneData);
-			m_FullscreenQuadRenderpass->BindResource("ObjectData", m_ObjectData);
+			m_FullscreenQuadRenderpass->BindInput("CameraData", m_CameraData);
+			m_FullscreenQuadRenderpass->BindInput("SceneData", m_SceneData);
+			m_FullscreenQuadRenderpass->BindInput("ObjectData", m_ObjectData);
 			m_FullscreenQuadRenderpass->Bake();
 
 			m_FullscreenQuadPipeline->PrintShaderLayout();

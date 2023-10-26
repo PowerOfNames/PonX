@@ -111,11 +111,11 @@ namespace Povox {
 
 			m_DistanceFieldComputePipeline->PrintShaderLayout();
 
-			m_DistanceFieldComputePass->BindResource("CameraData", m_CameraData);
-			m_DistanceFieldComputePass->BindResource("RayMarchingData", m_RayMarchingData);
-			m_DistanceFieldComputePass->BindResource("ParticlesIn", m_Specification.ParticleSet->GetDataBuffer());
+			m_DistanceFieldComputePass->BindInput("CameraData", m_CameraData);
+			m_DistanceFieldComputePass->BindInput("RayMarchingData", m_RayMarchingData);
+			m_DistanceFieldComputePass->BindInput("ParticlesIn", m_Specification.ParticleSet->GetDataBuffer());
 			//m_DistanceFieldComputePass->Bake();
-			//m_DistanceFieldComputePass->BindResource("DistanceField", m_DistanceField);
+			//m_DistanceFieldComputePass->BindOutput("DistanceField", m_DistanceField);
 		}
 
 		// RayMarch to FullscreenQuad
@@ -149,10 +149,10 @@ namespace Povox {
 			renderpassSpecs.PredecessorComputePass = m_DistanceFieldComputePass;
 			m_RayMarchingRenderpass = RenderPass::Create(renderpassSpecs);
 
-			m_RayMarchingRenderpass->BindResource("CameraData", m_CameraData);
-			m_RayMarchingRenderpass->BindResource("RayMarchingData", m_RayMarchingData);			
-			m_RayMarchingRenderpass->BindResource("ParticlesIn", m_Specification.ParticleSet->GetDataBuffer());
-			m_RayMarchingRenderpass->BindResource("DistanceField", m_DistanceField);
+			m_RayMarchingRenderpass->BindInput("CameraData", m_CameraData);
+			m_RayMarchingRenderpass->BindInput("RayMarchingData", m_RayMarchingData);
+			m_RayMarchingRenderpass->BindInput("ParticlesIn", m_Specification.ParticleSet->GetDataBuffer());
+			m_RayMarchingRenderpass->BindInput("DistanceField", m_DistanceField);
 			m_RayMarchingRenderpass->Bake();
 
 			//m_RayMarchingPipeline->PrintShaderLayout();
