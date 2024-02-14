@@ -33,6 +33,8 @@ namespace Povox {
 		virtual void BindInput(const std::string& name, Ref<ShaderResource>) = 0;
 		virtual void BindOutput(const std::string& name, Ref<ShaderResource>) = 0;
 
+		virtual void UpdateDescriptor(const std::string& name) = 0;
+
 		virtual void Bake() = 0;
 
 		virtual void SetPredecessor(Ref<RenderPass> predecessor) = 0;
@@ -61,6 +63,15 @@ namespace Povox {
 
 		Ref<ComputePass> PredecessorComputePass = nullptr;
 		Ref<ComputePass> SuccessorComputePass = nullptr;
+
+		struct WorkgroupSize
+		{
+			uint32_t X = 1;
+			uint32_t Y = 1;
+			uint32_t Z = 1;
+		} WorkgroupSize;
+
+		//Ref<Framebuffer> TargetFramebuffer = nullptr;
 	};
 
 	class ComputePass
@@ -73,6 +84,8 @@ namespace Povox {
 
 		virtual void BindInput(const std::string& name, Ref<ShaderResource>) = 0;
 		virtual void BindOutput(const std::string& name, Ref<ShaderResource>) = 0;
+
+		virtual void UpdateDescriptor(const std::string& name) = 0;
 
 		virtual void SetPredecessor(Ref<RenderPass> predecessor) = 0;
 		virtual void SetPredecessor(Ref<ComputePass> predecessor) = 0;

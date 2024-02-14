@@ -13,12 +13,13 @@ namespace Povox {
 	{
 		PX_PROFILE_FUNCTION();
 
-				
-		m_Data = Povox::CreateRef<Povox::StorageBuffer>(specs.ParticleLayout, specs.MaxParticleCount, specs.DebugName, false);
+		uint32_t frames = Application::Get()->GetSpecification().MaxFramesInFlight;
 
 		if (specs.RandomGeneration)
 		{
 			ParticleUniform* buffer = new ParticleUniform[specs.MaxParticleCount];
+			m_Data = new uint8_t[sizeof(ParticleUniform) * specs.MaxParticleCount];
+
 			for (uint64_t i = 0; i < specs.MaxParticleCount; i++)
 			{
 				buffer[i].PositionRadius = glm::linearRand(glm::vec4(-5.0f, -5.0f, -5.0f, 0.1f), glm::vec4(5.0f, 5.0f, 4.0f, 2.0f));
@@ -29,7 +30,10 @@ namespace Povox {
 			}
 			m_Size = specs.MaxParticleCount * sizeof(ParticleUniform);
 			m_ParticleCount = specs.MaxParticleCount;
-			m_Data->SetData((void*)buffer, m_Size);
+
+
+			memcpy(m_Data, (uint8_t*)buffer, m_Size);
+			//m_Data->SetData((void*)buffer, 0, m_Size);
 
 			delete[] buffer;
 		}
@@ -44,13 +48,25 @@ namespace Povox {
 
 	void SciParticleSet::OnUpdate(uint32_t deltaTime)
 	{
-		PX_ASSERT(m_Data, "The particle buffer hasn't been set!");
+		//PX_ASSERT(m_Data, "The particle buffer hasn't been set!");
+
+		uint32_t current = Renderer::GetCurrentFrameIndex();
+		uint32_t last = Renderer::GetLastFrameIndex();
 
 
-		/*
-		*  Do particle updating here, e.g. generating all particle position deltas, remove or add particles according to life cycle (not implemented...)...
-		*/
+		//m_Buffer->SetData();
 	}
+
+// 	/*Povox::Ref<Povox::StorageBufferDynamic> SciParticleSet::GetDataBuffer(uint32_t frame)
+// 	{
+// 		PX_ASSERT(frame < m_Data.size(), "Frame index out of scope!");
+// 
+// 		return m_Data[frame];
+// 	}
+// 	const Povox::Ref<Povox::StorageBufferDynamic>& SciParticleSet::GetDataBuffer(uint32_t frame) const
+// 	{
+// 		return SciParticleSet::GetDataBuffer(frame);
+// 	}*/
 
 	/*bool SciParticleSet::LoadSet(const std::string& path)
 	{

@@ -4,7 +4,6 @@
 #include "Platform/Vulkan/VulkanDebug.h"
 #include "Platform/Vulkan/VulkanDevice.h"
 
-
 #include "Povox/Core/Application.h"
 #include "Povox/Renderer/Renderer.h"
 
@@ -50,7 +49,12 @@ namespace Povox {
 		VmaAllocatorCreateInfo vmaAllocatorInfo = {};
 		vmaAllocatorInfo.physicalDevice = s_Device->GetPhysicalDevice();
 		vmaAllocatorInfo.device = s_Device->GetVulkanDevice();
+		vmaAllocatorInfo.vulkanApiVersion = s_Device->GetPhysicalDeviceProperties().apiVersion;
 		vmaAllocatorInfo.instance = s_Instance;
+		VmaVulkanFunctions vulkanFunctions = {};
+		vulkanFunctions.vkGetInstanceProcAddr = &vkGetInstanceProcAddr;
+		vulkanFunctions.vkGetDeviceProcAddr = &vkGetDeviceProcAddr;
+		vmaAllocatorInfo.pVulkanFunctions = &vulkanFunctions;
 		vmaCreateAllocator(&vmaAllocatorInfo, &s_Allocator);
 		
 		PX_CORE_INFO("Completed VmaAllocator creation.");

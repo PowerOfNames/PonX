@@ -212,7 +212,9 @@ namespace Povox {
 			return "VK_DESCRIPTOR_TYPE_???";
 		}
 
-		static ShaderResourceType ReflectDescriptorTypeToShaderResourceType(SpvReflectDescriptorType value) {
+		static ShaderResourceType ReflectDescriptorTypeToShaderResourceType(SpvReflectDescriptorType value, uint32_t set) {
+
+			//TODO: Move to config: Set number for dynamic and static descriptors -> 1 is dynamic atm
 			switch (value) {
 				case SPV_REFLECT_DESCRIPTOR_TYPE_SAMPLER: return ShaderResourceType::SAMPLER;
 				case SPV_REFLECT_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER: return ShaderResourceType::COMBINED_IMAGE_SAMPLER;
@@ -220,10 +222,18 @@ namespace Povox {
 				case SPV_REFLECT_DESCRIPTOR_TYPE_STORAGE_IMAGE: return ShaderResourceType::STORAGE_IMAGE;
 				case SPV_REFLECT_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER: return ShaderResourceType::UNIFORM_TEXEL_BUFFER;
 				case SPV_REFLECT_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER: return ShaderResourceType::STORAGE_TEXEL_BUFFER;
-				case SPV_REFLECT_DESCRIPTOR_TYPE_UNIFORM_BUFFER: return ShaderResourceType::UNIFORM_BUFFER;
-				case SPV_REFLECT_DESCRIPTOR_TYPE_STORAGE_BUFFER: return ShaderResourceType::STORAGE_BUFFER;
-				case SPV_REFLECT_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC: return ShaderResourceType::UNIFORM_BUFFER_DYNAMIC;
-				case SPV_REFLECT_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC: return ShaderResourceType::STORAGE_BUFFER_DYNAMIC;
+				case SPV_REFLECT_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
+				{
+					if (set == 1)
+						return ShaderResourceType::UNIFORM_BUFFER_DYNAMIC;
+					return ShaderResourceType::UNIFORM_BUFFER;
+				}
+				case SPV_REFLECT_DESCRIPTOR_TYPE_STORAGE_BUFFER:
+				{
+					if (set == 1)
+						return ShaderResourceType::STORAGE_BUFFER_DYNAMIC;
+					return ShaderResourceType::STORAGE_BUFFER;
+				}
 				case SPV_REFLECT_DESCRIPTOR_TYPE_INPUT_ATTACHMENT: return ShaderResourceType::INPUT_ATTACHMENT;
 				case SPV_REFLECT_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR: return ShaderResourceType::ACCELERATION_STRUCTURE;
 			}
@@ -256,9 +266,9 @@ namespace Povox {
 			}
 		}
 
-		VkDescriptorType IsDynamic(const std::string& name, VkDescriptorType type)
+		VkDescriptorType IsDynamic(VkDescriptorType type, uint32_t set)
 		{
-			if (!(name.find("Dyn") != std::string::npos))
+			if (set != 1)
 				return type;
 
 			switch (type)
@@ -491,7 +501,7 @@ namespace Povox {
 
 						VkDescriptorSetLayoutBinding binding{};						
 						binding.binding = reflBinding.binding;
-						binding.descriptorType = SpirvUtils::IsDynamic(std::string(name), static_cast<VkDescriptorType>(reflBinding.descriptor_type));
+						binding.descriptorType = SpirvUtils::IsDynamic(static_cast<VkDescriptorType>(reflBinding.descriptor_type), reflSet.set);
 						binding.descriptorCount = 1;
 						for (uint32_t dim = 0; dim < reflBinding.array.dims_count; dim++)
 						{
@@ -506,7 +516,7 @@ namespace Povox {
 							resource->Binding = reflBinding.binding;
 							resource->Count = binding.descriptorCount;
 							resource->Name = std::string(name);
-							resource->ResourceType = SpirvUtils::ReflectDescriptorTypeToShaderResourceType(reflBinding.descriptor_type);
+							resource->ResourceType = SpirvUtils::ReflectDescriptorTypeToShaderResourceType(reflBinding.descriptor_type, reflSet.set);
 							resource->Stages |= SpirvUtils::ReflectShaderStageToStage(module.shader_stage);
 
 							m_ShaderResourceDescriptions[name] = std::move(resource);
@@ -542,7 +552,7 @@ namespace Povox {
 						{
 							VkDescriptorSetLayoutBinding binding{};
 							binding.binding = reflBinding.binding;
-							binding.descriptorType = SpirvUtils::IsDynamic(std::string(name), static_cast<VkDescriptorType>(reflBinding.descriptor_type));
+							binding.descriptorType = SpirvUtils::IsDynamic(static_cast<VkDescriptorType>(reflBinding.descriptor_type), reflSet.set);
 							binding.descriptorCount = 1;
 							for (uint32_t dim = 0; dim < reflBinding.array.dims_count; dim++)
 							{
@@ -557,7 +567,7 @@ namespace Povox {
 							resource->Binding = reflBinding.binding;
 							resource->Count = binding.descriptorCount;
 							resource->Name = name;
-							resource->ResourceType = VulkanUtils::VulkanDescriptorTypeToShaderResourceType(SpirvUtils::IsDynamic(std::string(name), static_cast<VkDescriptorType>(reflBinding.descriptor_type)));
+							resource->ResourceType = VulkanUtils::VulkanDescriptorTypeToShaderResourceType(SpirvUtils::IsDynamic(static_cast<VkDescriptorType>(reflBinding.descriptor_type), reflSet.set));
 							resource->Stages |= SpirvUtils::ReflectShaderStageToStage(module.shader_stage);
 
 							m_ShaderResourceDescriptions[name] = std::move(resource);

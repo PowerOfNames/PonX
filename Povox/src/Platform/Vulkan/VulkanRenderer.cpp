@@ -171,6 +171,7 @@ namespace Povox {
 	{
 		vkWaitForFences(m_Device, 1, &GetCurrentFrame().RenderFence, VK_TRUE, UINT64_MAX);
 		vkResetCommandPool(m_Device, GetCurrentFrame().Commands.Pool, 0);
+		
 		m_SwapchainFrame = m_Swapchain->AcquireNextImageIndex(GetCurrentFrame().Semaphores.PresentSemaphore);
 		if (!m_SwapchainFrame)
 			return false;
@@ -185,10 +186,10 @@ namespace Povox {
 
 	bool VulkanRenderer::PrepareComputeFrame()
 	{
-		//vkWaitForFences(m_Device, 1, &GetCurrentFrame().ComputeFence, VK_TRUE, UINT64_MAX);
+		vkWaitForFences(m_Device, 1, &GetCurrentFrame().ComputeFence, VK_TRUE, UINT64_MAX);		
+		vkResetCommandPool(m_Device, GetCurrentFrame().Commands.ComputePool, 0);
 		
-		//vkResetFences(m_Device, 1, &GetCurrentFrame().ComputeFence);
-		
+		vkResetFences(m_Device, 1, &GetCurrentFrame().ComputeFence);
 		//vkResetCommandBuffer(GetCurrentFrame().Commands.ComputeBuffer, 0);
 
 		//m_SwapchainFrame->WaitSemaphores.push_back(GetCurrentFrame().Semaphores.ComputeFinishedSemaphore);
@@ -209,12 +210,11 @@ namespace Povox {
 		GetQueryResults();
 		//VulkanContext::FreeFrameResources(m_CurrentFrameIndex);
 
-
-
 		return PrepareRenderFrame() && PrepareComputeFrame();
 	}
 	void VulkanRenderer::EndFrame()
 	{
+		PX_CORE_TRACE("Ending frame {}", m_CurrentFrameIndex);
 		m_Specification.State.LastFrameIndex = m_LastFrameIndex = m_CurrentFrameIndex;
 		m_Specification.State.CurrentFrameIndex = m_CurrentFrameIndex = (++m_CurrentFrameIndex) % m_Specification.MaxFramesInFlight;
 		m_Specification.State.TotalFrames++;
@@ -463,6 +463,16 @@ namespace Povox {
 			{
 				PX_CORE_VK_ASSERT(vkCreateCommandPool(m_Device, &poolci, nullptr, &m_Frames[i].Commands.Pool), VK_SUCCESS, "Failed to create graphics command pool!");
 
+#ifdef PX_DEBUG
+				VkDebugUtilsObjectNameInfoEXT nameInfo{};
+				nameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+				nameInfo.objectType = VK_OBJECT_TYPE_COMMAND_POOL;
+				nameInfo.objectHandle = (uint64_t)m_Frames[i].Commands.Pool;
+				std::string debugName = "FrameGraphicsPool_Frame" + std::to_string(i);
+				nameInfo.pObjectName = debugName.c_str();
+				NameVkObject(VulkanContext::GetDevice()->GetVulkanDevice(), nameInfo);
+#endif // DEBUG
+				
 				bufferci.commandPool = m_Frames[i].Commands.Pool;
 				PX_CORE_VK_ASSERT(vkAllocateCommandBuffers(m_Device, &bufferci, &m_Frames[i].Commands.RenderBuffer), VK_SUCCESS, "Failed to create Render CommandBuffer!");
 
@@ -471,6 +481,16 @@ namespace Povox {
 			for (uint32_t i = 0; i < maxFrames; i++)
 			{
 				PX_CORE_VK_ASSERT(vkCreateCommandPool(m_Device, &poolci, nullptr, &m_Frames[i].Commands.ComputePool), VK_SUCCESS, "Failed to create graphics command pool!");
+
+#ifdef PX_DEBUG
+				VkDebugUtilsObjectNameInfoEXT nameInfo{};
+				nameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+				nameInfo.objectType = VK_OBJECT_TYPE_COMMAND_POOL;
+				nameInfo.objectHandle = (uint64_t)m_Frames[i].Commands.ComputePool;
+				std::string debugName = "FrameComputePool_Frame" + std::to_string(i);
+				nameInfo.pObjectName = debugName.c_str();
+				NameVkObject(VulkanContext::GetDevice()->GetVulkanDevice(), nameInfo);
+#endif // DEBUG
 
 				bufferci.commandPool = m_Frames[i].Commands.ComputePool;
 				PX_CORE_VK_ASSERT(vkAllocateCommandBuffers(m_Device, &bufferci, &m_Frames[i].Commands.ComputeBuffer), VK_SUCCESS, "Failed to create Compute CommandBuffer!");
@@ -695,12 +715,15 @@ namespace Povox {
 		cmdBegin.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 		PX_CORE_VK_ASSERT(vkBeginCommandBuffer(m_ActiveCommandBuffer, &cmdBegin), VK_SUCCESS, "Failed to begin command buffer!");
 		
-		/*VkDebugUtilsObjectNameInfoEXT nameInfo{};
+#ifdef PX_DEBUG
+		VkDebugUtilsObjectNameInfoEXT nameInfo{};
 		nameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
 		nameInfo.objectType = VK_OBJECT_TYPE_COMMAND_BUFFER;
 		nameInfo.objectHandle = (uint64_t)m_ActiveCommandBuffer;
-		nameInfo.pObjectName = "Frame CommandBuffer Frame";
-		NameVkObject(m_Device, nameInfo);*/		
+		std::string debugName = "ActiveCommandBuffer_Frame" + std::to_string(GetCurrentFrameIndex());
+		nameInfo.pObjectName = debugName.c_str();
+		NameVkObject(VulkanContext::GetDevice()->GetVulkanDevice(), nameInfo);
+#endif // DEBUG
 	}
 	void VulkanRenderer::EndCommandBuffer()
 	{
@@ -740,7 +763,7 @@ namespace Povox {
 
 		//TODO: Get from the fb
 		std::array<VkClearValue, 2> clearColor = {};
-		clearColor[0].color = { 0.0f, 0.0f, 0.0f, 0.0f };
+		clearColor[0].color = { 1.0f, 0.0f, 1.0f, 0.0f };
 		clearColor[1].depthStencil = { 1.0f, 0 };
 
 		VkRenderPassBeginInfo info{};
@@ -759,15 +782,16 @@ namespace Povox {
 		// Bind pipeline. TODO: Behaviour if multiple pipelines are used during one renderpass (logic not supported yet)
 		BindPipeline(renderPass->GetSpecification().Pipeline);
 
-		// Now bind global descriptor sets (all sets 0-2)
-		auto& descriptors = m_ActiveRenderPass->GetDescriptors();
-		std::vector<VkDescriptorSet> descriptorSets;
-		
+		auto& descriptors = m_ActiveRenderPass->GetDescriptorSets();
+		auto& dynamicOffsets = m_ActiveRenderPass->GetDynamicOffsets(m_CurrentFrameIndex);
+
+		std::vector<VkDescriptorSet> descriptorSets;		
 		for (auto& [number, set] : descriptors)
 		{
+			// Now bind global descriptor sets (all sets 0-2)
 			if (number < 3)
 			{
-				descriptorSets.push_back(set.Sets[m_CurrentFrameIndex]);
+				descriptorSets.push_back(set.Sets[m_CurrentFrameIndex % (set.Sets.size())]);
 			}
 		}
 
@@ -779,8 +803,8 @@ namespace Povox {
 			0,
 			static_cast<uint32_t>(descriptorSets.size()), 
 			descriptorSets.data(), 
-			0, 
-			nullptr);
+			static_cast<uint32_t>(dynamicOffsets.size()),
+			dynamicOffsets.data());
 
 	}
 	void VulkanRenderer::EndRenderPass()
@@ -827,17 +851,26 @@ namespace Povox {
 
 		Ref<VulkanComputePass> vkComputePass = std::static_pointer_cast<VulkanComputePass>(computePass);
 		m_ActiveComputePass = vkComputePass;
+
 		VkCommandBuffer computeCmd = GetCurrentFrame().Commands.ComputeBuffer;
-		m_SwapchainFrame->Commands.push_back(computeCmd);
 
 		VkCommandBufferBeginInfo beginInfo{};
 		beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 		beginInfo.pNext = nullptr;
+		beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 
-		beginInfo.flags = 0;
 		beginInfo.pInheritanceInfo = nullptr;
 		PX_CORE_VK_ASSERT(vkBeginCommandBuffer(computeCmd, &beginInfo), VK_SUCCESS, "Failed to end ComputeCommandbuffer!");
 
+#ifdef PX_DEBUG
+		VkDebugUtilsObjectNameInfoEXT nameInfo{};
+		nameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+		nameInfo.objectType = VK_OBJECT_TYPE_COMMAND_BUFFER;
+		nameInfo.objectHandle = (uint64_t)computeCmd;
+		std::string debugName = "CommandBuffer_" + computePass->GetSpecification().DebugName + "_Frame" + std::to_string(GetCurrentFrameIndex());
+		nameInfo.pObjectName = debugName.c_str();
+		NameVkObject(VulkanContext::GetDevice()->GetVulkanDevice(), nameInfo);
+#endif // DEBUG
 		
 		
 		auto& passSpecs = vkComputePass->GetSpecification();
@@ -850,7 +883,7 @@ namespace Povox {
 		// Resource Acquisition / Queue ownership transfer
 		if (computeFamIndex != graphicsFamIndex)
 		{
-
+			
 
 
 			//auto& sharedResources = VulkanRenderPass::CreateOwnershipBarriers(computePass, passSpecs.SuccessorPass, );
@@ -858,22 +891,41 @@ namespace Povox {
 		
 		vkCmdBindPipeline(computeCmd, VK_PIPELINE_BIND_POINT_COMPUTE, vkComputePipeline->GetVulkanObj());
 
-		auto& descriptorSetMap = vkComputePass->GetDescriptorSets();
-		std::vector<VkDescriptorSet> descriptorSets;
+		auto& descriptorSetMap = m_ActiveComputePass->GetDescriptorSets();
+		auto& dynamicOffsets = m_ActiveComputePass->GetDynamicOffsets(m_CurrentFrameIndex);
 
+		std::vector<VkDescriptorSet> descriptorSets;
 		for (auto& [number, set] : descriptorSetMap)
 		{
-			descriptorSets.push_back(set.Sets[m_CurrentFrameIndex]);
+			descriptorSets.push_back(set.Sets[m_CurrentFrameIndex % (set.Sets.size())]);
 		}
 
-		vkCmdBindDescriptorSets(computeCmd, VK_PIPELINE_BIND_POINT_COMPUTE, vkComputePipeline->GetLayout(), 0, static_cast<uint32_t>(descriptorSets.size()), descriptorSets.data(), 0, nullptr);
+		vkCmdBindDescriptorSets(
+			computeCmd, 
+			VK_PIPELINE_BIND_POINT_COMPUTE, 
+			vkComputePipeline->GetLayout(), 
+			0, 
+			static_cast<uint32_t>(descriptorSets.size()), 
+			descriptorSets.data(), 
+			static_cast<uint32_t>(dynamicOffsets.size()), 
+			dynamicOffsets.data());
 
-		auto& pipelineSpecs = passSpecs.Pipeline->GetSpecification();
-
-		vkCmdDispatch(computeCmd, pipelineSpecs.WorkGroupSizeX, pipelineSpecs.WorkGroupSizeY, pipelineSpecs.WorkGroupSizeZ);
-
-
+		vkCmdDispatch(computeCmd, passSpecs.WorkgroupSize.X, passSpecs.WorkgroupSize.Y, passSpecs.WorkgroupSize.Z);
 		PX_CORE_VK_ASSERT(vkEndCommandBuffer(computeCmd), VK_SUCCESS, "Failed to end ComputeCommandbuffer!");
+
+		VkSubmitInfo submitInfo{ VK_STRUCTURE_TYPE_SUBMIT_INFO };
+		submitInfo.pNext = nullptr;
+
+		submitInfo.commandBufferCount = 1;
+		submitInfo.pCommandBuffers = &computeCmd;
+		submitInfo.signalSemaphoreCount = 0;
+		submitInfo.pSignalSemaphores = nullptr;
+		submitInfo.waitSemaphoreCount = 0;
+		submitInfo.pWaitSemaphores = nullptr;
+		submitInfo.pWaitDstStageMask = {};
+
+
+		PX_CORE_VK_ASSERT(vkQueueSubmit(VulkanContext::GetDevice()->GetQueueFamilies().Queues.ComputeQueue, 1, &submitInfo, GetCurrentFrame().ComputeFence), VK_SUCCESS, "Failed to submit compute pass");
 	}
 
 	// GUI

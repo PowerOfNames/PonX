@@ -14,10 +14,12 @@ namespace Povox {
 
 	struct SciParticleSetSpecification
 	{
-		const uint64_t MaxParticleCount = 10000;
+		const uint64_t MaxParticleCount = 5;
 		BufferLayout ParticleLayout;
 
 		bool RandomGeneration = false;
+		bool GPUSimulationActive = false;
+
 		std::string DebugName = "SciParticleSet";
 	};
 
@@ -27,12 +29,13 @@ namespace Povox {
 		SciParticleSet(const SciParticleSetSpecification& specs);
 		~SciParticleSet();
 
+		// if GPU simulation is active, this swaps the buffer offsets, such that the attached Compute Pipeline can procede
 		void OnUpdate(uint32_t deltaTime);
 
 		//bool LoadSet(const std::string& path);
 
-		inline Povox::Ref<Povox::StorageBuffer> GetDataBuffer() { return m_Data; }
-		inline const Povox::Ref<Povox::StorageBuffer>& GetDataBuffer() const { return m_Data; }
+		inline void* GetDataBuffer() { return (void*)m_Data; }
+		inline const void* GetDataBuffer() const { return m_Data; }
 
 		inline BufferLayout GetLayout() { return m_Specification.ParticleLayout; }
 		inline const BufferLayout& GetLayout() const { return m_Specification.ParticleLayout; }
@@ -43,6 +46,7 @@ namespace Povox {
 		inline uint32_t GetSize() { return m_Size; }
 
 		
+		
 		inline const SciParticleSetSpecification& GetSpecifications() const { return m_Specification; }
 
 	private:
@@ -52,7 +56,8 @@ namespace Povox {
 		uint32_t m_Size = 0;
 
 
-		Povox::Ref<Povox::StorageBuffer> m_Data = nullptr;
+		uint8_t* m_Data;
+		uint32_t m_SSBOOffset;
 
 	};
 }

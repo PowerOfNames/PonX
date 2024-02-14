@@ -395,7 +395,6 @@ namespace Povox {
 	{
 		PX_PROFILE_FUNCTION();
 
-		//Commandstuff NOW
 
 		QueueSubmit();
 		Present();
@@ -406,15 +405,16 @@ namespace Povox {
 		PX_PROFILE_FUNCTION();
 
 
-		VkSubmitInfo submitInfo{};
-		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-
 		VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_VERTEX_INPUT_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
-		submitInfo.waitSemaphoreCount = static_cast<uint32_t>(m_CurrentFrame.WaitSemaphores.size());
-		submitInfo.pWaitDstStageMask = waitStages;
-		submitInfo.pWaitSemaphores = m_CurrentFrame.WaitSemaphores.data();
+		VkSubmitInfo submitInfo{ VK_STRUCTURE_TYPE_SUBMIT_INFO };
+		submitInfo.pNext = nullptr;
+		
 		submitInfo.commandBufferCount = static_cast<uint32_t>(m_CurrentFrame.Commands.size());
 		submitInfo.pCommandBuffers = m_CurrentFrame.Commands.data();
+
+		submitInfo.pWaitDstStageMask = waitStages;		
+		submitInfo.waitSemaphoreCount = static_cast<uint32_t>(m_CurrentFrame.WaitSemaphores.size());
+		submitInfo.pWaitSemaphores = m_CurrentFrame.WaitSemaphores.data();
 
 		submitInfo.signalSemaphoreCount = 1;
 		submitInfo.pSignalSemaphores = &m_CurrentFrame.RenderSemaphore;
@@ -427,8 +427,9 @@ namespace Povox {
 		PX_PROFILE_FUNCTION();
 
 
-		VkPresentInfoKHR presentInfo{};
-		presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+		VkPresentInfoKHR presentInfo{ VK_STRUCTURE_TYPE_PRESENT_INFO_KHR };
+		presentInfo.pNext = nullptr;
+
 		presentInfo.swapchainCount = 1;
 		presentInfo.pSwapchains = &m_Swapchain;
 		presentInfo.pWaitSemaphores = &m_CurrentFrame.RenderSemaphore;

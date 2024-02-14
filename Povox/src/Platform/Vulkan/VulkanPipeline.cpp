@@ -51,10 +51,10 @@ namespace Povox {
 		{
 			switch (culling)
 			{
-				case Povox::PipelineUtils::CullMode::NONE: return VK_CULL_MODE_NONE;
-				case Povox::PipelineUtils::CullMode::FRONT: return VK_CULL_MODE_FRONT_BIT;
-				case Povox::PipelineUtils::CullMode::BACK: return VK_CULL_MODE_BACK_BIT;
-				case Povox::PipelineUtils::CullMode::FRONT_AND_BACK: return VK_CULL_MODE_FRONT_AND_BACK;
+				case PipelineUtils::CullMode::NONE: return VK_CULL_MODE_NONE;
+				case PipelineUtils::CullMode::FRONT: return VK_CULL_MODE_FRONT_BIT;
+				case PipelineUtils::CullMode::BACK: return VK_CULL_MODE_BACK_BIT;
+				case PipelineUtils::CullMode::FRONT_AND_BACK: return VK_CULL_MODE_FRONT_AND_BACK;
 
 				default: PX_CORE_ASSERT(true, "CullMode false!");
 			}

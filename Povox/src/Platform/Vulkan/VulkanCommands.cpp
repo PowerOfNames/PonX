@@ -278,6 +278,15 @@ namespace Povox {
 			poolInfo.queueFamilyIndex = families.GraphicsFamilyIndex;
 			PX_CORE_VK_ASSERT(vkCreateCommandPool(device, &poolInfo, nullptr, &s_UploadContext->GraphicsCmdPool), VK_SUCCESS, "Failed to create graphics CommandPool!");
 			
+#ifdef PX_DEBUG
+			VkDebugUtilsObjectNameInfoEXT nameInfo{};
+			nameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+			nameInfo.objectType = VK_OBJECT_TYPE_COMMAND_POOL;
+			nameInfo.objectHandle = (uint64_t)s_UploadContext->GraphicsCmdPool;
+			nameInfo.pObjectName = "UploadContext-GraphicsPool";
+			NameVkObject(device, nameInfo);
+#endif // DEBUG
+
 			bufferAllocateInfo.commandPool = s_UploadContext->GraphicsCmdPool;
 			PX_CORE_VK_ASSERT(vkAllocateCommandBuffers(device, &bufferAllocateInfo, &s_UploadContext->GraphicsCmdBuffer), VK_SUCCESS, "Failed to create graphics CommandBuffer!");
 
@@ -288,6 +297,15 @@ namespace Povox {
 			poolInfo.queueFamilyIndex = families.TransferFamilyIndex;
 			PX_CORE_VK_ASSERT(vkCreateCommandPool(device, &poolInfo, nullptr, &s_UploadContext->TransferCmdPool), VK_SUCCESS, "Failed to create transfer CommandPool!");
 
+#ifdef PX_DEBUG
+			VkDebugUtilsObjectNameInfoEXT nameInfo{};
+			nameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+			nameInfo.objectType = VK_OBJECT_TYPE_COMMAND_POOL;
+			nameInfo.objectHandle = (uint64_t)s_UploadContext->TransferCmdPool;
+			nameInfo.pObjectName = "UploadContext-TransferPool";
+			NameVkObject(device, nameInfo);
+#endif // DEBUG
+
 			bufferAllocateInfo.commandPool = s_UploadContext->TransferCmdPool;
 			PX_CORE_VK_ASSERT(vkAllocateCommandBuffers(device, &bufferAllocateInfo, &s_UploadContext->TransferCmdBuffer), VK_SUCCESS, "Failed to create transfer CommandBuffer!");
 
@@ -297,6 +315,15 @@ namespace Povox {
 		{			
 			poolInfo.queueFamilyIndex = families.ComputeFamilyIndex;
 			PX_CORE_VK_ASSERT(vkCreateCommandPool(device, &poolInfo, nullptr, &s_UploadContext->ComputeCmdPool), VK_SUCCESS, "Failed to create graphics compute CommandPool!");
+
+#ifdef PX_DEBUG
+			VkDebugUtilsObjectNameInfoEXT nameInfo{};
+			nameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+			nameInfo.objectType = VK_OBJECT_TYPE_COMMAND_POOL;
+			nameInfo.objectHandle = (uint64_t)s_UploadContext->ComputeCmdPool;
+			nameInfo.pObjectName = "UploadContext-ComputePool";
+			NameVkObject(device, nameInfo);
+#endif // DEBUG
 
 			bufferAllocateInfo.commandPool = s_UploadContext->ComputeCmdPool;
 			PX_CORE_VK_ASSERT(vkAllocateCommandBuffers(device, &bufferAllocateInfo, &s_UploadContext->ComputeCmdBuffer), VK_SUCCESS, "Failed to create compute CommandBuffer!");

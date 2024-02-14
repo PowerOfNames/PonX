@@ -28,30 +28,35 @@ namespace Povox {
         //m_EditorCamera = Povox::EditorCamera(90.0f, (m_ViewportSize.x / m_ViewportSize.y * 1.0f), 0.1f, 1000.0f);
 		PX_INFO("Camera Aspect Ratio: {}", (m_ViewportSize.x / m_ViewportSize.y * 1.0f));
 		
+		// Generate set or load from disk here, then pass data for simulation (continuous calculations) into SciParticleRenderer 
+		// or just for visualization (one time compute for geometry calculation)
+		Povox::BufferLayout particleLayout = BufferLayout({
+			{ Povox::ShaderDataType::Float4, "PositionRadius" },
+			{ Povox::ShaderDataType::Float4, "Velocity" },
+			{ Povox::ShaderDataType::Float4, "Color" },
+			{ Povox::ShaderDataType::ULong, "ID" },
+			{ Povox::ShaderDataType::ULong, "IDPad" } });
 		{
 			SciParticleSetSpecification specs{};
-			specs.ParticleLayout = {
-				{ Povox::ShaderDataType::Float4, "PositionRadius" },
-				{ Povox::ShaderDataType::Float4, "Velocity" },
-				{ Povox::ShaderDataType::Float4, "Color" },
-				{ Povox::ShaderDataType::ULong, "ID" },
-				{ Povox::ShaderDataType::ULong, "IDPad" } };
+			specs.ParticleLayout = particleLayout;
 			specs.RandomGeneration = true;
+			specs.GPUSimulationActive = true;
 			specs.DebugName = "ParticleTestSet";
 			m_ActiveParticleSet = Povox::CreateRef<SciParticleSet>(specs);
 		}
-		m_ParticleInformationPanel.SetContext(m_ActiveParticleSet);	
-		
+		m_ParticleInformationPanel.SetContext(m_ActiveParticleSet);		
+
 		{
 			SciParticleRendererSpecification specs{};
 			specs.ViewportWidth = m_ViewportSize.x;
 			specs.ViewportHeight = m_ViewportSize.y;
-			specs.ParticleSet = m_ActiveParticleSet;
+			specs.ParticleLayout = particleLayout;
 			m_SciRenderer = Povox::CreateRef<SciParticleRenderer>(specs);
+
 			m_SciRenderer->Init();
+
+			m_SciRenderer->LoadParticleSet("TestSet", m_ActiveParticleSet);
 		}
-
-
     }
 
 
@@ -91,12 +96,13 @@ namespace Povox {
 
 		m_SciRenderer->ResetStatistics();
 		
-		// Update particles
+		// Update particles, if set this will simulate using compute shaders
 		m_ActiveParticleSet->OnUpdate(deltatime);
 
 		m_SciRenderer->OnUpdate(deltatime);
 		m_SciRenderer->Begin(m_PerspectiveController.GetCamera());
 
+		// Now we draw the particle sets result
 		m_SciRenderer->DrawParticleSet(m_ActiveParticleSet, m_MaxParticleDraws);
 
 		m_SciRenderer->End();

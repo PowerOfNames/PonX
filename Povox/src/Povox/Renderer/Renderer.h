@@ -73,7 +73,7 @@ namespace Povox {
 	{
 		glm::vec4 BackgroundColor;
 		glm::vec4 ResolutionTime;
-		uint32_t ParticleCount;
+		uint64_t ParticleCount;
 	};
 
 	// TODO: temp

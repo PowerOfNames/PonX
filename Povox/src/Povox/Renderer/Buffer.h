@@ -91,11 +91,15 @@ namespace Povox {
 		UNDEFINED = 0,
 
 		VERTEX_BUFFER = 1,
-		INDEX_BUFFER = 2,
-		UNIFORM_BUFFER = 3,
-		UNIFORM_BUFFER_DYNAMIC = 4,
-		STORAGE_BUFFER = 5,
-		STORAGE_BUFFER_DYNAMIC = 6
+		INDEX_BUFFER_32 = 2,
+		INDEX_BUFFER_64 = 3,
+		UNIFORM_BUFFER = 4,
+		UNIFORM_BUFFER_DYNAMIC = 5,
+		STORAGE_BUFFER = 6,
+		STORAGE_BUFFER_DYNAMIC = 7,
+
+		DATA_STATIC = 8,
+		DATA_DYNAMIC = 9
 	};
 	namespace EnumToString {
 		constexpr const char* BufferUsageString(BufferUsage usage)
@@ -104,11 +108,14 @@ namespace Povox {
 			{
 				case BufferUsage::UNDEFINED: return "UNDEFINED";
 				case BufferUsage::VERTEX_BUFFER: return "VERTEX_BUFFER";
-				case BufferUsage::INDEX_BUFFER: return "INDEX_BUFFER";
+				case BufferUsage::INDEX_BUFFER_32: return "INDEX_BUFFER_32";
+				case BufferUsage::INDEX_BUFFER_64: return "INDEX_BUFFER_64";
 				case BufferUsage::UNIFORM_BUFFER: return "UNIFORM_BUFFER";
 				case BufferUsage::UNIFORM_BUFFER_DYNAMIC: return "UNIFORM_BUFFER_DYNAMIC";
 				case BufferUsage::STORAGE_BUFFER: return "STORAGE_BUFFER";
 				case BufferUsage::STORAGE_BUFFER_DYNAMIC: return "STORAGE_BUFFER_DYNAMIC";
+				case BufferUsage::DATA_STATIC: return "DATA_STATIC";
+				case BufferUsage::DATA_DYNAMIC: return "DATA_DYNAMIC";
 				default: return "Missing BufferUsageString conversion!";
 			}
 		}
@@ -128,25 +135,44 @@ namespace Povox {
 
 		std::string DebugName = "Buffer";
 	};
-
-	class Buffer
+	
+	struct BufferSuballocation;
+	class Buffer : public enable_shared_from_base<Buffer>
 	{
 	public:
 		virtual ~Buffer() = default;
 		virtual void Free() = 0;
 
 		virtual void SetData(void* data, size_t size) = 0;
-		virtual void SetData(void* inputData, uint32_t index, size_t size) = 0;
+		virtual void SetData(void* inputData, uint32_t offset, size_t size) = 0;
 
 		virtual void SetLayout(const BufferLayout& layout) = 0;
 		virtual BufferSpecification& GetSpecification() = 0;
 
-		virtual uint64_t GetRendererID() const = 0;
+		virtual Ref<BufferSuballocation> GetSuballocation(size_t size) = 0;
+		
+		static uint32_t GetPadding() { return 0; }
+		static size_t PadSize(size_t initialSize) { return initialSize; }
 
 		static Ref<Buffer> Create(const BufferSpecification& specs);
+		
 
+		virtual uint64_t GetRendererID() const = 0;
 		virtual const std::string& GetDebugName() const = 0;
 
 		virtual bool operator==(const Buffer& other) const = 0;
+	};
+
+	// TODO: Refactor into class
+	struct BufferSuballocation
+	{
+		BufferSuballocation() = default;
+		BufferSuballocation(Ref<Buffer> buffer, size_t offset, size_t range) : Buffer(buffer), Offset(offset), Range(range) {};
+
+		void SetData(void* data, size_t partialOffset, size_t size) { Buffer->SetData(data, Offset + partialOffset, size); };
+
+		Ref<Buffer> Buffer = nullptr;
+		size_t Offset = 0;
+		size_t Range = 0;
 	};
 }

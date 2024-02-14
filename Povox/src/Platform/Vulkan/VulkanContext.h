@@ -13,6 +13,8 @@
 #pragma warning(push, 0)
 #include <vulkan/vulkan.h>
 #pragma warning(pop)
+#define VMA_STATIC_VULKAN_FUNCTIONS 0
+#define VMA_DYNAMIC_VULKAN_FUNCTIONS 1
 #include <vk_mem_alloc.h>
 
 

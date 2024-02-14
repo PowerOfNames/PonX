@@ -119,12 +119,12 @@ namespace Povox {
 	};
 
 
-	struct ShaderResourceSpecification
-	{
-		std::string Name = "ShaderResource";
-		bool PerFrame = true;
-		ShaderResourceType ResourceType = ShaderResourceType::NONE;
-	};
+// 	struct ShaderResourceSpecification
+// 	{
+// 		std::string Name = "ShaderResource";
+// 		bool PerFrame = true;
+// 		ShaderResourceType ResourceType = ShaderResourceType::NONE;
+// 	};
 
 	class ShaderResource
 	{
@@ -132,11 +132,17 @@ namespace Povox {
 		ShaderResource(ShaderResourceType resourceType = ShaderResourceType::NONE, bool perFrame = true, const std::string& name = "ShaderResource");
 		virtual ~ShaderResource() = default;
 
+		inline uint64_t GetRendererID() const { return m_UID; }
+
 		inline ShaderResourceType GetType() { return m_ResourceType; }
 		inline const std::string& GetName() { return m_Name; }
 		inline bool IsPerFrame() { return m_PerFrame; }
 
+
+
 	protected:
+		RendererUID m_UID = RendererUID();
+
 		ShaderResourceType m_ResourceType = ShaderResourceType::NONE;
 		bool m_PerFrame;
 		std::string m_Name;
@@ -181,10 +187,11 @@ namespace Povox {
 		std::vector<Ref<Buffer>> m_Buffers;
 	};
 
+
 	class StorageBuffer : public ShaderResource
 	{
 	public:
-		StorageBuffer(const BufferLayout& layout, size_t count, const std::string& name = "StorageBufferDefault", bool perFrame = true);
+		StorageBuffer(const BufferLayout& layout, size_t elements, const std::string& name = "StorageBufferDefault", bool perFrame = true);
 		~StorageBuffer() = default;
 
 		void SetData(void* data, size_t size);
@@ -196,8 +203,65 @@ namespace Povox {
 
 	private:
 		BufferLayout m_Layout;
-		size_t m_ElementCount;
 		std::vector<Ref<Buffer>> m_Buffers;
+	};
+
+
+	class StorageBufferDynamic : public ShaderResource
+	{
+	public:
+		enum class FrameBehaviour
+		{
+			// STANDARD				- Backing buffer contains one element/array of elements per type set
+			STANDARD,
+			// FRAME_ITERATE		- Backing buffer contains enough space for all the data per FRAME_IN_FLIGHT. TotalSize = (BaseSize + Padding) * FRAME_IN_FLIGHT
+			//						  Offsets iterate via frame index. Example: Frame_0 (0) Offset = 0; Frame_1 (1) Offset = 1; Frame_2 (0) Offset = 0.
+			FRAME_ITERATE, 
+			// FRAME_SWAP_IN_OUT	- Backing buffer contains enough space for all the data per FRAME_IN_FLIGHT. TotalSize = (BaseSize + Padding) * FRAME_IN_FLIGHT
+			//						  Offsets swap per frame. Example: Frame_0 In = 0; Out = 1. Frame_1 In = 1; Out = 0.
+			FRAME_SWAP_IN_OUT
+		};
+
+		/**
+		 * Holds some information about the descriptors, that are contained in this dynamic ssbo
+		 */
+		struct DynamicBufferElement
+		{
+			Ref<BufferSuballocation> Suballocation = nullptr;
+
+			uint8_t InitialFrameIdx = 0;
+
+			FrameBehaviour Behaviour = FrameBehaviour::STANDARD;
+			std::string LinkedDescriptorName = "";
+		};
+
+	public:
+		StorageBufferDynamic(const BufferLayout& layout, size_t totalSize = 1024, const std::string& name = "StorageBufferDynamicDefault", bool perFrame = true);
+		~StorageBufferDynamic() = default;
+
+		void AddDescriptor(const std::string& name, size_t size, FrameBehaviour usage = FrameBehaviour::STANDARD, uint8_t initialFrame = 0, const std::string& linkedDescriptorName = NULL);
+		
+		/**
+		 * @brief 
+		 *  
+		 * @param name 
+		 * @param data
+		 * @param size
+		 * @param partialOffset The offset, that gets added to the offset of this descriptor within the backing buffer
+		 */
+		void SetDescriptorData(const std::string& name, void* data, size_t size, size_t partialOffset = 0);
+
+		const std::vector<uint32_t>& GetOffsets(const std::string& name, uint32_t currentFrameIndex) const;
+		const uint32_t GetOffset(const std::string& name, uint32_t currentFrameIndex) const;
+
+		Ref<Buffer> GetBuffer(const std::string& descriptorName) { return m_Buffer; }		
+		DynamicBufferElement GetDescriptorInfo(const std::string& name);
+
+	private:
+		BufferLayout m_Layout;
+
+		Ref<Buffer> m_Buffer = nullptr;
+		std::unordered_map<std::string, DynamicBufferElement> m_ContainedDescriptors;
 	};
 }
 

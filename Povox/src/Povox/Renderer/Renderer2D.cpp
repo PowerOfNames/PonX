@@ -105,7 +105,6 @@ namespace Povox {
 		vertexBufferSpecs.Usage = BufferUsage::VERTEX_BUFFER;
 		vertexBufferSpecs.MemUsage = MemoryUtils::MemoryUsage::GPU_ONLY;
 		vertexBufferSpecs.ElementCount = m_Specification.MaxVertices;
-		vertexBufferSpecs.ElementSize = sizeof(QuadVertex);
 		vertexBufferSpecs.Size = sizeof(QuadVertex) * m_Specification.MaxVertices;
 
 		m_QuadVertexPositions[0] = { -0.5f, -0.5f, 0.0f, 1.0f };
@@ -130,10 +129,9 @@ namespace Povox {
 			offset += 4;
 		}
 		BufferSpecification indexBufferSpecs{};
-		indexBufferSpecs.Usage = BufferUsage::INDEX_BUFFER;
+		indexBufferSpecs.Usage = BufferUsage::INDEX_BUFFER_32;
 		indexBufferSpecs.MemUsage = MemoryUtils::MemoryUsage::GPU_ONLY;
 		indexBufferSpecs.ElementCount = m_Specification.MaxIndices;
-		indexBufferSpecs.ElementSize = sizeof(uint32_t);
 		indexBufferSpecs.Size = sizeof(uint32_t) * m_Specification.MaxIndices;
 		
 
@@ -190,7 +188,7 @@ namespace Povox {
 
 			uint32_t m_FullscreenQuadIndices[6] = { 0, 1, 2, 2, 3, 0 };
 			BufferSpecification fullscreenIndexBufferSpecs{};
-			fullscreenIndexBufferSpecs.Usage = BufferUsage::INDEX_BUFFER;
+			fullscreenIndexBufferSpecs.Usage = BufferUsage::INDEX_BUFFER_32;
 			fullscreenIndexBufferSpecs.MemUsage = MemoryUtils::MemoryUsage::GPU_ONLY;
 			fullscreenIndexBufferSpecs.ElementCount = 6;
 			fullscreenIndexBufferSpecs.ElementSize = sizeof(uint32_t);

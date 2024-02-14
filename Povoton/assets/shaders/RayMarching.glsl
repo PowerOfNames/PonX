@@ -1,7 +1,6 @@
 #type vertex
 #version 460
 #extension GL_ARB_shader_draw_parameters : enable
-#extension GL_EXT_shader_explicit_arithmetic_types_int64 : enable
 	
 layout(location = 0) in vec3 a_Position;		
 layout(location = 1) in vec4 a_Color;		
@@ -28,7 +27,7 @@ layout(location = 1) in vec2 v_UV;
 
 layout(location = 0) out vec4 finalColor;
 
-layout(std140, set = 0, binding = 0) uniform CameraData
+layout(std140, set = 0, binding = 0) uniform CameraUBO
 {
 	mat4 View;
 	mat4 Projection;
@@ -39,11 +38,11 @@ layout(std140, set = 0, binding = 0) uniform CameraData
 } u_Camera;
 
 
-layout(set = 0, binding = 1) uniform RayMarchingData
+layout(set = 0, binding = 1) uniform RayMarchingUBO
 {
 	vec4 BackgroundColor;
 	vec4 ResolutionTime;
-	uint32_t ParticleCount;
+	uint64_t ParticleCount;
 } u_RayMarching;
 
 
@@ -55,9 +54,9 @@ struct Particle {
     uint64_t IDPad;
 };
 
-layout(std140, set = 1, binding = 0) readonly buffer ParticlesIn {
+layout(std140, set = 1, binding = 0) readonly buffer ParticleSSBOIn {
    Particle particles[ ];
-}ssbo_ParticlesIn;
+}particlesIn;
 
 //layout(set = 2, binding = 0) uniform sampler u_Sampler;
 //layout(set = 2, binding = 1) uniform texture2D u_DistanceMaps[32];
@@ -123,7 +122,7 @@ vec3 RayMarch(in Ray currentRay)
 	{
 		for(int particleID = 0; particleID < u_RayMarching.ParticleCount; particleID++)
 		{
-			Particle currentParticle = ssbo_ParticlesIn.particles[particleID];
+			Particle currentParticle = particlesIn.particles[particleID];
 			float currentDist = SphereSDF(currentRay.Position, currentParticle.PositionRadius.xyz, currentParticle.PositionRadius.w);
 			
 			if(currentDist < shortestDist)
@@ -172,4 +171,5 @@ void main()
 	
 	//finalColor = vec4(SphereSDF, 1.0);
 	finalColor = vec4(RayMarch(currentRay), 1.0);
+	//finalColor = vec4(1.0);
 }

@@ -13,7 +13,7 @@ namespace Povox {
 		uint32_t ViewportWidth = 0;
 		uint32_t ViewportHeight = 0;
 
-		Ref<SciParticleSet> ParticleSet = nullptr;
+		BufferLayout ParticleLayout;
 	};
 
 	struct SciParticleRendererStatistics
@@ -46,6 +46,7 @@ namespace Povox {
 		void Begin(const EditorCamera& camera);
 		void Begin(const PerspectiveCamera& camera);
 		
+		void LoadParticleSet(const std::string& name, Povox::Ref<SciParticleSet> set);
 		void DrawParticleSet(Povox::Ref<SciParticleSet> particleSet, uint32_t maxParticleDraws);
 		
 		void End();
@@ -67,10 +68,12 @@ namespace Povox {
 		CameraUniform m_CameraUniform{};
 		RayMarchingUniform m_RayMarchingUniform{};
 
-		Povox::Ref<UniformBuffer> m_CameraData = nullptr;
-		Povox::Ref<UniformBuffer> m_RayMarchingData = nullptr;
-		std::vector<Povox::Ref<Povox::Buffer>> m_ParticleDataSSBOs;
-		Povox::Ref<StorageImage> m_DistanceField = nullptr;
+		Povox::Ref<Povox::UniformBuffer> m_CameraData = nullptr;
+		Povox::Ref<Povox::UniformBuffer> m_RayMarchingData = nullptr;
+		Povox::Ref<Povox::StorageBufferDynamic> m_ParticleSSBO = nullptr;
+		Povox::Ref<Povox::StorageImage> m_DistanceField = nullptr;
+
+		std::unordered_map<std::string, Povox::Ref<SciParticleSet>> m_LoadedParticleSets;
 
 		// Particles
 		// Compute

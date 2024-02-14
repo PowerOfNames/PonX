@@ -15,7 +15,7 @@ namespace Povox {
 			switch (usage)
 			{
 				case BufferUsage::VERTEX_BUFFER:	return VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
-				case BufferUsage::INDEX_BUFFER:		return VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+				case BufferUsage::INDEX_BUFFER_32:		return VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
 				case BufferUsage::UNIFORM_BUFFER:	return VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
 				case BufferUsage::STORAGE_BUFFER:	return VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
 				case BufferUsage::UNDEFINED:		break;
@@ -210,6 +210,37 @@ namespace Povox {
 		CreateDescriptorInfo();
 	}
 
+	Ref<BufferSuballocation> VulkanBuffer::GetSuballocation(size_t size)
+	{
+		// TODO: catch this, create new buffer and return a suballocation to this using a bufferPool
+		if (m_Size - size < m_SuballocationOffset)
+		{
+			PX_CORE_ASSERT(true, "Requested suballocation size exceeds size left in this buffer!");
+		}
+		size_t paddedSize = PadSize(size);
+		size_t offset = m_SuballocationOffset;
+		Ref<BufferSuballocation> sub = CreateRef<BufferSuballocation>(GetPtr(), offset, paddedSize);
+		m_SuballocationOffset =+ paddedSize;
+
+		return sub;
+	}
+
+	uint32_t VulkanBuffer::GetPadding()
+	{
+		return VulkanContext::GetDevice()->GetPhysicalDeviceProperties().limits.minUniformBufferOffsetAlignment;
+	}
+
+	size_t VulkanBuffer::PadSize(size_t initialSize)
+	{
+		size_t alignedSize = initialSize;
+		uint32_t minGPUBufferOffsetAlignment = VulkanContext::GetDevice()->GetPhysicalDeviceProperties().limits.minUniformBufferOffsetAlignment;
+		if (minGPUBufferOffsetAlignment > 0)
+		{
+			alignedSize = (alignedSize + minGPUBufferOffsetAlignment - 1) & ~(minGPUBufferOffsetAlignment - 1);
+		}
+		return alignedSize;
+	}
+
 	void VulkanBuffer::SetData(void* inputData, const size_t size)
 	{
 		if (m_Specification.Size > size)
@@ -289,6 +320,8 @@ namespace Povox {
 		}
 
 		VmaAllocationCreateInfo vmaAllocInfo{};
+		//vmaAllocInfo.usage = VMA_MEMORY_USAGE_AUTO;
+		//vmaAllocInfo.flags = 
 		vmaAllocInfo.usage = memUsage;
 
 		AllocatedBuffer newBuffer;
@@ -309,12 +342,12 @@ namespace Povox {
 		return newBuffer;
 	}
 
-	VkDescriptorBufferInfo VulkanBuffer::CreateDescriptorInfo()
+	VkDescriptorBufferInfo VulkanBuffer::CreateDescriptorInfo(size_t offset /*= 0*/, size_t range /*= 0*/)
 	{
 		VkDescriptorBufferInfo descInfo{};
 		descInfo.buffer = m_Allocation.Buffer;
-		descInfo.offset = 0;
-		descInfo.range = m_Size;
+		descInfo.offset = offset;
+		descInfo.range = range != 0 ? range : m_Size;
 
 		m_DescriptorInfo = descInfo;
 		return m_DescriptorInfo;

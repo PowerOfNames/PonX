@@ -60,18 +60,21 @@ namespace Povox {
 			{ Povox::ShaderDataType::Float4, "Forward" },
 			{ Povox::ShaderDataType::Float4, "Position" },
 			{ Povox::ShaderDataType::Float, "FOV" } }),
-			"CameraDataUBO"
+			"CameraUBO"
 			);
 
 		m_RayMarchingData = Povox::CreateRef<Povox::UniformBuffer>(Povox::BufferLayout({
-			{Povox::ShaderDataType::Float4 , "BackgroundColor"},
+			{ Povox::ShaderDataType::Float4 , "BackgroundColor"},
 			{ Povox::ShaderDataType::Float4 , "ResolutionTime"},
-			{ Povox::ShaderDataType::UInt , "ParticleCount"} }),
-			"RayMarchingUBO",
-			false
+			{ Povox::ShaderDataType::ULong , "ParticleCount"} }),
+			"RayMarchingUBO"			
 			);
 
-		PX_ASSERT(m_Specification.ParticleSet, "There has no particle set been set!");
+		m_ParticleSSBO = Povox::CreateRef<Povox::StorageBufferDynamic>(m_Specification.ParticleLayout, 
+			1024*1024,
+			"ParticleDataSSBO",
+			false);
+
 
 		ImageSpecification distanceFieldSpec{};
 		distanceFieldSpec.Format = ImageFormat::RED_INTEGER_U32;
@@ -92,7 +95,7 @@ namespace Povox {
 
 		m_RayMarchingUniform.BackgroundColor = glm::vec4(0.3f);
 		m_RayMarchingUniform.ResolutionTime = glm::vec4((float)m_Specification.ViewportWidth, (float)m_Specification.ViewportHeight, 0.0f, 0.0f);
-		m_RayMarchingUniform.ParticleCount = 5;
+		m_RayMarchingUniform.ParticleCount = 1;
 		m_RayMarchingData->SetData((void*)&m_RayMarchingUniform, sizeof(RayMarchingUniform));
 
 		uint32_t framesInFlight = Renderer::GetSpecification().MaxFramesInFlight;
@@ -107,15 +110,19 @@ namespace Povox {
 			ComputePassSpecification passSpecs{};
 			passSpecs.DebugName = "DistanceField";
 			passSpecs.Pipeline = m_DistanceFieldComputePipeline;
+			passSpecs.WorkgroupSize.X = 16;
+
 			m_DistanceFieldComputePass = ComputePass::Create(passSpecs);
 
 			m_DistanceFieldComputePipeline->PrintShaderLayout();
 
-			m_DistanceFieldComputePass->BindInput("CameraData", m_CameraData);
-			m_DistanceFieldComputePass->BindInput("RayMarchingData", m_RayMarchingData);
-			m_DistanceFieldComputePass->BindInput("ParticlesIn", m_Specification.ParticleSet->GetDataBuffer());
-			//m_DistanceFieldComputePass->Bake();
+			m_DistanceFieldComputePass->BindInput("CameraUBO", m_CameraData);
+			m_DistanceFieldComputePass->BindInput("RayMarchingUBO", m_RayMarchingData);
+			m_DistanceFieldComputePass->BindInput("ParticleSSBOIn", m_ParticleSSBO);
+			m_DistanceFieldComputePass->BindOutput("ParticleSSBOOut", m_ParticleSSBO);
+			
 			//m_DistanceFieldComputePass->BindOutput("DistanceField", m_DistanceField);
+			m_DistanceFieldComputePass->Bake();
 		}
 
 		// RayMarch to FullscreenQuad
@@ -149,14 +156,14 @@ namespace Povox {
 			renderpassSpecs.PredecessorComputePass = m_DistanceFieldComputePass;
 			m_RayMarchingRenderpass = RenderPass::Create(renderpassSpecs);
 
-			m_RayMarchingRenderpass->BindInput("CameraData", m_CameraData);
-			m_RayMarchingRenderpass->BindInput("RayMarchingData", m_RayMarchingData);
-			m_RayMarchingRenderpass->BindInput("ParticlesIn", m_Specification.ParticleSet->GetDataBuffer());
+			m_RayMarchingRenderpass->BindInput("CameraUBO", m_CameraData);
+			m_RayMarchingRenderpass->BindInput("RayMarchingUBO", m_RayMarchingData);
+			m_RayMarchingRenderpass->BindInput("ParticleSSBOIn", m_ParticleSSBO);
 			m_RayMarchingRenderpass->BindInput("DistanceField", m_DistanceField);
 			m_RayMarchingRenderpass->Bake();
 
 			//m_RayMarchingPipeline->PrintShaderLayout();
-			m_DistanceFieldComputePass->SetPredecessor(m_DistanceFieldComputePass);
+			m_DistanceFieldComputePass->SetSuccessor(m_RayMarchingRenderpass);
 		}
 
 		// Fullscreen
@@ -165,7 +172,6 @@ namespace Povox {
 			fullscreenVertexBufferSpecs.Usage = BufferUsage::VERTEX_BUFFER;
 			fullscreenVertexBufferSpecs.MemUsage = MemoryUtils::MemoryUsage::GPU_ONLY;
 			fullscreenVertexBufferSpecs.ElementCount = 4;
-			fullscreenVertexBufferSpecs.ElementSize = sizeof(QuadVertex);
 			fullscreenVertexBufferSpecs.Size = sizeof(QuadVertex) * 4;
 			fullscreenVertexBufferSpecs.DebugName = "Renderer2D FullscreenVertexbuffer";
 
@@ -173,10 +179,9 @@ namespace Povox {
 
 			uint32_t m_FullscreenQuadIndices[6] = { 0, 1, 2, 2, 3, 0 };
 			BufferSpecification fullscreenIndexBufferSpecs{};
-			fullscreenIndexBufferSpecs.Usage = BufferUsage::INDEX_BUFFER;
+			fullscreenIndexBufferSpecs.Usage = BufferUsage::INDEX_BUFFER_32;
 			fullscreenIndexBufferSpecs.MemUsage = MemoryUtils::MemoryUsage::GPU_ONLY;
 			fullscreenIndexBufferSpecs.ElementCount = 6;
-			fullscreenIndexBufferSpecs.ElementSize = sizeof(uint32_t);
 			fullscreenIndexBufferSpecs.Size = sizeof(uint32_t) * 6;
 			fullscreenIndexBufferSpecs.DebugName = "Renderer2D FullscreenIndexBuffer";
 			m_FullscreenQuadIndexBuffer = Buffer::Create(fullscreenIndexBufferSpecs);
@@ -214,6 +219,15 @@ namespace Povox {
 	void SciParticleRenderer::OnUpdate(float deltaTime)
 	{
 		m_ElapsedTime += deltaTime;
+
+
+		for(auto& [name, set] : m_LoadedParticleSets)
+		{
+			if (set->GetSpecifications().GPUSimulationActive)
+			{
+				Renderer::DispatchCompute(m_DistanceFieldComputePass);
+			}
+		}
 	}
 
 	void SciParticleRenderer::OnResize(uint32_t width, uint32_t height)
@@ -267,10 +281,24 @@ namespace Povox {
 		m_CameraUniform.ViewProjection = camera.GetViewProjectionMatrix();
 		m_CameraUniform.Forward = glm::vec4(camera.GetForward(), 0.0f);
 		m_CameraUniform.Position = glm::vec4(camera.GetPosition(), 0.0f);
-		m_CameraData->SetData((void*)&m_CameraUniform, sizeof(CameraUniform));
-		
+		m_CameraData->SetData((void*)&m_CameraUniform, sizeof(CameraUniform));	
 	}
 
+
+	void SciParticleRenderer::LoadParticleSet(const std::string& name, Povox::Ref<SciParticleSet> set)
+	{
+		m_LoadedParticleSets[name] = set;
+
+
+		m_ParticleSSBO->AddDescriptor("ParticleSSBOIn", set->GetSize(), StorageBufferDynamic::FrameBehaviour::FRAME_SWAP_IN_OUT, 0, "ParticleSSBOOut");
+		m_ParticleSSBO->SetDescriptorData("ParticleSSBOIn", set->GetDataBuffer(), set->GetSize(), 0);
+		m_ParticleSSBO->AddDescriptor("ParticleSSBOOut", set->GetSize(), StorageBufferDynamic::FrameBehaviour::FRAME_SWAP_IN_OUT, 1, "ParticleSSBOIn");
+		m_ParticleSSBO->SetDescriptorData("ParticleSSBOOut", 0, 0, 0);
+
+		m_DistanceFieldComputePass->UpdateDescriptor("ParticleSSBOIn");
+		m_DistanceFieldComputePass->UpdateDescriptor("ParticleSSBOOut");
+		m_RayMarchingRenderpass->UpdateDescriptor("ParticleSSBOIn");
+	}
 
 	void SciParticleRenderer::End()
 	{
@@ -298,14 +326,18 @@ namespace Povox {
 	 */
 	void SciParticleRenderer::DrawParticleSet(Povox::Ref<SciParticleSet> particleSet, uint32_t maxParticleDraws)
 	{	
-
 		m_RayMarchingUniform.ResolutionTime.z = m_ElapsedTime;
+		//m_RayMarchingUniform.ParticleCount = particleSet->GetParticleCount();
 		m_RayMarchingUniform.ParticleCount = maxParticleDraws;
-		m_RayMarchingData->SetData((void*)&m_RayMarchingUniform, sizeof(RayMarchingUniform));
 
-		//CompteTimestampBegin
+		m_RayMarchingData->SetData((void*)&m_RayMarchingUniform, sizeof(RayMarchingUniform));
+		//m_RayMarchingRenderpass
+
+
+
+		//ComputeTimestampBegin
 		//Renderer::DispatchCompute(m_DistanceFieldComputePass);
-		//CompteTimestampEnd
+		//ComputeTimestampEnd
 	}
 
 	void SciParticleRenderer::ResetStatistics()

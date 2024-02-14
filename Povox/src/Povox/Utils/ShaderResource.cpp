@@ -5,6 +5,12 @@
 
 namespace Povox {
 
+	ShaderResource::ShaderResource(ShaderResourceType resourceType /*= ShaderResourceType::NONE*/, bool perFrame /*= true*/, const std::string& name /*= "ShaderResource"*/)
+		: m_ResourceType(resourceType), m_PerFrame(perFrame), m_Name(name)
+	{
+	}
+
+
 	StorageImage::StorageImage(ImageSpecification& spec, bool perFrame /*= true*/)
 		: ShaderResource(ShaderResourceType::STORAGE_IMAGE, perFrame, spec.DebugName)
 	{
@@ -56,7 +62,7 @@ namespace Povox {
 		return m_Images[frameIndex];
 	}
 
-	UniformBuffer::UniformBuffer(const BufferLayout& layout, const std::string& name /*= "UniformBufferDefault"*/,bool perFrame /*= true*/)
+	UniformBuffer::UniformBuffer(const BufferLayout& layout, const std::string& name /*= "UniformBufferDefault"*/, bool perFrame /*= true*/)
 		: m_Layout(layout), ShaderResource(ShaderResourceType::UNIFORM_BUFFER, perFrame, name)
 	{
 		BufferSpecification specs{};
@@ -64,11 +70,11 @@ namespace Povox {
 		specs.MemUsage = MemoryUtils::MemoryUsage::GPU_ONLY;
 		specs.Layout = m_Layout;
 		specs.ElementSize = m_Layout.GetStride();
-		specs.Size = m_Layout.GetStride();
+		specs.Size = Buffer::PadSize(m_Layout.GetStride());
 
 		if (!m_PerFrame)
 		{
-			specs.DebugName = m_Name + "_Single";
+			specs.DebugName = name + "_Single";
 			m_Buffers.push_back(Buffer::Create(specs));
 			return;
 		}
@@ -77,7 +83,7 @@ namespace Povox {
 		m_Buffers.resize(framesPerFlight);
 		for (uint32_t i = 0; i < m_Buffers.size(); i++)
 		{
-			specs.DebugName = m_Name + "_Frame" + std::to_string(i);
+			specs.DebugName = name + "_Frame" + std::to_string(i);
 			m_Buffers[i] = Buffer::Create(specs);
 		}
 	}
@@ -123,17 +129,17 @@ namespace Povox {
 		return m_Buffers[frameIndex];
 	}
 
-
-	StorageBuffer::StorageBuffer(const BufferLayout& layout, size_t count, const std::string& name /*= "StorageBufferDefault"*/, bool perFrame /*= true*/)
-		: m_Layout(layout), m_ElementCount(count), ShaderResource(ShaderResourceType::STORAGE_BUFFER, perFrame, name)
+//---- Storage Buffer ----
+	StorageBuffer::StorageBuffer(const BufferLayout& layout, size_t elements, const std::string& name /*= "StorageBufferDefault"*/, bool perFrame /*= true*/)
+		: m_Layout(layout), ShaderResource(ShaderResourceType::STORAGE_BUFFER, perFrame, name)
 	{
 		BufferSpecification specs{};
 		specs.Usage = BufferUsage::STORAGE_BUFFER;
 		specs.MemUsage = MemoryUtils::MemoryUsage::GPU_ONLY;
 		specs.Layout = m_Layout;
-		specs.ElementCount = m_ElementCount;
+		specs.ElementCount = elements;
 		specs.ElementSize = m_Layout.GetStride();
-		specs.Size = specs.ElementSize * m_ElementCount;
+		specs.Size = specs.ElementSize * elements;
 
 		if (!m_PerFrame)
 		{
@@ -208,7 +214,125 @@ namespace Povox {
 		return m_Buffers[frameIndex];
 	}
 
-	ShaderResource::ShaderResource(ShaderResourceType resourceType/* = ShaderResourceType::NONE*/, bool perFrame, const std::string& name)
-		: m_ResourceType(resourceType), m_PerFrame(perFrame), m_Name(name) {}
+
+//---- StorageBuffer Dynamic ----
+	StorageBufferDynamic::StorageBufferDynamic(const BufferLayout& layout, size_t totalSize /*= 1*/, const std::string& name /*= "StorageBufferDynamicDefault"*/, bool perFrame /*= true*/)
+		: m_Layout(layout), ShaderResource(ShaderResourceType::STORAGE_BUFFER_DYNAMIC, perFrame, name)
+	{
+		BufferSpecification specs{};
+		specs.Usage = BufferUsage::STORAGE_BUFFER;
+		specs.MemUsage = MemoryUtils::MemoryUsage::GPU_ONLY;
+		specs.Layout = layout;
+		specs.ElementCount = 0;
+		specs.ElementSize = layout.GetStride();
+		specs.Size = totalSize;
+		specs.DebugName = m_Name + "_Single";
+				
+		m_Buffer = Buffer::Create(specs);
+	}
+
+	void StorageBufferDynamic::AddDescriptor(const std::string& name, size_t size, FrameBehaviour usage /*= FrameBehaviour::STANDARD*/, uint8_t initialFrame /*= 0*/, const std::string& linkedDescriptorName /*= NULL*/)
+	{	
+		Ref<BufferSuballocation> sub = m_Buffer->GetSuballocation(size);
+
+		if (sub == nullptr)
+		{
+			PX_CORE_ERROR("Failed to create a suballocation!");
+			return;
+		}
+		if (m_ContainedDescriptors.find(name) != m_ContainedDescriptors.end())
+		{
+			PX_CORE_WARN("Descriptor already defined in {}", m_Name);
+		}
+
+		m_ContainedDescriptors[name] = DynamicBufferElement{ sub, initialFrame, usage, linkedDescriptorName };
+	}	
+	
+	void StorageBufferDynamic::SetDescriptorData(const std::string& name, void* data, size_t size, size_t partialOffset /*= 0*/)
+	{
+		if (m_ContainedDescriptors.find(name) == m_ContainedDescriptors.end())
+		{
+			PX_CORE_ERROR("StorageBufferDynamic::SetDescriptorData: Descriptor {} not contained!", name);
+			return;
+		}
+		m_ContainedDescriptors.at(name).Suballocation->SetData(data, partialOffset, size);
+	}
+
+	const std::vector<uint32_t>& StorageBufferDynamic::GetOffsets(const std::string& name, uint32_t currentFrameIndex) const
+	{
+		std::vector<uint32_t> offsets;
+
+// 		switch (m_Usage)
+// 		{
+// 			case FrameBehaviour::STANDARD:
+// 			{
+// 				break;
+// 			}
+// 			case FrameBehaviour::FRAME_ITERATE:
+// 			{
+// 
+// 				break;
+// 			}
+// 			case FrameBehaviour::FRAME_SWAP_IN_OUT:
+// 			{
+// 
+// 				break;
+// 			}
+// 		}
+		offsets.push_back(1);
+
+		return offsets;
+	}	
+
+	const uint32_t StorageBufferDynamic::GetOffset(const std::string& name, uint32_t currentFrameIndex) const
+	{
+		if (m_ContainedDescriptors.find(name) == m_ContainedDescriptors.end())
+		{
+			PX_CORE_ERROR("Descriptor {} not contained! Returning 0", name);
+			return 0;
+		}
+
+		const DynamicBufferElement& element = m_ContainedDescriptors.at(name);
+		PX_CORE_WARN("Descriptor {}, Size {}, Offset {}", name, element.Suballocation->Range, element.Suballocation->Offset);
+		switch (element.Behaviour)
+		{
+			case FrameBehaviour::STANDARD:
+			{
+				return element.Suballocation->Offset;
+			}
+			case FrameBehaviour::FRAME_ITERATE:
+			{
+
+				break;
+			}
+			case FrameBehaviour::FRAME_SWAP_IN_OUT:
+			{
+				const std::string& link = element.LinkedDescriptorName;
+
+				if (currentFrameIndex == 0)
+					return element.Suballocation->Offset;
+				else
+				{
+					if (m_ContainedDescriptors.find(link) == m_ContainedDescriptors.end())
+					{
+						PX_CORE_ERROR("Descriptor link {} not contained! Returning original offset of {}", link, name);
+						return element.Suballocation->Offset;
+					}
+					return m_ContainedDescriptors.at(link).Suballocation->Offset;
+				}
+			}
+		}
+	}
+
+	Povox::StorageBufferDynamic::DynamicBufferElement StorageBufferDynamic::GetDescriptorInfo(const std::string& name) 
+	{
+		if (m_ContainedDescriptors.find(name) == m_ContainedDescriptors.end())
+		{
+			PX_CORE_ERROR("StorageBufferDynamic::GetDescriptorInfo: Descriptor {} not contained!", name);
+			return DynamicBufferElement();
+		}
+
+		return m_ContainedDescriptors.at(name);
+	}
 
 }

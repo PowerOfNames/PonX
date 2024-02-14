@@ -132,7 +132,7 @@ namespace Povox {
 		inline VkImageView GetImageView() const { return m_View; }
 		inline VkSampler GetSampler() const { return m_Sampler; }
 		inline VkImage GetImage() { return m_Allocation.Image; }
-		inline VkDescriptorImageInfo& GetImageInfo() { return m_DescriptorInfo; };
+		inline VkDescriptorImageInfo GetImageInfo() { return m_DescriptorInfo; }
 		
 
 		void CreateDescriptorSet();
