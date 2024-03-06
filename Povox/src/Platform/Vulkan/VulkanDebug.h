@@ -12,7 +12,7 @@
 
 
 #ifdef PX_ENABLE_VK_ASSERT
-	#define	PX_CORE_VK_ASSERT(x, y, ...) {if(!(x == y)) {PX_CORE_ERROR("Assertion fails: {0}", __VA_ARGS__); __debugbreak(); } }
+	#define	PX_CORE_VK_ASSERT(x, y, ...) {if(!(x == y)) {PX_CORE_ERROR("Assertion fails: '{0}' \n", __VA_ARGS__); __debugbreak(); } }
 #else
 	#define	PX_CORE_VK_ASSERT(x, y, ...) { x; }
 #endif
@@ -29,22 +29,22 @@ namespace Povox {
 		{
 		case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT:
 		{
-			PX_CORE_INFO("VK-Debug Callback: '{0}'", callbackData->pMessage);
+			PX_CORE_INFO("VK-Debug Callback: '{0}' \n", callbackData->pMessage);
 			break;
 		}
 		case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
 		{
-			PX_CORE_WARN("VK-Debug Callback: '{0}'", callbackData->pMessage);
+			PX_CORE_WARN("VK-Debug Callback: '{0}' \n", callbackData->pMessage);
 			break;
 		}
 		case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
 		{
-			PX_CORE_ERROR("VK-Debug Callback: '{0}'", callbackData->pMessage);
+			PX_CORE_ERROR("VK-Debug Callback: '{0}' \n", callbackData->pMessage);
 			break;
 		}
 		case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
 		{
-			PX_CORE_TRACE("VK-Debug Callback: '{0}'", callbackData->pMessage);
+			PX_CORE_TRACE("VK-Debug Callback: '{0}' \n", callbackData->pMessage);
 			break;
 		}
 		}
@@ -60,7 +60,8 @@ namespace Povox {
 			return VK_ERROR_EXTENSION_NOT_PRESENT;
 	}
 
-	static void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks* allocator) {
+	static void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks* allocator)
+	{
 		auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
 		if (func != nullptr) {
 			func(instance, debugMessenger, allocator);

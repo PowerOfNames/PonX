@@ -110,7 +110,7 @@ namespace Povox {
 			ComputePassSpecification passSpecs{};
 			passSpecs.DebugName = "DistanceField";
 			passSpecs.Pipeline = m_DistanceFieldComputePipeline;
-			passSpecs.WorkgroupSize.X = 16;
+			passSpecs.WorkgroupSize.X = 1;
 
 			m_DistanceFieldComputePass = ComputePass::Create(passSpecs);
 
@@ -153,7 +153,6 @@ namespace Povox {
 			renderpassSpecs.DebugName = "RaymarchingRenderpass";
 			renderpassSpecs.Pipeline = m_RayMarchingPipeline;
 			renderpassSpecs.TargetFramebuffer = m_RayMarchingFramebuffer;
-			renderpassSpecs.PredecessorComputePass = m_DistanceFieldComputePass;
 			m_RayMarchingRenderpass = RenderPass::Create(renderpassSpecs);
 
 			m_RayMarchingRenderpass->BindInput("CameraUBO", m_CameraData);
@@ -163,6 +162,9 @@ namespace Povox {
 			m_RayMarchingRenderpass->Bake();
 
 			//m_RayMarchingPipeline->PrintShaderLayout();
+
+			//TODO: this should be done in a RenderGraph(manager)
+			m_RayMarchingRenderpass->SetPredecessor(m_DistanceFieldComputePass);
 			m_DistanceFieldComputePass->SetSuccessor(m_RayMarchingRenderpass);
 		}
 
@@ -219,13 +221,16 @@ namespace Povox {
 	void SciParticleRenderer::OnUpdate(float deltaTime)
 	{
 		m_ElapsedTime += deltaTime;
+		m_DeltaTimne = deltaTime;
 
 
 		for(auto& [name, set] : m_LoadedParticleSets)
 		{
 			if (set->GetSpecifications().GPUSimulationActive)
 			{
+				//ComputeTimestampBegin
 				Renderer::DispatchCompute(m_DistanceFieldComputePass);
+				//ComputeTimestampEnd
 			}
 		}
 	}
@@ -326,18 +331,12 @@ namespace Povox {
 	 */
 	void SciParticleRenderer::DrawParticleSet(Povox::Ref<SciParticleSet> particleSet, uint32_t maxParticleDraws)
 	{	
-		m_RayMarchingUniform.ResolutionTime.z = m_ElapsedTime;
-		//m_RayMarchingUniform.ParticleCount = particleSet->GetParticleCount();
+		m_RayMarchingUniform.ResolutionTime.z = m_DeltaTimne;
 		m_RayMarchingUniform.ParticleCount = maxParticleDraws;
+		//m_RayMarchingUniform.ParticleCount = particleSet->GetParticleCount();
 
 		m_RayMarchingData->SetData((void*)&m_RayMarchingUniform, sizeof(RayMarchingUniform));
-		//m_RayMarchingRenderpass
-
-
-
-		//ComputeTimestampBegin
-		//Renderer::DispatchCompute(m_DistanceFieldComputePass);
-		//ComputeTimestampEnd
+			
 	}
 
 	void SciParticleRenderer::ResetStatistics()

@@ -22,6 +22,7 @@ namespace Povox {
 
 				default: PX_CORE_ASSERT(true, "Topology false or missing!");
 			}
+			return VK_PRIMITIVE_TOPOLOGY_MAX_ENUM;
 		}
 
 		static VkPolygonMode GetVulkanPolygonMode(PipelineUtils::PolygonMode mode)
@@ -34,6 +35,7 @@ namespace Povox {
 
 				default: PX_CORE_ASSERT(true, "PolygonMode false or missing!");
 			}
+			return VK_POLYGON_MODE_MAX_ENUM;
 		}
 
 		static VkFrontFace GetVulkanFrontFace(PipelineUtils::FrontFace face)
@@ -45,6 +47,7 @@ namespace Povox {
 
 				default: PX_CORE_ASSERT(true, "FrontFace false!");
 			}
+			return VK_FRONT_FACE_MAX_ENUM;
 		}
 
 		static VkCullModeFlagBits GetVulkanCullMode(PipelineUtils::CullMode culling)
@@ -58,6 +61,7 @@ namespace Povox {
 
 				default: PX_CORE_ASSERT(true, "CullMode false!");
 			}
+			return VK_CULL_MODE_NONE;
 		}
 	}
 
@@ -243,8 +247,8 @@ namespace Povox {
 			m_Scissor.offset.x = m_Specification.Scissor.X;
 			m_Scissor.offset.y = m_Specification.Scissor.Y;
 
-			m_Viewport.x = m_Specification.Viewport.X;
-			m_Viewport.y = m_Specification.Viewport.Y;
+			m_Viewport.x = static_cast<float>(m_Specification.Viewport.X);
+			m_Viewport.y = static_cast<float>(m_Specification.Viewport.Y);
 			m_Viewport.minDepth = m_Specification.Viewport.MinDepth;
 			m_Viewport.maxDepth = m_Specification.Viewport.MaxDepth;
 		}

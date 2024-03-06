@@ -118,43 +118,81 @@ namespace Povox {
 		VkSemaphoreCreateInfo semaInfo{ VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO };
 		semaInfo.flags = VK_SEMAPHORE_TYPE_BINARY;
 		PX_CORE_VK_ASSERT(vkCreateSemaphore(device, &semaInfo, nullptr, &ownershipSemaphore), VK_SUCCESS, "Failed to create Ownership Transfer Semaphore!");
+				
 
 		VkCommandBufferBeginInfo cmdBeginInfo{};
 		cmdBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 		cmdBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 		cmdBeginInfo.pInheritanceInfo = nullptr;
+				
 
 		PX_CORE_VK_ASSERT(vkBeginCommandBuffer(currentBuffer, &cmdBeginInfo), VK_SUCCESS, "Failed to begin immidiate submit cmd buffer!");
 		releaseFunction(currentBuffer);
 		PX_CORE_VK_ASSERT(vkEndCommandBuffer(currentBuffer), VK_SUCCESS, "Failed to end cmd buffer!");
 		
+		VkCommandBufferSubmitInfo cmdBeginInfos{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO };
+		cmdBeginInfos.pNext = nullptr;
+		cmdBeginInfos.commandBuffer = currentBuffer;
+		cmdBeginInfos.deviceMask = 0;
 
-		VkSubmitInfo submitInfo{};
-		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-		submitInfo.pNext = nullptr;
+		VkSemaphoreSubmitInfo semaSubmitInfo{ VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO };
+		semaSubmitInfo.pNext = nullptr;
+		semaSubmitInfo.semaphore = ownershipSemaphore;
+		semaSubmitInfo.deviceIndex = 0;
+		semaSubmitInfo.stageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
 
-		submitInfo.waitSemaphoreCount = 0;
-		submitInfo.pWaitSemaphores = nullptr;
-		submitInfo.signalSemaphoreCount = 1;
-		submitInfo.pSignalSemaphores = &ownershipSemaphore;
-		submitInfo.pWaitDstStageMask = nullptr;
-		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = &currentBuffer;
-		PX_CORE_VK_ASSERT(vkQueueSubmit(currentQueue, 1, &submitInfo, currentFence), VK_SUCCESS, "Failed to submit cmd buffer!");
-		
+		VkSubmitInfo2 submitInfo2{ VK_STRUCTURE_TYPE_SUBMIT_INFO_2 };
+		submitInfo2.pNext = nullptr;
+		submitInfo2.flags = 0;
+		submitInfo2.waitSemaphoreInfoCount = 0;
+		submitInfo2.pWaitSemaphoreInfos = nullptr;
+		submitInfo2.signalSemaphoreInfoCount = 1;
+		submitInfo2.pSignalSemaphoreInfos = &semaSubmitInfo;
+		submitInfo2.commandBufferInfoCount = 1;
+		submitInfo2.pCommandBufferInfos = &cmdBeginInfos;
 
+// 		VkSubmitInfo submitInfo{};
+// 		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+// 		submitInfo.pNext = nullptr;
+// 
+// 		submitInfo.waitSemaphoreCount = 0;
+// 		submitInfo.pWaitSemaphores = nullptr;
+// 		submitInfo.signalSemaphoreCount = 1;
+// 		submitInfo.pSignalSemaphores = &ownershipSemaphore;
+// 		submitInfo.pWaitDstStageMask = nullptr;
+// 		submitInfo.commandBufferCount = 1;
+// 		submitInfo.pCommandBuffers = &currentBuffer;
+		//PX_CORE_VK_ASSERT(vkQueueSubmit(currentQueue, 1, &submitInfo, currentFence), VK_SUCCESS, "Failed to submit cmd buffer!");
+		PX_CORE_VK_ASSERT(vkQueueSubmit2(currentQueue, 1, &submitInfo2, currentFence), VK_SUCCESS, "Failed to submit cmd buffer!");
 		
 		PX_CORE_VK_ASSERT(vkBeginCommandBuffer(targetBuffer, &cmdBeginInfo), VK_SUCCESS, "Failed to begin immidate submit cmd buffer!");
 		acquireFunction(targetBuffer);
 		PX_CORE_VK_ASSERT(vkEndCommandBuffer(targetBuffer), VK_SUCCESS, "Failed to end cmd buffer!");
+
+		VkCommandBufferSubmitInfo targedCmdSubmit{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO };
+		targedCmdSubmit.pNext = nullptr;
+		targedCmdSubmit.commandBuffer = targetBuffer;
+		targedCmdSubmit.deviceMask = 0;
+		
+		submitInfo2.waitSemaphoreInfoCount = 1;
+		submitInfo2.pWaitSemaphoreInfos = &semaSubmitInfo;
+		submitInfo2.signalSemaphoreInfoCount = 0;
+		submitInfo2.pSignalSemaphoreInfos = nullptr;
+		submitInfo2.commandBufferInfoCount = 1;
+		submitInfo2.pCommandBufferInfos = &targedCmdSubmit;
+		
+// 		submitInfo.waitSemaphoreCount = 1;
+// 		submitInfo.pWaitSemaphores = &ownershipSemaphore;
+// 		submitInfo.signalSemaphoreCount = 0;
+// 		submitInfo.pSignalSemaphores = nullptr;
+
+// 		VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT };
+// 		submitInfo.pWaitDstStageMask = waitStages;
+// 		submitInfo.pCommandBuffers = &targetBuffer;
 		
 		
-		submitInfo.waitSemaphoreCount = 1;
-		submitInfo.pWaitSemaphores = &ownershipSemaphore;
-		submitInfo.signalSemaphoreCount = 0;
-		submitInfo.pSignalSemaphores = nullptr;
-		submitInfo.pCommandBuffers = &targetBuffer;
-		PX_CORE_VK_ASSERT(vkQueueSubmit(targetQueue, 1, &submitInfo, targetFence), VK_SUCCESS, "Failed to submit cmd buffer!");
+		//PX_CORE_VK_ASSERT(vkQueueSubmit(targetQueue, 1, &submitInfo, targetFence), VK_SUCCESS, "Failed to submit cmd buffer!");
+		PX_CORE_VK_ASSERT(vkQueueSubmit2(targetQueue, 1, &submitInfo2, targetFence), VK_SUCCESS, "Failed to submit cmd buffer!");
 		
 		vkWaitForFences(device, 1, &currentFence, VK_TRUE, UINT64_MAX);
 		vkWaitForFences(device, 1, &targetFence, VK_TRUE, UINT64_MAX);

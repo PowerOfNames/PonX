@@ -26,6 +26,7 @@ namespace Povox {
 		bool HasTransfer() { return TransferFamilyIndex != -1; }
 		bool HasCompute() { return ComputeFamilyIndex  != -1; }
 		bool TransferExclusive() { return TransferFamilyIndex != GraphicsFamilyIndex; }
+		bool FullyExclusive() { return TransferExclusive() && (ComputeFamilyIndex != GraphicsFamilyIndex) && (ComputeFamilyIndex != TransferFamilyIndex); }
 	};
 
 	

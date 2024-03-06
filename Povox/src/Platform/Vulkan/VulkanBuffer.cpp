@@ -262,7 +262,7 @@ namespace Povox {
 
 		UploadToGPU();
 	}
-	void VulkanBuffer::SetData(void* inputData, uint32_t offset, size_t size)
+	void VulkanBuffer::SetData(void* inputData, size_t offset, size_t size)
 	{
 		PX_CORE_ASSERT((offset + size) < m_Specification.Size, "Out of bounds!");
 
@@ -292,6 +292,7 @@ namespace Povox {
 		bufferInfo.queueFamilyIndexCount = 1;
 		auto& families = VulkanContext::GetDevice()->GetQueueFamilies();
 		
+		// TODO: queue family can be empty if not concurrent
 		switch (ownership)
 		{
 			case QueueFamilyOwnership::QFO_UNDEFINED:

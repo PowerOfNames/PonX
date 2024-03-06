@@ -62,6 +62,7 @@ namespace Povox {
 	private:
 		SciParticleRendererSpecification m_Specification{};
 		float m_ElapsedTime = 0.0f;
+		float m_DeltaTimne = 0.0f;
 
 		Povox::Ref<Povox::Image2D> m_FinalImage = nullptr;
 

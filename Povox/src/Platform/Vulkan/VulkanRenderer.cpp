@@ -163,7 +163,7 @@ namespace Povox {
 	
 	void VulkanRenderer::WaitForDeviceFinished()
 	{
-		vkDeviceWaitIdle(m_Device);
+		//PX_CORE_VK_ASSERT(vkDeviceWaitIdle(m_Device), VK_SUCCESS, "Failed to wait for device");
 	}
 
 	//FrameData
@@ -543,7 +543,7 @@ namespace Povox {
 
 		//Transition final image
 		m_FinalImages[m_CurrentFrameIndex]->TransitionImageLayout(
-			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+			VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 			VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT, 0,
 			VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT
 		);
@@ -573,16 +573,12 @@ namespace Povox {
 		sourceImageVK->TransitionImageLayout(
 			VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
 			VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_READ_BIT,
-			VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
-			QueueFamilyOwnership::QFO_GRAPHICS
-		);
+			VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT);
 		//Transition swapchain image back into color
 		m_FinalImages[m_CurrentFrameIndex]->TransitionImageLayout(
 			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
 			VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT,
-			VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT,
-			QueueFamilyOwnership::QFO_GRAPHICS
-		);
+			VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT);
 	}
 	void VulkanRenderer::PrepareSwapchainImage(Ref<Image2D> sourceImage)
 	{
@@ -781,6 +777,9 @@ namespace Povox {
 
 		// Bind pipeline. TODO: Behaviour if multiple pipelines are used during one renderpass (logic not supported yet)
 		BindPipeline(renderPass->GetSpecification().Pipeline);
+
+
+		m_ActiveRenderPass->UpdateResourceOwnership();
 
 		auto& descriptors = m_ActiveRenderPass->GetDescriptorSets();
 		auto& dynamicOffsets = m_ActiveRenderPass->GetDynamicOffsets(m_CurrentFrameIndex);

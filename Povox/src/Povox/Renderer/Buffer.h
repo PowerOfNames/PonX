@@ -144,7 +144,7 @@ namespace Povox {
 		virtual void Free() = 0;
 
 		virtual void SetData(void* data, size_t size) = 0;
-		virtual void SetData(void* inputData, uint32_t offset, size_t size) = 0;
+		virtual void SetData(void* inputData, size_t offset, size_t size) = 0;
 
 		virtual void SetLayout(const BufferLayout& layout) = 0;
 		virtual BufferSpecification& GetSpecification() = 0;

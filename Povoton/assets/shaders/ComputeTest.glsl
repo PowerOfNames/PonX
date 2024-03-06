@@ -39,13 +39,21 @@ layout(std140, set = 1, binding = 1) buffer ParticleSSBOOut
 
 //layout(set = 2, binding = 0, rgba8) uniform writeonly image2D DistanceField;
 
-layout (local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
+layout (local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 
 void main() 
 {
-    uint index = gl_GlobalInvocationID.x;
+    //uint index = gl_GlobalInvocationID.x;
 
-    for(int index = 0; index < u_MetaData.ParticleCount; index++)
+    for(int index = 0; index < 6; index++)
+    {
+        Particle particleOut = ssbo_ParticlesOut.particlesOut[0];
+
+        particleOut.PositionRadius = vec4(index, 1.0, 1.0, 1.0);
+        particleOut.Velocity = vec4(1.0f);
+        particleOut.ID = index;
+    }
+    /*for(int index = 0; index < u_MetaData.ParticleCount; index++)
     {
         Particle particleIn = ssbo_ParticlesIn.particlesIn[index];
         Particle particleOut = ssbo_ParticlesOut.particlesOut[index];
@@ -54,5 +62,5 @@ void main()
         particleOut.PositionRadius.w = particleIn.PositionRadius.w;
         particleOut.Velocity = particleIn.Velocity - particleIn.Velocity * 0.1;
         particleOut.ID = index;
-    }    
+    }*/  
 }

@@ -138,8 +138,6 @@ namespace Povox {
 		inline const std::string& GetName() { return m_Name; }
 		inline bool IsPerFrame() { return m_PerFrame; }
 
-
-
 	protected:
 		RendererUID m_UID = RendererUID();
 

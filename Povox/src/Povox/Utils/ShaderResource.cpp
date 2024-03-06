@@ -246,16 +246,6 @@ namespace Povox {
 		}
 
 		m_ContainedDescriptors[name] = DynamicBufferElement{ sub, initialFrame, usage, linkedDescriptorName };
-	}	
-	
-	void StorageBufferDynamic::SetDescriptorData(const std::string& name, void* data, size_t size, size_t partialOffset /*= 0*/)
-	{
-		if (m_ContainedDescriptors.find(name) == m_ContainedDescriptors.end())
-		{
-			PX_CORE_ERROR("StorageBufferDynamic::SetDescriptorData: Descriptor {} not contained!", name);
-			return;
-		}
-		m_ContainedDescriptors.at(name).Suballocation->SetData(data, partialOffset, size);
 	}
 
 	const std::vector<uint32_t>& StorageBufferDynamic::GetOffsets(const std::string& name, uint32_t currentFrameIndex) const
@@ -324,7 +314,7 @@ namespace Povox {
 		}
 	}
 
-	Povox::StorageBufferDynamic::DynamicBufferElement StorageBufferDynamic::GetDescriptorInfo(const std::string& name) 
+	StorageBufferDynamic::DynamicBufferElement StorageBufferDynamic::GetDescriptorInfo(const std::string& name) 
 	{
 		if (m_ContainedDescriptors.find(name) == m_ContainedDescriptors.end())
 		{
@@ -333,6 +323,16 @@ namespace Povox {
 		}
 
 		return m_ContainedDescriptors.at(name);
+	}
+
+	void StorageBufferDynamic::SetDescriptorData(const std::string& name, void* data, size_t size, size_t partialOffset /*= 0*/)
+	{
+		if (m_ContainedDescriptors.find(name) == m_ContainedDescriptors.end())
+		{
+			PX_CORE_ERROR("StorageBufferDynamic::SetDescriptorData: Descriptor {} not contained!", name);
+			return;
+		}
+		m_ContainedDescriptors.at(name).Suballocation->SetData(data, partialOffset, size);
 	}
 
 }

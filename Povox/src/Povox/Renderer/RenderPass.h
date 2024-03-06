@@ -5,29 +5,18 @@
 
 namespace Povox {
 
-	class Framebuffer;
-	class Pipeline;
-	class ComputePass;
-	class RenderPass;
-	struct RenderPassSpecification
+	enum PassType
 	{
-		std::string DebugName = "RenderPass";
+		UNDEFINED,
+		GRAPHICS,
+		COMPUTE
+	};	
 
-		Ref<Pipeline> Pipeline = nullptr;
-
-		Ref<RenderPass> PredecessorPass = nullptr;
-		Ref<RenderPass> SuccessorPass = nullptr;
-
-		Ref<ComputePass> PredecessorComputePass = nullptr;
-		Ref<ComputePass> SuccessorComputePass = nullptr;
-
-		Ref<Framebuffer> TargetFramebuffer = nullptr;
-	};
-
-	class RenderPass
+	class GPUPass
 	{
 	public:
-		virtual ~RenderPass() = default;
+		virtual ~GPUPass() = default;
+
 		virtual void Recreate(uint32_t width, uint32_t height) = 0;
 
 		virtual void BindInput(const std::string& name, Ref<ShaderResource>) = 0;
@@ -37,19 +26,34 @@ namespace Povox {
 
 		virtual void Bake() = 0;
 
-		virtual void SetPredecessor(Ref<RenderPass> predecessor) = 0;
-		virtual void SetPredecessor(Ref<ComputePass> predecessor) = 0;
-		virtual void SetSuccessor(Ref<RenderPass> successor) = 0;
-		virtual void SetSuccessor(Ref<ComputePass> successor) = 0;
-
-
-		virtual const RenderPassSpecification& GetSpecification() const = 0;
+		virtual void SetPredecessor(Ref<GPUPass> predecessor) = 0;
+		virtual void SetSuccessor(Ref<GPUPass> successor) = 0;
 
 		virtual const std::string& GetDebugName() const = 0;
 
-		static Ref<RenderPass> Create(const RenderPassSpecification& spec);
+		virtual PassType GetPassType() = 0;
 	};
 
+	class Framebuffer;
+	class Pipeline;
+	struct RenderPassSpecification
+	{
+		std::string DebugName = "RenderPass";
+
+		Ref<Pipeline> Pipeline = nullptr;		
+		Ref<Framebuffer> TargetFramebuffer = nullptr;
+	};
+
+	class RenderPass : public virtual GPUPass
+	{
+	public:
+		virtual ~RenderPass() = default;
+
+		virtual const RenderPassSpecification& GetSpecification() const = 0;
+		virtual RenderPassSpecification& GetSpecification() = 0;
+
+		static Ref<RenderPass> Create(const RenderPassSpecification& spec);
+	};
 
 	class ComputePipeline;
 	struct ComputePassSpecification
@@ -57,13 +61,7 @@ namespace Povox {
 		std::string DebugName = "ComputePass";
 
 		Ref<ComputePipeline> Pipeline = nullptr;
-
-		Ref<RenderPass> PredecessorPass = nullptr;
-		Ref<RenderPass> SuccessorPass = nullptr;
-
-		Ref<ComputePass> PredecessorComputePass = nullptr;
-		Ref<ComputePass> SuccessorComputePass = nullptr;
-
+		
 		struct WorkgroupSize
 		{
 			uint32_t X = 1;
@@ -74,29 +72,15 @@ namespace Povox {
 		//Ref<Framebuffer> TargetFramebuffer = nullptr;
 	};
 
-	class ComputePass
+	class ComputePass : public virtual GPUPass
 	{
 	public:
 		virtual ~ComputePass() = default;
-		virtual void Recreate() = 0;
-
-		virtual void Bake() = 0;
-
-		virtual void BindInput(const std::string& name, Ref<ShaderResource>) = 0;
-		virtual void BindOutput(const std::string& name, Ref<ShaderResource>) = 0;
-
-		virtual void UpdateDescriptor(const std::string& name) = 0;
-
-		virtual void SetPredecessor(Ref<RenderPass> predecessor) = 0;
-		virtual void SetPredecessor(Ref<ComputePass> predecessor) = 0;
-		virtual void SetSuccessor(Ref<RenderPass> successor) = 0;
-		virtual void SetSuccessor(Ref<ComputePass> successor) = 0;
 
 		virtual const ComputePassSpecification& GetSpecification() const = 0;
+		virtual ComputePassSpecification& GetSpecification() = 0;
 
 		//virtual Ref<Image2D> GetFinalImage(uint32_t index) = 0;
-
-		virtual const std::string& GetDebugName() const = 0;
 
 		static Ref<ComputePass> Create(const ComputePassSpecification& spec);
 	};

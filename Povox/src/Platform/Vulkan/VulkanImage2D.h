@@ -36,8 +36,9 @@ namespace Povox {
 				case ImageFormat::RED_INTEGER_U64: return VK_FORMAT_R64_UINT;
 				case ImageFormat::RED_FLOAT: return VK_FORMAT_R32_SFLOAT;
 				case ImageFormat::DEPTH24STENCIL8: return VulkanUtils::FindDepthFormat(VulkanContext::GetDevice()->GetPhysicalDevice());
+				default:
+					PX_CORE_ASSERT(true, "ImageFormat not covered!");
 			}
-			PX_CORE_ASSERT(true, "ImageFormat not covered!");
 		}
 
 		static VkImageUsageFlagBits GetVulkanImageUsage(ImageUsage usage)
@@ -53,8 +54,10 @@ namespace Povox {
 
 				case ImageUsage::STORAGE: return VK_IMAGE_USAGE_STORAGE_BIT;
 				case ImageUsage::SAMPLED: return VK_IMAGE_USAGE_SAMPLED_BIT;
+				default:
+					PX_CORE_ASSERT(true, "ImageUsage not covered!");
 			}
-			PX_CORE_ASSERT(true, "ImageUsage not covered!");
+			
 		}
 
 		static VkImageUsageFlags GetVulkanImageUsages(ImageUsages usages)
@@ -126,8 +129,7 @@ namespace Povox {
 		void TransitionImageLayout(
 			VkImageLayout initialLayout, VkImageLayout finalLayout,
 			VkPipelineStageFlags2 srcStage, VkAccessFlags2 srcMask,
-			VkPipelineStageFlags2 dstStage, VkAccessFlags2 dstMask,
-			QueueFamilyOwnership targetOwner = QueueFamilyOwnership::QFO_UNDEFINED);
+			VkPipelineStageFlags2 dstStage, VkAccessFlags2 dstMask);
 
 		inline VkImageView GetImageView() const { return m_View; }
 		inline VkSampler GetSampler() const { return m_Sampler; }

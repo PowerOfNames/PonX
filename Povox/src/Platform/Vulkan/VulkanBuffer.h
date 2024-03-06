@@ -31,7 +31,7 @@ namespace Povox {
 		static size_t PadSize(size_t initialSize);
 
 		virtual void SetData(void* inputData, size_t size) override;
-		virtual void SetData(void* inputData, uint32_t offset, size_t size) override;
+		virtual void SetData(void* inputData, size_t offset, size_t size) override;
 		virtual void SetLayout(const BufferLayout& layout) override { m_Specification.Layout = layout; };
 
 		virtual inline BufferSpecification& GetSpecification() override { return m_Specification; }
