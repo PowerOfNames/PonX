@@ -36,6 +36,8 @@ namespace Povox {
 
 		inline const std::map<uint32_t, DescriptorSet>& GetDescriptorSets() const { return m_DescriptorSets; }
 		std::vector<uint32_t> GetDynamicOffsets(uint32_t currentFrameIndex);
+		//Temp
+		const std::vector<std::string> GetBoundResourceNames();
 
 	protected:
 		void CreateDescriptorSets(const std::map<uint32_t, VkDescriptorSetLayout>& layoutMap);
@@ -85,7 +87,7 @@ namespace Povox {
 		virtual inline RenderPassSpecification& GetSpecification() override { return m_Specification; }
 		virtual inline const std::string& GetDebugName() const override { return m_Specification.DebugName; }
 
-		void UpdateResourceOwnership();
+		void UpdateResourceOwnership(uint32_t frameIndex);
 
 		inline VkRenderPass GetRenderPass() const { return m_RenderPass; }
 
@@ -112,7 +114,7 @@ namespace Povox {
 		
 		//virtual Ref<Image2D> GetFinalImage(uint32_t index) override;
 		
-		void UpdateResourceOwnership();
+		void UpdateResourceOwnership(uint32_t frameIndex);
 
 	private:
 		ComputePassSpecification m_Specification{};

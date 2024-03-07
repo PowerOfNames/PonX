@@ -779,7 +779,7 @@ namespace Povox {
 		BindPipeline(renderPass->GetSpecification().Pipeline);
 
 
-		m_ActiveRenderPass->UpdateResourceOwnership();
+		m_ActiveRenderPass->UpdateResourceOwnership(m_CurrentFrameIndex);
 
 		auto& descriptors = m_ActiveRenderPass->GetDescriptorSets();
 		auto& dynamicOffsets = m_ActiveRenderPass->GetDynamicOffsets(m_CurrentFrameIndex);
@@ -878,15 +878,7 @@ namespace Povox {
 		uint32_t computeFamIndex = VulkanContext::GetDevice()->GetQueueFamilies().ComputeFamilyIndex;
 		uint32_t graphicsFamIndex = VulkanContext::GetDevice()->GetQueueFamilies().GraphicsFamilyIndex;
 		
-		
-		// Resource Acquisition / Queue ownership transfer
-		if (computeFamIndex != graphicsFamIndex)
-		{
-			
-
-
-			//auto& sharedResources = VulkanRenderPass::CreateOwnershipBarriers(computePass, passSpecs.SuccessorPass, );
-		}		
+		vkComputePass->UpdateResourceOwnership(m_CurrentFrameIndex);
 		
 		vkCmdBindPipeline(computeCmd, VK_PIPELINE_BIND_POINT_COMPUTE, vkComputePipeline->GetVulkanObj());
 

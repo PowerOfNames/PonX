@@ -14,7 +14,7 @@ namespace Povox {
 
 	struct SciParticleSetSpecification
 	{
-		const uint64_t MaxParticleCount = 5;
+		const uint64_t MaxParticleCount = 1000;
 		BufferLayout ParticleLayout;
 
 		bool RandomGeneration = false;

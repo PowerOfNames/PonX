@@ -45,13 +45,13 @@ void main()
 {
     //uint index = gl_GlobalInvocationID.x;
 
-    for(int index = 0; index < 6; index++)
+    for(int index = 0; index < u_MetaData.ParticleCount; index++)
     {
-        Particle particleOut = ssbo_ParticlesOut.particlesOut[0];
-
-        particleOut.PositionRadius = vec4(index, 1.0, 1.0, 1.0);
-        particleOut.Velocity = vec4(1.0f);
-        particleOut.ID = index;
+        ssbo_ParticlesOut.particlesOut[index].PositionRadius.xyz = ssbo_ParticlesIn.particlesIn[index].PositionRadius.xyz + (ssbo_ParticlesIn.particlesIn[index].Velocity.xyz * u_MetaData.ResolutionTime.z) / 20.0;
+        ssbo_ParticlesOut.particlesOut[index].PositionRadius.w = ssbo_ParticlesIn.particlesIn[index].PositionRadius.w;
+        ssbo_ParticlesOut.particlesOut[index].Velocity = ssbo_ParticlesIn.particlesIn[index].Velocity;
+        ssbo_ParticlesOut.particlesOut[index].Color = ssbo_ParticlesIn.particlesIn[index].Color;
+        ssbo_ParticlesOut.particlesOut[index].ID = ssbo_ParticlesIn.particlesIn[index].ID;
     }
     /*for(int index = 0; index < u_MetaData.ParticleCount; index++)
     {

@@ -165,6 +165,8 @@ namespace Povox {
 
 			//TODO: this should be done in a RenderGraph(manager)
 			m_RayMarchingRenderpass->SetPredecessor(m_DistanceFieldComputePass);
+			m_RayMarchingRenderpass->SetSuccessor(m_DistanceFieldComputePass);
+			m_DistanceFieldComputePass->SetPredecessor(m_RayMarchingRenderpass);
 			m_DistanceFieldComputePass->SetSuccessor(m_RayMarchingRenderpass);
 		}
 

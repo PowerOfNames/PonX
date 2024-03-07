@@ -24,7 +24,7 @@ namespace Povox {
 			{
 				buffer[i].PositionRadius = glm::linearRand(glm::vec4(-5.0f, -5.0f, -5.0f, 0.1f), glm::vec4(5.0f, 5.0f, 4.0f, 2.0f));
 				buffer[i].Color = glm::linearRand(glm::vec4(0.0f, 0.0f, 0.0f, 1.0f), glm::vec4(1.0f));
-				buffer[i].Velocity = glm::vec4(1.0f);
+				buffer[i].Velocity = glm::linearRand(glm::vec4(0.5f), glm::vec4(5.0f));
 				buffer[i].ID = UUID();
 				buffer[i].IDPad = 0;
 			}
