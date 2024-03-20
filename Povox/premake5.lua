@@ -31,6 +31,8 @@ project "Povox"
 		"vendor/yaml-cpp/src/**.cpp",
 		"vendor/yaml-cpp/include/**.h",
 
+		--"vendor/filewatch/FileWatch.h",
+
 		"vendor/ImGuizmo/ImGuizmo.h",
 		"vendor/ImGuizmo/ImGuizmo.cpp"
 	}
@@ -46,7 +48,6 @@ project "Povox"
 	{
 		"src",
 		"vendor/spdlog/include",
-		"%{IncludeDir.Glad}",
 		"%{IncludeDir.GLFW}",
 		"%{IncludeDir.glm}",
 		"%{IncludeDir.stb_image}",
@@ -54,6 +55,7 @@ project "Povox"
 		"%{IncludeDir.entt}",
 		"%{IncludeDir.ImGui}",
 		"%{IncludeDir.ImGuizmo}",
+		"%{IncludeDir.filewatch}",
 
 		"%{IncludeDir.VulkanSDK}",
 		"%{IncludeDir.VMA}",
@@ -64,11 +66,8 @@ project "Povox"
 	links
 	{
 		"GLFW",
-		"Glad",
 		"ImGui",
-		"opengl32.lib",
-		"%{Library.Vulkan}",
-		--"%{Library.VulkanUtils}"
+		"%{Library.Vulkan}"
 	}
 
 	filter "files:vendor/ImGuizmo/**.cpp"

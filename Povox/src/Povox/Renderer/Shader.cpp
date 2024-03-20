@@ -4,6 +4,9 @@
 
 #include "Platform/Vulkan/VulkanShader.h"
 
+#include "Povox/Core/Application.h"
+#include "Povox/Core/Core.h"
+#include "Povox/Core/Log.h"
 
 namespace Povox {
 
@@ -26,12 +29,16 @@ namespace Povox {
 	}
 
 
+	Scope<filewatch::FileWatch<std::wstring>> ShaderLibrary::s_FileWatcher = nullptr;
+	bool ShaderLibrary::s_ShaderLibraryReloadPending = false;
 
 	//------------------ShaderLibrary---------------------
-	
-	ShaderLibrary::ShaderLibrary()
+	ShaderLibrary::ShaderLibrary(const std::filesystem::path& fileSystemShadersPath)
+		: m_FileSystemShadersPath(fileSystemShadersPath)
 	{
 		PX_CORE_TRACE("Created ShaderLibrary!");
+		
+		s_FileWatcher = CreateScope<filewatch::FileWatch<std::wstring>>(m_FileSystemShadersPath, OnShaderFileWatchEvent);
 	}
 
 	void ShaderLibrary::Shutdown()
@@ -64,7 +71,7 @@ namespace Povox {
 		Add(name, shader);
 	}
 
-	Ref<Shader> ShaderLibrary::Load(const std::string& name, std::string& filepath)
+	Ref<Shader> ShaderLibrary::Load(const std::string& name, const std::string& filepath)
 	{
 		auto shader = Shader::Create(filepath);
 		Add(name, shader);
@@ -90,6 +97,48 @@ namespace Povox {
 	bool ShaderLibrary::Contains(const std::string& name) const
 	{
 		return m_Shaders.find(name) != m_Shaders.end();
+	}
+
+	void ShaderLibrary::OnShaderFileWatchEvent(const std::wstring& path, const filewatch::Event changeType)
+	{
+		if (!s_ShaderLibraryReloadPending)
+		{
+			s_ShaderLibraryReloadPending = true;
+			switch (changeType)
+			{
+				case filewatch::Event::added:
+				{
+					Application::Get()->AddMainThreadQueueInstruction([](ShaderLibrary* lib)
+						{
+							s_FileWatcher.reset();
+							Add(path)
+						});
+					break;
+				}
+				case filewatch::Event::removed:
+				{
+
+					break;
+				}
+				case filewatch::Event::renamed_new:
+				{
+
+					break;
+				}
+				case filewatch::Event::renamed_old:
+				{
+
+					break;
+				}
+				case filewatch::Event::modified:
+				{
+
+					break;
+				}
+				default:
+					PX_CORE_WARN("FileWatch::EventType unknown!");
+			}
+		}		
 	}
 
 }

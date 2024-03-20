@@ -81,7 +81,6 @@
     <None Include="..\..\Povoton\premake5.lua" />
     <None Include="..\..\Povox\premake5.lua" />
     <None Include="..\..\Povox\vendor\GLFW\premake5.lua" />
-    <None Include="..\..\Povox\vendor\Glad\premake5.lua" />
     <None Include="..\..\Povox\vendor\ImGui\premake5.lua" />
     <None Include="..\..\Povox\vendor\yaml-cpp\premake5.lua" />
     <None Include="..\..\Sandbox\premake5.lua" />

@@ -434,7 +434,6 @@ namespace Povox {
 						break;
 					}
 				}
-				PX_CORE_TRACE("Set: {}, Binding {} Name {}", set, binding, name);
 			}
 		}
 		return offsets;
@@ -545,7 +544,7 @@ namespace Povox {
 
 					if (!descriptorInfo.Suballocation)
 					{
-						PX_CORE_WARN("This Dynamic storage buffer deos not contain any suballocations");
+						PX_CORE_WARN("This Dynamic storage buffer does not contain any suballocations");
 						break;
 					}
 
@@ -681,7 +680,7 @@ namespace Povox {
 
 					if (!descriptorInfo.Suballocation)
 					{
-						PX_CORE_WARN("This Dynamic storage buffer deos not contain any suballocations");
+						PX_CORE_WARN("This Dynamic storage buffer does not contain any suballocations");
 						break;
 					}
 

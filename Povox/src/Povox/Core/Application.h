@@ -10,6 +10,7 @@
 #include "Povox/ImGui/ImGuiLayer.h"
 #include "Povox/ImGui/ImGuiVulkanLayer.h"
 
+#include <filesystem>
 
 namespace Povox {
 
@@ -26,6 +27,8 @@ namespace Povox {
 
 		RendererAPI::API UseAPI = RendererAPI::API::NONE;
 		bool ImGuiEnabled = true;
+
+		std::filesystem::path ShaderFilePath = std::filesystem::current_path().string() + "/assets/shaders";
 
 		uint32_t MaxFramesInFlight = 1;
 	};
@@ -45,6 +48,8 @@ namespace Povox {
 
 		void Close();
 
+		void AddMainThreadQueueInstruction(const std::function<void()>& func);
+
 		ImGuiLayer* GetImGuiLayer() { return m_ImGuiLayer; }
 		ImGuiVulkanLayer* GetImGuiVulkanLayer() { return m_ImGuiVulkanLayer; }
 
@@ -56,6 +61,8 @@ namespace Povox {
 		bool OnWindowClose(WindowCloseEvent& e);
 		bool OnWindowResize(WindowResizeEvent& e);
 		bool OnFramebufferResize(FramebufferResizeEvent& e);
+
+		void ExecuteMainThreadQueue();
 		
 		ApplicationSpecification m_Specification;
 
@@ -66,6 +73,9 @@ namespace Povox {
 		bool m_Minimized = false;
 		LayerStack m_Layerstack;
 		float m_DeltaTime = 0.0f;
+
+		std::vector<std::function<void()>> m_MainThreadQueue;
+		std::mutex m_MainThreadQueueMutex;
 
 		static Application* s_Instance;
 	};

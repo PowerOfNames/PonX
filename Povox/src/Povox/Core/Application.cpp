@@ -96,6 +96,8 @@ namespace Povox {
 		{
 			PX_PROFILE_SCOPE("Application Run-Loop");
 
+			ExecuteMainThreadQueue();
+
 			//Between Begin and EndFrame happens the CommandRecording of everything rendering related
 			if (!m_Minimized)
 			{
@@ -260,10 +262,28 @@ namespace Povox {
 		Renderer::OnResize(e.GetWidth(), e.GetHeight());
 
 		return false;
-	}
+	}	
 
 	void Application::Close()
 	{
 		m_Running = false;
 	}
+
+	void Application::AddMainThreadQueueInstruction(const std::function<void()>& func)
+	{
+		std::scoped_lock<std::mutex> lock(m_MainThreadQueueMutex);
+
+		m_MainThreadQueue.emplace_back(func);
+	}
+
+	void Application::ExecuteMainThreadQueue()
+	{
+		std::scoped_lock<std::mutex> lock(m_MainThreadQueueMutex);
+
+		for (auto& func : m_MainThreadQueue)
+			func();
+
+		m_MainThreadQueue.clear();
+	}
+
 }

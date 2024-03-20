@@ -19,9 +19,6 @@
     <Filter Include="..\Povox\vendor\GLFW">
       <UniqueIdentifier>{885B46FC-74EA-CFC5-1D09-E4C00977E06B}</UniqueIdentifier>
     </Filter>
-    <Filter Include="..\Povox\vendor\Glad">
-      <UniqueIdentifier>{30E746FC-1C76-D0C5-C594-E4C0B102E16B}</UniqueIdentifier>
-    </Filter>
     <Filter Include="..\Povox\vendor\ImGui">
       <UniqueIdentifier>{931E4885-FF8A-0380-C87E-9BDD34AA25E8}</UniqueIdentifier>
     </Filter>
@@ -44,9 +41,6 @@
     </None>
     <None Include="..\..\Povox\vendor\GLFW\premake5.lua">
       <Filter>..\Povox\vendor\GLFW</Filter>
-    </None>
-    <None Include="..\..\Povox\vendor\Glad\premake5.lua">
-      <Filter>..\Povox\vendor\Glad</Filter>
     </None>
     <None Include="..\..\Povox\vendor\ImGui\premake5.lua">
       <Filter>..\Povox\vendor\ImGui</Filter>

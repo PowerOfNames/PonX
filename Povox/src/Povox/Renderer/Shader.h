@@ -1,12 +1,13 @@
 #pragma once
 #include "Povox/Renderer/RendererUID.h"
 
-//#include "Povox/Utils/ShaderResource.h"
-
 #include <unordered_map>
 #include <string>
+#include <filesystem>
 
 #include <glm/glm.hpp>
+
+#include <FileWatch.h>
 
 namespace Povox {
 
@@ -104,7 +105,7 @@ namespace Povox {
 	class ShaderLibrary
 	{
 	public:
-		ShaderLibrary();
+		ShaderLibrary(const std::filesystem::path& fileSystemShadersPath);
 		~ShaderLibrary() = default;
 
 		void Shutdown();
@@ -112,7 +113,7 @@ namespace Povox {
 		void Add(const std::string& name, const Ref<Shader>& shader);
 		void Add(const Ref<Shader>& shader);
 
-		Ref<Shader> Load(const std::string& name, std::string& filepath);
+		Ref<Shader> Load(const std::string& name, const std::string& fileSystemShadersPath);
 		Ref<Shader> Load(const std::string& filepath);
 		
 		Ref<Shader> Get(const std::string& name);
@@ -120,6 +121,14 @@ namespace Povox {
 		bool Contains(const std::string& name) const;
 
 	private:
+		static void OnShaderFileWatchEvent(const std::wstring& path, const filewatch::Event change_type);
+
+	private:
 		std::unordered_map<std::string, Ref<Shader>> m_Shaders;
+		std::filesystem::path m_FileSystemShadersPath;
+
+
+		static Scope<filewatch::FileWatch<std::wstring>> s_FileWatcher;
+		static bool s_ShaderLibraryReloadPending;
 	};
 }

@@ -48,8 +48,7 @@ namespace Povox {
 
 		PX_CORE_INFO("Creating ShaderLibrary...");
 
-		m_ShaderLibrary = CreateRef<ShaderLibrary>();
-		
+		m_ShaderLibrary = CreateRef<ShaderLibrary>(Application::Get()->GetSpecification().ShaderFilePath);
 
 		PX_CORE_INFO("Completed ShaderLibrary creation.");
 
@@ -214,7 +213,6 @@ namespace Povox {
 	}
 	void VulkanRenderer::EndFrame()
 	{
-		PX_CORE_TRACE("Ending frame {}", m_CurrentFrameIndex);
 		m_Specification.State.LastFrameIndex = m_LastFrameIndex = m_CurrentFrameIndex;
 		m_Specification.State.CurrentFrameIndex = m_CurrentFrameIndex = (++m_CurrentFrameIndex) % m_Specification.MaxFramesInFlight;
 		m_Specification.State.TotalFrames++;

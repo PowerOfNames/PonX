@@ -283,7 +283,6 @@ namespace Povox {
 		}
 
 		const DynamicBufferElement& element = m_ContainedDescriptors.at(name);
-		PX_CORE_WARN("Descriptor {}, Size {}, Offset {}", name, element.Suballocation->Range, element.Suballocation->Offset);
 		switch (element.Behaviour)
 		{
 			case FrameBehaviour::STANDARD:

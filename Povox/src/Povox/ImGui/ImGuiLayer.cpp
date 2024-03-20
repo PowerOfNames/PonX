@@ -9,7 +9,6 @@
 #include "Povox/Core/Application.h"
 
 //TEMPORARY
-#include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
 #include <ImGuizmo.h>

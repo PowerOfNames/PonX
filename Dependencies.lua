@@ -7,7 +7,6 @@
 
 
 IncludeDir = {}
-IncludeDir["Glad"]			= "%{wks.location}/Povox/vendor/Glad/include"
 IncludeDir["GLFW"]			= "%{wks.location}/Povox/vendor/GLFW/include"
 IncludeDir["glm"]			= "%{wks.location}/Povox/vendor/glm"
 IncludeDir["stb_image"]		= "%{wks.location}/Povox/vendor/stb_image"
@@ -17,10 +16,13 @@ IncludeDir["yaml_cpp"]		= "%{wks.location}/Povox/vendor/yaml-cpp/include"
 IncludeDir["ImGui"]			= "%{wks.location}/Povox/vendor/ImGui"
 IncludeDir["ImGuizmo"]		= "%{wks.location}/Povox/vendor/ImGuizmo"
 
-IncludeDir["VulkanSDK"]		= "%{Vulkan_SDK}/Include"
+IncludeDir["filewatch"]		= "%{wks.location}/Povox/vendor/filewatch"
+
 IncludeDir["VMA"]			= "%{wks.location}/Povox/vendor/VMA"
 IncludeDir["shaderc"]		= "%{wks.location}/Povox/vendor/shaderc"
 IncludeDir["SPIRV_Reflect"]	= "%{wks.location}/Povox/vendor/SPIRV-Reflect"
+
+IncludeDir["VulkanSDK"]		= "%{Vulkan_SDK}/Include"
 
 
 LibraryDir = {}
@@ -31,7 +33,6 @@ LibraryDir["VulkanSDK_DebugDLL"]	= "%{Vulkan_SDK}/Bin"
 
 Library = {}
 Library["Vulkan"]					= "%{LibraryDir.VulkanSDK}/vulkan-1.lib"
---Library["VulkanUtils"]				= "%{LibraryDir.VulkanSDK}/VkLayer_utils.lib"
 
 Library["ShaderC_Debug"]			= "%{LibraryDir.VulkanSDK_Debug}/shaderc_sharedd.lib"
 Library["SPIRV_cross_Debug"]		= "%{LibraryDir.VulkanSDK_Debug}/spirv-cross-cored.lib"
