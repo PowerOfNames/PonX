@@ -141,8 +141,8 @@ namespace Povox {
 		auto extensions = GetRequiredExtensions();
 		createInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
 		createInfo.ppEnabledExtensionNames = extensions.data();
-
-		PX_CORE_VK_ASSERT(vkCreateInstance(&createInfo, nullptr, &s_Instance), VK_SUCCESS, "Failed to create Vulkan Instance");
+		VkResult result = vkCreateInstance(&createInfo, nullptr, &s_Instance);
+		PX_CORE_VK_ASSERT(result, VK_SUCCESS, "Failed to create Vulkan Instance");
 		PX_CORE_INFO("VulkanContext::CreateInstance: Completed.");
 	}
 
@@ -157,11 +157,11 @@ namespace Povox {
 
 		for (const char* vLayer : m_ValidationLayers)
 		{
-			//PX_CORE_INFO("Validation layer: '{0}'", vLayer);
+			PX_CORE_INFO("Validation layer: '{0}'", vLayer);
 			bool layerFound = false;
 			for (const auto& layerProperties : availableLayers)
 			{
-				//PX_CORE_INFO("available layers: '{0}'", layerProperties.layerName);
+				PX_CORE_INFO("available layers: '{0}'", layerProperties.layerName);
 
 				if (strcmp(vLayer, layerProperties.layerName) == 0)
 				{
@@ -185,6 +185,7 @@ namespace Povox {
 		if (PX_ENABLE_VK_VALIDATION_LAYERS)
 		{
 			extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+			//extensions.push_back(VK_EXT_LAYER_SETTINGS_EXTENSION_NAME);
 		}
 
 		CheckRequiredExtensions(extensions);

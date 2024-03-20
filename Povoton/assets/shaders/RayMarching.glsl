@@ -76,16 +76,15 @@ struct Ray
 float SphereSDF(in vec3 rayPos, in vec3 spherePos, in float sphereRadius)
 {
 	float time = u_RayMarching.ResolutionTime.z * 1.6f;
-	float displacement = sin(time + 7.0 * rayPos.x) * -cos(time + 7.0 * rayPos.y) * cos(time + 7.0 * rayPos.z) * 0.1 -0.5;
+	//float displacement = sin(time + 7.0 * rayPos.x) * -cos(time + 7.0 * rayPos.y) * cos(time + 7.0 * rayPos.z) * 0.1 -0.5;
 	float dist = abs(length(rayPos-spherePos)) - sphereRadius;
 
-	return dist + displacement;
+	return dist/* + displacement*/;
 }
 
 vec3 CalculateSurfaceNormal(in vec3 hitPos, in vec4 particleDims)
 {
-	vec3 offset = vec3(0.01, 0.0, 0.0);
-	
+	vec3 offset = vec3(0.01, 0.0, 0.0);	
 	
 	float gradient_x = SphereSDF(hitPos + offset.xyy, particleDims.xyz, particleDims.w) - SphereSDF(hitPos - offset.xyy, particleDims.xyz, particleDims.w);
 	float gradient_y = SphereSDF(hitPos + offset.yxy, particleDims.xyz, particleDims.w) - SphereSDF(hitPos - offset.yxy, particleDims.xyz, particleDims.w);
@@ -99,18 +98,21 @@ vec3 Phongg(in vec3 viewDir, in vec3 hitPos, in vec3 lightPos, in vec3 normal, i
 	vec3 dirToLight = normalize(lightPos - hitPos);
 	vec3 reflectionVector = 2.0 * dot(normal, dirToLight) * normal - dirToLight;
 
+	vec3 lightColor = vec3(1.0, 1.0, 1.0);
 	vec3 ambientLight = ambient.rgb * ambient.w;
-	vec3 diffuseLight = diffuse.rgb * dot(normal, -dirToLight) * diffuse.w;
-	float specularLight = specular.x * (2*specular.y)/(2*PI) * pow(max(0.0, dot(viewDir, reflectionVector)), specular.y); 
+	vec3 diffuseLight = diffuse.rgb * diffuse.w * dot(dirToLight, normal);
+	//vec3 specularLight =  * (2*specular.y)/(2*PI) * pow(max(0.0, dot(-viewDir, reflectionVector)), specular.y); 
+	vec3 specularLight = specular.x * lightColor * (specular.y+2)/(2*PI) * pow(max(0.0, dot(reflectionVector, -viewDir)), specular.y); 
 
-	return (ambientLight + diffuseLight + specularLight) * diffuse.rgb;
+	return ambientLight + diffuseLight;
+	//return ambientLight + diffuseLight + specularLight;
 }
 
 const float MAX_STEPS = 128;
 const float HIT_DISTANCE = 0.001;
 const float MAX_DISTANCE = 1000.0;
 
-const vec2 SPECULAR = vec2(2.0, 2.0);
+const vec2 SPECULAR = vec2(0.5, 2.0);
 const vec3 LIGHT = vec3(0.0, 5.0, 0.0);
 
 vec3 RayMarch(in Ray currentRay)
@@ -133,7 +135,7 @@ vec3 RayMarch(in Ray currentRay)
 				if(currentDist <= HIT_DISTANCE)
 				{
 					vec3 normal = CalculateSurfaceNormal(currentRay.Position, nearestParticle.PositionRadius);
-					return Phongg(currentRay.Direction, currentRay.Position, LIGHT, normal, vec4(u_RayMarching.BackgroundColor.rgb, 1.0), SPECULAR, vec4(nearestParticle.Color.rgb, 0.3));			
+					return Phongg(currentRay.Direction, currentRay.Position, LIGHT, normal, vec4(u_RayMarching.BackgroundColor.rgb, 0.8), SPECULAR, vec4(nearestParticle.Color.rgb, 0.3));			
 				}
 			}
 		}	

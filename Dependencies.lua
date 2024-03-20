@@ -31,7 +31,7 @@ LibraryDir["VulkanSDK_DebugDLL"]	= "%{Vulkan_SDK}/Bin"
 
 Library = {}
 Library["Vulkan"]					= "%{LibraryDir.VulkanSDK}/vulkan-1.lib"
-Library["VulkanUtils"]				= "%{LibraryDir.VulkanSDK}/VkLayer_utils.lib"
+--Library["VulkanUtils"]				= "%{LibraryDir.VulkanSDK}/VkLayer_utils.lib"
 
 Library["ShaderC_Debug"]			= "%{LibraryDir.VulkanSDK_Debug}/shaderc_sharedd.lib"
 Library["SPIRV_cross_Debug"]		= "%{LibraryDir.VulkanSDK_Debug}/spirv-cross-cored.lib"

@@ -68,7 +68,7 @@ project "Povox"
 		"ImGui",
 		"opengl32.lib",
 		"%{Library.Vulkan}",
-		"%{Library.VulkanUtils}"
+		--"%{Library.VulkanUtils}"
 	}
 
 	filter "files:vendor/ImGuizmo/**.cpp"

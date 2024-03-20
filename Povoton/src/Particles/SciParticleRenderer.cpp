@@ -300,7 +300,7 @@ namespace Povox {
 		m_ParticleSSBO->AddDescriptor("ParticleSSBOIn", set->GetSize(), StorageBufferDynamic::FrameBehaviour::FRAME_SWAP_IN_OUT, 0, "ParticleSSBOOut");
 		m_ParticleSSBO->SetDescriptorData("ParticleSSBOIn", set->GetDataBuffer(), set->GetSize(), 0);
 		m_ParticleSSBO->AddDescriptor("ParticleSSBOOut", set->GetSize(), StorageBufferDynamic::FrameBehaviour::FRAME_SWAP_IN_OUT, 1, "ParticleSSBOIn");
-		m_ParticleSSBO->SetDescriptorData("ParticleSSBOOut", 0, 0, 0);
+		m_ParticleSSBO->SetDescriptorData("ParticleSSBOOut", nullptr, 0, 0);
 
 		m_DistanceFieldComputePass->UpdateDescriptor("ParticleSSBOIn");
 		m_DistanceFieldComputePass->UpdateDescriptor("ParticleSSBOOut");
