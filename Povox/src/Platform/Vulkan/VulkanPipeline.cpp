@@ -65,7 +65,7 @@ namespace Povox {
 		}
 	}
 
-	struct VulkanVertexData
+	/*struct VulkanVertexData
 	{
 		QuadVertex VertexProperties;
 
@@ -104,7 +104,7 @@ namespace Povox {
 
 			return output;
 		}
-	};
+	};*/
 
 	VulkanPipeline::VulkanPipeline(const PipelineSpecification& specs)
 		:m_Specification(specs)
@@ -113,15 +113,17 @@ namespace Povox {
 
 
 		PX_CORE_ASSERT(m_Specification.TargetFramebuffer, "There was no Framebuffer attached to this Pipeline!");
-		CreateLayout();	
+		PX_CORE_ASSERT(m_Specification.Shader, "There was no Shader attached to this Pipeline!");
+
+		CreateLayout();
 		CreatePipeline();
 	}
 	VulkanPipeline::~VulkanPipeline() {}
 
 	void VulkanPipeline::Free()
 	{
-		VulkanContext::SubmitResourceFree([=]() {
-			VkDevice device = VulkanContext::GetDevice()->GetVulkanDevice();
+		VkDevice device = VulkanContext::GetDevice()->GetVulkanDevice();
+		VulkanContext::SubmitResourceFree([device, this]() {
 			if (m_Layout)
 			{
 				vkDestroyPipelineLayout(device, m_Layout, nullptr);
@@ -136,20 +138,20 @@ namespace Povox {
 
 	}
 
-	void VulkanPipeline::Recreate()
+	void VulkanPipeline::Recreate(bool forceRecreate/* = false*/)
 	{
 		VkDevice device = VulkanContext::GetDevice()->GetVulkanDevice();
-		if (m_Specification.DynamicViewAndScissors)
+		if (m_Specification.DynamicViewAndScissors && !forceRecreate)
 			return;
 		
-		if (m_Pipeline)
-		{
-			vkDestroyPipeline(device, m_Pipeline, nullptr);
-			m_Pipeline = VK_NULL_HANDLE;
-		}
+		VkPipeline oldPipeline = m_Pipeline;
 
-		//Check if I need to recreate the layout as well!
 		CreatePipeline();
+
+		VulkanContext::SubmitResourceFree([device, oldPipeline]() {
+			if (oldPipeline)
+				vkDestroyPipeline(device, oldPipeline, nullptr);
+			});
 	}
 
 	void VulkanPipeline::CreateLayout()
@@ -200,9 +202,6 @@ namespace Povox {
 
 	void VulkanPipeline::CreatePipeline()
 	{
-		PX_CORE_ASSERT(m_Specification.TargetFramebuffer, "Framebuffer missing!");
-
-
 		VkDevice device = VulkanContext::GetDevice()->GetVulkanDevice();
 		Ref<VulkanShader> shader = std::dynamic_pointer_cast<VulkanShader>(m_Specification.Shader);
 		Ref<VulkanFramebuffer> framebuffer = std::dynamic_pointer_cast<VulkanFramebuffer>(m_Specification.TargetFramebuffer);
@@ -386,7 +385,6 @@ namespace Povox {
 		pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;	// only used if VK_PIPELINE_CREATE_DERIVATIVE_BIT is specified under flags in VkGraphicsPipelineCreateInfo
 		pipelineInfo.basePipelineIndex = -1;
 
-
 		PX_CORE_VK_ASSERT(vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_Pipeline), VK_SUCCESS, "Failed to create Graphics pipeline!");
 
 #ifdef PX_DEBUG
@@ -397,6 +395,11 @@ namespace Povox {
 		nameInfo.pObjectName = m_Specification.DebugName.c_str();
 		NameVkObject(VulkanContext::GetDevice()->GetVulkanDevice(), nameInfo);
 #endif // DEBUG
+	}
+
+	const std::unordered_map<std::string, Povox::Ref<Povox::ShaderResourceDescription>>& VulkanPipeline::GetResourceDescriptions() const
+	{
+		return m_Specification.Shader->GetResourceDescriptions();
 	}
 
 	void VulkanPipeline::PrintShaderLayout() const
@@ -420,11 +423,9 @@ namespace Povox {
 	{
 		PX_PROFILE_FUNCTION();
 
+		PX_CORE_ASSERT(m_Specification.Shader, "There was no Shader attached to this Pipeline!");
 
 		PX_CORE_TRACE("VulkanComputePipeline::Construct Begin!");
-		VkDevice device = VulkanContext::GetDevice()->GetVulkanDevice();
-		Ref<VulkanShader> shader = std::dynamic_pointer_cast<VulkanShader>(specs.Shader);
-
 		CreateLayout();
 		CreatePipeline();
 
@@ -450,16 +451,27 @@ namespace Povox {
 			});
 	}
 
-	void VulkanComputePipeline::Recreate()
+	void VulkanComputePipeline::Recreate(bool forceRecreate/* = false*/)
 	{
 		VkDevice device = VulkanContext::GetDevice()->GetVulkanDevice();
 		//if (m_Specification.DynamicViewAndScissors)
 		//	return;
 
-		if (m_Pipeline)
-			vkDestroyPipeline(device, m_Pipeline, nullptr);
+		VkPipeline oldPipeline = m_Pipeline;
+
 		CreatePipeline();
+
+		VulkanContext::SubmitResourceFree([device, oldPipeline]() {
+			if (oldPipeline)
+				vkDestroyPipeline(device, oldPipeline, nullptr);
+		});
 	}
+
+	const std::unordered_map<std::string, Povox::Ref<Povox::ShaderResourceDescription>>& VulkanComputePipeline::GetResourceDescriptions() const
+	{
+		return m_Specification.Shader->GetResourceDescriptions();
+	}
+
 
 	void VulkanComputePipeline::CreateLayout()
 	{

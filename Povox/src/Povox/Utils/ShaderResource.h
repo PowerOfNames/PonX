@@ -126,20 +126,21 @@ namespace Povox {
 // 		ShaderResourceType ResourceType = ShaderResourceType::NONE;
 // 	};
 
+	using ShaderResourceHandle = UUID;
 	class ShaderResource
 	{
 	public:
 		ShaderResource(ShaderResourceType resourceType = ShaderResourceType::NONE, bool perFrame = true, const std::string& name = "ShaderResource");
 		virtual ~ShaderResource() = default;
 
-		inline uint64_t GetRendererID() const { return m_UID; }
+		inline ShaderResourceHandle GetID() const { return m_Handle; }
 
 		inline ShaderResourceType GetType() { return m_ResourceType; }
 		inline const std::string& GetName() { return m_Name; }
 		inline bool IsPerFrame() { return m_PerFrame; }
 
 	protected:
-		RendererUID m_UID = RendererUID();
+		ShaderResourceHandle m_Handle;
 
 		ShaderResourceType m_ResourceType = ShaderResourceType::NONE;
 		bool m_PerFrame;

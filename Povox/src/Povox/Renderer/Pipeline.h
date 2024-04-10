@@ -3,7 +3,6 @@
 
 #include "Povox/Renderer/Framebuffer.h"
 #include "Povox/Renderer/RenderPass.h"
-#include "Povox/Renderer/Shader.h"
 #include "Povox/Renderer/Buffer.h"
 
 namespace Povox {
@@ -47,7 +46,7 @@ namespace Povox {
 
 	}
 
-	
+	class Shader;
 	struct PipelineSpecification
 	{
 		Ref<Framebuffer> TargetFramebuffer = nullptr;
@@ -86,17 +85,16 @@ namespace Povox {
 		std::string DebugName = "Pipeline";
 	};
 
-	class Buffer;
-	class Image2D;
+
 	class Pipeline
 	{
 	public:
 		virtual ~Pipeline() = default;
+
 		virtual void Free() = 0;
+		virtual void Recreate(bool forceRecreate = false) = 0;
 
 		virtual const std::unordered_map<std::string, Ref<ShaderResourceDescription>>& GetResourceDescriptions() const = 0;
-
-		virtual void Recreate() = 0;
 
 		virtual void PrintShaderLayout() const = 0;
 
@@ -105,7 +103,6 @@ namespace Povox {
 
 		static Ref<Pipeline> Create(const PipelineSpecification& specs);
 	};
-
 
 	struct ComputePipelineSpecification
 	{
@@ -124,7 +121,7 @@ namespace Povox {
 		virtual ~ComputePipeline() = default;
 		virtual void Free() = 0;
 
-		virtual void Recreate() = 0;
+		virtual void Recreate(bool forceRecreate = false) = 0;
 
 		virtual void PrintShaderLayout() const = 0;
 

@@ -129,6 +129,28 @@ namespace Povox
 		}
 	}
 
+	VkDescriptorSetLayout VulkanDescriptorLayoutCache::CreateDescriptorLayout(const DescriptorLayoutInfo& layoutInfo, const std::string& name)
+	{
+		auto it = m_LayoutCache.find(layoutInfo);
+		if (it != m_LayoutCache.end())
+		{
+			return (*it).second;
+		}
+		else
+		{
+			VkDescriptorSetLayoutCreateInfo info{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
+			info.pNext = nullptr;
+			info.bindingCount = static_cast<uint32_t>(layoutInfo.Bindings.size());
+			info.pBindings = layoutInfo.Bindings.data();
+
+			VkDescriptorSetLayout layout;
+			vkCreateDescriptorSetLayout(VulkanContext::GetDevice()->GetVulkanDevice(), &info, nullptr, &layout);
+
+			m_LayoutCache[layoutInfo] = layout;
+			m_UniqueLayouts[name] = layout;
+			return layout;
+		}
+	}
 	VkDescriptorSetLayout VulkanDescriptorLayoutCache::CreateDescriptorLayout(const VkDescriptorSetLayoutCreateInfo* info, const std::string& name)
 	{
 		DescriptorLayoutInfo layoutInfo;
@@ -179,7 +201,7 @@ namespace Povox
 		return m_UniqueLayouts[name];
 	}
 
-	bool VulkanDescriptorLayoutCache::DescriptorLayoutInfo::operator==(const DescriptorLayoutInfo& other) const
+	bool DescriptorLayoutInfo::operator==(const DescriptorLayoutInfo& other) const
 	{
 		if (other.Bindings.size() != this->Bindings.size())
 		{
@@ -202,7 +224,7 @@ namespace Povox
 		return true;
 	}
 
-	size_t VulkanDescriptorLayoutCache::DescriptorLayoutInfo::hash() const
+	size_t DescriptorLayoutInfo::hash() const
 	{		
 		std::size_t result = std::hash<std::size_t>()(this->Bindings.size());
 

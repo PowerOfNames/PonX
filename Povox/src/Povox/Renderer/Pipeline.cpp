@@ -11,7 +11,12 @@ namespace Povox {
 	{
 		switch (Renderer::GetAPI())
 		{
-			case RendererAPI::API::Vulkan: return CreateRef<VulkanPipeline>(specs);
+			case RendererAPI::API::Vulkan:
+			{
+				Ref<VulkanPipeline> pipeline = CreateRef<VulkanPipeline>(specs);
+				specs.Shader->AddPipeline(pipeline);
+				return pipeline;
+			}
 		}
 		PX_CORE_ASSERT(true, "Renderer API not supported!");
 	}
@@ -20,7 +25,12 @@ namespace Povox {
 	{
 		switch (Renderer::GetAPI())
 		{
-			case RendererAPI::API::Vulkan: return CreateRef<VulkanComputePipeline>(specs);
+			case RendererAPI::API::Vulkan:
+			{
+				Ref<VulkanComputePipeline> pipeline = CreateRef<VulkanComputePipeline>(specs);
+				specs.Shader->AddComputePipeline(pipeline);
+				return pipeline;
+			}
 		}
 		PX_CORE_ASSERT(true, "Renderer API not supported!");
 	}

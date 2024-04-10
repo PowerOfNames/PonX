@@ -3,7 +3,7 @@
 #include "Povox/Renderer/Pipeline.h"
 #include "Povox/Renderer/Renderable.h"
 #include "Povox/Renderer/RenderPass.h"
-#include "Povox/Renderer/Shader.h"
+#include "Povox/Resources/ShaderManager.h"
 #include "Povox/Systems/MaterialSystem.h"
 #include "Povox/Systems/ShaderResourceSystem.h"
 #include "Povox/Systems/TextureSystem.h"
@@ -64,7 +64,7 @@ namespace Povox {
 
 
 		// Resources
-		virtual Ref<ShaderLibrary> GetShaderLibrary() const = 0;
+		virtual Ref<ShaderManager> GetShaderManager() const = 0;
 		virtual Ref<TextureSystem> GetTextureSystem() const = 0;
 		virtual Ref<MaterialSystem> GetMaterialSystem() const = 0;
 		virtual Ref<ShaderResourceSystem> GetShaderResourceSystem() const = 0;

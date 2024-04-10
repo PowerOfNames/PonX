@@ -5,6 +5,7 @@
 
 namespace Povox {
 
+	using MaterialHandle = UUID;
 
 	class Material
 	{
@@ -19,7 +20,7 @@ namespace Povox {
 		virtual const Ref<Shader> GetShader() const = 0;
 
 
-		virtual const uint64_t GetRendererID() const = 0;
+		virtual const MaterialHandle GetID() const = 0;
 		static Ref<Material> Create(Ref<Shader> shader, const std::string& name = "MaterialName");
 		
 		virtual bool operator==(const Material& other) const = 0;

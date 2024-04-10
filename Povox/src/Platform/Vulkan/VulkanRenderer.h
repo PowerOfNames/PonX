@@ -7,6 +7,7 @@
 #include "Platform/Vulkan/VulkanShaderResourceSystem.h"
 #include "Platform/Vulkan/VulkanPipeline.h"
 #include "Platform/Vulkan/VulkanRenderPass.h"
+#include "Platform/Vulkan/VulkanShader.h"
 #include "Platform/Vulkan/VulkanSwapchain.h"
 
 #include "Povox/Core/Application.h"
@@ -16,7 +17,8 @@
 #include "Povox/Renderer/Renderable.h"
 #include "Povox/Renderer/Renderer.h"
 #include "Povox/Renderer/RendererAPI.h"
-#include "Povox/Renderer/Shader.h"
+
+#include "Povox/Resources/ShaderManager.h"
 
 #include "Povox/Systems/TextureSystem.h"
 
@@ -122,7 +124,7 @@ namespace Povox {
 
 
 		// Resource Getters
-		virtual inline Ref<ShaderLibrary> GetShaderLibrary() const override { return m_ShaderLibrary; }
+		virtual inline Ref<ShaderManager> GetShaderManager() const override { return m_ShaderManager; }
 		virtual inline Ref<TextureSystem> GetTextureSystem() const override { return m_TextureSystem; }
 		virtual inline Ref<MaterialSystem> GetMaterialSystem() const override { return m_MaterialSystem; }
 		virtual inline Ref<ShaderResourceSystem> GetShaderResourceSystem() const override { return m_ShaderResourceSystem; }
@@ -187,7 +189,7 @@ namespace Povox {
 		Scope<VulkanCommandControl> m_CommandControl = nullptr;
 		Ref<UploadContext> m_UploadContext = nullptr;
 
-		Ref<ShaderLibrary> m_ShaderLibrary = nullptr;
+		Ref<ShaderManager> m_ShaderManager = nullptr;
 		Ref<TextureSystem> m_TextureSystem = nullptr;
 		Ref<VulkanMaterialSystem> m_MaterialSystem = nullptr;
 		Ref<VulkanShaderResourceSystem> m_ShaderResourceSystem = nullptr;

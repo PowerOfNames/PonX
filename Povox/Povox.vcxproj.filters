@@ -282,9 +282,6 @@
     <ClInclude Include="src\Povox\Renderer\RendererAPI.h">
       <Filter>src\Povox\Renderer</Filter>
     </ClInclude>
-    <ClInclude Include="src\Povox\Renderer\RendererUID.h">
-      <Filter>src\Povox\Renderer</Filter>
-    </ClInclude>
     <ClInclude Include="src\Povox\Renderer\Shader.h">
       <Filter>src\Povox\Renderer</Filter>
     </ClInclude>
@@ -1629,6 +1626,7 @@
     <ClInclude Include="vendor\yaml-cpp\src\token.h">
       <Filter>vendor\yaml-cpp\src</Filter>
     </ClInclude>
+    <ClInclude Include="src\Povox\Resources\ShaderManager.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Platform\OpenGL\OpenGLShader.cpp">
@@ -1764,9 +1762,6 @@
       <Filter>src\Povox\Renderer</Filter>
     </ClCompile>
     <ClCompile Include="src\Povox\Renderer\RendererAPI.cpp">
-      <Filter>src\Povox\Renderer</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Povox\Renderer\RendererUID.cpp">
       <Filter>src\Povox\Renderer</Filter>
     </ClCompile>
     <ClCompile Include="src\Povox\Renderer\Shader.cpp">
@@ -1907,5 +1902,6 @@
     <ClCompile Include="vendor\yaml-cpp\src\tag.cpp">
       <Filter>vendor\yaml-cpp\src</Filter>
     </ClCompile>
+    <ClCompile Include="src\Povox\Resources\ShaderManager.cpp" />
   </ItemGroup>
 </Project>

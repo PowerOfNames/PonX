@@ -31,8 +31,6 @@ project "Povox"
 		"vendor/yaml-cpp/src/**.cpp",
 		"vendor/yaml-cpp/include/**.h",
 
-		--"vendor/filewatch/FileWatch.h",
-
 		"vendor/ImGuizmo/ImGuizmo.h",
 		"vendor/ImGuizmo/ImGuizmo.cpp"
 	}
@@ -56,6 +54,7 @@ project "Povox"
 		"%{IncludeDir.ImGui}",
 		"%{IncludeDir.ImGuizmo}",
 		"%{IncludeDir.filewatch}",
+		"%{IncludeDir.xxHash}",
 
 		"%{IncludeDir.VulkanSDK}",
 		"%{IncludeDir.VMA}",
@@ -67,6 +66,7 @@ project "Povox"
 	{
 		"GLFW",
 		"ImGui",
+		"xxHash",
 		"%{Library.Vulkan}"
 	}
 
@@ -77,6 +77,9 @@ project "Povox"
         flags { "NoPCH" }
 
 	filter "files:vendor/SPIRV-Reflect/**.cpp"
+        flags { "NoPCH" }
+		
+	filter "files:vendor/xxHash/**.c"
         flags { "NoPCH" }
 
 

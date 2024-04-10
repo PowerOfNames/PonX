@@ -28,6 +28,7 @@ group "Dependencies"
 	include "vendor/premake"
 	include "Povox/vendor/GLFW"
 	include "Povox/vendor/ImGui"
+	include "Povox/vendor/xxHash"
 group ""
 
 include "Povox"

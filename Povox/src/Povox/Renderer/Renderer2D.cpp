@@ -16,8 +16,8 @@ namespace Povox {
 
 		// TODO: Instead of taking a name and a path, just take in a name and pass the path upon ShaderLib creation inside the RendererBackend, pointing to root/.../assets/shaders/
 		//Renderer::GetShaderLibrary()->Add("TextureShader", Shader::Create("assets/shaders/Texture.glsl"));
-		Renderer::GetShaderLibrary()->Add("Renderer2D_Quad", Shader::Create("assets/shaders/Renderer2D_Quad.glsl"));
-		Renderer::GetShaderLibrary()->Add("Renderer2D_FullscreenQuad", Shader::Create("assets/shaders/Renderer2D_FullscreenQuad.glsl"));
+		Renderer::GetShaderManager()->Add("Renderer2D_Quad", Shader::Create(std::filesystem::path("assets/shaders/Renderer2D_Quad.glsl")));
+		Renderer::GetShaderManager()->Add("Renderer2D_FullscreenQuad", Shader::Create(std::filesystem::path("assets/shaders/Renderer2D_FullscreenQuad.glsl")));
 	}
 
 	bool Renderer2D::Init()
@@ -65,7 +65,7 @@ namespace Povox {
 			pipelineSpecs.TargetFramebuffer = m_QuadFramebuffer;
 			pipelineSpecs.DynamicViewAndScissors = true;
 			pipelineSpecs.Culling = PipelineUtils::CullMode::BACK;
-			pipelineSpecs.Shader = Renderer::GetShaderLibrary()->Get("Renderer2D_Quad");
+			pipelineSpecs.Shader = Renderer::GetShaderManager()->Get("Renderer2D_Quad");
 			pipelineSpecs.VertexInputLayout = {
 			{ ShaderDataType::Float3, "a_Position" },
 			{ ShaderDataType::Float4, "a_Color" },
@@ -87,7 +87,7 @@ namespace Povox {
 			m_QuadPipeline->PrintShaderLayout();
 
 		// Fullscreen
-			pipelineSpecs.Shader = Renderer::GetShaderLibrary()->Get("Renderer2D_FullscreenQuad");
+			pipelineSpecs.Shader = Renderer::GetShaderManager()->Get("Renderer2D_FullscreenQuad");
 			m_FullscreenQuadPipeline = Pipeline::Create(pipelineSpecs);
 			renderpassSpecs.Pipeline = m_FullscreenQuadPipeline;
 			m_FullscreenQuadRenderpass = RenderPass::Create(renderpassSpecs);
@@ -151,8 +151,8 @@ namespace Povox {
 			m_QuadIndexBuffers[i]->SetData(quadIndices, sizeof(uint32_t) * m_Specification.MaxIndices);
 		}
 		delete[] quadIndices;
-		m_QuadMaterial = Material::Create(Renderer::GetShaderLibrary()->Get("Renderer2D_Quad"), "Quad");
-		m_FullscreenQuadMaterial = Material::Create(Renderer::GetShaderLibrary()->Get("Renderer2D_FullscreenQuad"), "FullscreenQuad");
+		m_QuadMaterial = Material::Create(Renderer::GetShaderManager()->Get("Renderer2D_Quad"), "Quad");
+		m_FullscreenQuadMaterial = Material::Create(Renderer::GetShaderManager()->Get("Renderer2D_FullscreenQuad"), "FullscreenQuad");
 
 		/* -> move to Pipeline.Layout to check against Pipeline.Shader.Layout -> For VertexInput checkup
 		m_QuadVertexBuffer

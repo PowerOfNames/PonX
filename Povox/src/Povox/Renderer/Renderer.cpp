@@ -109,7 +109,7 @@ namespace Povox {
 	// Resources
 	const RendererSpecification& Renderer::GetSpecification() { return s_RendererAPI->GetSpecification(); }
 	void* Renderer::GetGUIDescriptorSet(Ref<Image2D> image)	{ return s_RendererAPI->GetGUIDescriptorSet(image); }
-	Ref<ShaderLibrary> Renderer::GetShaderLibrary() { return s_RendererAPI->GetShaderLibrary(); }
+	Ref<ShaderManager> Renderer::GetShaderManager() { return s_RendererAPI->GetShaderManager(); }
 	Ref<TextureSystem> Renderer::GetTextureSystem()	{ return s_RendererAPI->GetTextureSystem(); }
 	Ref<MaterialSystem> Renderer::GetMaterialSystem() { return s_RendererAPI->GetMaterialSystem(); }
 	Ref<ShaderResourceSystem> Renderer::GetShaderResourceSystem() { return s_RendererAPI->GetShaderResourceSystem(); }

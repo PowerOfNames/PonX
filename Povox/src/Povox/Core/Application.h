@@ -28,7 +28,7 @@ namespace Povox {
 		RendererAPI::API UseAPI = RendererAPI::API::NONE;
 		bool ImGuiEnabled = true;
 
-		std::filesystem::path ShaderFilePath = std::filesystem::current_path().string() + "/assets/shaders";
+		std::filesystem::path ShaderFilePath = std::filesystem::current_path().string() + "/assets/shaders/";
 
 		uint32_t MaxFramesInFlight = 1;
 	};

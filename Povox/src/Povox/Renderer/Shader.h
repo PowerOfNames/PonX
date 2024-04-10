@@ -1,5 +1,6 @@
 #pragma once
-#include "Povox/Renderer/RendererUID.h"
+#include "Povox/Core/UUID.h"
+//#include "Povox/Renderer/Pipeline.h"
 
 #include <unordered_map>
 #include <string>
@@ -7,7 +8,8 @@
 
 #include <glm/glm.hpp>
 
-#include <FileWatch.h>
+#include "FileWatch.h"
+
 
 namespace Povox {
 
@@ -85,50 +87,32 @@ namespace Povox {
 		}
 	}
 	
+	using ShaderHandle = UUID;
+
 	struct ShaderResourceDescription;
+	class Pipeline;
+	class ComputePipeline;
 	class Shader
 	{
 	public:
 		virtual ~Shader() = default;
+
 		virtual void Free() = 0;
+		virtual bool Recompile(const std::string& sources) = 0;
 
 		virtual const std::unordered_map<std::string, Ref<ShaderResourceDescription>>& GetResourceDescriptions() const = 0;
 
-		virtual uint64_t GetRendererID() const = 0;
+		virtual void AddPipeline(Ref<Pipeline> pipeline) = 0;
+		virtual void AddComputePipeline(Ref<ComputePipeline> pipeline) = 0;
+
+		virtual void Rename(const std::string& newName) = 0;
 		virtual const std::string& GetDebugName() const = 0;
+		virtual UUID GetID() const = 0;
 
 		virtual bool operator==(const Shader& other) const = 0;
 		
-		static Ref<Shader> Create(const std::string& filepath);		
+		static Ref<Shader> Create(const std::string& sources, const std::string& debugName);
+		static Ref<Shader> Create(const std::filesystem::path& filepath);
 	};
-
-	class ShaderLibrary
-	{
-	public:
-		ShaderLibrary(const std::filesystem::path& fileSystemShadersPath);
-		~ShaderLibrary() = default;
-
-		void Shutdown();
-
-		void Add(const std::string& name, const Ref<Shader>& shader);
-		void Add(const Ref<Shader>& shader);
-
-		Ref<Shader> Load(const std::string& name, const std::string& fileSystemShadersPath);
-		Ref<Shader> Load(const std::string& filepath);
-		
-		Ref<Shader> Get(const std::string& name);
-
-		bool Contains(const std::string& name) const;
-
-	private:
-		static void OnShaderFileWatchEvent(const std::wstring& path, const filewatch::Event change_type);
-
-	private:
-		std::unordered_map<std::string, Ref<Shader>> m_Shaders;
-		std::filesystem::path m_FileSystemShadersPath;
-
-
-		static Scope<filewatch::FileWatch<std::wstring>> s_FileWatcher;
-		static bool s_ShaderLibraryReloadPending;
-	};
+	
 }

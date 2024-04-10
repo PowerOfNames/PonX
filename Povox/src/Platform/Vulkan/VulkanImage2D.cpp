@@ -50,29 +50,29 @@ namespace Povox {
 
 	void VulkanImage2D::Free()
 	{
-		PX_CORE_WARN("VulkanImage2D::Submitting Image {}", m_Specification.DebugName);
+		PX_CORE_WARN("VulkanImage2D::Free Image {}", m_Specification.DebugName);
 
 		VulkanContext::SubmitResourceFree([=]()
 		{
 			VkDevice device = VulkanContext::GetDevice()->GetVulkanDevice();
-			PX_CORE_WARN("VulkanImage2D::Destroyeing Image {}", m_Specification.DebugName);
+			PX_CORE_WARN("VulkanImage2D::Destroying Image {}", m_Specification.DebugName);
 
-		if (m_Sampler && m_OwnsSampler)
-		{
-			vkDestroySampler(device, m_Sampler, nullptr);
-			m_Sampler = VK_NULL_HANDLE;
-		}
-		if (m_View)
-		{
-			vkDestroyImageView(device, m_View, nullptr);
-			m_View = VK_NULL_HANDLE;
-		}
-		if (m_Allocation.Image)
-		{
-			vmaDestroyImage(VulkanContext::GetAllocator(), m_Allocation.Image, m_Allocation.Allocation);
-			m_Allocation.Image = VK_NULL_HANDLE;
-			m_Allocation.Allocation = VK_NULL_HANDLE;
-		}
+			if (m_Sampler && m_OwnsSampler)
+			{
+				vkDestroySampler(device, m_Sampler, nullptr);
+				m_Sampler = VK_NULL_HANDLE;
+			}
+			if (m_View)
+			{
+				vkDestroyImageView(device, m_View, nullptr);
+				m_View = VK_NULL_HANDLE;
+			}
+			if (m_Allocation.Image)
+			{
+				vmaDestroyImage(VulkanContext::GetAllocator(), m_Allocation.Image, m_Allocation.Allocation);
+				m_Allocation.Image = VK_NULL_HANDLE;
+				m_Allocation.Allocation = VK_NULL_HANDLE;
+			}
 
 		});
 		
@@ -719,7 +719,7 @@ namespace Povox {
 		specs.Usages = { ImageUsage::SAMPLED, ImageUsage::COPY_DST };
 		m_Image = CreateRef<VulkanImage2D>(specs);
 
-		PX_CORE_TRACE("Texture width : '{0}', height '{1}', RID: {2}", width, height, std::to_string(m_RUID).c_str());
+		PX_CORE_TRACE("Texture width : '{0}', height '{1}', RID: {2}", width, height, std::to_string(m_Handle).c_str());
 	}
 
 	VulkanTexture2D::VulkanTexture2D(const std::string& path, const std::string& debugName)
@@ -752,7 +752,7 @@ namespace Povox {
 		m_Image = CreateRef<VulkanImage2D>(specs);
 
 
-		PX_CORE_TRACE("Texture width : '{0}', height '{1}', RID: {2}", width, height, std::to_string(m_RUID).c_str());
+		PX_CORE_TRACE("Texture width : '{0}', height '{1}', RID: {2}", width, height, std::to_string(m_Handle).c_str());
 
 		SetData(pixels);
 		stbi_image_free(pixels);
@@ -761,7 +761,7 @@ namespace Povox {
 	void VulkanTexture2D::Free()
 	{
 		m_Image->Free();
-		m_RUID = 0;
+		m_Handle = 0;
 	}
 
 	void VulkanTexture2D::SetData(void* data)

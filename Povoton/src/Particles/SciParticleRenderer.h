@@ -87,6 +87,9 @@ namespace Povox {
 		Povox::Ref<Povox::Pipeline> m_RayMarchingPipeline = nullptr;
 		Povox::Ref<Povox::Material> m_RayMarchingMaterial = nullptr;
 
+		Povox::ShaderHandle m_ComputeShaderHandle;
+		Povox::ShaderHandle m_RayMarchingShaderHandle;
+
 		// Fullscreen
 		Povox::Ref<Povox::Pipeline> m_FullscreenQuadPipeline = nullptr;
 

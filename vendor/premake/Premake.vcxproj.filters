@@ -22,6 +22,9 @@
     <Filter Include="..\Povox\vendor\ImGui">
       <UniqueIdentifier>{931E4885-FF8A-0380-C87E-9BDD34AA25E8}</UniqueIdentifier>
     </Filter>
+    <Filter Include="..\Povox\vendor\xxHash">
+      <UniqueIdentifier>{0CADB59C-F8A6-DEEE-E113-75FFCDAC445B}</UniqueIdentifier>
+    </Filter>
     <Filter Include="..\Povox\vendor\yaml-cpp">
       <UniqueIdentifier>{7B038BF9-6728-DA79-9073-BF097CF7D897}</UniqueIdentifier>
     </Filter>
@@ -44,6 +47,9 @@
     </None>
     <None Include="..\..\Povox\vendor\ImGui\premake5.lua">
       <Filter>..\Povox\vendor\ImGui</Filter>
+    </None>
+    <None Include="..\..\Povox\vendor\xxHash\premake5.lua">
+      <Filter>..\Povox\vendor\xxHash</Filter>
     </None>
     <None Include="..\..\Povox\vendor\yaml-cpp\premake5.lua">
       <Filter>..\Povox\vendor\yaml-cpp</Filter>

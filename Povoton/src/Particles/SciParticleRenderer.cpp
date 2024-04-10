@@ -13,9 +13,11 @@ namespace Povox {
 		: m_Specification(specs)
 	{
 		//Povox::Renderer::GetShaderLibrary()->Add("DistanceFieldComputeShader", Povox::Shader::Create("assets/shaders/DistanceFieldCompute.glsl"));
-		Povox::Renderer::GetShaderLibrary()->Add("ComputeTestShader", Povox::Shader::Create("assets/shaders/ComputeTest.glsl"));
-		Povox::Renderer::GetShaderLibrary()->Add("RayMarchingShader", Povox::Shader::Create("assets/shaders/RayMarching.glsl"));
+		//Povox::Renderer::GetShaderManager()->Add("ComputeTest", Povox::Shader::Create(std::filesystem::path("assets/shaders/ComputeTest.glsl")));
+		//Povox::Renderer::GetShaderManager()->Add("RayMarching", Povox::Shader::Create(std::filesystem::path("assets/shaders/RayMarching.glsl")));
 
+		m_ComputeShaderHandle = Povox::Renderer::GetShaderManager()->Load("ComputeTest.glsl");
+		m_RayMarchingShaderHandle = Povox::Renderer::GetShaderManager()->Load("RayMarching.glsl");
 	}
 
 
@@ -104,7 +106,7 @@ namespace Povox {
 		{
 			ComputePipelineSpecification pipelineSpecs{};
 			pipelineSpecs.DebugName = "DistanceField";
-			pipelineSpecs.Shader = Renderer::GetShaderLibrary()->Get("ComputeTestShader");
+			pipelineSpecs.Shader = Renderer::GetShaderManager()->Get(m_ComputeShaderHandle);
 			m_DistanceFieldComputePipeline = ComputePipeline::Create(pipelineSpecs);
 
 			ComputePassSpecification passSpecs{};
@@ -137,7 +139,7 @@ namespace Povox {
 
 			PipelineSpecification pipelineSpecs{};
 			pipelineSpecs.DebugName = "RayMarchingPipeline";
-			pipelineSpecs.Shader = Renderer::GetShaderLibrary()->Get("RayMarchingShader");
+			pipelineSpecs.Shader = Renderer::GetShaderManager()->Get(m_RayMarchingShaderHandle);
 			pipelineSpecs.TargetFramebuffer = m_RayMarchingFramebuffer;
 			pipelineSpecs.VertexInputLayout = {
 				{ ShaderDataType::Float3, "a_Position" },
@@ -209,7 +211,7 @@ namespace Povox {
 			delete[] fullscreenQuadVertices;
 		}
 
-		m_RayMarchingMaterial = Material::Create(Renderer::GetShaderLibrary()->Get("RayMarchingShader"), "RayMarching");
+		m_RayMarchingMaterial = Material::Create(Renderer::GetShaderManager()->Get(m_RayMarchingShaderHandle), "RayMarching");
 
 		PX_CORE_TRACE("SciRenderer::Init: Completed.");
 		return true;

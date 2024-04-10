@@ -7,6 +7,7 @@
 #include "Platform/Vulkan/VulkanImage2D.h"
 #include "Platform/Vulkan/VulkanFramebuffer.h"
 #include "Platform/Vulkan/VulkanPipeline.h"
+#include "Platform/Vulkan/VulkanShader.h"
 
 #include "Povox/Core/Application.h"
 #include "Povox/Core/Log.h"

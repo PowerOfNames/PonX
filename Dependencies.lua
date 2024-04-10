@@ -17,6 +17,7 @@ IncludeDir["ImGui"]			= "%{wks.location}/Povox/vendor/ImGui"
 IncludeDir["ImGuizmo"]		= "%{wks.location}/Povox/vendor/ImGuizmo"
 
 IncludeDir["filewatch"]		= "%{wks.location}/Povox/vendor/filewatch"
+IncludeDir["xxHash"]		= "%{wks.location}/Povox/vendor/xxHash"
 
 IncludeDir["VMA"]			= "%{wks.location}/Povox/vendor/VMA"
 IncludeDir["shaderc"]		= "%{wks.location}/Povox/vendor/shaderc"

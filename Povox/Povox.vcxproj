@@ -77,7 +77,7 @@
       <PrecompiledHeaderFile>pxpch.h</PrecompiledHeaderFile>
       <WarningLevel>Level3</WarningLevel>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;GLFW_INCLUDE_NONE;YAML_CPP_STATIC_DEFINE;PX_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>src;vendor\spdlog\include;vendor\GLFW\include;vendor\glm;vendor\stb_image;vendor\yaml-cpp\include;vendor\entt\include;vendor\ImGui;vendor\ImGuizmo;vendor\filewatch;F:\VulkanSDK\1.3.275.0\Include;vendor\VMA;vendor\SPIRV-Reflect;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>src;vendor\spdlog\include;vendor\GLFW\include;vendor\glm;vendor\stb_image;vendor\yaml-cpp\include;vendor\entt\include;vendor\ImGui;vendor\ImGuizmo;vendor\filewatch;vendor\xxHash;F:\VulkanSDK\1.3.275.0\Include;vendor\VMA;vendor\SPIRV-Reflect;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
       <Optimization>Disabled</Optimization>
       <MinimalRebuild>false</MinimalRebuild>
@@ -100,7 +100,7 @@
       <PrecompiledHeaderFile>pxpch.h</PrecompiledHeaderFile>
       <WarningLevel>Level3</WarningLevel>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;GLFW_INCLUDE_NONE;YAML_CPP_STATIC_DEFINE;PX_RELEASE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>src;vendor\spdlog\include;vendor\GLFW\include;vendor\glm;vendor\stb_image;vendor\yaml-cpp\include;vendor\entt\include;vendor\ImGui;vendor\ImGuizmo;vendor\filewatch;F:\VulkanSDK\1.3.275.0\Include;vendor\VMA;vendor\SPIRV-Reflect;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>src;vendor\spdlog\include;vendor\GLFW\include;vendor\glm;vendor\stb_image;vendor\yaml-cpp\include;vendor\entt\include;vendor\ImGui;vendor\ImGuizmo;vendor\filewatch;vendor\xxHash;F:\VulkanSDK\1.3.275.0\Include;vendor\VMA;vendor\SPIRV-Reflect;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <Optimization>Full</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
@@ -126,7 +126,7 @@
       <PrecompiledHeaderFile>pxpch.h</PrecompiledHeaderFile>
       <WarningLevel>Level3</WarningLevel>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;GLFW_INCLUDE_NONE;YAML_CPP_STATIC_DEFINE;PX_DIST;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>src;vendor\spdlog\include;vendor\GLFW\include;vendor\glm;vendor\stb_image;vendor\yaml-cpp\include;vendor\entt\include;vendor\ImGui;vendor\ImGuizmo;vendor\filewatch;F:\VulkanSDK\1.3.275.0\Include;vendor\VMA;vendor\SPIRV-Reflect;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>src;vendor\spdlog\include;vendor\GLFW\include;vendor\glm;vendor\stb_image;vendor\yaml-cpp\include;vendor\entt\include;vendor\ImGui;vendor\ImGuizmo;vendor\filewatch;vendor\xxHash;F:\VulkanSDK\1.3.275.0\Include;vendor\VMA;vendor\SPIRV-Reflect;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <Optimization>Full</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
@@ -206,11 +206,11 @@
     <ClInclude Include="src\Povox\Renderer\Renderer.h" />
     <ClInclude Include="src\Povox\Renderer\Renderer2D.h" />
     <ClInclude Include="src\Povox\Renderer\RendererAPI.h" />
-    <ClInclude Include="src\Povox\Renderer\RendererUID.h" />
     <ClInclude Include="src\Povox\Renderer\Shader.h" />
     <ClInclude Include="src\Povox\Renderer\SubTexture2D.h" />
     <ClInclude Include="src\Povox\Renderer\Texture.h" />
     <ClInclude Include="src\Povox\Renderer\Utilities.h" />
+    <ClInclude Include="src\Povox\Resources\ShaderManager.h" />
     <ClInclude Include="src\Povox\Scene\Components.h" />
     <ClInclude Include="src\Povox\Scene\Entity.h" />
     <ClInclude Include="src\Povox\Scene\Scene.h" />
@@ -702,10 +702,10 @@
     <ClCompile Include="src\Povox\Renderer\Renderer.cpp" />
     <ClCompile Include="src\Povox\Renderer\Renderer2D.cpp" />
     <ClCompile Include="src\Povox\Renderer\RendererAPI.cpp" />
-    <ClCompile Include="src\Povox\Renderer\RendererUID.cpp" />
     <ClCompile Include="src\Povox\Renderer\Shader.cpp" />
     <ClCompile Include="src\Povox\Renderer\SubTexture2D.cpp" />
     <ClCompile Include="src\Povox\Renderer\Texture.cpp" />
+    <ClCompile Include="src\Povox\Resources\ShaderManager.cpp" />
     <ClCompile Include="src\Povox\Scene\Entity.cpp" />
     <ClCompile Include="src\Povox\Scene\Scene.cpp" />
     <ClCompile Include="src\Povox\Scene\SceneCamera.cpp" />
@@ -824,6 +824,9 @@
     </ProjectReference>
     <ProjectReference Include="vendor\ImGui\ImGui.vcxproj">
       <Project>{C0FF640D-2C14-8DBE-F595-301E616989EF}</Project>
+    </ProjectReference>
+    <ProjectReference Include="vendor\xxHash\xxHash.vcxproj">
+      <Project>{D9B36E28-C555-99FE-AE10-AD529A51204F}</Project>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

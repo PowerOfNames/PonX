@@ -36,6 +36,7 @@
 #include "Povox/Renderer/Renderable.h"
 
 #include "Povox/Utils/ShaderResource.h"
+#include "Povox/Resources/ShaderManager.h"
 
 #include "Povox/Renderer/Buffer.h"
 #include "Povox/Renderer/Framebuffer.h"

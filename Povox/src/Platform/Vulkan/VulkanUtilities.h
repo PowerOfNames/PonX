@@ -121,6 +121,30 @@ namespace Povox {
 		}
 	}
 
+	struct DescriptorLayoutInfo {
+		std::vector<VkDescriptorSetLayoutBinding> Bindings;
+
+		void SortBindings()
+		{
+			std::sort(Bindings.begin(), Bindings.end(), [](VkDescriptorSetLayoutBinding& a, VkDescriptorSetLayoutBinding& b)
+				{
+					return a.binding < b.binding;
+				});
+		}
+
+		bool operator==(const DescriptorLayoutInfo& other) const;
+
+		size_t hash() const;
+	};
+
+	struct DescriptorLayoutHash
+	{
+		std::size_t operator()(const DescriptorLayoutInfo& k) const
+		{
+			return k.hash();
+		}
+	};
+
 	struct SwapchainSupportDetails
 	{
 		VkSurfaceCapabilitiesKHR Capabilities;

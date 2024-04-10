@@ -5,7 +5,7 @@
 #include "Povox/Renderer/Renderable.h"
 #include "Povox/Renderer/RendererAPI.h"
 #include "Povox/Renderer/RenderPass.h"
-#include "Povox/Renderer/Shader.h"
+#include "Povox/Resources/ShaderManager.h"
 #include "Povox/Systems/MaterialSystem.h"
 #include "Povox/Systems/ShaderResourceSystem.h"
 #include "Povox/Systems/TextureSystem.h"
@@ -40,7 +40,7 @@ namespace Povox {
 
 	struct RendererData
 	{
-		Ref<ShaderLibrary> ShaderLibrary;
+		Ref<ShaderManager> ShaderManager;
 		Ref<TextureSystem> TextureSystem;
 	};
 
@@ -140,7 +140,7 @@ namespace Povox {
 		static void PrepareSwapchainImage(Ref<Image2D> finalImage);
 
 		// Resources
-		static Ref<ShaderLibrary> GetShaderLibrary();
+		static Ref<ShaderManager> GetShaderManager();
 		static Ref<TextureSystem> GetTextureSystem();
 		static Ref<MaterialSystem> GetMaterialSystem();
 		static Ref<ShaderResourceSystem> GetShaderResourceSystem();

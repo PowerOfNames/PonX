@@ -49,19 +49,9 @@ void main()
     {
         ssbo_ParticlesOut.particlesOut[index].PositionRadius.xyz = ssbo_ParticlesIn.particlesIn[index].PositionRadius.xyz + (ssbo_ParticlesIn.particlesIn[index].Velocity.xyz * u_MetaData.ResolutionTime.z) / 20.0;
         ssbo_ParticlesOut.particlesOut[index].PositionRadius.w = ssbo_ParticlesIn.particlesIn[index].PositionRadius.w;
-        ssbo_ParticlesOut.particlesOut[index].Velocity.xyz = ssbo_ParticlesIn.particlesIn[index].Velocity.xyz;
+        ssbo_ParticlesOut.particlesOut[index].Velocity.xyz = ssbo_ParticlesIn.particlesIn[index].Velocity.xyz * 1.0;
         ssbo_ParticlesOut.particlesOut[index].Color = ssbo_ParticlesIn.particlesIn[index].Color;
         ssbo_ParticlesOut.particlesOut[index].ID = ssbo_ParticlesIn.particlesIn[index].ID;
         ssbo_ParticlesOut.particlesOut[index].IDPad = ssbo_ParticlesIn.particlesIn[index].IDPad;
-    }
-    /*for(int index = 0; index < u_MetaData.ParticleCount; index++)
-    {
-        Particle particleIn = ssbo_ParticlesIn.particlesIn[index];
-        Particle particleOut = ssbo_ParticlesOut.particlesOut[index];
-
-        particleOut.PositionRadius.xyz = particleIn.PositionRadius.xyz + particleIn.Velocity.xyz * u_MetaData.ResolutionTime.w;
-        particleOut.PositionRadius.w = particleIn.PositionRadius.w;
-        particleOut.Velocity = particleIn.Velocity - particleIn.Velocity * 0.1;
-        particleOut.ID = index;
-    }*/  
+    } 
 }

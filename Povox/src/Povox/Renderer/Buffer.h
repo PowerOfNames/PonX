@@ -1,10 +1,12 @@
 #pragma once
-#include "Povox/Renderer/RendererUID.h"
+#include "Povox/Core/UUID.h"
 #include "Povox/Renderer/Utilities.h"
 
 #include "Povox/Renderer/Shader.h"
 
 namespace Povox {
+
+	using BufferHandle = UUID;
 
 	struct BufferElement
 	{
@@ -157,7 +159,7 @@ namespace Povox {
 		static Ref<Buffer> Create(const BufferSpecification& specs);
 		
 
-		virtual uint64_t GetRendererID() const = 0;
+		virtual BufferHandle GetID() const = 0;
 		virtual const std::string& GetDebugName() const = 0;
 
 		virtual bool operator==(const Buffer& other) const = 0;

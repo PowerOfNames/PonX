@@ -97,6 +97,7 @@ namespace Povox {
 	class enable_shared_from_base : public::std::enable_shared_from_this<Base>
 	{
 	public:
+		//This will only work a shared_ptr to Base already exists -> Dont use in Constructor!
 		Ref<Base> GetPtr()
 		{
 			return shared_from_this();

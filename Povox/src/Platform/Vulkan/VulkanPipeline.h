@@ -2,7 +2,6 @@
 #include "Povox/Renderer/Pipeline.h"
 
 #include "Platform/Vulkan/VulkanSwapchain.h"
-#include "Platform/Vulkan/VulkanShader.h"
 
 
 #include <vulkan/vulkan.h>
@@ -15,12 +14,12 @@ namespace Povox {
 		virtual ~VulkanPipeline();
 		virtual void Free() override;
 
-		virtual void Recreate() override;
+		virtual void Recreate(bool forceRecreate = false) override;
 
 		inline VkPipeline GetVulkanObj() { return m_Pipeline; }
 		inline VkPipelineLayout GetLayout() { return m_Layout; }
 		virtual inline  PipelineSpecification& GetSpecification() override { return m_Specification; }
-		virtual inline const std::unordered_map<std::string, Ref<ShaderResourceDescription>>& GetResourceDescriptions() const override { return m_Specification.Shader->GetResourceDescriptions(); }
+		virtual inline const std::unordered_map<std::string, Ref<ShaderResourceDescription>>& GetResourceDescriptions() const override;
 		virtual inline const std::string& GetDebugName() const override { return m_Specification.DebugName; }
 
 		virtual void PrintShaderLayout() const override;
@@ -56,13 +55,12 @@ namespace Povox {
 		virtual ~VulkanComputePipeline();
 		virtual void Free() override;
 
-		virtual void Recreate() override;
+		virtual void Recreate(bool forceRecreate = false) override;
 
 		inline VkPipeline GetVulkanObj() { return m_Pipeline; }
 		inline VkPipelineLayout GetLayout() { return m_Layout; }
 
-		virtual inline const std::unordered_map<std::string, Ref<ShaderResourceDescription>>& GetResourceDescriptions() const override { return m_Specification.Shader->GetResourceDescriptions(); }
-
+		virtual inline const std::unordered_map<std::string, Ref<ShaderResourceDescription>>& GetResourceDescriptions() const override;
 		virtual inline ComputePipelineSpecification& GetSpecification() { return m_Specification; }
 		virtual inline const std::string& GetDebugName() const { return m_Specification.DebugName; }
 

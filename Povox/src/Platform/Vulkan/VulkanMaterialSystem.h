@@ -4,12 +4,11 @@
 #include "Povox/Core/Log.h"
 #include "Povox/Core/Core.h"
 
-#include "Povox/Renderer/RendererUID.h"
+#include "Povox/Core/UUID.h"
 #include "Povox/Renderer/Shader.h"
 
 
 namespace Povox {
-
 
 
 	class VulkanMaterial : public Material
@@ -24,10 +23,10 @@ namespace Povox {
 		virtual Ref<Shader> GetShader() override { return m_Shader; }
 		virtual const Ref<Shader> GetShader() const override { return m_Shader; }
 
-		virtual const uint64_t GetRendererID() const override { return m_RUID; }
-		virtual bool operator==(const Material& other) const override { return m_RUID == ((VulkanMaterial&)other).m_RUID; }
+		virtual const MaterialHandle GetID() const override { return m_Handle; }
+		virtual bool operator==(const Material& other) const override { return m_Handle == ((VulkanMaterial&)other).m_Handle; }
 	private:
-		RendererUID m_RUID;
+		MaterialHandle m_Handle;
 		Ref<Shader> m_Shader = nullptr;
 		std::string m_Name;
 

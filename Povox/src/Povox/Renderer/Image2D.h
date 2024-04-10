@@ -1,5 +1,5 @@
 #pragma once
-#include "Povox/Renderer/RendererUID.h"
+#include "Povox/Core/UUID.h"
 #include "Povox/Renderer/Utilities.h"
 
 namespace Povox {
@@ -54,6 +54,8 @@ namespace Povox {
 
 		}
 	}
+
+	using ImageHandle = UUID;
 
 	enum class ImageUsage
 	{
@@ -119,7 +121,7 @@ namespace Povox {
 
 		virtual void* GetDescriptorSet() = 0;
 
-		virtual uint64_t GetRendererID() const = 0;
+		virtual ImageHandle GetID() const = 0;
 
 		virtual const std::string& GetDebugName() const = 0;
 

@@ -1,5 +1,8 @@
 #pragma once
+#include "Platform/Vulkan/VulkanUtilities.h"
+
 #include <vulkan/vulkan.h>
+
 
 namespace Povox {
 
@@ -50,26 +53,11 @@ namespace Povox {
 		void Cleanup();
 
 
+		VkDescriptorSetLayout CreateDescriptorLayout(const DescriptorLayoutInfo& layoutInfo, const std::string& name);
 		VkDescriptorSetLayout CreateDescriptorLayout(const VkDescriptorSetLayoutCreateInfo* info, const std::string& name);
-		VkDescriptorSetLayout GetLayout(const std::string& name);
-
-		struct DescriptorLayoutInfo {
-			std::vector<VkDescriptorSetLayoutBinding> Bindings;
-
-			bool operator==(const DescriptorLayoutInfo& other) const;
-
-			size_t hash() const;
-		};
+		VkDescriptorSetLayout GetLayout(const std::string& name);				
 
 	private:
-
-		struct DescriptorLayoutHash
-		{
-			std::size_t operator()(const DescriptorLayoutInfo& k) const
-			{
-				return k.hash();
-			}
-		};
 
 		std::unordered_map<DescriptorLayoutInfo, VkDescriptorSetLayout, DescriptorLayoutHash> m_LayoutCache;
 		std::unordered_map<std::string, VkDescriptorSetLayout> m_UniqueLayouts;

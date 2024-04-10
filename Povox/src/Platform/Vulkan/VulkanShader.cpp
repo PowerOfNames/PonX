@@ -3,6 +3,7 @@
 
 #include "Platform/Vulkan/VulkanContext.h"
 #include "Platform/Vulkan/VulkanDebug.h"
+#include "Platform/Vulkan/VulkanPipeline.h"
 
 #include "Povox/Core/Time.h"
 #include "Povox/Utils/FileUtility.h"
@@ -285,8 +286,31 @@ namespace Povox {
 
 	}
 
-	VulkanShader::VulkanShader(const std::string& filepath)
-		: m_FilePath(filepath)
+	VulkanShader::VulkanShader(const std::string& sources, const std::string& debugName/* = "Shader"*/)
+		: m_DebugName(debugName)
+	{
+		PX_PROFILE_FUNCTION();
+
+
+		auto shaderSourceCodeMap = PreProcess(sources);
+		{
+			Timer timer;
+			CompileOrGetVulkanBinaries(shaderSourceCodeMap);
+			PX_CORE_WARN("Shader compilation took {0}ms", timer.ElapsedMilliseconds());
+			Reflect();
+			PX_CORE_WARN("Shader compilation+reflection took {0}ms", timer.ElapsedMilliseconds());
+		}
+
+		VkShaderModuleCreateInfo createInfo{};
+		createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+		for (auto& [stage, data] : m_SourceCodes)
+		{
+			createInfo.codeSize = data.size() * sizeof(uint32_t);
+			createInfo.pCode = data.data();
+			PX_CORE_VK_ASSERT(vkCreateShaderModule(VulkanContext::GetDevice()->GetVulkanDevice(), &createInfo, nullptr, &m_Modules[stage]), VK_SUCCESS, "Failed to create shader module!");
+		}
+	}
+	VulkanShader::VulkanShader(const std::filesystem::path& filePath)
 	{
 		PX_PROFILE_FUNCTION();
 
@@ -294,16 +318,16 @@ namespace Povox {
 		Utils::Shader::CreateVKCacheDirectoryIfNeeded();
 
 		// Extract name from filepath
-		auto lastSlash = m_FilePath.find_last_of("/\\");
+		const std::string stringPath = filePath.string();
+		auto lastSlash = stringPath.find_last_of("/\\");
 		lastSlash = lastSlash == std::string::npos ? 0 : lastSlash + 1;
-		auto lastDot = m_FilePath.rfind(".");
-		auto count = lastDot == std::string::npos ? m_FilePath.size() - lastSlash : lastDot - lastSlash;
-		m_DebugName = m_FilePath.substr(lastSlash, count);
+		auto lastDot = stringPath.rfind(".");
+		auto count = lastDot == std::string::npos ? stringPath.size() - lastSlash : lastDot - lastSlash;
+		m_DebugName = stringPath.substr(lastSlash, count);
 		PX_CORE_WARN("Creating shader with name: {0}", m_DebugName);
 
-		std::string sources = Utils::Shader::ReadFile(filepath);
+		std::string sources = Utils::Shader::ReadFile(stringPath);
 		auto shaderSourceCodeMap = PreProcess(sources);
-
 		{
 			Timer timer;
 			CompileOrGetVulkanBinaries(shaderSourceCodeMap);
@@ -330,176 +354,140 @@ namespace Povox {
 				{
 					vkDestroyShaderModule(VulkanContext::GetDevice()->GetVulkanDevice(), module.second, nullptr);
 				}
-		m_Modules.clear();
-		m_SourceCodes.clear();
-		m_RID = 0;
+				m_Modules.clear();
+				m_SourceCodes.clear();
+				m_Handle = 0;
 			});
 	}
 
+	bool VulkanShader::Recompile(const std::string& sources)
+	{
+		PX_PROFILE_FUNCTION();
+
+
+		auto shaderSourceCodeMap = PreProcess(sources);
+		{
+			Timer timer;
+			bool success = CompileOrGetVulkanBinaries(shaderSourceCodeMap, true);
+			if(!success)
+			{
+				PX_CORE_WARN("VulkanShader::Recompile: Failed to compile binaries!");
+				return false;
+			}
+			float compilationTime = timer.ElapsedMilliseconds();
+			PX_CORE_WARN("VulkanShader:Recompile: (Re)compilation took {0}ms", compilationTime);
+			success = Reflect();
+			if(!success)
+			{
+				PX_CORE_WARN("VulkanShader::Recompile: Reflection lead to problems! Canceling recompilation!");
+				return false;
+			}
+			PX_CORE_WARN("VulkanShader:Recompile: Reflection took {0}ms", timer.ElapsedMilliseconds() - compilationTime);
+		}
+
+		VkShaderModuleCreateInfo createInfo{};
+		m_Modules.clear();
+		createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+		for (auto& [stage, data] : m_SourceCodes)
+		{
+			createInfo.codeSize = data.size() * sizeof(uint32_t);
+			createInfo.pCode = data.data();
+			PX_CORE_VK_ASSERT(vkCreateShaderModule(VulkanContext::GetDevice()->GetVulkanDevice(), &createInfo, nullptr, &m_Modules[stage]), VK_SUCCESS, "Failed to create shader module!");
+		}
+
+		if (m_Pipeline)
+			m_Pipeline->Recreate(true);
+
+		if (m_ComputePipeline)
+			m_ComputePipeline->Recreate(true);
+
+		return true;
+	}
+
+	
+
 	//Creates a DescriptorSetLayout by reflecting the shader and allocates it from the Pool in the Context
-	void VulkanShader::Reflect()
+	bool VulkanShader::Reflect()
 	{
 		VkDevice device = VulkanContext::GetDevice()->GetVulkanDevice();
 		VkPhysicalDeviceProperties physicalProps = VulkanContext::GetDevice()->GetPhysicalDeviceProperties();
 		bool debug = true;
 
-		struct DescriptorSetLayoutData {
-			uint32_t SetNumber = 0;
-			VkDescriptorSetLayoutCreateInfo CreateInfo{};
-			std::vector<VkDescriptorSetLayoutBinding> Bindings;
-		};
-		std::unordered_map<uint32_t, DescriptorSetLayoutData> descriptorSetsData;
+		
+		std::map<uint32_t, DescriptorLayoutInfo> setToLayoutInfos;
 
-
-		uint32_t reflectionCheck = 0;
-		std::unordered_map<uint32_t, std::vector<VkDescriptorSetLayoutBinding>> setLayouts;
 		for (auto&& [stage, data] : m_SourceCodes)
 		{
+			if (stage == SPV_REFLECT_SHADER_STAGE_VERTEX_BIT)
+			{
+				if (!ReflectVertexStage(&data, debug))
+					return false;				
+			}
+
 			SpvReflectShaderModule module{};
 			SpvReflectResult result = spvReflectCreateShaderModule(sizeof(uint32_t) * data.size(), data.data(), &module);
 			if (result != SPV_REFLECT_RESULT_SUCCESS)
 			{
 				SpirvUtils::ReflectErrorToString(result);
-				PX_CORE_ASSERT(true, "ReflectionModule creation failed!");
+				PX_CORE_ERROR("ReflectionModule creation failed!");
+				return false;
 			}
 
-			uint32_t count = 0;
-			result = spvReflectEnumerateInputVariables(&module, &count, nullptr);
-			PX_CORE_ASSERT(result == SPV_REFLECT_RESULT_SUCCESS, "InputVariable enumeration failed!");
-
-			std::vector<SpvReflectInterfaceVariable*> inputVars(count);
-			result = spvReflectEnumerateInputVariables(&module, &count, inputVars.data());
-			PX_CORE_ASSERT(result == SPV_REFLECT_RESULT_SUCCESS, "InputVariable querying failed!");
-
-			count = 0;
-			result = spvReflectEnumerateOutputVariables(&module, &count, nullptr);
-			PX_CORE_ASSERT(result == SPV_REFLECT_RESULT_SUCCESS, "OutputVariable enumeration failed!");
-
-			std::vector<SpvReflectInterfaceVariable*> outputVars(count);
-			result = spvReflectEnumerateOutputVariables(&module, &count, outputVars.data());
-			PX_CORE_ASSERT(result == SPV_REFLECT_RESULT_SUCCESS, "OutputVariable querying failed!");
-
-
-			if (stage == SPV_REFLECT_SHADER_STAGE_VERTEX_BIT)
-			{
-				VkVertexInputBindingDescription bindingDescription{};
-				bindingDescription.binding = 0;
-				bindingDescription.stride = 0;
-				bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-
-				m_VertexInputDescription.Attributes.reserve(inputVars.size());
-				for (size_t i = 0; i < inputVars.size(); i++)
-				{
-					const SpvReflectInterfaceVariable& reflectVar = *(inputVars[i]);
-					//ignore build-in variables
-					if (reflectVar.decoration_flags & SPV_REFLECT_DECORATION_BUILT_IN)
-						continue;
-					VkVertexInputAttributeDescription attributeDescription{};
-					attributeDescription.location = reflectVar.location;
-					attributeDescription.binding = bindingDescription.binding;
-					attributeDescription.format = static_cast<VkFormat>(reflectVar.format);
-					attributeDescription.offset = 0; //Later 
-					m_VertexInputDescription.Attributes.push_back(attributeDescription);
-				}
-				//sort ascending
-				std::sort(std::begin(m_VertexInputDescription.Attributes), std::end(m_VertexInputDescription.Attributes), [](const VkVertexInputAttributeDescription& a, const VkVertexInputAttributeDescription& b)
-					{
-						return a.location < b.location;
-					});
-				//calculate offset
-				for (auto& attribute : m_VertexInputDescription.Attributes)
-				{
-					uint32_t formatSize = VulkanUtils::FormatSize(attribute.format);
-					attribute.offset = bindingDescription.stride;
-					bindingDescription.stride += formatSize;
-				}
-				m_VertexInputDescription.Bindings.push_back(bindingDescription);
-				//Debug Print Input and outputs
-			#ifdef PX_DEBUG
-				if (debug)
-				{
-
-
-					PX_CORE_INFO("Entry Point: {0}", module.entry_point_name);
-					PX_CORE_INFO("Source Language: {0}", spvReflectSourceLanguage(module.source_language));
-					PX_CORE_INFO("Source Language Version: {0}", module.source_language_version);
-					if (module.source_language == SpvSourceLanguageGLSL)
-					{
-						switch (module.shader_stage)
-						{
-							case SPV_REFLECT_SHADER_STAGE_VERTEX_BIT: PX_CORE_INFO("Shader Stage 'Vertex (VS)'"); break;
-							case SPV_REFLECT_SHADER_STAGE_TESSELLATION_CONTROL_BIT: PX_CORE_INFO("Shader Stage 'TesselationControl (HS)'"); break;
-							case SPV_REFLECT_SHADER_STAGE_TESSELLATION_EVALUATION_BIT: PX_CORE_INFO("Shader Stage 'TessellationEvalation (DS)'"); break;
-							case SPV_REFLECT_SHADER_STAGE_GEOMETRY_BIT: PX_CORE_INFO("Shader Stage 'Geometry (GS)'"); break;
-							case SPV_REFLECT_SHADER_STAGE_FRAGMENT_BIT: PX_CORE_INFO("Shader Stage 'Fragment (FS)'"); break;
-							case SPV_REFLECT_SHADER_STAGE_COMPUTE_BIT: PX_CORE_INFO("Shader Stage 'Compute (CS)'"); break;
-						}
-					}
-
-					PX_CORE_INFO("Input Variables: ");
-					for (size_t i = 0; i < inputVars.size(); i++)
-					{
-						SpvReflectInterfaceVariable* var = inputVars[i];
-						PX_CORE_INFO("layout(location = {0}) in {1} {2}",
-							var->location,
-							SpirvUtils::ReflectDecorationTypeDescriptionToString(*var->type_description).c_str(),
-							var->name
-						);
-					}
-
-					PX_CORE_INFO("Out Variables: ");
-					for (size_t i = 0; i < outputVars.size(); i++)
-					{
-						SpvReflectInterfaceVariable* var = outputVars[i];
-						if (var->decoration_flags & SPV_REFLECT_DECORATION_BUILT_IN)
-							continue;
-						PX_CORE_INFO("layout(location = {0}) out {1} {2}",
-							var->location,
-							SpirvUtils::ReflectDecorationTypeDescriptionToString(*var->type_description).c_str(),
-							var->name
-						);
-					}
-				}
-			#endif
-			}//if-ShaderStage Vertex
-
 		// DesciptorSets
-			count = 0;
+			uint32_t count = 0;
 			result = spvReflectEnumerateDescriptorSets(&module, &count, nullptr);
-			PX_CORE_ASSERT(result == SPV_REFLECT_RESULT_SUCCESS, "DescriptorSets enumeration failed!");
+			if (result != SPV_REFLECT_RESULT_SUCCESS)
+			{
+				PX_CORE_ERROR("DescriptorSets enumeration failed!");
+				return false;
+			}
+
+			if (m_LayoutInfoHashes.find(stage) != m_LayoutInfoHashes.end())
+			{
+				if (m_LayoutInfoHashes.at(stage).size() != count)
+				{
+					PX_CORE_WARN("Shader::Reflect: Shader {0} - Stage {1} previously contained {2} descriptor sets, now {3}", 
+						m_DebugName, 
+						VulkanUtils::VKShaderStageToString(stage),
+						m_LayoutInfoHashes.at(stage).size(), 
+						count
+					);
+					return false;
+				}
+			}
 
 			std::vector<SpvReflectDescriptorSet*> reflSets(count);
 			result = spvReflectEnumerateDescriptorSets(&module, &count, reflSets.data());
-			PX_CORE_ASSERT(result == SPV_REFLECT_RESULT_SUCCESS, "DescriptorSets querying failed!");
+			if (result != SPV_REFLECT_RESULT_SUCCESS)
+			{
+				PX_CORE_ERROR("DescriptorSets querying failed!");
+				return false;
+			}
 
 			//For every set in shaderStage
 			for (size_t i = 0; i < reflSets.size(); i++)
 			{
 				const SpvReflectDescriptorSet& reflSet = *(reflSets[i]);
 
-				//check if set is already in map
-				if (descriptorSetsData.find(reflSet.set) == descriptorSetsData.end())
+				// abuse operator[] -> if not existant, creates an returns new. I therefor just need to check the bindings -> add binding if not existant, or update stage flag if existant
+				DescriptorLayoutInfo& currentSetLayout = setToLayoutInfos[reflSet.set];
+				for (size_t j = 0; j < reflSet.binding_count; j++)
 				{
-					//not found -> create new layoutData
-					DescriptorSetLayoutData ld;
-					descriptorSetsData[reflSet.set] = ld;
-					auto& newSetLayoutData = descriptorSetsData[reflSet.set];
-					newSetLayoutData.CreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-					newSetLayoutData.CreateInfo.pNext = nullptr;
-					newSetLayoutData.SetNumber = reflSet.set;
+					const SpvReflectDescriptorBinding& reflBinding = *(reflSet.bindings[j]);
 
-					//iterate through bindings of current set and add them (new set -> new bindings)
-					for (size_t j = 0; j < reflSet.binding_count; j++)
+					const char* name;
+					if (VulkanUtils::IsImageBinding(static_cast<VkDescriptorType>(reflBinding.descriptor_type)))
+						name = reflBinding.name;
+					else
+						name = reflBinding.type_description->type_name;
+
+					//check if binding is already in Set
+					auto it = std::find_if(currentSetLayout.Bindings.begin(), currentSetLayout.Bindings.end(),
+						[=](const VkDescriptorSetLayoutBinding& binding) {return binding.binding == reflBinding.binding; });
+					if (it == currentSetLayout.Bindings.end())
 					{
-						const SpvReflectDescriptorBinding& reflBinding = *(reflSet.bindings[j]);
-
-						const char* name;
-						if (VulkanUtils::IsImageBinding(static_cast<VkDescriptorType>(reflBinding.descriptor_type)))
-							name = reflBinding.name;
-						else
-							name = reflBinding.type_description->type_name;
-
-						VkDescriptorSetLayoutBinding binding{};						
+						//Not found -> add new binding
+						VkDescriptorSetLayoutBinding binding{};
 						binding.binding = reflBinding.binding;
 						binding.descriptorType = SpirvUtils::IsDynamic(static_cast<VkDescriptorType>(reflBinding.descriptor_type), reflSet.set);
 						binding.descriptorCount = 1;
@@ -509,87 +497,37 @@ namespace Povox {
 						}
 						binding.stageFlags |= static_cast<VkShaderStageFlagBits>(module.shader_stage);
 
-						if (name)
-						{
-							Ref<ShaderResourceDescription> resource = CreateRef<ShaderResourceDescription>();
-							resource->Set = reflSet.set;
-							resource->Binding = reflBinding.binding;
-							resource->Count = binding.descriptorCount;
-							resource->Name = std::string(name);
-							resource->ResourceType = SpirvUtils::ReflectDescriptorTypeToShaderResourceType(reflBinding.descriptor_type, reflSet.set);
-							resource->Stages |= SpirvUtils::ReflectShaderStageToStage(module.shader_stage);
+						currentSetLayout.Bindings.push_back(binding);
 
-							m_ShaderResourceDescriptions[name] = std::move(resource);
-						}
-						else
-							PX_CORE_WARN("VulkanShader::Reflect: Found an unnamed Resource!");						
+						Ref<ShaderResourceDescription> resource = CreateRef<ShaderResourceDescription>();
+						resource->Set = reflSet.set;
+						resource->Binding = reflBinding.binding;
+						resource->Count = binding.descriptorCount;
+						resource->Name = name;
+						resource->ResourceType = VulkanUtils::VulkanDescriptorTypeToShaderResourceType(SpirvUtils::IsDynamic(static_cast<VkDescriptorType>(reflBinding.descriptor_type), reflSet.set));
+						resource->Stages |= SpirvUtils::ReflectShaderStageToStage(module.shader_stage);
 
-						newSetLayoutData.Bindings.push_back(binding);						
+						m_ShaderResourceDescriptions[name] = std::move(resource);
 					}
-					
-					newSetLayoutData.CreateInfo.bindingCount = static_cast<uint32_t>(newSetLayoutData.Bindings.size());
-					newSetLayoutData.CreateInfo.pBindings = newSetLayoutData.Bindings.data();
+					else
+					{						
+						auto index = std::distance(currentSetLayout.Bindings.begin(), it);
+						currentSetLayout.Bindings[index].stageFlags |= static_cast<VkShaderStageFlagBits>(module.shader_stage);
+						
+						m_ShaderResourceDescriptions[name]->Stages |= SpirvUtils::ReflectShaderStageToStage(module.shader_stage);
+					}
+
+					SortLayoutInfoBindings(currentSetLayout);
+					m_LayoutInfoHashes[stage][reflSet.set] = currentSetLayout.hash();
 				}
-				else //set is in map
+
+				if(!CheckDescriptorHash(stage, reflSet.set, setToLayoutInfos.at(reflSet.set)))
 				{
-					auto& currentSetLayoutData = descriptorSetsData[reflSet.set];
-
-					//for every binding
-					for (size_t j = 0; j < reflSet.binding_count; j++)
-					{
-						const SpvReflectDescriptorBinding& reflBinding = *(reflSet.bindings[j]);
-
-						//Not found -> add new binding
-						const char* name;
-						if (VulkanUtils::IsImageBinding(static_cast<VkDescriptorType>(reflBinding.descriptor_type)))
-							name = reflBinding.name;
-						else
-							name = reflBinding.type_description->type_name;
-
-						//check if binding is already in Set
-						if (std::find_if(currentSetLayoutData.Bindings.begin(), currentSetLayoutData.Bindings.end(),
-							[=](const VkDescriptorSetLayoutBinding& binding) {return binding.binding == reflBinding.binding; }) == currentSetLayoutData.Bindings.end())
-						{
-							VkDescriptorSetLayoutBinding binding{};
-							binding.binding = reflBinding.binding;
-							binding.descriptorType = SpirvUtils::IsDynamic(static_cast<VkDescriptorType>(reflBinding.descriptor_type), reflSet.set);
-							binding.descriptorCount = 1;
-							for (uint32_t dim = 0; dim < reflBinding.array.dims_count; dim++)
-							{
-								binding.descriptorCount *= reflBinding.array.dims[dim];
-							}
-							binding.stageFlags |= static_cast<VkShaderStageFlagBits>(module.shader_stage);
-														
-							currentSetLayoutData.Bindings.push_back(binding);
-
-							Ref<ShaderResourceDescription> resource = CreateRef<ShaderResourceDescription>();
-							resource->Set = reflSet.set;
-							resource->Binding = reflBinding.binding;
-							resource->Count = binding.descriptorCount;
-							resource->Name = name;
-							resource->ResourceType = VulkanUtils::VulkanDescriptorTypeToShaderResourceType(SpirvUtils::IsDynamic(static_cast<VkDescriptorType>(reflBinding.descriptor_type), reflSet.set));
-							resource->Stages |= SpirvUtils::ReflectShaderStageToStage(module.shader_stage);
-
-							m_ShaderResourceDescriptions[name] = std::move(resource);
-						}
-						else
-						{
-							auto it = std::find_if(currentSetLayoutData.Bindings.begin(), currentSetLayoutData.Bindings.end(),
-								[=](const VkDescriptorSetLayoutBinding& binding) {return binding.binding == reflBinding.binding; });
-							if (it != currentSetLayoutData.Bindings.end())
-							{
-								auto index = std::distance(currentSetLayoutData.Bindings.begin(), it);
-								currentSetLayoutData.Bindings[index].stageFlags |= static_cast<VkShaderStageFlagBits>(module.shader_stage);
-							}
-
-							m_ShaderResourceDescriptions[name]->Stages |= SpirvUtils::ReflectShaderStageToStage(module.shader_stage);
-						}
-
-						currentSetLayoutData.CreateInfo.bindingCount = static_cast<uint32_t>(currentSetLayoutData.Bindings.size());
-						currentSetLayoutData.CreateInfo.pBindings = currentSetLayoutData.Bindings.data();						
-					}
+					PX_CORE_WARN("Shader::Reflect: Shader: {}, Stage: {} - DescriptorSet {} does not match previous layout!", m_DebugName, VulkanUtils::VKShaderStageToString(stage), reflSet.set);
+					return false;
 				}
 			}
+
 			//Debug print descriptors
 			#ifdef PX_DEBUG
 			if (debug)
@@ -633,18 +571,190 @@ namespace Povox {
 			spvReflectDestroyShaderModule(&module);
 		}//for-end stages
 
-		// TODO: Hardcoded here. Put these in a file in the future as some lookup-table or something
+		
 
+		// TODO: Hardcoded here. Put these in a file in the future as some lookup-table or something
 		const std::unordered_map<uint32_t, std::string> setNames = {
 			{0, "GlobalUBOs"},
 			{1, "GlobalSSBOs"},
 			{2, "Textures"},
 			{3, "ObjectMaterials"}
 		};
-		for (auto const& [key, setLayoutData] : descriptorSetsData)
+		for (auto const& [key, setLayout] : setToLayoutInfos)
 		{
-			m_DescriptorSetLayouts[setLayoutData.SetNumber] = (VulkanContext::GetDescriptorLayoutCache()->CreateDescriptorLayout(&(setLayoutData.CreateInfo), setNames.at(setLayoutData.SetNumber)));
+			m_DescriptorSetLayouts[key] = (VulkanContext::GetDescriptorLayoutCache()->CreateDescriptorLayout(setLayout, setNames.at(key)));
 		}
+		return true;
+	}
+
+	bool VulkanShader::ReflectVertexStage(const std::vector<uint32_t>* moduleData, bool printDebug/* = false*/)
+	{
+		SpvReflectShaderModule module{};
+		SpvReflectResult result = spvReflectCreateShaderModule(sizeof(uint32_t) * moduleData->size(), moduleData->data(), &module);
+		if (result != SPV_REFLECT_RESULT_SUCCESS)
+		{
+			SpirvUtils::ReflectErrorToString(result);
+			PX_CORE_ERROR("ReflectionModule creation failed!");
+			return false;
+		}
+
+		uint32_t count = 0;
+		result = spvReflectEnumerateInputVariables(&module, &count, nullptr);
+		if (result != SPV_REFLECT_RESULT_SUCCESS)
+		{
+			PX_CORE_ERROR("InputVariable enumeration failed!");
+			return false;
+		}
+
+		if(count == 0 && m_VertexInputDescription.Attributes.size() != count)
+		{
+			PX_CORE_WARN("VulkanShader::ReflectVertexStage: Shader: {} InputAttributes({}) do not match with previous compilation ({})!", m_DebugName, count, m_VertexInputDescription.Attributes.size());
+			return false;
+		}
+		if(count == m_VertexInputDescription.Attributes.size())
+		{
+			PX_CORE_INFO("VulkanShader::ReflectVertexStage: Shader: {} InputAttributes already done ({}/{})!", m_DebugName, count, m_VertexInputDescription.Attributes.size());
+			return true;
+		}
+
+		std::vector<SpvReflectInterfaceVariable*> inputVars(count);
+		result = spvReflectEnumerateInputVariables(&module, &count, inputVars.data());
+		if (result != SPV_REFLECT_RESULT_SUCCESS)
+		{
+			PX_CORE_ERROR("InputVariable querying failed!");
+			return false;
+		}
+
+		count = 0;
+		result = spvReflectEnumerateOutputVariables(&module, &count, nullptr);
+		if (result != SPV_REFLECT_RESULT_SUCCESS)
+		{
+			PX_CORE_ERROR("OutputVariable enumeration failed!");
+			return false;
+		}
+
+		std::vector<SpvReflectInterfaceVariable*> outputVars(count);
+		result = spvReflectEnumerateOutputVariables(&module, &count, outputVars.data());
+		if (result != SPV_REFLECT_RESULT_SUCCESS)
+		{
+			PX_CORE_ERROR("OutputVariable querying failed!");
+			return false;
+		}
+
+		VkVertexInputBindingDescription bindingDescription{};
+		bindingDescription.binding = 0;
+		bindingDescription.stride = 0;
+		bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+
+		m_VertexInputDescription.Attributes.reserve(inputVars.size());
+		for (size_t i = 0; i < inputVars.size(); i++)
+		{
+			const SpvReflectInterfaceVariable& reflectVar = *(inputVars[i]);
+			//ignore build-in variables
+			if (reflectVar.decoration_flags & SPV_REFLECT_DECORATION_BUILT_IN)
+				continue;
+			VkVertexInputAttributeDescription attributeDescription{};
+			attributeDescription.location = reflectVar.location;
+			attributeDescription.binding = bindingDescription.binding;
+			attributeDescription.format = static_cast<VkFormat>(reflectVar.format);
+			attributeDescription.offset = 0; //Later 
+			m_VertexInputDescription.Attributes.push_back(attributeDescription);
+		}
+		//sort ascending
+		std::sort(std::begin(m_VertexInputDescription.Attributes), std::end(m_VertexInputDescription.Attributes), [](const VkVertexInputAttributeDescription& a, const VkVertexInputAttributeDescription& b)
+			{
+				return a.location < b.location;
+			});
+		//calculate offset
+		for (auto& attribute : m_VertexInputDescription.Attributes)
+		{
+			uint32_t formatSize = VulkanUtils::FormatSize(attribute.format);
+			attribute.offset = bindingDescription.stride;
+			bindingDescription.stride += formatSize;
+		}
+		m_VertexInputDescription.Bindings.push_back(bindingDescription);
+
+		//Debug Print Input and outputs
+#ifdef PX_DEBUG
+		if (printDebug)
+		{
+			PX_CORE_INFO("Entry Point: {0}", module.entry_point_name);
+			PX_CORE_INFO("Source Language: {0}", spvReflectSourceLanguage(module.source_language));
+			PX_CORE_INFO("Source Language Version: {0}", module.source_language_version);
+			if (module.source_language == SpvSourceLanguageGLSL)
+			{
+				switch (module.shader_stage)
+				{
+					case SPV_REFLECT_SHADER_STAGE_VERTEX_BIT: PX_CORE_INFO("Shader Stage 'Vertex (VS)'"); break;
+					case SPV_REFLECT_SHADER_STAGE_TESSELLATION_CONTROL_BIT: PX_CORE_INFO("Shader Stage 'TesselationControl (HS)'"); break;
+					case SPV_REFLECT_SHADER_STAGE_TESSELLATION_EVALUATION_BIT: PX_CORE_INFO("Shader Stage 'TessellationEvalation (DS)'"); break;
+					case SPV_REFLECT_SHADER_STAGE_GEOMETRY_BIT: PX_CORE_INFO("Shader Stage 'Geometry (GS)'"); break;
+					case SPV_REFLECT_SHADER_STAGE_FRAGMENT_BIT: PX_CORE_INFO("Shader Stage 'Fragment (FS)'"); break;
+					case SPV_REFLECT_SHADER_STAGE_COMPUTE_BIT: PX_CORE_INFO("Shader Stage 'Compute (CS)'"); break;
+				}
+			}
+
+			PX_CORE_INFO("Input Variables: ");
+			for (size_t i = 0; i < m_VertexInputDescription.Attributes.size(); i++)
+			{
+				SpvReflectInterfaceVariable* var = inputVars[i];
+				PX_CORE_INFO("layout(location = {}) in {} {}",
+					var->location,
+					SpirvUtils::ReflectDecorationTypeDescriptionToString(*var->type_description).c_str(),
+					var->name
+				);
+			}
+
+			PX_CORE_INFO("Out Variables: ");
+			for (size_t i = 0; i < outputVars.size(); i++)
+			{
+				SpvReflectInterfaceVariable* var = outputVars[i];
+				if (var->decoration_flags & SPV_REFLECT_DECORATION_BUILT_IN)
+					continue;
+				PX_CORE_INFO("layout(location = {0}) out {1} {2}",
+					var->location,
+					SpirvUtils::ReflectDecorationTypeDescriptionToString(*var->type_description).c_str(),
+					var->name
+				);
+			}
+		}
+#endif
+		return true;
+	}
+
+	void VulkanShader::SortLayoutInfoBindings(DescriptorLayoutInfo& layoutInfo)
+	{
+		bool isSorted = true;
+		int lastBinding = -1;
+		for (uint32_t i = 0; i < layoutInfo.Bindings.size(); i++)
+		{
+			if (layoutInfo.Bindings[i].binding > lastBinding)
+			{
+				lastBinding = layoutInfo.Bindings[i].binding;
+			}
+			else
+			{
+				isSorted = false;
+			}
+		}
+		if (!isSorted)
+			layoutInfo.SortBindings();
+	}
+
+	bool VulkanShader::CheckDescriptorHash(VkShaderStageFlagBits stage, uint32_t set, const DescriptorLayoutInfo& layoutInfo)
+	{
+		if (m_LayoutInfoHashes.find(stage) == m_LayoutInfoHashes.end())
+		{
+			PX_CORE_WARN("VulkanShader::CheckDescriptorHash: Shader: {} - Stage {} not contained in previous shader reflection!", m_DebugName, VulkanUtils::VKShaderStageToString(stage));
+			return false;
+		}
+		auto& sets = m_LayoutInfoHashes.at(stage);
+		if (sets.find(set) == sets.end())
+		{
+			PX_CORE_WARN("VulkanShader::CheckDescriptorHash: Shader: {}, Stage {} - Set {} not contained in previous shader reflection!", m_DebugName, VulkanUtils::VKShaderStageToString(stage), set);
+			return false;
+		}
+		return sets.at(set) == layoutInfo.hash();
 	}
 
 	//From Chernos GL code
@@ -682,7 +792,7 @@ namespace Povox {
 		return shaderSources;
 	}
 
-	void VulkanShader::CompileOrGetVulkanBinaries(std::unordered_map<VkShaderStageFlagBits, std::string> sources)
+	bool VulkanShader::CompileOrGetVulkanBinaries(std::unordered_map<VkShaderStageFlagBits, std::string> sources, bool forceRecompile/* = false*/)
 	{
 		PX_PROFILE_FUNCTION();
 
@@ -706,14 +816,12 @@ namespace Povox {
 
 		auto& shaderData = m_SourceCodes;
 		shaderData.clear();
-		PX_CORE_WARN("Compiling shader ' {} ' ...", m_DebugName);
 		for (auto&& [stage, code] : sources)
 		{
-			std::filesystem::path shaderFilePath = m_FilePath;
-			std::filesystem::path cachedPath = cacheDirectory / (shaderFilePath.filename().string() + VulkanUtils::VKShaderStageCachedVulkanFileExtension(stage));
+			std::filesystem::path cachedPath = cacheDirectory / (m_DebugName + VulkanUtils::VKShaderStageCachedVulkanFileExtension(stage));
 
 			std::ifstream in(cachedPath, std::ios::in | std::ios::binary);
-			if (in.is_open()) // happens if cache path exists
+			if (in.is_open() && !forceRecompile) // happens if cache path exists
 			{
 				in.seekg(0, std::ios::end);				// places pointer to end of file
 				auto size = in.tellg();					// position of pointer equals size
@@ -725,16 +833,16 @@ namespace Povox {
 			}
 			else
 			{
- 				shaderc::SpvCompilationResult module = compiler.CompileGlslToSpv(code, VulkanUtils::VKShaderStageToShaderC(stage), m_FilePath.c_str(), options);
+ 				shaderc::SpvCompilationResult module = compiler.CompileGlslToSpv(code, VulkanUtils::VKShaderStageToShaderC(stage), m_DebugName.c_str(), options);
  				if (module.GetCompilationStatus() != shaderc_compilation_status_success)
  				{
  					PX_CORE_ERROR(module.GetErrorMessage());
- 					PX_CORE_ASSERT(false, module.GetErrorMessage());
+					return false;
  				}
 
 				shaderData[stage] = std::vector<uint32_t>(module.cbegin(), module.cend());
 
-				std::ofstream out(cachedPath, std::ios::out | std::ios::binary);
+				std::ofstream out(cachedPath, std::ios::out | std::ios::binary | std::ofstream::trunc);
 				if (out.is_open())
 				{
 					auto& data = shaderData[stage];
@@ -743,8 +851,7 @@ namespace Povox {
 					out.close();
 				}
 			}
-
-			PX_CORE_WARN("Contains ShaderStage: {}", VulkanUtils::VKShaderStageToString(stage));
 		}
+		return true;
 	}
 }

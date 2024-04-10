@@ -48,7 +48,7 @@ namespace Povox {
 
 		PX_CORE_INFO("Creating ShaderLibrary...");
 
-		m_ShaderLibrary = CreateRef<ShaderLibrary>(Application::Get()->GetSpecification().ShaderFilePath);
+		m_ShaderManager = CreateRef<ShaderManager>(Application::Get()->GetSpecification().ShaderFilePath);
 
 		PX_CORE_INFO("Completed ShaderLibrary creation.");
 
@@ -98,7 +98,7 @@ namespace Povox {
 
 		PX_CORE_INFO("Starting ShaderLibrary shutdown...");
 
-		m_ShaderLibrary->Shutdown();
+		m_ShaderManager->Shutdown();
 
 		PX_CORE_INFO("Completed ShaderLibrary shutdown.");
 
@@ -782,7 +782,7 @@ namespace Povox {
 		auto& descriptors = m_ActiveRenderPass->GetDescriptorSets();
 		auto& dynamicOffsets = m_ActiveRenderPass->GetDynamicOffsets(m_CurrentFrameIndex);
 
-		std::vector<VkDescriptorSet> descriptorSets;		
+		std::vector<VkDescriptorSet> descriptorSets;
 		for (auto& [number, set] : descriptors)
 		{
 			// Now bind global descriptor sets (all sets 0-2)

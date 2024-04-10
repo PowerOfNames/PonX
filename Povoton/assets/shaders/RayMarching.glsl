@@ -63,7 +63,7 @@ layout(std140, set = 1, binding = 0) readonly buffer ParticleSSBOIn {
 layout(set = 2, binding = 0) uniform sampler2D DistanceField;
 
 #define PI 3.14159
-#define epsilon 0.000000001
+#define epsilon 0.00001
 
 struct Ray
 {
@@ -76,10 +76,10 @@ struct Ray
 float SphereSDF(in vec3 rayPos, in vec3 spherePos, in float sphereRadius)
 {
 	float time = u_RayMarching.ResolutionTime.z * 1.6f;
-	//float displacement = sin(time + 7.0 * rayPos.x) * -cos(time + 7.0 * rayPos.y) * cos(time + 7.0 * rayPos.z) * 0.1 -0.5;
+	float displacement = sin(time + 8.0 * rayPos.x) * -cos(time + 7.0 * rayPos.y) * cos(time + 7.0 * rayPos.z) * 0.1 -0.5;
 	float dist = abs(length(rayPos-spherePos)) - sphereRadius;
 
-	return dist/* + displacement*/;
+	return dist + displacement;
 }
 
 vec3 CalculateSurfaceNormal(in vec3 hitPos, in vec4 particleDims)

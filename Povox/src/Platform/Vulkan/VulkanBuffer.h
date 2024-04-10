@@ -23,7 +23,7 @@ namespace Povox {
 		virtual ~VulkanBuffer() = default;
 		virtual void Free() override;
 
-		virtual uint64_t GetRendererID() const override { return m_RID; }
+		virtual BufferHandle GetID() const override { return m_Handle; }
 
 		virtual Ref<BufferSuballocation> GetSuballocation(size_t size) override;
 
@@ -46,7 +46,7 @@ namespace Povox {
 		virtual const std::string& GetDebugName() const override { return m_Specification.DebugName; }
 		
 
-		virtual bool operator==(const Buffer& other) const override { return m_RID == ((VulkanBuffer&)other).m_RID; }
+		virtual bool operator==(const Buffer& other) const override { return m_Handle == ((VulkanBuffer&)other).m_Handle; }
 
 	private:
 		void UploadToGPU();
@@ -54,7 +54,7 @@ namespace Povox {
 		VkDescriptorBufferInfo CreateDescriptorInfo(size_t offset = 0, size_t range = 0);
 
 	private:
-		RendererUID m_RID;
+		BufferHandle m_Handle;
 		BufferSpecification m_Specification;
 
 		AllocatedBuffer m_Allocation{};

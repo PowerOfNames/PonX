@@ -114,7 +114,7 @@ namespace Povox {
 		virtual ~VulkanImage2D() = default;
 		virtual void Free() override;
 
-		virtual uint64_t GetRendererID() const override { return m_RID; }
+		virtual ImageHandle GetID() const override { return m_Handle; }
 
 		virtual const ImageSpecification& GetSpecification() const override { return m_Specification; }
 		virtual void SetData(void* data) override;
@@ -148,7 +148,7 @@ namespace Povox {
 		VkDescriptorImageInfo CreateDescriptorInfo();
 
 	private:
-		RendererUID m_RID;
+		ImageHandle m_Handle;
 
 		ImageSpecification m_Specification;
 
@@ -186,13 +186,13 @@ namespace Povox {
 		virtual const Ref<Image2D> GetImage() const override { return m_Image; }
 		virtual Ref<Image2D> GetImage() override { return m_Image; }
 
-		virtual uint64_t GetRendererID() const override { return m_RUID; }
+		virtual TextureHandle GetID() const override { return m_Handle; }
 		virtual inline const std::string& GetDebugName() const override { return m_Image->GetDebugName(); }
 
-		virtual bool operator==(const Texture& other) const override { return m_RUID == ((VulkanTexture2D&)other).m_RUID; }
+		virtual bool operator==(const Texture& other) const override { return m_Handle == ((VulkanTexture2D&)other).m_Handle; }
 
 	private:
-		RendererUID m_RUID;
+		TextureHandle m_Handle;
 
 		Ref<VulkanImage2D> m_Image = nullptr;
 
