@@ -62,6 +62,7 @@ namespace Povox {
 		VkDescriptorSet TextureDescriptorSet;
 	};
 
+	class VulkanQueryManager;
 	class VulkanRenderer : public RendererAPI
 	{
 	public:
@@ -121,7 +122,7 @@ namespace Povox {
 		// Debugging and Performance
 		virtual void StartTimestampQuery(const std::string& name) override;
 		virtual void StopTimestampQuery(const std::string& name) override;
-
+		void AddTimestampQuery(const std::string& name, uint32_t count);
 
 		// Resource Getters
 		virtual inline Ref<ShaderManager> GetShaderManager() const override { return m_ShaderManager; }
@@ -158,7 +159,6 @@ namespace Povox {
 
 		// Debugging and Performance
 		void InitPerformanceQueryPools();
-		void ResetQuerys(VkCommandBuffer cmd);
 		void GetQueryResults();
 
 	private:
@@ -221,11 +221,7 @@ namespace Povox {
 
 
 		// Debugging and Performance
-		std::vector<VkQueryPool> m_TimestampQueryPools;
-		std::vector<std::vector<uint64_t>> m_Timestamps;
-		std::unordered_map<std::string, uint32_t> m_TimestampQueries;
-
-		VkQueryPool m_PipelineStatisticsQueryPool = VK_NULL_HANDLE;
+		Ref<VulkanQueryManager> m_QueryManager = nullptr;		
 
 		RendererStatistics m_Statistics{};
 

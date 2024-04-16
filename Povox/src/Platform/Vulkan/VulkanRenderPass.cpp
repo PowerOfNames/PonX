@@ -1,11 +1,11 @@
 #include "pxpch.h"
 #include "VulkanRenderPass.h"
 
-#include "Platform/Vulkan/VulkanContext.h"
 #include "Platform/Vulkan/VulkanCommands.h"
+#include "Platform/Vulkan/VulkanContext.h"
 #include "Platform/Vulkan/VulkanDebug.h"
-#include "Platform/Vulkan/VulkanImage2D.h"
 #include "Platform/Vulkan/VulkanFramebuffer.h"
+#include "Platform/Vulkan/VulkanImage2D.h"
 #include "Platform/Vulkan/VulkanPipeline.h"
 #include "Platform/Vulkan/VulkanShader.h"
 
@@ -459,6 +459,13 @@ namespace Povox {
 	{
 		PX_PROFILE_FUNCTION();
 		
+		if (spec.DoPerformanceQuery)
+		{
+			if (spec.DebugName == "RenderPass")
+				PX_CORE_WARN("Perfromance querying requires a valid debugName to differentiate between passes!");
+			else
+				VulkanRenderer::AddTimestampQuery(spec.DebugName, 2);
+		}
 		m_DebugName = spec.DebugName;
 		m_Type = PassType::GRAPHICS;
 

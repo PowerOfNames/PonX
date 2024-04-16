@@ -262,6 +262,7 @@ namespace Povox {
 		uint32_t currentFrameIndex = Renderer::GetCurrentFrameIndex();
 		auto cmd = Renderer::GetCommandBuffer(currentFrameIndex);
 		Renderer::BeginCommandBuffer(cmd);
+
 		Renderer::StartTimestampQuery("QuadRenderpass");
 		Renderer::BeginRenderPass(m_QuadRenderpass);
 

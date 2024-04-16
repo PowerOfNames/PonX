@@ -76,10 +76,10 @@ struct Ray
 float SphereSDF(in vec3 rayPos, in vec3 spherePos, in float sphereRadius)
 {
 	float time = u_RayMarching.ResolutionTime.z * 1.6f;
-	float displacement = sin(time + 8.0 * rayPos.x) * -cos(time + 7.0 * rayPos.y) * cos(time + 7.0 * rayPos.z) * 0.1 -0.5;
+	//float displacement = sin(time + 8.0 * rayPos.x) * -cos(time + 7.0 * rayPos.y) * cos(time + 7.0 * rayPos.z) * 0.1 -0.5;
 	float dist = abs(length(rayPos-spherePos)) - sphereRadius;
 
-	return dist + displacement;
+	return dist/*+ displacement*/;
 }
 
 vec3 CalculateSurfaceNormal(in vec3 hitPos, in vec4 particleDims)
@@ -109,7 +109,7 @@ vec3 Phongg(in vec3 viewDir, in vec3 hitPos, in vec3 lightPos, in vec3 normal, i
 }
 
 const float MAX_STEPS = 128;
-const float HIT_DISTANCE = 0.001;
+const float HIT_DISTANCE = 0.5;
 const float MAX_DISTANCE = 1000.0;
 
 const vec2 SPECULAR = vec2(0.5, 2.0);

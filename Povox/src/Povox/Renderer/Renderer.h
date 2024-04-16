@@ -103,8 +103,8 @@ namespace Povox {
 		RendererState* State;
 
 		// PipelineStatistics
-		std::vector<uint64_t> PipelineStats;
 		std::vector<std::string> PipelineStatNames;
+		std::vector<uint64_t> PipelineStats;
 
 		// Timestamps
 		std::unordered_map<std::string, uint64_t> TimestampResults; //per 		

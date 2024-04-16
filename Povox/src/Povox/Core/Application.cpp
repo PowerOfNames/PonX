@@ -119,6 +119,7 @@ namespace Povox {
 					PX_PROFILE_SCOPE("ImGui Update and render loop");
 					const void* imGuiCmd = Renderer::GetGUICommandBuffer(Renderer::GetCurrentFrameIndex());
 					Renderer::BeginCommandBuffer(imGuiCmd);
+					Renderer::StartTimestampQuery("GUIPass");
 					Renderer::BeginGUIRenderPass();
 					m_ImGuiVulkanLayer->Begin();
 					for (Layer* layer : m_Layerstack)
@@ -128,6 +129,7 @@ namespace Povox {
 					m_ImGuiVulkanLayer->End(); // all the objects that got created during OnImgUiRender now are put into ImGuis DrawList 
 					Renderer::DrawGUI();
 					Renderer::EndGUIRenderPass();
+					Renderer::StopTimestampQuery("GUIPass");
 					Renderer::EndCommandBuffer();
 				}
 				Renderer::EndFrame();

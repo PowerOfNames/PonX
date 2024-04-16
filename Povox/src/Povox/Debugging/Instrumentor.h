@@ -226,7 +226,7 @@ namespace Povox {
 #elif defined(__cplusplus) && (__cplusplus >= 201103)
 #define PX_FUNC_SIG __func__
 #else
-#define PX_FUNC_SIG "HZ_FUNC_SIG unknown!"
+#define PX_FUNC_SIG "PX_FUNC_SIG unknown!"
 #endif
 
 #define PX_PROFILE_BEGIN_SESSION(name, filepath) ::Povox::Instrumentor::Get().BeginSession(name, filepath)

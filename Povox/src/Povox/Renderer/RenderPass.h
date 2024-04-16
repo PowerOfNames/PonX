@@ -38,10 +38,11 @@ namespace Povox {
 	class Pipeline;
 	struct RenderPassSpecification
 	{
-		std::string DebugName = "RenderPass";
-
 		Ref<Pipeline> Pipeline = nullptr;		
 		Ref<Framebuffer> TargetFramebuffer = nullptr;
+
+		bool DoPerformanceQuery = false;
+		std::string DebugName = "RenderPass";
 	};
 
 	class RenderPass : public virtual GPUPass

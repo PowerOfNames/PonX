@@ -165,6 +165,7 @@ namespace Povox {
 		limits.MaxComputeWorkGroupSize.Z = limits.Properties.limits.maxComputeWorkGroupSize[2];
 
 		limits.TimestampPeriod = limits.Properties.limits.timestampPeriod;
+		limits.HasTimestampQuerySupport = limits.Properties.limits.timestampPeriod;
 
 		return limits;
 	}

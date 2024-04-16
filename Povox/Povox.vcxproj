@@ -160,6 +160,7 @@
     <ClInclude Include="src\Platform\Vulkan\VulkanImage2D.h" />
     <ClInclude Include="src\Platform\Vulkan\VulkanMaterialSystem.h" />
     <ClInclude Include="src\Platform\Vulkan\VulkanPipeline.h" />
+    <ClInclude Include="src\Platform\Vulkan\VulkanQueryManager.h" />
     <ClInclude Include="src\Platform\Vulkan\VulkanRenderPass.h" />
     <ClInclude Include="src\Platform\Vulkan\VulkanRenderer.h" />
     <ClInclude Include="src\Platform\Vulkan\VulkanShader.h" />
@@ -670,6 +671,7 @@
     <ClCompile Include="src\Platform\Vulkan\VulkanImage2D.cpp" />
     <ClCompile Include="src\Platform\Vulkan\VulkanMaterialSystem.cpp" />
     <ClCompile Include="src\Platform\Vulkan\VulkanPipeline.cpp" />
+    <ClCompile Include="src\Platform\Vulkan\VulkanQueryManager.cpp" />
     <ClCompile Include="src\Platform\Vulkan\VulkanRenderPass.cpp" />
     <ClCompile Include="src\Platform\Vulkan\VulkanRenderer.cpp" />
     <ClCompile Include="src\Platform\Vulkan\VulkanShader.cpp" />

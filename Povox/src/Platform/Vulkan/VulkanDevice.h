@@ -51,11 +51,12 @@ namespace Povox {
 			uint32_t Z;
 		}MaxComputeWorkGroupSize;
 
-		float TimestampPeriod;
 
 		bool HasDedicatedTransferQueue = false;
 		bool HasDedicatedComputeQueue = false;
 
+		float TimestampPeriod;
+		bool HasTimestampQuerySupport = false;
 
 		VkPhysicalDeviceProperties Properties;
 	};
