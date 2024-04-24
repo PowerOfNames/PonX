@@ -68,12 +68,17 @@ namespace Povox {
 		m_CameraRotationSpeed = speed;
 	}
 
+	void PerspectiveCameraController::ResizeViewport(float width, float height)
+	{
+		float aspectRatio = width / height;
+		m_Camera.SetProjectionMatrix(aspectRatio);
+	}
+
 	bool PerspectiveCameraController::OnWindowResized(WindowResizeEvent& e)
 	{
 		PX_PROFILE_FUNCTION();
-
-		float aspectRatio = (float)e.GetWidth() / (float)e.GetHeight();
-		m_Camera.SetProjectionMatrix(aspectRatio);
+				
+		ResizeViewport((float)e.GetWidth(), (float)e.GetHeight());
 
 		return false;
 	}

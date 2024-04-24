@@ -36,6 +36,7 @@ namespace Povox {
 	{
 		PX_PROFILE_FUNCTION();
 
+
 		m_AspectRatio = aspectRatio;
 		m_ProjectionMatrix = glm::perspective(glm::radians(FOV), aspectRatio, 0.1f, 100.0f);
 		m_ViewProjectionMatrix = m_ProjectionMatrix * m_ViewMatrix;

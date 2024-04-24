@@ -13,7 +13,7 @@
 namespace Povox {
 
 	SciSimLayer::SciSimLayer()
-        : Layer("Povoton"), m_PerspectiveController(m_ViewportSize.x, m_ViewportSize.y)
+        : Layer("Povoton"), m_PerspectiveController(1600, 900)
     {
     }
 
@@ -85,6 +85,7 @@ namespace Povox {
 			Povox::Renderer::OnViewportResize(m_ViewportSize.x, m_ViewportSize.y);
 
             //m_EditorCamera.SetViewportSize(m_ViewportSize.x, m_ViewportSize.y);
+			m_PerspectiveController.ResizeViewport(m_ViewportSize.x, m_ViewportSize.y);
 
             m_SciRenderer->OnResize((uint32_t)m_ViewportSize.x, (uint32_t)m_ViewportSize.y);
 			m_ViewportResized = false;
@@ -229,20 +230,26 @@ namespace Povox {
 			// 			ImGui::Text("Quads: %d", stats.QuadCount);
 			// 			ImGui::Text("Vertices: %d", stats.GetTotalVertexCount());
 			// 			ImGui::Text("Indices: %d", stats.GetTotalIndexCount());
-			ImGui::Text("Deltatime: %f", m_Deltatime);
+			ImGui::Text("Deltatime: %fms", m_Deltatime * 1000.0);
+			ImGui::Text("FPS: %f", 1.0f / m_Deltatime);
 			ImGui::Separator();
 
 			Povox::RendererStatistics rendererStats = Povox::Renderer::GetStatistics();
-			for (uint32_t i = 0; i < rendererStats.PipelineStats.size(); i++)
+			for (const auto& [poolName, queries] : rendererStats.PipelineStats)
 			{
-				std::string caption = rendererStats.PipelineStatNames[i] + ": %llu";
-				ImGui::Text(caption.c_str(), rendererStats.PipelineStats[i]);
-			}
+				ImGui::Text(poolName.c_str());
+				for(const auto& [query, stat] : queries)
+				{
+					std::string caption = query + " %llu";
+					ImGui::Text(caption.c_str(), stat);
+				}
+				ImGui::Separator();
+			}			
 			ImGui::Separator();
-			for (auto& [name, value] : rendererStats.TimestampResults)
+			for (const auto& [name, value] : rendererStats.TimestampResults)
 			{
 				double timeInMS = value / 1000000.0;
-				const std::string caption = name + ": %fms";
+				const std::string caption = name + ": %.6fms";
 				ImGui::Text(caption.c_str(), timeInMS);
 			}
 			ImGui::Separator();
@@ -267,6 +274,7 @@ namespace Povox {
 			glm::vec3 cameraPos = m_PerspectiveController.GetCamera().GetPosition();
 			glm::vec3 front = m_PerspectiveController.GetCamera().GetForward();
 			glm::mat4 view = glm::inverse(m_PerspectiveController.GetCamera().GetViewMatrix());
+			glm::mat4 proj = m_PerspectiveController.GetCamera().GetProjectionMatrix();
 
 			//glm::vec3 cameraPos = m_EditorCamera.GetPosition();
 			ImGui::Text("Camera Position: {%f|%f|%f}", cameraPos.x, cameraPos.y, cameraPos.z);
@@ -275,6 +283,11 @@ namespace Povox {
 			ImGui::Text("Camera ViewMatrix: {%f|%f|%f|%f}", view[0][1], view[1][1], view[2][1], view[3][1]);
 			ImGui::Text("Camera ViewMatrix: {%f|%f|%f|%f}", view[0][2], view[1][2], view[2][2], view[3][2]);
 			ImGui::Text("Camera ViewMatrix: {%f|%f|%f|%f}", view[0][3], view[1][3], view[2][3], view[3][3]);
+
+			ImGui::Text("Camera ProjMatrix: {%f|%f|%f|%f}", proj[0][0], proj[1][0], proj[2][0], proj[3][0]);
+			ImGui::Text("Camera ProjMatrix: {%f|%f|%f|%f}", proj[0][1], proj[1][1], proj[2][1], proj[3][1]);
+			ImGui::Text("Camera ProjMatrix: {%f|%f|%f|%f}", proj[0][2], proj[1][2], proj[2][2], proj[3][2]);
+			ImGui::Text("Camera ProjMatrix: {%f|%f|%f|%f}", proj[0][3], proj[1][3], proj[2][3], proj[3][3]);
 			ImGui::End();
 
 

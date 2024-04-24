@@ -105,12 +105,13 @@ namespace Povox {
 		// Compute
 		{
 			ComputePipelineSpecification pipelineSpecs{};
-			pipelineSpecs.DebugName = "DistanceField";
+			pipelineSpecs.DebugName = "ParticleMovementComputePipeline";
 			pipelineSpecs.Shader = Renderer::GetShaderManager()->Get(m_ComputeShaderHandle);
 			m_DistanceFieldComputePipeline = ComputePipeline::Create(pipelineSpecs);
 
 			ComputePassSpecification passSpecs{};
-			passSpecs.DebugName = "DistanceField";
+			passSpecs.DebugName = "ParticleMovementComputePass";
+			passSpecs.DoPerformanceQuery = true;
 			passSpecs.Pipeline = m_DistanceFieldComputePipeline;
 			passSpecs.WorkgroupSize.X = 1;
 
@@ -133,7 +134,7 @@ namespace Povox {
 			framebufferSpecs.DebugName = "RaymarchingFramebuffer";
 			framebufferSpecs.Attachments = { {ImageFormat::RGBA8} };
 			framebufferSpecs.Width = m_Specification.ViewportWidth;
-			framebufferSpecs.Height = m_Specification.ViewportHeight;
+			framebufferSpecs.Height = m_Specification.ViewportHeight;			
 			m_RayMarchingFramebuffer = Framebuffer::Create(framebufferSpecs);
 			
 
@@ -153,6 +154,7 @@ namespace Povox {
 
 			RenderPassSpecification renderpassSpecs{};
 			renderpassSpecs.DebugName = "RaymarchingRenderpass";
+			renderpassSpecs.DoPerformanceQuery = true;
 			renderpassSpecs.Pipeline = m_RayMarchingPipeline;
 			renderpassSpecs.TargetFramebuffer = m_RayMarchingFramebuffer;
 			m_RayMarchingRenderpass = RenderPass::Create(renderpassSpecs);
@@ -232,9 +234,9 @@ namespace Povox {
 		{
 			if (set->GetSpecifications().GPUSimulationActive)
 			{
-				//ComputeTimestampBegin
+				//Renderer::StartTimestampQuery("ParticleMovementComputePass");
 				Renderer::DispatchCompute(m_DistanceFieldComputePass);
-				//ComputeTimestampEnd
+				//Renderer::StopTimestampQuery("ParticleMovementComputePass");
 			}
 		}
 	}
@@ -318,13 +320,13 @@ namespace Povox {
 		uint32_t currentFrameIndex = Renderer::GetCurrentFrameIndex();
 		auto cmd = Renderer::GetCommandBuffer(currentFrameIndex);
 		Renderer::BeginCommandBuffer(cmd);
-		// Renderer::StartTimestampQuery("RayMarchingRenderpass");
+		Renderer::StartTimestampQuery("RaymarchingRenderpass");
 		Renderer::BeginRenderPass(m_RayMarchingRenderpass);
 
 		Renderer::Draw(m_FullscreenQuadVertexBuffer, m_RayMarchingMaterial, m_FullscreenQuadIndexBuffer, 6, true);
 
 		Renderer::EndRenderPass();
-		// Renderer::StopTimestampQuery("RayMarchingRenderpass");
+		Renderer::StopTimestampQuery("RaymarchingRenderpass");
 		Renderer::EndCommandBuffer();
 
 		m_FinalImage = m_RayMarchingFramebuffer->GetColorAttachment(0);

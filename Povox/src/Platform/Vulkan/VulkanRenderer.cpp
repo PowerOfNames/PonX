@@ -49,9 +49,10 @@ namespace Povox {
 
 		PX_CORE_INFO("Creating QueryManager...");
 
-		m_QueryManager = CreateRef<VulkanQueryManager>();
+		InitPerformanceQueryPools();
 
 		PX_CORE_INFO("Completed QueryManager creation.");
+
 
 		
 		PX_CORE_INFO("Creating ShaderLibrary...");
@@ -208,17 +209,15 @@ namespace Povox {
 	{
 		PX_PROFILE_FUNCTION();
 
-
-		m_QueryManager->GetTimestampQueryResults(m_LastFrameIndex);
-		m_QueryManager->ResetTimestampQuery(m_CurrentFrameIndex);
-		m_QueryManager->GetPipelineQueryResults();
-		m_QueryManager->ResetPipelineQuery();
+		m_QueryManager->ResetTimestampQueryPool(m_CurrentFrameIndex);
+		m_QueryManager->ResetPipelineQueryPools(m_CurrentFrameIndex);
 		//VulkanContext::FreeFrameResources(m_CurrentFrameIndex);
 
 		return PrepareRenderFrame() && PrepareComputeFrame();
 	}
 	void VulkanRenderer::EndFrame()
 	{
+		GetQueryResults(m_CurrentFrameIndex);
 		m_Specification.State.LastFrameIndex = m_LastFrameIndex = m_CurrentFrameIndex;
 		m_Specification.State.CurrentFrameIndex = m_CurrentFrameIndex = (++m_CurrentFrameIndex) % m_Specification.MaxFramesInFlight;
 		m_Specification.State.TotalFrames++;
@@ -319,7 +318,7 @@ namespace Povox {
 
 		vkCmdDrawIndexed(m_ActiveCommandBuffer, indexCount, 1, 0, 0, 0);
 
-		m_QueryManager->EndPipelineQuery(m_ActiveCommandBuffer);
+		m_QueryManager->EndPipelineQuery("PipelineQueryPool", m_ActiveCommandBuffer, m_CurrentFrameIndex);
 	}
 
 	void VulkanRenderer::DrawRenderable(const Renderable& renderable)
@@ -838,7 +837,7 @@ namespace Povox {
 			vkCmdSetScissor(m_ActiveCommandBuffer, 0, 1, &scissor);
 		}
 
-		m_QueryManager->BeginPipelineQuery(m_ActiveCommandBuffer);		
+		m_QueryManager->BeginPipelineQuery("PipelineQueryPool", m_ActiveCommandBuffer, m_CurrentFrameIndex);
 		vkCmdBindPipeline(m_ActiveCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_ActivePipeline->GetVulkanObj());
 	}
 
@@ -870,8 +869,11 @@ namespace Povox {
 		NameVkObject(VulkanContext::GetDevice()->GetVulkanDevice(), nameInfo);
 #endif // DEBUG
 		
-		
 		auto& passSpecs = vkComputePass->GetSpecification();
+		if (passSpecs.DoPerformanceQuery)
+			m_QueryManager->RecordTimestamp(passSpecs.DebugName, m_CurrentFrameIndex, computeCmd);
+
+
 		Ref<VulkanComputePipeline> vkComputePipeline = std::dynamic_pointer_cast<VulkanComputePipeline>(passSpecs.Pipeline);
 
 		uint32_t computeFamIndex = VulkanContext::GetDevice()->GetQueueFamilies().ComputeFamilyIndex;
@@ -879,6 +881,9 @@ namespace Povox {
 		
 		vkComputePass->UpdateResourceOwnership(m_CurrentFrameIndex);
 		
+		if (passSpecs.DoPerformanceQuery)
+			m_QueryManager->BeginPipelineQuery(passSpecs.DebugName, computeCmd, m_CurrentFrameIndex);
+
 		vkCmdBindPipeline(computeCmd, VK_PIPELINE_BIND_POINT_COMPUTE, vkComputePipeline->GetVulkanObj());
 
 		auto& descriptorSetMap = m_ActiveComputePass->GetDescriptorSets();
@@ -901,6 +906,13 @@ namespace Povox {
 			dynamicOffsets.data());
 
 		vkCmdDispatch(computeCmd, passSpecs.WorkgroupSize.X, passSpecs.WorkgroupSize.Y, passSpecs.WorkgroupSize.Z);
+
+		if (passSpecs.DoPerformanceQuery)
+		{
+			m_QueryManager->EndPipelineQuery(passSpecs.DebugName, computeCmd, m_CurrentFrameIndex);
+			m_QueryManager->RecordTimestamp(passSpecs.DebugName, m_CurrentFrameIndex, computeCmd);
+		}
+
 		PX_CORE_VK_ASSERT(vkEndCommandBuffer(computeCmd), VK_SUCCESS, "Failed to end ComputeCommandbuffer!");
 
 		VkSubmitInfo submitInfo{ VK_STRUCTURE_TYPE_SUBMIT_INFO };
@@ -915,7 +927,8 @@ namespace Povox {
 		submitInfo.pWaitDstStageMask = {};
 
 
-		PX_CORE_VK_ASSERT(vkQueueSubmit(VulkanContext::GetDevice()->GetQueueFamilies().Queues.ComputeQueue, 1, &submitInfo, GetCurrentFrame().ComputeFence), VK_SUCCESS, "Failed to submit compute pass");
+		PX_CORE_VK_ASSERT(vkQueueSubmit(VulkanContext::GetDevice()->GetQueueFamilies().Queues.ComputeQueue, 1, &submitInfo, GetCurrentFrame().ComputeFence), VK_SUCCESS, "Failed to submit compute pass");	
+		
 	}
 
 	// GUI
@@ -948,6 +961,7 @@ namespace Povox {
 	{
 		auto& swapchain = Application::Get()->GetWindow().GetSwapchain();
 		m_ImGui->Init(swapchain->GetImageViews(), swapchain->GetProperties().Width, swapchain->GetProperties().Height);
+		Renderer::AddTimestampQuery("GUIPass", 2);
 	}
 	void VulkanRenderer::BeginImGuiFrame()
 	{
@@ -1266,35 +1280,26 @@ namespace Povox {
 		m_QueryManager->AddTimestampQuery(name, count);
 	}
 
+	void VulkanRenderer::AddPipelineStatisticsQuery(const std::string& name, const std::string& computeStatQueryPoolName)
+	{
+		m_QueryManager->AddPipelineStatisticsQuery(name, computeStatQueryPoolName);
+	}
+
 // Resource Creation and Getters
 	void VulkanRenderer::InitPerformanceQueryPools()
 	{
-		{
-			m_Timestamps.resize(framesInFlight);
-			for (uint32_t i = 0; i < framesInFlight; i++)
-			{				
-				m_Timestamps[i].resize(m_TimestampQueries.size() * 2);
-				for (uint32_t j = 0; j < m_Timestamps[i].size(); j++)
-				{
-					m_Timestamps[i][j] = 0;
-				}
-			}
-		}
+		m_QueryManager = CreateRef<VulkanQueryManager>();
 
-		m_Statistics.PipelineStatNames = { "Input assembly vertex count (indices) ",
-								"Input assembly primitives count ",
-								"Vertex shader invocations ",
-								"Clipping stage - primitives reached ",
-								"Clipping stage - primitives passed ",
-								"Fragment shader invocations ",
-								"Compute shader shader invocations ", };
-		m_Statistics.PipelineStats.resize(m_Statistics.PipelineStatNames.size());
+		m_QueryManager->CreateTimestampQueryPools(m_Specification.MaxFramesInFlight, 20);
+		m_QueryManager->CreatePipelineStatisticsQueryPool("PipelineQueryPool", m_Specification.MaxFramesInFlight, VK_PIPELINE_BIND_POINT_GRAPHICS);
+		m_QueryManager->CreatePipelineStatisticsQueryPool( m_ComputeStatisticsQueryPoolName, m_Specification.MaxFramesInFlight, VK_PIPELINE_BIND_POINT_COMPUTE);
 	}
 
-	void VulkanRenderer::GetQueryResults()
+	void VulkanRenderer::GetQueryResults(uint32_t frameIdx)
 	{
-		m_Statistics.TimestampResults["GUIPass"] = (uint64_t)(((m_Timestamps[m_LastFrameIndex][3] - m_Timestamps[m_LastFrameIndex][2])) *
-			VulkanContext::GetDevice()->GetLimits().TimestampPeriod);
+		m_Statistics.PipelineStats["PipelineQueryPool"] = m_QueryManager->GetPipelineQueryResults("PipelineQueryPool", frameIdx);
+		m_Statistics.PipelineStats[m_ComputeStatisticsQueryPoolName] = m_QueryManager->GetPipelineQueryResults(m_ComputeStatisticsQueryPoolName, frameIdx);
+		m_Statistics.TimestampResults = m_QueryManager->GetTimestampQueryResults(frameIdx);
 	}
 
 	void VulkanRenderer::InitFinalImage(uint32_t width, uint32_t height)

@@ -90,7 +90,7 @@ namespace Povox {
 	{
 		PX_PROFILE_FUNCTION();
 
-
+		//Renderer::AddTimestampQuery("GUIPass", 2);
 		PX_CORE_INFO("Application::Run: Starting Main-Loop...");
 		while (m_Running)
 		{

@@ -20,6 +20,8 @@ namespace Povox {
 		void SetTranslationSpeed(float speed);
 		void SetRotationSpeed(float speed);
 
+		void ResizeViewport(float width, float height);
+
 		inline PerspectiveCamera& GetCamera() { return m_Camera; }
 		inline const PerspectiveCamera& GetCamera() const { return m_Camera; }
 

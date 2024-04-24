@@ -98,6 +98,10 @@ namespace Povox {
 		virtual const RendererStatistics& GetStatistics() const = 0;
 		virtual void StartTimestampQuery(const std::string& name) = 0;
 		virtual void StopTimestampQuery(const std::string& name) = 0;
+		virtual void AddTimestampQuery(const std::string& name, uint32_t count) = 0;
+
+		virtual void AddPipelineStatisticsQuery(const std::string& name, const std::string& computeStatQueryPoolName) = 0;
+		virtual const std::string& GetComputeStatisticsQueryPoolName() const = 0;
 
 
 		inline static void SetAPI(API api) { s_API = api; std::cout << "Changed API to " << RendererAPI::APIAsString(s_API) << std::endl; }

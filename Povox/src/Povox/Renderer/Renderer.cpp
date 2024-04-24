@@ -147,9 +147,11 @@ namespace Povox {
 	const RendererStatistics& Renderer::GetStatistics() { return s_RendererAPI->GetStatistics(); }
 	void Renderer::StartTimestampQuery(const std::string& name) { s_RendererAPI->StartTimestampQuery(name); }
 	void Renderer::StopTimestampQuery(const std::string& name) { s_RendererAPI->StopTimestampQuery(name); }
-	
+	void Renderer::AddTimestampQuery(const std::string& name, uint32_t count) { s_RendererAPI->AddTimestampQuery(name, count); }
 
-	
+	void Renderer::AddPipelineStatisticsQuery(const std::string& name, const std::string& computeStatQueryPoolName) { s_RendererAPI->AddPipelineStatisticsQuery(name, computeStatQueryPoolName); }
+
+	const std::string& Renderer::GetComputeStatisticsQueryPoolName() { return s_RendererAPI->GetComputeStatisticsQueryPoolName(); }
 
 	void Renderer::CreateAPI(const RendererSpecification& specs)
 	{

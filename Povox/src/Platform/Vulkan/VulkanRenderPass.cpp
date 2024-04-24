@@ -9,6 +9,8 @@
 #include "Platform/Vulkan/VulkanPipeline.h"
 #include "Platform/Vulkan/VulkanShader.h"
 
+#include "Povox/Renderer/Renderer.h"
+
 #include "Povox/Core/Application.h"
 #include "Povox/Core/Log.h"
 
@@ -464,7 +466,7 @@ namespace Povox {
 			if (spec.DebugName == "RenderPass")
 				PX_CORE_WARN("Perfromance querying requires a valid debugName to differentiate between passes!");
 			else
-				VulkanRenderer::AddTimestampQuery(spec.DebugName, 2);
+				Renderer::AddTimestampQuery(spec.DebugName, 2);
 		}
 		m_DebugName = spec.DebugName;
 		m_Type = PassType::GRAPHICS;
@@ -619,6 +621,16 @@ namespace Povox {
 
 		PX_CORE_ASSERT(m_Specification.Pipeline, "There was no Pipeline attached to this RenderPass!");
 
+		if (spec.DoPerformanceQuery)
+		{
+			if (spec.DebugName == "RenderPass")
+				PX_CORE_WARN("Performance querying requires a valid debugName to differentiate between passes!");
+			else
+			{
+				Renderer::AddPipelineStatisticsQuery(spec.DebugName, Renderer::GetComputeStatisticsQueryPoolName());
+				Renderer::AddTimestampQuery(spec.DebugName, 2);
+			}
+		}
 		m_DebugName = spec.DebugName;
 		m_Type = PassType::COMPUTE;
 

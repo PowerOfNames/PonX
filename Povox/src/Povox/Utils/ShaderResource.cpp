@@ -31,7 +31,7 @@ namespace Povox {
 		m_Images.resize(framesPerFlight);
 		for (uint32_t i = 0; i < m_Images.size(); i++)
 		{
-			spec.DebugName = m_Name + "_Frame" + std::to_string(i);
+			spec.DebugName = m_Name + "_Frame_" + std::to_string(i);
 			m_Images[i] = Image2D::Create(spec);
 		}
 	}
@@ -83,7 +83,7 @@ namespace Povox {
 		m_Buffers.resize(framesPerFlight);
 		for (uint32_t i = 0; i < m_Buffers.size(); i++)
 		{
-			specs.DebugName = name + "_Frame" + std::to_string(i);
+			specs.DebugName = name + "_Frame_" + std::to_string(i);
 			m_Buffers[i] = Buffer::Create(specs);
 		}
 	}
@@ -152,7 +152,7 @@ namespace Povox {
 		m_Buffers.resize(framesPerFlight);
 		for (uint32_t i = 0; i < m_Buffers.size(); i++)
 		{
-			specs.DebugName = m_Name + "_Frame" + std::to_string(i);
+			specs.DebugName = m_Name + "_Frame_" + std::to_string(i);
 			m_Buffers[i] = Buffer::Create(specs);
 		}
 	}

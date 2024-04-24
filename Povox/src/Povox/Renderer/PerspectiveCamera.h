@@ -18,7 +18,7 @@ namespace Povox {
 		void RecalculateViewMatrix();
 
 		inline const glm::mat4& GetProjectionMatrix() const { return m_ProjectionMatrix; }
-		void SetProjectionMatrix(float aspectRatio, float FOV = 45.0f);
+		void SetProjectionMatrix(float aspectRatio, float FOV = 90.0f);
 
 		inline const glm::mat4& GetViewProjectionMatrix() const { return m_ViewProjectionMatrix; }
 

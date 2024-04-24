@@ -103,11 +103,10 @@ namespace Povox {
 		RendererState* State;
 
 		// PipelineStatistics
-		std::vector<std::string> PipelineStatNames;
-		std::vector<uint64_t> PipelineStats;
+		std::unordered_map<std::string, std::unordered_map<std::string, uint64_t>> PipelineStats;
 
 		// Timestamps
-		std::unordered_map<std::string, uint64_t> TimestampResults; //per 		
+		std::unordered_map<std::string, uint64_t> TimestampResults;	
 	};
 
 
@@ -171,7 +170,10 @@ namespace Povox {
 		static const RendererStatistics& Renderer::GetStatistics();
 		static void StartTimestampQuery(const std::string& name);
 		static void StopTimestampQuery(const std::string& name);
+		static void AddTimestampQuery(const std::string& name, uint32_t count);
 
+		static void AddPipelineStatisticsQuery(const std::string& name, const std::string& computeStatQueryPoolName);
+		static const std::string& GetComputeStatisticsQueryPoolName();
 
 		inline static RendererAPI::API GetAPI() { return RendererAPI::GetAPI(); }
 		static void CreateAPI(const RendererSpecification& specs);

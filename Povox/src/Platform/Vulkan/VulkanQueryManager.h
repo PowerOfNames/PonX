@@ -19,21 +19,21 @@ namespace Povox {
 		void AddTimestampQuery(const std::string& name, uint32_t count);
 		void RecordTimestamp(const std::string& name, uint32_t frameIdx, VkCommandBuffer cmd);
 
-		const std::unordered_map<std::string, std::vector<uint64_t>> GetTimestampQueryResults(uint32_t frameIdx);
+		const std::unordered_map<std::string, uint64_t> GetTimestampQueryResults(uint32_t frameIdx);
 		void ResetTimestampQueryPool(uint32_t frameIdx);
 
 
 		void CreatePipelineStatisticsQueryPool(const std::string& name, uint32_t framesInFlight, VkPipelineBindPoint pipelineBindPoint);
-		void AddPipelineStatisticsQuery(const std::string& name, const std::string& poolName, uint32_t count = 1);
+		void AddPipelineStatisticsQuery(const std::string& name, const std::string& poolName);
 		void BeginPipelineQuery(const std::string& queryName, VkCommandBuffer cmd, uint32_t frameIdx);
 		void EndPipelineQuery(const std::string& queryName, VkCommandBuffer cmd, uint32_t frameIdx);
 
-		const std::unordered_map<std::string, std::vector<uint64_t>> GetPipelineQueryResults(const std::string& poolName, uint32_t frameIdx);
+		const std::unordered_map<std::string, uint64_t> GetPipelineQueryResults(const std::string& poolName, uint32_t frameIdx);
 		void ResetPipelineQueryPools(uint32_t frameIdx);
 
 	private:
 		void RecreateTimestampPools(uint32_t newPoolQueryCount);
-		void RecreatePipelineQueryPools(uint32_t newPoolQuerySize);
+		void RecreatePipelineQueryPool(const std::string& poolName, uint32_t newPoolQuerySize);
 
 	private:
 
@@ -41,10 +41,15 @@ namespace Povox {
 		{
 			std::vector<VkQueryPool> Pools;
 
+			uint32_t QueryStatCount = 1;
 			uint32_t QueriesPerPool = 1;
 			uint32_t NextFreeIndex = 0;
+			uint32_t TotalQueries = 0;
+			
+			std::unordered_map<uint32_t, bool> AllResultsAvailable;			
+			std::vector<uint64_t> LastAvailableResults;
 		};
-		std::unordered_map<std::string, PoolInfo> m_PipelineStatisticsQueryPools;		
+		std::unordered_map<std::string, PoolInfo> m_PipelineStatisticsQueryPools;	
 		PoolInfo m_TimestampQueryPools;
 
 
@@ -52,11 +57,15 @@ namespace Povox {
 		struct QueryData
 		{
 			std::string PoolName;
+			uint32_t QueryNumber = 0;
 			uint32_t IndexInPool = 0;
-			uint32_t Count = 2;
+			//Count always 1 for pipeline statistics -> one QueryData point per pipeline stage. One Pool per stage arrangement.
+			uint32_t Count = 1;
 
-			//Range (0, ..., Count-1)
+			//Range (0, ..., Count-1) -> Used for determining of start or stop
 			uint32_t CurrentIncrement = 0;
+
+			bool ResultAvailable = true;
 		};
 		std::unordered_map<std::string, QueryData> m_TimestampQueries;
 		std::unordered_map<std::string, QueryData> m_PipelineStatisticsQueries;

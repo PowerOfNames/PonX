@@ -263,7 +263,7 @@ namespace Povox {
 		auto cmd = Renderer::GetCommandBuffer(currentFrameIndex);
 		Renderer::BeginCommandBuffer(cmd);
 
-		Renderer::StartTimestampQuery("QuadRenderpass");
+		Renderer::StartTimestampQuery("RenderRenderpass");
 		Renderer::BeginRenderPass(m_QuadRenderpass);
 
 		m_CameraUniform.View = camera.GetViewMatrix();
@@ -328,7 +328,7 @@ namespace Povox {
 
 
 		Renderer::EndRenderPass();
-		Renderer::StopTimestampQuery("QuadRenderpass");
+		Renderer::StopTimestampQuery("RenderRenderpass");
 		Renderer::EndCommandBuffer();
 
 

@@ -60,6 +60,7 @@ namespace Povox {
 	struct ComputePassSpecification
 	{
 		std::string DebugName = "ComputePass";
+		bool DoPerformanceQuery = false;
 
 		Ref<ComputePipeline> Pipeline = nullptr;
 		

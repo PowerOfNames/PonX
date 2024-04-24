@@ -122,7 +122,9 @@ namespace Povox {
 		// Debugging and Performance
 		virtual void StartTimestampQuery(const std::string& name) override;
 		virtual void StopTimestampQuery(const std::string& name) override;
-		void AddTimestampQuery(const std::string& name, uint32_t count);
+		virtual void AddTimestampQuery(const std::string& name, uint32_t count) override;
+		virtual void AddPipelineStatisticsQuery(const std::string& name, const std::string& computeStatQueryPoolName) override;
+		virtual inline const std::string& GetComputeStatisticsQueryPoolName() const override { return m_ComputeStatisticsQueryPoolName; }
 
 		// Resource Getters
 		virtual inline Ref<ShaderManager> GetShaderManager() const override { return m_ShaderManager; }
@@ -159,7 +161,7 @@ namespace Povox {
 
 		// Debugging and Performance
 		void InitPerformanceQueryPools();
-		void GetQueryResults();
+		void GetQueryResults(uint32_t frameIdx);
 
 	private:
 
@@ -222,6 +224,7 @@ namespace Povox {
 
 		// Debugging and Performance
 		Ref<VulkanQueryManager> m_QueryManager = nullptr;		
+		std::string m_ComputeStatisticsQueryPoolName = "ComputeQueryPool";
 
 		RendererStatistics m_Statistics{};
 
