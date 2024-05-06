@@ -227,8 +227,8 @@ namespace Povox {
 	{
 		PX_PROFILE_FUNCTION();
 
-
-		Ref<VulkanShader> vkShader = std::dynamic_pointer_cast<VulkanShader>(material->GetShader());
+		if(material)
+			Ref<VulkanShader> vkShader = std::dynamic_pointer_cast<VulkanShader>(material->GetShader());
 
 
 		uint32_t frameIndex = m_CurrentFrameIndex % m_Specification.MaxFramesInFlight;
@@ -311,12 +311,18 @@ namespace Povox {
 		
 
 		VkBuffer vertexBuffer = std::dynamic_pointer_cast<VulkanBuffer>(vertices)->GetAllocation().Buffer;
-		VkBuffer indexBuffer = std::dynamic_pointer_cast<VulkanBuffer>(indices)->GetAllocation().Buffer;
 		VkDeviceSize offsets[] = { 0 };
 		vkCmdBindVertexBuffers(m_ActiveCommandBuffer, 0, 1, &vertexBuffer, offsets);
-		vkCmdBindIndexBuffer(m_ActiveCommandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
-
-		vkCmdDrawIndexed(m_ActiveCommandBuffer, indexCount, 1, 0, 0, 0);
+		if (indices)
+		{
+			VkBuffer indexBuffer = std::dynamic_pointer_cast<VulkanBuffer>(indices)->GetAllocation().Buffer;
+			vkCmdBindIndexBuffer(m_ActiveCommandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+			vkCmdDrawIndexed(m_ActiveCommandBuffer, indexCount, 1, 0, 0, 0);
+		}
+		else
+		{
+			vkCmdDraw(m_ActiveCommandBuffer, indexCount, 1, 0, 0);
+		}
 
 		m_QueryManager->EndPipelineQuery("PipelineQueryPool", m_ActiveCommandBuffer, m_CurrentFrameIndex);
 	}

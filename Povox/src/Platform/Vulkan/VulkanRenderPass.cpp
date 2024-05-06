@@ -407,7 +407,6 @@ namespace Povox {
 	{
 		if (m_DynamicDescriptors.empty())
 		{
-			PX_CORE_WARN("There are no dynamic descriptrs registered to this renderpass!");
 			return {};
 		}
 
@@ -464,7 +463,7 @@ namespace Povox {
 		if (spec.DoPerformanceQuery)
 		{
 			if (spec.DebugName == "RenderPass")
-				PX_CORE_WARN("Perfromance querying requires a valid debugName to differentiate between passes!");
+				PX_CORE_WARN("Performance querying requires a valid debugName to differentiate between passes!");
 			else
 				Renderer::AddTimestampQuery(spec.DebugName, 2);
 		}
@@ -507,7 +506,6 @@ namespace Povox {
 	{
 		if (!m_PredecessorPass)
 		{
-			PX_CORE_INFO("VulkanRenderPass::UpdateResourceOwnership: This Graphics pass has no previous compute. No ownership transfer needed!");
 			return;
 		}
 
@@ -653,7 +651,6 @@ namespace Povox {
 	{
 		if (!m_PredecessorPass)
 		{
-			PX_CORE_INFO("VulkanRenderPass::UpdateResourceOwnership: This Graphics pass has no previous compute. No ownership transfer needed!");
 			return;
 		}
 

@@ -28,6 +28,12 @@ namespace Povox {
 		float TexID; // -> MaterialID after MaterialSystem//DescriptorManager implementation
 	};
 
+	struct SilhouetteVertex
+	{
+		glm::vec4 PositionRadius;
+		glm::vec4 Color;
+	};
+
 	class Buffer;
 	struct Mesh
 	{

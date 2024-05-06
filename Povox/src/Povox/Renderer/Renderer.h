@@ -47,6 +47,7 @@ namespace Povox {
 	struct CameraUniform
 	{
 		glm::mat4 View;
+		glm::mat4 InverseView;
 		glm::mat4 Projection;
 		glm::mat4 ViewProjection;
 		glm::vec4 Forward;

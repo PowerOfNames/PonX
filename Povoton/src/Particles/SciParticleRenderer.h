@@ -51,6 +51,8 @@ namespace Povox {
 		
 		void End();
 
+		void DrawParticleSilhouette(const PerspectiveCamera& camera, uint64_t particleCount);
+
 		inline const Povox::Ref<Povox::Image2D> GetFinalImage() const { return m_FinalImage; }
 
 		const SciParticleRendererStatistics& GetStatistics() const { return m_Statistics; }
@@ -87,8 +89,21 @@ namespace Povox {
 		Povox::Ref<Povox::Pipeline> m_RayMarchingPipeline = nullptr;
 		Povox::Ref<Povox::Material> m_RayMarchingMaterial = nullptr;
 
+		//Silhouette
+		Povox::Ref<Povox::RenderPass> m_SilhouetteRenderpass = nullptr;
+		Povox::Ref<Povox::Framebuffer> m_SilhouetteFramebuffer = nullptr;
+		Povox::Ref<Povox::Pipeline> m_SilhouettePipeline = nullptr;
+		Povox::Ref<Povox::Material> m_SilhouetteMaterial = nullptr;
+
+		std::vector<Ref<Buffer>> m_SilhouetteVertexBuffers;
+		std::vector<SilhouetteVertex*> m_SilhouetteVertexBufferBases;
+		SilhouetteVertex* m_SilhouetteVertexBufferPtr = nullptr;
+
+
+
 		Povox::ShaderHandle m_ComputeShaderHandle;
 		Povox::ShaderHandle m_RayMarchingShaderHandle;
+		Povox::ShaderHandle m_ParticleSilhouetteShaderHandle;
 
 		// Fullscreen
 		Povox::Ref<Povox::Pipeline> m_FullscreenQuadPipeline = nullptr;

@@ -57,6 +57,7 @@ namespace Povox {
 		deviceFeatures.shaderFloat64 = VK_TRUE;
 		deviceFeatures.shaderInt64 = VK_TRUE;
 
+		deviceFeatures.geometryShader = VK_TRUE;
 		
 		// TEMP -> should check this in deviceFeatures2 first
 		VkPhysicalDeviceVulkan13Features device13Features{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES };

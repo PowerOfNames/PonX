@@ -18,6 +18,7 @@ namespace Povox {
 
 		m_ComputeShaderHandle = Povox::Renderer::GetShaderManager()->Load("ComputeTest.glsl");
 		m_RayMarchingShaderHandle = Povox::Renderer::GetShaderManager()->Load("RayMarching.glsl");
+		m_ParticleSilhouetteShaderHandle = Povox::Renderer::GetShaderManager()->Load("ParticleSilhouette.glsl");
 	}
 
 
@@ -57,6 +58,7 @@ namespace Povox {
 
 		m_CameraData = Povox::CreateRef<Povox::UniformBuffer>(Povox::BufferLayout({
 			{ Povox::ShaderDataType::Mat4, "View" },
+			{ Povox::ShaderDataType::Mat4, "InverseView" },
 			{ Povox::ShaderDataType::Mat4, "Projection" },
 			{ Povox::ShaderDataType::Mat4, "ViewProjection" },
 			{ Povox::ShaderDataType::Float4, "Forward" },
@@ -77,6 +79,21 @@ namespace Povox {
 			"ParticleDataSSBO",
 			false);
 
+		BufferSpecification vertexBufferSpecs{};
+		vertexBufferSpecs.Usage = BufferUsage::VERTEX_BUFFER;
+		vertexBufferSpecs.MemUsage = MemoryUtils::MemoryUsage::GPU_ONLY;
+		vertexBufferSpecs.ElementCount = m_Specification.MaxParticles;
+		vertexBufferSpecs.Size = sizeof(SilhouetteVertex) * m_Specification.MaxParticles;
+
+		uint32_t maxFrames = Renderer::GetSpecification().MaxFramesInFlight;
+		m_SilhouetteVertexBuffers.resize(maxFrames);
+		m_SilhouetteVertexBufferBases.resize(maxFrames);
+		for (uint32_t i = 0; i < maxFrames; i++)
+		{
+			vertexBufferSpecs.DebugName = "ParticleRenderer Batch Vertexbuffer Frame: " + std::to_string(i);
+			m_SilhouetteVertexBuffers[i] = Buffer::Create(vertexBufferSpecs);
+			m_SilhouetteVertexBufferBases[i] = new SilhouetteVertex[m_Specification.MaxParticles];
+		}
 
 		ImageSpecification distanceFieldSpec{};
 		distanceFieldSpec.Format = ImageFormat::RED_INTEGER_U32;
@@ -88,6 +105,7 @@ namespace Povox {
 		//First do the Compute stuff, then wait until compute is finished (barriers connecting ComputePass (THere is no actual computePass, is just to connect resources) and Renderpass)
 		glm::mat4 init = glm::mat4(1.0f);
 		m_CameraUniform.View = init;
+		m_CameraUniform.InverseView = init;
 		m_CameraUniform.Projection = init;
 		m_CameraUniform.ViewProjection = init;
 		m_CameraUniform.Forward = glm::vec4(0.0f, 0.0f, -1.0f, 0.0f);
@@ -172,6 +190,40 @@ namespace Povox {
 			m_RayMarchingRenderpass->SetSuccessor(m_DistanceFieldComputePass);
 			m_DistanceFieldComputePass->SetPredecessor(m_RayMarchingRenderpass);
 			m_DistanceFieldComputePass->SetSuccessor(m_RayMarchingRenderpass);
+		}
+
+		{
+			FramebufferSpecification framebufferSpecs{};
+			framebufferSpecs.DebugName = "SilhouetteFramebuffer";
+			framebufferSpecs.Attachments = { {ImageFormat::RGBA8}, {ImageFormat::Depth} };
+			framebufferSpecs.Width = m_Specification.ViewportWidth;
+			framebufferSpecs.Height = m_Specification.ViewportHeight;
+			m_SilhouetteFramebuffer= Framebuffer::Create(framebufferSpecs);
+
+			PipelineSpecification pipelineSpecs{};
+			pipelineSpecs.DebugName = "SilhouettePipeline";
+			pipelineSpecs.TargetFramebuffer = m_SilhouetteFramebuffer;
+			pipelineSpecs.DynamicViewAndScissors = true;
+			pipelineSpecs.Culling = PipelineUtils::CullMode::BACK;
+			pipelineSpecs.Primitive = PipelineUtils::PrimitiveTopology::POINT_LIST;
+			pipelineSpecs.Shader = Renderer::GetShaderManager()->Get(m_ParticleSilhouetteShaderHandle);
+			pipelineSpecs.VertexInputLayout = {
+				{ ShaderDataType::Float3, "a_PositionRadius" },
+				{ ShaderDataType::Float4, "a_Color" }
+			};
+			m_SilhouettePipeline = Pipeline::Create(pipelineSpecs);
+
+			RenderPassSpecification renderpassSpecs{};
+			renderpassSpecs.DebugName = "SilhouetteRenderpass";
+			renderpassSpecs.DoPerformanceQuery = true;
+			renderpassSpecs.TargetFramebuffer = m_SilhouetteFramebuffer;
+			renderpassSpecs.Pipeline = m_SilhouettePipeline;
+
+			m_SilhouetteRenderpass = RenderPass::Create(renderpassSpecs);
+			m_SilhouetteRenderpass->BindInput("CameraUBO", m_CameraData);
+			m_SilhouetteRenderpass->Bake();
+
+			m_SilhouettePipeline->PrintShaderLayout();
 		}
 
 		// Fullscreen
@@ -265,6 +317,7 @@ namespace Povox {
 
 		// RayMarching
 		m_RayMarchingRenderpass->Recreate(width, height);
+		m_SilhouetteRenderpass->Recreate(width, height);
 	}
 
 
@@ -288,11 +341,12 @@ namespace Povox {
 
 		//First do the Compute stuff, then wait until compute is finished (barriers connecting ComputePass (THere is no actual computePass, is just to connect resources) and Renderpass)
 		m_CameraUniform.View = camera.GetViewMatrix();
+		m_CameraUniform.InverseView = glm::inverse(camera.GetViewMatrix());
 		m_CameraUniform.Projection = camera.GetProjectionMatrix();
 		m_CameraUniform.ViewProjection = camera.GetViewProjectionMatrix();
 		m_CameraUniform.Forward = glm::vec4(camera.GetForward(), 0.0f);
 		m_CameraUniform.Position = glm::vec4(camera.GetPosition(), 0.0f);
-		m_CameraData->SetData((void*)&m_CameraUniform, sizeof(CameraUniform));	
+		m_CameraData->SetData((void*)&m_CameraUniform, sizeof(CameraUniform));
 	}
 
 
@@ -330,6 +384,53 @@ namespace Povox {
 		Renderer::EndCommandBuffer();
 
 		m_FinalImage = m_RayMarchingFramebuffer->GetColorAttachment(0);
+	}
+
+	void SciParticleRenderer::DrawParticleSilhouette(const PerspectiveCamera& camera, uint64_t particleCount)
+	{
+		PX_PROFILE_FUNCTION();
+
+
+		//First do the Compute stuff, then wait until compute is finished (barriers connecting ComputePass (THere is no actual computePass, is just to connect resources) and Renderpass)
+		m_CameraUniform.View = camera.GetViewMatrix();
+		m_CameraUniform.InverseView = glm::inverse(camera.GetViewMatrix());
+		m_CameraUniform.Projection = camera.GetProjectionMatrix();
+		m_CameraUniform.ViewProjection = camera.GetViewProjectionMatrix();
+		m_CameraUniform.Forward = glm::vec4(camera.GetForward(), 0.0f);
+		m_CameraUniform.Position = glm::vec4(camera.GetPosition(), 0.0f);
+		m_CameraData->SetData((void*)&m_CameraUniform, sizeof(CameraUniform));
+
+
+		uint32_t currentFrameIndex = Renderer::GetCurrentFrameIndex();
+		m_SilhouetteVertexBufferPtr = m_SilhouetteVertexBufferBases[currentFrameIndex];
+
+
+		auto cmd = Renderer::GetCommandBuffer(currentFrameIndex);
+
+		Renderer::BeginCommandBuffer(cmd);
+		Renderer::StartTimestampQuery("SilhouetteRenderpass");
+		Renderer::BeginRenderPass(m_SilhouetteRenderpass);
+
+		if (particleCount > 0)
+		{
+			for (uint64_t i = 0; i < particleCount; i++)
+			{
+				m_SilhouetteVertexBufferPtr->PositionRadius = glm::vec4(0.0f, 0.0f, 0.0f, 2.0f);
+				m_SilhouetteVertexBufferPtr->Color = glm::vec4(1.0f);
+				m_SilhouetteVertexBufferPtr++;
+			}
+
+			uint32_t dataSize = (uint32_t)((uint8_t*)m_SilhouetteVertexBufferPtr - (uint8_t*)m_SilhouetteVertexBufferBases[currentFrameIndex]);
+			m_SilhouetteVertexBuffers[currentFrameIndex]->SetData(m_SilhouetteVertexBufferBases[currentFrameIndex], dataSize);
+
+			Renderer::Draw(m_SilhouetteVertexBuffers[currentFrameIndex], nullptr, nullptr, particleCount, true);
+		}		
+
+		Renderer::EndRenderPass();
+		Renderer::StopTimestampQuery("SilhouetteRenderpass");
+		Renderer::EndCommandBuffer();
+
+		m_FinalImage = m_SilhouetteFramebuffer->GetColorAttachment(0);
 	}
 
 	/**

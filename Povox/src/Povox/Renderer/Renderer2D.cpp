@@ -58,7 +58,7 @@ namespace Povox {
 			framebufferSpecs.Attachments = { {ImageFormat::RGBA8}, {ImageFormat::Depth} };
 			framebufferSpecs.Width = m_Specification.ViewportWidth;
 			framebufferSpecs.Height = m_Specification.ViewportHeight;
-			m_QuadFramebuffer = Framebuffer::Create(framebufferSpecs);	
+			m_QuadFramebuffer = Framebuffer::Create(framebufferSpecs);
 
 			PipelineSpecification pipelineSpecs{};
 			pipelineSpecs.DebugName = "TexturePipeline";
@@ -71,7 +71,7 @@ namespace Povox {
 			{ ShaderDataType::Float4, "a_Color" },
 			{ ShaderDataType::Float2, "a_TexCoord" },
 			{ ShaderDataType::Int, "a_EntityID" }
-				};
+			};
 			m_QuadPipeline = Pipeline::Create(pipelineSpecs);
 
 			RenderPassSpecification renderpassSpecs{};
@@ -85,8 +85,8 @@ namespace Povox {
 			m_QuadRenderpass->Bake();
 
 			m_QuadPipeline->PrintShaderLayout();
-
-		// Fullscreen
+		
+		// Fullscreen		
 			pipelineSpecs.Shader = Renderer::GetShaderManager()->Get("Renderer2D_FullscreenQuad");
 			m_FullscreenQuadPipeline = Pipeline::Create(pipelineSpecs);
 			renderpassSpecs.Pipeline = m_FullscreenQuadPipeline;
@@ -98,7 +98,6 @@ namespace Povox {
 			m_FullscreenQuadRenderpass->Bake();
 
 			m_FullscreenQuadPipeline->PrintShaderLayout();
-
 		}
 
 		BufferSpecification vertexBufferSpecs{};
@@ -267,6 +266,7 @@ namespace Povox {
 		Renderer::BeginRenderPass(m_QuadRenderpass);
 
 		m_CameraUniform.View = camera.GetViewMatrix();
+		m_CameraUniform.InverseView = glm::inverse(camera.GetViewMatrix());
 		m_CameraUniform.Projection = camera.GetProjectionMatrix();
 		m_CameraUniform.ViewProjection = camera.GetViewProjectionMatrix();
 		m_CameraUniform.Forward = glm::vec4(camera.GetForwardVector(), 0.0f);

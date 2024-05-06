@@ -243,9 +243,6 @@ namespace Povox {
 
 	void VulkanBuffer::SetData(void* inputData, const size_t size)
 	{
-		if (m_Specification.Size > size)
-			PX_CORE_WARN("VulkanBuffer::SetData: The BufferSpecification size does not match the data size!");
-
 		if (m_Specification.Size < size)
 		{
 			PX_CORE_ERROR("VulkanBuffer::SetData: The BufferSpecification.Size and therefore the initial buffer size is too small for this dataset!");

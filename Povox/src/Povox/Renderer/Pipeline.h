@@ -11,6 +11,7 @@ namespace Povox {
 
 		enum class PrimitiveTopology
 		{
+			POINT_LIST = 2,
 			TRIANGLE_LIST = 3,
 			TRIANGLE_STRIP = 4,
 
@@ -55,7 +56,7 @@ namespace Povox {
 		BufferLayout VertexInputLayout;
 
 		PipelineUtils::PrimitiveTopology Primitive = PipelineUtils::PrimitiveTopology::DEFAULT;
-		PipelineUtils::PolygonMode FillMode = PipelineUtils::PolygonMode::DEFAULT;
+		PipelineUtils::PolygonMode PolygonMode = PipelineUtils::PolygonMode::DEFAULT;
 		PipelineUtils::FrontFace Front = PipelineUtils::FrontFace::COUNTER_CLOCKWISE;
 		PipelineUtils::CullMode Culling = PipelineUtils::CullMode::DEFAULT;
 

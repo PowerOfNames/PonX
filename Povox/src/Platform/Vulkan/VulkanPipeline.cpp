@@ -17,6 +17,7 @@ namespace Povox {
 		{
 			switch (topo)
 			{
+				case PipelineUtils::PrimitiveTopology::POINT_LIST: return VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
 				case PipelineUtils::PrimitiveTopology::TRIANGLE_LIST: return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
 				case PipelineUtils::PrimitiveTopology::TRIANGLE_STRIP: return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
 
@@ -64,47 +65,6 @@ namespace Povox {
 			return VK_CULL_MODE_NONE;
 		}
 	}
-
-	/*struct VulkanVertexData
-	{
-		QuadVertex VertexProperties;
-
-		static VertexInputDescription GetVertexDescription()
-		{
-			VertexInputDescription output;
-
-			VkVertexInputBindingDescription vertexBindingDescription{};
-			vertexBindingDescription.binding = 0;
-			vertexBindingDescription.stride = sizeof(VulkanVertexData);
-			vertexBindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-
-			output.Bindings.push_back(vertexBindingDescription);
-
-			VkVertexInputAttributeDescription positionAttribute{};
-			positionAttribute.binding = 0;
-			positionAttribute.location = 0;
-			positionAttribute.format = VK_FORMAT_R32G32B32_SFLOAT;
-			positionAttribute.offset = offsetof(VulkanVertexData, VertexProperties.Position);
-
-			VkVertexInputAttributeDescription colorAttribute{};
-			colorAttribute.binding = 0;
-			colorAttribute.location = 1;
-			colorAttribute.format = VK_FORMAT_R32G32B32_SFLOAT;
-			colorAttribute.offset = offsetof(VulkanVertexData, VertexProperties.Color);
-
-			VkVertexInputAttributeDescription uvAttributes{};
-			uvAttributes.binding = 0;
-			uvAttributes.location = 2;
-			uvAttributes.format = VK_FORMAT_R32G32_SFLOAT;
-			uvAttributes.offset = offsetof(VulkanVertexData, VertexProperties.TexCoord);
-
-			output.Attributes.push_back(positionAttribute);
-			output.Attributes.push_back(colorAttribute);
-			output.Attributes.push_back(uvAttributes);
-
-			return output;
-		}
-	};*/
 
 	VulkanPipeline::VulkanPipeline(const PipelineSpecification& specs)
 		:m_Specification(specs)
@@ -258,7 +218,7 @@ namespace Povox {
 
 			info.depthClampEnable = VK_FALSE;								// if true, too near or too far fragments will be clamped instead of discareded
 			info.rasterizerDiscardEnable = VK_FALSE;								// if true, geometry will never be rasterized, so there will be no output to the framebuffer
-			info.polygonMode = VulkanUtils::GetVulkanPolygonMode(m_Specification.FillMode);					// determines if filled, lines or point shall be rendered
+			info.polygonMode = VulkanUtils::GetVulkanPolygonMode(m_Specification.PolygonMode);					// determines if filled, lines or point shall be rendered
 			info.lineWidth = 1.0f;									// thicker then 1.0f requires wideLine GPU feature
 			info.cullMode = VulkanUtils::GetVulkanCullMode(m_Specification.Culling);
 			info.frontFace = VulkanUtils::GetVulkanFrontFace(m_Specification.Front);

@@ -101,13 +101,13 @@ namespace Povox {
 		m_ActiveParticleSet->OnUpdate(deltatime);
 
 		m_SciRenderer->OnUpdate(deltatime);
-		m_SciRenderer->Begin(m_PerspectiveController.GetCamera());
+		//m_SciRenderer->Begin(m_PerspectiveController.GetCamera());
 
 		// Now we draw the particle sets result
-		m_SciRenderer->DrawParticleSet(m_ActiveParticleSet, m_MaxParticleDraws);
+		//m_SciRenderer->DrawParticleSet(m_ActiveParticleSet, m_MaxParticleDraws);
 
-		m_SciRenderer->End();
-
+		//m_SciRenderer->End();
+		m_SciRenderer->DrawParticleSilhouette(m_PerspectiveController.GetCamera(), 1);
 
 		//CopyFinalImage into current SwapchainImage
 		{
