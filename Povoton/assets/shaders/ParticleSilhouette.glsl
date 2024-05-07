@@ -201,11 +201,11 @@ void main() {
 
         // lighting calculations (Phonng lighting model)
         // Light pos is hardcoded atm, but should get the information about the lights from scenery and the example itself
-        vec3 lightPos = vec3(0.0, 0.0, 0.0);
-        vec3 lightColor = vec3(1.0, 1.0, 1.0);
-        vec3 lightDir = normalize(lightPos - (normal + SilhouetteCorner.Center));
+        vec3 lightPos = vec3(10.0, 10.0, 10.0);
+        vec3 lightColor = vec3(1.0, 0.5, 1.0);
+        vec3 lightDir = normalize(lightPos - intersection);
 
-        float ambientStrength = 0.2;
+        float ambientStrength = 1.0;
         vec3 ambient = ambientStrength * lightColor;
 
         float diff = max(dot(lightDir, normal), 0.0);
@@ -213,7 +213,7 @@ void main() {
 
         vec3 viewDir = normalize(u_Camera.Position.xyz - intersection);
         vec3 reflectDir = reflect(-lightDir, normal);
-        float specularStrength = 0.5;
+        float specularStrength = 0.2;
         float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
         vec3 specular = specularStrength * spec * lightColor;
 

@@ -107,7 +107,7 @@ namespace Povox {
 		//m_SciRenderer->DrawParticleSet(m_ActiveParticleSet, m_MaxParticleDraws);
 
 		//m_SciRenderer->End();
-		m_SciRenderer->DrawParticleSilhouette(m_PerspectiveController.GetCamera(), 1);
+		m_SciRenderer->DrawParticleSilhouette(m_PerspectiveController.GetCamera(), m_MaxParticleDraws);
 
 		//CopyFinalImage into current SwapchainImage
 		{
@@ -338,7 +338,7 @@ namespace Povox {
 		ImGui::PopStyleVar();
 
 		ImGui::Begin("ParticleRenderingControl");
-		ImGui::DragInt("MaxParticleDraws", (int*)&m_MaxParticleDraws, 1, 0, 10000);
+		ImGui::DragInt("MaxParticleDraws", (int*)&m_MaxParticleDraws, 10000, 0, 1000000);
 		ImGui::End();
 		
     }

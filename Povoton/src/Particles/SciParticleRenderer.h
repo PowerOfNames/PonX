@@ -8,7 +8,7 @@ namespace Povox {
 
 	struct SciParticleRendererSpecification
 	{
-		static const uint64_t MaxParticles = 100000;
+		static const uint64_t MaxParticles = 1000000;
 
 		uint32_t ViewportWidth = 0;
 		uint32_t ViewportHeight = 0;
