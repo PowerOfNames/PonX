@@ -1,5 +1,6 @@
 #pragma once
 #include "Povox/Core/Core.h"
+#include "Povox/Core/BitField.h"
 
 #include "Povox/Renderer/Buffer.h"
 #include "Povox/Renderer/Image2D.h"
@@ -51,17 +52,24 @@ namespace Povox {
 		}
 	}
 
-	enum class ShaderStage : std::uint32_t
+
+
+	enum class ShaderStage
 	{
-		NONE = 0,
-		VERTEX = 1,
-		TESSELLATION_CONTROL = 1 << 1,
-		TESSELLATION_EVALUATION = 1 << 2,
-		GEOMETRY = 1 << 3,
-		FRAGMENT = 1 << 4,
-		COMPUTE = 1 << 5
+		NONE = 0,							// 0  | 0x0000 0000 0000 0000 0000
+		VERTEX = 1,							// 1  | 0x0000 0000 0000 0000 0001
+		TESSELLATION_CONTROL = 1 << 1,		// 2  | 0x0000 0000 0000 0000 0010
+		TESSELLATION_EVALUATION = 1 << 2,	// 4  | 0x0000 0000 0000 0000 0100
+		GEOMETRY = 1 << 3,					// 8  | 0x0000 0000 0000 0000 1000
+		FRAGMENT = 1 << 4,					// 16 | 0x0000 0000 0000 0001 0000
+		COMPUTE = 1 << 5					// 32 | 0x0000 0000 0000 0010 0000
 	};
-	inline ShaderStage operator|(ShaderStage stage1, ShaderStage stage2)
+	template<>
+	struct enable_bitmask_operators<ShaderStage>
+	{
+		static constexpr bool enable = true;
+	};
+	/*inline ShaderStage operator|(ShaderStage stage1, ShaderStage stage2)
 	{
 		return static_cast<ShaderStage>(
 			static_cast<std::underlying_type_t<ShaderStage>>(stage1) |
@@ -79,7 +87,7 @@ namespace Povox {
 			static_cast<std::underlying_type_t<ShaderStage>>(stage1) &
 			static_cast<std::underlying_type_t<ShaderStage>>(stage2)
 			);
-	}
+	}*/
 	namespace ToStringUtility
 	{
 		static std::string ShaderStageToString(ShaderStage stage)
@@ -236,6 +244,7 @@ namespace Povox {
 
 	public:
 		StorageBufferDynamic(const BufferLayout& layout, size_t totalSize = 1024, const std::string& name = "StorageBufferDynamicDefault", bool perFrame = true);
+		StorageBufferDynamic(const BufferLayout& layout, Ref<Buffer> buffer, const std::string& name = "StorageBufferDynamicDefault", bool perFrame = true);
 		~StorageBufferDynamic() = default;
 
 		void AddDescriptor(const std::string& name, size_t size, FrameBehaviour usage = FrameBehaviour::STANDARD, uint8_t initialFrame = 0, const std::string& linkedDescriptorName = NULL);

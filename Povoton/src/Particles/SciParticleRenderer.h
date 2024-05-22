@@ -8,7 +8,7 @@ namespace Povox {
 
 	struct SciParticleRendererSpecification
 	{
-		static const uint64_t MaxParticles = 1000000;
+		static const uint64_t MaxParticles = 1024 * 1024;
 
 		uint32_t ViewportWidth = 0;
 		uint32_t ViewportHeight = 0;
@@ -39,7 +39,7 @@ namespace Povox {
 		bool Init();
 		void Shutdown();
 
-		void OnUpdate(float deltaTime);
+		void OnUpdate(float deltaTime, uint64_t totalElements);
 		void OnResize(uint32_t width, uint32_t height);
 
 		// Workflow
@@ -51,7 +51,7 @@ namespace Povox {
 		
 		void End();
 
-		void DrawParticleSilhouette(const PerspectiveCamera& camera, uint64_t particleCount);
+		void DrawParticleSilhouette(uint64_t particleCount);
 
 		inline const Povox::Ref<Povox::Image2D> GetFinalImage() const { return m_FinalImage; }
 
@@ -83,6 +83,10 @@ namespace Povox {
 		Povox::Ref<Povox::ComputePass> m_DistanceFieldComputePass = nullptr;
 		Povox::Ref<Povox::ComputePipeline> m_DistanceFieldComputePipeline = nullptr;
 		 
+		Povox::Ref<Povox::ComputePass> m_SilhouetteSimComputePass = nullptr;
+		Povox::Ref<Povox::ComputePipeline> m_SilhouetteSimComputePipeline = nullptr;
+
+
 		// RayMarching
 		Povox::Ref<Povox::RenderPass> m_RayMarchingRenderpass = nullptr;
 		Povox::Ref<Povox::Framebuffer> m_RayMarchingFramebuffer = nullptr;
@@ -95,13 +99,15 @@ namespace Povox {
 		Povox::Ref<Povox::Pipeline> m_SilhouettePipeline = nullptr;
 		Povox::Ref<Povox::Material> m_SilhouetteMaterial = nullptr;
 
-		std::vector<Ref<Buffer>> m_SilhouetteVertexBuffers;
-		std::vector<SilhouetteVertex*> m_SilhouetteVertexBufferBases;
+		Ref<Buffer> m_SilhouetteVertexBuffer;
+		SilhouetteVertex* m_SilhouetteVertexBufferBase;
 		SilhouetteVertex* m_SilhouetteVertexBufferPtr = nullptr;
 
+		Povox::Ref<Povox::StorageBufferDynamic> m_ParticleSSBOVertex = nullptr;
 
 
 		Povox::ShaderHandle m_ComputeShaderHandle;
+		Povox::ShaderHandle m_SilhouetteSimComputeShaderHandle;
 		Povox::ShaderHandle m_RayMarchingShaderHandle;
 		Povox::ShaderHandle m_ParticleSilhouetteShaderHandle;
 

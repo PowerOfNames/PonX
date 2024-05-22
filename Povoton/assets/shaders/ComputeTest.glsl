@@ -24,8 +24,6 @@ struct Particle {
     vec4 PositionRadius;
     vec4 Velocity;
     vec4 Color;
-    uint64_t ID;
-    uint64_t IDPad;
 };
 
 layout(std140, set = 1, binding = 0) readonly buffer ParticleSSBOIn
@@ -52,7 +50,5 @@ void main()
         ssbo_ParticlesOut.particlesOut[index].PositionRadius.w = ssbo_ParticlesIn.particlesIn[index].PositionRadius.w;
         ssbo_ParticlesOut.particlesOut[index].Velocity.xyz = ssbo_ParticlesIn.particlesIn[index].Velocity.xyz * 1.0;
         ssbo_ParticlesOut.particlesOut[index].Color = ssbo_ParticlesIn.particlesIn[index].Color;
-        ssbo_ParticlesOut.particlesOut[index].ID = ssbo_ParticlesIn.particlesIn[index].ID;
-        ssbo_ParticlesOut.particlesOut[index].IDPad = ssbo_ParticlesIn.particlesIn[index].IDPad;
     } 
 }

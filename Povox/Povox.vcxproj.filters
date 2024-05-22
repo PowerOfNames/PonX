@@ -37,6 +37,9 @@
     <Filter Include="src\Povox\Renderer">
       <UniqueIdentifier>{3E287017-2A0C-316D-936C-2BC07F6F1BEF}</UniqueIdentifier>
     </Filter>
+    <Filter Include="src\Povox\Resources">
+      <UniqueIdentifier>{029D22A1-6EFE-FFAE-F76B-466163CC366E}</UniqueIdentifier>
+    </Filter>
     <Filter Include="src\Povox\Scene">
       <UniqueIdentifier>{B5D8BD1B-2164-2BE0-2A75-AED4967F87E0}</UniqueIdentifier>
     </Filter>
@@ -144,6 +147,9 @@
     <ClInclude Include="src\Platform\Vulkan\VulkanPipeline.h">
       <Filter>src\Platform\Vulkan</Filter>
     </ClInclude>
+    <ClInclude Include="src\Platform\Vulkan\VulkanQueryManager.h">
+      <Filter>src\Platform\Vulkan</Filter>
+    </ClInclude>
     <ClInclude Include="src\Platform\Vulkan\VulkanRenderPass.h">
       <Filter>src\Platform\Vulkan</Filter>
     </ClInclude>
@@ -169,6 +175,9 @@
       <Filter>src</Filter>
     </ClInclude>
     <ClInclude Include="src\Povox\Core\Application.h">
+      <Filter>src\Povox\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Povox\Core\BitField.h">
       <Filter>src\Povox\Core</Filter>
     </ClInclude>
     <ClInclude Include="src\Povox\Core\Core.h">
@@ -293,6 +302,9 @@
     </ClInclude>
     <ClInclude Include="src\Povox\Renderer\Utilities.h">
       <Filter>src\Povox\Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Povox\Resources\ShaderManager.h">
+      <Filter>src\Povox\Resources</Filter>
     </ClInclude>
     <ClInclude Include="src\Povox\Scene\Components.h">
       <Filter>src\Povox\Scene</Filter>
@@ -1626,8 +1638,6 @@
     <ClInclude Include="vendor\yaml-cpp\src\token.h">
       <Filter>vendor\yaml-cpp\src</Filter>
     </ClInclude>
-    <ClInclude Include="src\Povox\Resources\ShaderManager.h" />
-    <ClInclude Include="src\Platform\Vulkan\VulkanQueryManager.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Platform\OpenGL\OpenGLShader.cpp">
@@ -1667,6 +1677,9 @@
       <Filter>src\Platform\Vulkan</Filter>
     </ClCompile>
     <ClCompile Include="src\Platform\Vulkan\VulkanPipeline.cpp">
+      <Filter>src\Platform\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Platform\Vulkan\VulkanQueryManager.cpp">
       <Filter>src\Platform\Vulkan</Filter>
     </ClCompile>
     <ClCompile Include="src\Platform\Vulkan\VulkanRenderPass.cpp">
@@ -1773,6 +1786,9 @@
     </ClCompile>
     <ClCompile Include="src\Povox\Renderer\Texture.cpp">
       <Filter>src\Povox\Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Povox\Resources\ShaderManager.cpp">
+      <Filter>src\Povox\Resources</Filter>
     </ClCompile>
     <ClCompile Include="src\Povox\Scene\Entity.cpp">
       <Filter>src\Povox\Scene</Filter>
@@ -1903,7 +1919,5 @@
     <ClCompile Include="vendor\yaml-cpp\src\tag.cpp">
       <Filter>vendor\yaml-cpp\src</Filter>
     </ClCompile>
-    <ClCompile Include="src\Povox\Resources\ShaderManager.cpp" />
-    <ClCompile Include="src\Platform\Vulkan\VulkanQueryManager.cpp" />
   </ItemGroup>
 </Project>

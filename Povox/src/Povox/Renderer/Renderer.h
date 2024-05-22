@@ -128,7 +128,7 @@ namespace Povox {
 		// Render
 		static bool BeginFrame();
 		static void DrawRenderable(const Renderable& renderable);
-		static void Draw(Ref<Buffer> vertices, Ref<Material> material, Ref<Buffer> indices, size_t indexCount, bool textureless);
+		static void Draw(Ref<Buffer> vertices, uint64_t firstVertexOffset, Ref<Material> material, Ref<Buffer> indices, size_t indexCount, bool textureless);
 		static void DrawGUI();
 		static void EndFrame();
 
@@ -161,7 +161,7 @@ namespace Povox {
 		static void BindPipeline(Ref<Pipeline> pipeline);
 
 		// Compute
-		static void DispatchCompute(Ref<ComputePass> computePass);
+		static void DispatchCompute(Ref<ComputePass> computePass, uint64_t totalElements, uint32_t workGroupWeightX, uint32_t workGroupWeightY, uint32_t workGroupWeightZ);
 
 		// Gui
 		static void BeginGUIRenderPass();

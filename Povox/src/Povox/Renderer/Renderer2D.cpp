@@ -314,7 +314,7 @@ namespace Povox {
 
 		uint32_t dataSize = (uint32_t)((uint8_t*)m_QuadVertexBufferPtr - (uint8_t*)m_QuadVertexBufferBases[currentFrame]);
 		m_QuadVertexBuffers[currentFrame]->SetData(m_QuadVertexBufferBases[currentFrame], dataSize);		
-		Renderer::Draw(m_QuadVertexBuffers[currentFrame], m_QuadMaterial, m_QuadIndexBuffers[currentFrame], m_QuadIndexCount, false);
+		Renderer::Draw(m_QuadVertexBuffers[currentFrame], 0, m_QuadMaterial, m_QuadIndexBuffers[currentFrame], m_QuadIndexCount, false);
 
 		
 		m_Stats.DrawCalls++;
@@ -362,7 +362,7 @@ namespace Povox {
 
 		uint32_t dataSize = sizeof(QuadVertex) * 4;
 		m_FullscreenQuadVertexBuffer->SetData(fullscreenQuadVertices, dataSize);
-		Renderer::Draw(m_FullscreenQuadVertexBuffer, m_FullscreenQuadMaterial, m_FullscreenQuadIndexBuffer, 6, false);
+		Renderer::Draw(m_FullscreenQuadVertexBuffer, 0, m_FullscreenQuadMaterial, m_FullscreenQuadIndexBuffer, 6, false);
 
 		delete[] fullscreenQuadVertices;
 

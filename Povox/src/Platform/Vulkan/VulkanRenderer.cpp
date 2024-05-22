@@ -223,12 +223,15 @@ namespace Povox {
 		m_Specification.State.TotalFrames++;
 	}
 	
-	void VulkanRenderer::Draw(Ref<Buffer> vertices, Ref<Material> material, Ref<Buffer> indices, size_t indexCount, bool textureless)
+	void VulkanRenderer::Draw(Ref<Buffer> vertices, uint64_t firstVertexOffset, Ref<Material> material, Ref<Buffer> indices, size_t indexCount, bool textureless)
 	{
 		PX_PROFILE_FUNCTION();
 
 		if(material)
 			Ref<VulkanShader> vkShader = std::dynamic_pointer_cast<VulkanShader>(material->GetShader());
+
+		Ref<VulkanBuffer> verticesVkBuf = std::dynamic_pointer_cast<VulkanBuffer>(vertices);
+		verticesVkBuf->TransferOwnership(QueueFamilyOwnership::QFO_GRAPHICS, firstVertexOffset, indexCount * verticesVkBuf->GetSpecification().ElementSize);
 
 
 		uint32_t frameIndex = m_CurrentFrameIndex % m_Specification.MaxFramesInFlight;
@@ -310,8 +313,8 @@ namespace Povox {
 		}
 		
 
-		VkBuffer vertexBuffer = std::dynamic_pointer_cast<VulkanBuffer>(vertices)->GetAllocation().Buffer;
-		VkDeviceSize offsets[] = { 0 };
+		VkBuffer vertexBuffer = verticesVkBuf->GetAllocation().Buffer;
+		VkDeviceSize offsets[] = { firstVertexOffset };
 		vkCmdBindVertexBuffers(m_ActiveCommandBuffer, 0, 1, &vertexBuffer, offsets);
 		if (indices)
 		{
@@ -321,10 +324,12 @@ namespace Povox {
 		}
 		else
 		{
+			//hardcoded -> indexCount as vertex count for particleRendering -> points. I set the indexCount in the frontend to be the particleCount, as indices are not used anyways
 			vkCmdDraw(m_ActiveCommandBuffer, indexCount, 1, 0, 0);
 		}
 
 		m_QueryManager->EndPipelineQuery("PipelineQueryPool", m_ActiveCommandBuffer, m_CurrentFrameIndex);
+		verticesVkBuf->TransferOwnership(QueueFamilyOwnership::QFO_COMPUTE, firstVertexOffset, indexCount * verticesVkBuf->GetSpecification().ElementSize);
 	}
 
 	void VulkanRenderer::DrawRenderable(const Renderable& renderable)
@@ -552,15 +557,15 @@ namespace Povox {
 		//Transition final image
 		m_FinalImages[m_CurrentFrameIndex]->TransitionImageLayout(
 			VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-			VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT, 0,
-			VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT
+			VK_PIPELINE_STAGE_2_NONE, 0,
+			VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT | VK_ACCESS_2_TRANSFER_READ_BIT
 		);
 
 		//Transition source image
 		sourceImageVK->TransitionImageLayout(
 			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
 			VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
-			VK_PIPELINE_STAGE_2_TRANSFER_BIT,	VK_ACCESS_2_TRANSFER_READ_BIT
+			VK_PIPELINE_STAGE_2_TRANSFER_BIT,	VK_ACCESS_2_TRANSFER_READ_BIT | VK_ACCESS_2_TRANSFER_WRITE_BIT
 		);
 		
 		//Image copying
@@ -848,7 +853,7 @@ namespace Povox {
 	}
 
 	// Compute
-	void VulkanRenderer::DispatchCompute(Ref<ComputePass> computePass)
+	void VulkanRenderer::DispatchCompute(Ref<ComputePass> computePass, uint64_t totalElements, uint32_t workGroupWeightX, uint32_t workGroupWeightY, uint32_t workGroupWeightZ)
 	{
 		PX_PROFILE_FUNCTION();
 
@@ -911,7 +916,15 @@ namespace Povox {
 			static_cast<uint32_t>(dynamicOffsets.size()), 
 			dynamicOffsets.data());
 
-		vkCmdDispatch(computeCmd, passSpecs.WorkgroupSize.X, passSpecs.WorkgroupSize.Y, passSpecs.WorkgroupSize.Z);
+		auto& computeSpecs = vkComputePass->GetSpecification();
+		float requiredWorkGroups = std::ceil((float)totalElements / (float)(computeSpecs.LocalWorkgroupSize.X * computeSpecs.LocalWorkgroupSize.Y * computeSpecs.LocalWorkgroupSize.Z));
+		//PX_CORE_INFO("VulkanRenderer::DispatchCompute: Required Groups: {}", requiredWorkGroups);
+		float workGroupSum = workGroupWeightX + workGroupWeightY + workGroupWeightZ;
+		uint32_t x = std::ceil((float)workGroupWeightX * requiredWorkGroups / workGroupSum);
+		uint32_t y = std::ceil((float)workGroupWeightY * requiredWorkGroups / workGroupSum);
+		uint32_t z = std::ceil((float)workGroupWeightZ * requiredWorkGroups / workGroupSum);
+		//PX_CORE_INFO("VulkanRenderer::DispatchCompute: GroupSize ({}, {}, {})", x, y, z);
+		vkCmdDispatch(computeCmd, requiredWorkGroups, 1, 1);
 
 		if (passSpecs.DoPerformanceQuery)
 		{

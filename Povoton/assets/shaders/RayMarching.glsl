@@ -51,8 +51,6 @@ struct Particle {
     vec4 PositionRadius;
     vec4 Velocity;
     vec4 Color;
-    uint64_t ID;
-    uint64_t IDPad;
 };
 
 layout(std140, set = 1, binding = 0) readonly buffer ParticleSSBOIn {

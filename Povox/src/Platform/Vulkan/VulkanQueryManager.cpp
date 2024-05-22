@@ -271,10 +271,10 @@ namespace Povox {
 		}
 		else if (pipelineBindPoint == VK_PIPELINE_BIND_POINT_COMPUTE)
 		{
-			info.queryCount = 1;
+			info.queryCount = 2;
 			info.pipelineStatistics = VK_QUERY_PIPELINE_STATISTIC_COMPUTE_SHADER_INVOCATIONS_BIT;
 
-			newPool.QueriesPerPool = 1;
+			newPool.QueriesPerPool = 2;
 			newPool.QueryStatCount = 1;
 		}
 

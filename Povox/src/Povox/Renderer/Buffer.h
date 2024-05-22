@@ -1,5 +1,7 @@
 #pragma once
+#include "Povox/Core/BitField.h"
 #include "Povox/Core/UUID.h"
+
 #include "Povox/Renderer/Utilities.h"
 
 #include "Povox/Renderer/Shader.h"
@@ -92,34 +94,53 @@ namespace Povox {
 	{
 		UNDEFINED = 0,
 
-		VERTEX_BUFFER = 1,
-		INDEX_BUFFER_32 = 2,
-		INDEX_BUFFER_64 = 3,
-		UNIFORM_BUFFER = 4,
-		UNIFORM_BUFFER_DYNAMIC = 5,
-		STORAGE_BUFFER = 6,
-		STORAGE_BUFFER_DYNAMIC = 7,
+		VERTEX_BUFFER = 1 << 1,
+		INDEX_BUFFER_32 = 1 << 2,
+		INDEX_BUFFER_64 = 1 << 3,
+		UNIFORM_BUFFER = 1 << 4,
+		UNIFORM_BUFFER_DYNAMIC = 1 << 5,
+		STORAGE_BUFFER = 1 << 6,
+		STORAGE_BUFFER_DYNAMIC = 1 << 7,
 
-		DATA_STATIC = 8,
-		DATA_DYNAMIC = 9
+		DATA_STATIC = 1 << 8,
+		DATA_DYNAMIC = 1 << 9
 	};
+	template<>
+	struct enable_bitmask_operators<BufferUsage>
+	{
+		static constexpr bool enable = true;
+	};
+
 	namespace EnumToString {
-		constexpr const char* BufferUsageString(BufferUsage usage)
+		static std::string BufferUsageString(BufferUsage usage)
 		{
-			switch (usage)
-			{
-				case BufferUsage::UNDEFINED: return "UNDEFINED";
-				case BufferUsage::VERTEX_BUFFER: return "VERTEX_BUFFER";
-				case BufferUsage::INDEX_BUFFER_32: return "INDEX_BUFFER_32";
-				case BufferUsage::INDEX_BUFFER_64: return "INDEX_BUFFER_64";
-				case BufferUsage::UNIFORM_BUFFER: return "UNIFORM_BUFFER";
-				case BufferUsage::UNIFORM_BUFFER_DYNAMIC: return "UNIFORM_BUFFER_DYNAMIC";
-				case BufferUsage::STORAGE_BUFFER: return "STORAGE_BUFFER";
-				case BufferUsage::STORAGE_BUFFER_DYNAMIC: return "STORAGE_BUFFER_DYNAMIC";
-				case BufferUsage::DATA_STATIC: return "DATA_STATIC";
-				case BufferUsage::DATA_DYNAMIC: return "DATA_DYNAMIC";
-				default: return "Missing BufferUsageString conversion!";
-			}
+			std::string output = "Buffer Usages: ";
+
+			if ((usage & BufferUsage::UNDEFINED) == BufferUsage::UNDEFINED)
+				output += "::UNDEFINED";
+			if ((usage & BufferUsage::VERTEX_BUFFER) == BufferUsage::VERTEX_BUFFER)
+				output += "::VERTEX_BUFFER";
+			if ((usage & BufferUsage::INDEX_BUFFER_32) == BufferUsage::INDEX_BUFFER_32)
+				output += "::INDEX_BUFFER_32";
+			if ((usage & BufferUsage::INDEX_BUFFER_64) == BufferUsage::INDEX_BUFFER_64)
+				output += "::INDEX_BUFFER_64";
+			if ((usage & BufferUsage::UNIFORM_BUFFER) == BufferUsage::UNIFORM_BUFFER)
+				output += "::UNIFORM_BUFFER";
+			if ((usage & BufferUsage::UNIFORM_BUFFER_DYNAMIC) == BufferUsage::UNIFORM_BUFFER_DYNAMIC)
+				output += "::UNIFORM_BUFFER_DYNAMIC";
+			if ((usage & BufferUsage::STORAGE_BUFFER) == BufferUsage::STORAGE_BUFFER)
+				output += "::STORAGE_BUFFER";
+			if ((usage & BufferUsage::STORAGE_BUFFER_DYNAMIC) == BufferUsage::STORAGE_BUFFER_DYNAMIC)
+				output += "::STORAGE_BUFFER_DYNAMIC";
+			if ((usage & BufferUsage::DATA_STATIC) == BufferUsage::DATA_STATIC)
+				output += "::DATA_STATIC";
+			if ((usage & BufferUsage::DATA_DYNAMIC) == BufferUsage::DATA_DYNAMIC)
+				output += "::DATA_DYNAMIC";
+
+			if (output == "Buffer Usages: ")
+				return "Unknown Usage!";
+
+			return output;
 		}
 	}
 	

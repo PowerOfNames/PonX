@@ -43,7 +43,7 @@ namespace Povox {
 
 		float m_Deltatime = 0.0f;
 
-		uint32_t m_MaxParticleDraws = 1;
+		uint32_t m_MaxParticleDraws = 0;
 
 		bool m_GUICollapsed = false;
 		bool m_ViewportIsFocused = false, m_ViewportIsHovered = false;

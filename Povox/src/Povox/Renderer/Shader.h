@@ -8,8 +8,9 @@
 
 #include <glm/glm.hpp>
 
-#include "FileWatch.h"
-
+#pragma warning(push, 0)
+#include <FileWatch.h>
+#pragma warning(pop)
 
 namespace Povox {
 

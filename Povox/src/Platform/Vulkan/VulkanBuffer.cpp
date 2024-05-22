@@ -12,16 +12,24 @@ namespace Povox {
 
 		VkBufferUsageFlags GetVulkanBufferUsage(BufferUsage usage)
 		{
-			switch (usage)
-			{
-				case BufferUsage::VERTEX_BUFFER:	return VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
-				case BufferUsage::INDEX_BUFFER_32:		return VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
-				case BufferUsage::UNIFORM_BUFFER:	return VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
-				case BufferUsage::STORAGE_BUFFER:	return VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
-				case BufferUsage::UNDEFINED:		break;
-			}
-			PX_CORE_ASSERT(true, "BufferUsage not defined!");
-			return VK_BUFFER_USAGE_FLAG_BITS_MAX_ENUM;
+			VkBufferUsageFlags flags = 0;
+			if ((usage & BufferUsage::VERTEX_BUFFER) == BufferUsage::VERTEX_BUFFER)
+				flags |= VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+			if ((usage & BufferUsage::INDEX_BUFFER_32) == BufferUsage::INDEX_BUFFER_32)
+				flags |= VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+			if ((usage & BufferUsage::INDEX_BUFFER_64) == BufferUsage::INDEX_BUFFER_64)
+				flags |= VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+			if ((usage & BufferUsage::UNIFORM_BUFFER) == BufferUsage::UNIFORM_BUFFER)
+				flags |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+			if ((usage & BufferUsage::UNIFORM_BUFFER_DYNAMIC) == BufferUsage::UNIFORM_BUFFER_DYNAMIC)
+				flags |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+			if ((usage & BufferUsage::STORAGE_BUFFER) == BufferUsage::STORAGE_BUFFER)
+				flags |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+			if ((usage & BufferUsage::STORAGE_BUFFER_DYNAMIC) == BufferUsage::STORAGE_BUFFER_DYNAMIC)
+				flags |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+			
+
+			return flags;
 		}
 	}
 
@@ -128,8 +136,8 @@ namespace Povox {
 				barrier.srcQueueFamilyIndex = currentIndex;
 				barrier.dstQueueFamilyIndex = queueFamilies.TransferFamilyIndex;
 
-				barrier.srcStageMask = VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT;
-				barrier.srcAccessMask = 0;
+				barrier.srcStageMask = VK_PIPELINE_STAGE_2_NONE;
+				barrier.srcAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT;
 
 				VkDependencyInfo dependency{ VK_STRUCTURE_TYPE_DEPENDENCY_INFO };
 				dependency.bufferMemoryBarrierCount = 1;
@@ -148,7 +156,7 @@ namespace Povox {
 				barrier.dstQueueFamilyIndex = queueFamilies.TransferFamilyIndex;
 
 				barrier.dstStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
-				barrier.dstAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT;
+				barrier.dstAccessMask = VK_ACCESS_2_TRANSFER_READ_BIT;
 
 				VkDependencyInfo dependency{ VK_STRUCTURE_TYPE_DEPENDENCY_INFO };
 				dependency.bufferMemoryBarrierCount = 1;
@@ -225,6 +233,117 @@ namespace Povox {
 		return sub;
 	}
 
+	void VulkanBuffer::TransferOwnership(QueueFamilyOwnership newOwnership, uint64_t offset, uint64_t range)
+	{
+		if (newOwnership == m_Ownership)
+			return;
+
+		if (m_Ownership == QueueFamilyOwnership::QFO_UNDEFINED)
+		{
+			m_Ownership = newOwnership;
+			return;
+		}
+
+		if (range == 0)
+			return;
+
+		auto& transferConfig = VulkanCommandControl::DetermineSubmitType(m_Ownership, newOwnership);
+
+		VkAccessFlags2 srcAccess;
+		VkPipelineStageFlags2 srcStage;
+
+		switch (m_Ownership)
+		{
+			case QueueFamilyOwnership::QFO_GRAPHICS:
+			{
+				srcAccess = VK_ACCESS_2_VERTEX_ATTRIBUTE_READ_BIT;
+				srcStage = VK_PIPELINE_STAGE_2_VERTEX_INPUT_BIT;
+				break;
+			}
+			case QueueFamilyOwnership::QFO_COMPUTE:
+			{
+				srcAccess = VK_ACCESS_2_SHADER_READ_BIT | VK_ACCESS_2_SHADER_WRITE_BIT;
+				srcStage = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
+				break;
+			}
+			case QueueFamilyOwnership::QFO_TRANSFER:
+			{
+				srcAccess = VK_ACCESS_2_SHADER_READ_BIT | VK_ACCESS_2_SHADER_WRITE_BIT;
+				srcStage = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
+				break;
+			}
+			case QueueFamilyOwnership::QFO_UNDEFINED:
+				PX_CORE_ASSERT(true, "VulkanBuffer::TransferOwnership: Undefined not allowed!");
+		}
+		VkAccessFlags2 dstAccess;
+		VkPipelineStageFlags2 dstStage;
+		switch (newOwnership)
+		{
+			case QueueFamilyOwnership::QFO_COMPUTE:
+			{
+				dstAccess = VK_ACCESS_2_SHADER_READ_BIT | VK_ACCESS_2_SHADER_WRITE_BIT;
+				dstStage = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
+				break;
+			}
+			case QueueFamilyOwnership::QFO_GRAPHICS:
+			{
+				dstAccess = VK_ACCESS_2_NONE;
+				dstStage = VK_PIPELINE_STAGE_2_NONE;
+				break;
+			}
+			case QueueFamilyOwnership::QFO_TRANSFER:
+			{
+				dstAccess = VK_ACCESS_2_MEMORY_READ_BIT;
+				dstStage = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
+				break;
+			}
+		}
+
+		VulkanCommandControl::ImmidiateSubmitOwnershipTransfer(transferConfig.SubmissionType
+			, [=](VkCommandBuffer releaseCmd)
+			{
+				VkBufferMemoryBarrier2 bufBarrier{ VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2 };
+				bufBarrier.pNext = nullptr;
+				bufBarrier.srcQueueFamilyIndex = transferConfig.SrcQueueIndex;
+				bufBarrier.dstQueueFamilyIndex = transferConfig.DstQueueIndex;
+
+				bufBarrier.srcAccessMask = srcAccess;
+				bufBarrier.srcStageMask = srcStage;
+
+				bufBarrier.buffer = m_Allocation.Buffer;
+				bufBarrier.offset = offset;
+				bufBarrier.size = range;
+
+				VkDependencyInfo dependency{ VK_STRUCTURE_TYPE_DEPENDENCY_INFO };
+				dependency.pNext = nullptr;
+				dependency.bufferMemoryBarrierCount = 1;
+				dependency.pBufferMemoryBarriers = &bufBarrier;
+				vkCmdPipelineBarrier2(releaseCmd, &dependency);
+			}
+			, [=](VkCommandBuffer acquireCmd)
+				{
+					VkBufferMemoryBarrier2 bufBarrier{ VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2 };
+					bufBarrier.pNext = nullptr;
+					bufBarrier.srcQueueFamilyIndex = transferConfig.SrcQueueIndex;
+					bufBarrier.dstQueueFamilyIndex = transferConfig.DstQueueIndex;
+
+					bufBarrier.dstAccessMask = dstAccess;
+					bufBarrier.dstStageMask = dstStage;
+
+					bufBarrier.buffer = m_Allocation.Buffer;
+					bufBarrier.offset = offset;
+					bufBarrier.size = range;
+
+					VkDependencyInfo dependency{ VK_STRUCTURE_TYPE_DEPENDENCY_INFO };
+					dependency.pNext = nullptr;
+					dependency.bufferMemoryBarrierCount = 1;
+					dependency.pBufferMemoryBarriers = &bufBarrier;
+					vkCmdPipelineBarrier2(acquireCmd, &dependency);
+				});
+
+		m_Ownership = newOwnership;
+	}
+
 	uint32_t VulkanBuffer::GetPadding()
 	{
 		return VulkanContext::GetDevice()->GetPhysicalDeviceProperties().limits.minUniformBufferOffsetAlignment;
@@ -261,7 +380,7 @@ namespace Povox {
 	}
 	void VulkanBuffer::SetData(void* inputData, size_t offset, size_t size)
 	{
-		PX_CORE_ASSERT((offset + size) < m_Specification.Size, "Out of bounds!");
+		PX_CORE_ASSERT((offset + size) <= m_Specification.Size, "Out of bounds!");
 
 
 		if (!m_StagingMapped)

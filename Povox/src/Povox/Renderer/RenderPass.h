@@ -64,12 +64,12 @@ namespace Povox {
 
 		Ref<ComputePipeline> Pipeline = nullptr;
 		
-		struct WorkgroupSize
+		struct LocalWorkgroupSize
 		{
 			uint32_t X = 1;
 			uint32_t Y = 1;
 			uint32_t Z = 1;
-		} WorkgroupSize;
+		} LocalWorkgroupSize;
 
 		//Ref<Framebuffer> TargetFramebuffer = nullptr;
 	};

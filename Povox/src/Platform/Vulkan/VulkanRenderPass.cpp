@@ -1,6 +1,7 @@
 #include "pxpch.h"
 #include "VulkanRenderPass.h"
 
+#include "Platform/Vulkan/VulkanBuffer.h"
 #include "Platform/Vulkan/VulkanCommands.h"
 #include "Platform/Vulkan/VulkanContext.h"
 #include "Platform/Vulkan/VulkanDebug.h"
@@ -502,7 +503,7 @@ namespace Povox {
 		PX_CORE_INFO("VulkanRenderpass::Recreate: Recreated Renderpass with AttachmentExtent of '{0}, {1}'", width, height);		
 	}	
 
-	void VulkanRenderPass::UpdateResourceOwnership(uint32_t frameIndex)
+	void VulkanRenderPass::UpdateResourceOwnership(uint32_t frameIdx)
 	{
 		if (!m_PredecessorPass)
 		{
@@ -521,9 +522,6 @@ namespace Povox {
 
 		std::vector<std::string> prevDescriptorNames = computePass->GetBoundResourceNames();
 		
-		VkBuffer buffer = nullptr;
-		size_t offset = 0;
-		size_t range = 0;
 		for (const std::string& prevName : prevDescriptorNames)
 		{
 			if (m_BoundResources.find(prevName) == m_BoundResources.end())
@@ -534,15 +532,36 @@ namespace Povox {
 			{
 				case ShaderResourceType::UNIFORM_BUFFER:
 				{
+					Ref<UniformBuffer> uniformBuf = std::dynamic_pointer_cast<UniformBuffer>(m_BoundResources.at(prevName));
+					
+					Ref<VulkanBuffer> bufferRef = std::dynamic_pointer_cast<VulkanBuffer>(uniformBuf->GetBuffer(frameIdx));
+					bufferRef->TransferOwnership(QueueFamilyOwnership::QFO_GRAPHICS, 0, bufferRef->GetSpecification().Size);
+
 					break;
 				}
 				case ShaderResourceType::STORAGE_BUFFER:
 				{	
-					//Ref<VulkanBuffer> vkBuffer = std::dynamic_pointer_cast<VulkanBuffer>(std::dynamic_pointer_cast<StorageBuffer>(m_BoundResources.at(prevName))->GetBuffer(frameIndex));
+					Ref<StorageBuffer> storageBuf = std::dynamic_pointer_cast<StorageBuffer>(m_BoundResources.at(prevName));
+
+					Ref<VulkanBuffer> bufferRef = std::dynamic_pointer_cast<VulkanBuffer>(storageBuf->GetBuffer(frameIdx));
+					bufferRef->TransferOwnership(QueueFamilyOwnership::QFO_GRAPHICS, 0, bufferRef->GetSpecification().Size);
+
 					break;
 				}
 				case ShaderResourceType::UNIFORM_BUFFER_DYNAMIC:
 				{
+					/*Ref<UniformBufferDynamic> uniformBuf = std::dynamic_pointer_cast<UniformBufferDynamic>(m_BoundResources.at(prevName));
+					auto& descriptorInfo = uniformBuf->GetDescriptorInfo(prevName);
+
+					if (!descriptorInfo.Suballocation)
+					{
+						PX_CORE_WARN("This Dynamic storage buffer does not contain any suballocations");
+						break;
+					}
+
+					Ref<VulkanBuffer> bufferRef = std::dynamic_pointer_cast<VulkanBuffer>(descriptorInfo.Suballocation->Buffer);
+					bufferRef->TransferOwnership(QueueFamilyOwnership::QFO_GRAPHICS, descriptorInfo.Suballocation->Offset, descriptorInfo.Suballocation->Range);*/
+
 					break;
 				}
 				case ShaderResourceType::STORAGE_BUFFER_DYNAMIC:
@@ -556,51 +575,9 @@ namespace Povox {
 						break;
 					}
 
-					buffer = std::dynamic_pointer_cast<VulkanBuffer>(descriptorInfo.Suballocation->Buffer)->GetAllocation().Buffer;
-					offset = descriptorInfo.Suballocation->Offset;
-					range = descriptorInfo.Suballocation->Range;
+					Ref<VulkanBuffer> bufferRef = std::dynamic_pointer_cast<VulkanBuffer>(descriptorInfo.Suballocation->Buffer);
+					bufferRef->TransferOwnership(QueueFamilyOwnership::QFO_GRAPHICS, descriptorInfo.Suballocation->Offset, descriptorInfo.Suballocation->Range);
 
-					VulkanCommandControl::ImmidiateSubmitOwnershipTransfer(VulkanCommandControl::SubmitType::SUBMIT_TYPE_COMPUTE_GRAPHICS
-						, [=](VkCommandBuffer releaseCmd)
-						{
-							VkBufferMemoryBarrier2 bufBarrier{ VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2 };
-							bufBarrier.pNext = nullptr;
-							bufBarrier.srcQueueFamilyIndex = computeQueue;
-							bufBarrier.dstQueueFamilyIndex = graphicsQueue;
-
-							bufBarrier.srcAccessMask = VK_ACCESS_2_SHADER_WRITE_BIT;
-							bufBarrier.srcStageMask = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
-
-							bufBarrier.buffer = buffer;
-							bufBarrier.offset = offset;
-							bufBarrier.size = range;
-
-							VkDependencyInfo dependency{ VK_STRUCTURE_TYPE_DEPENDENCY_INFO };
-							dependency.pNext = nullptr;
-							dependency.bufferMemoryBarrierCount = 1;
-							dependency.pBufferMemoryBarriers = &bufBarrier;
-							vkCmdPipelineBarrier2(releaseCmd, &dependency);
-						}
-						, [=](VkCommandBuffer acquireCmd)
-							{
-								VkBufferMemoryBarrier2 bufBarrier{ VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2 };
-								bufBarrier.pNext = nullptr;
-								bufBarrier.srcQueueFamilyIndex = computeQueue;
-								bufBarrier.dstQueueFamilyIndex = graphicsQueue;
-
-								bufBarrier.dstAccessMask = VK_ACCESS_2_MEMORY_READ_BIT;
-								bufBarrier.dstStageMask = VK_PIPELINE_STAGE_2_NONE;
-
-								bufBarrier.buffer = buffer;
-								bufBarrier.offset = offset;
-								bufBarrier.size = range;
-
-								VkDependencyInfo dependency{ VK_STRUCTURE_TYPE_DEPENDENCY_INFO };
-								dependency.pNext = nullptr;
-								dependency.bufferMemoryBarrierCount = 1;
-								dependency.pBufferMemoryBarriers = &bufBarrier;
-								vkCmdPipelineBarrier2(acquireCmd, &dependency);
-							});
 					break;
 				}
 			}
@@ -647,7 +624,7 @@ namespace Povox {
 
 	}
 
-	void VulkanComputePass::UpdateResourceOwnership(uint32_t frameIndex)
+	void VulkanComputePass::UpdateResourceOwnership(uint32_t frameIdx)
 	{
 		if (!m_PredecessorPass)
 		{
@@ -659,16 +636,9 @@ namespace Povox {
 
 		Ref<VulkanRenderPass> graphicsPass = std::dynamic_pointer_cast<VulkanRenderPass>(m_PredecessorPass);
 
-		uint32_t graphicsQueue = VulkanContext::GetDevice()->GetQueueFamilies().GraphicsFamilyIndex;
-		uint32_t computeQueue = VulkanContext::GetDevice()->GetQueueFamilies().ComputeFamilyIndex;
-
 		//Now find all resources that are used in the previous compute and this graphics pass. Ownership from Compute to Graphics queue
-
 		std::vector<std::string> prevDescriptorNames = graphicsPass->GetBoundResourceNames();
 
-		VkBuffer buffer = nullptr;
-		size_t offset = 0;
-		size_t range = 0;
 		for (const std::string& prevName : prevDescriptorNames)
 		{
 			if (m_BoundResources.find(prevName) == m_BoundResources.end())
@@ -679,15 +649,36 @@ namespace Povox {
 			{
 				case ShaderResourceType::UNIFORM_BUFFER:
 				{
+					Ref<UniformBuffer> uniformBuf = std::dynamic_pointer_cast<UniformBuffer>(m_BoundResources.at(prevName));
+
+					Ref<VulkanBuffer> bufferRef = std::dynamic_pointer_cast<VulkanBuffer>(uniformBuf->GetBuffer(frameIdx));
+					bufferRef->TransferOwnership(QueueFamilyOwnership::QFO_COMPUTE, 0, bufferRef->GetSpecification().Size);
+
 					break;
 				}
 				case ShaderResourceType::STORAGE_BUFFER:
 				{
-					//Ref<VulkanBuffer> vkBuffer = std::dynamic_pointer_cast<VulkanBuffer>(std::dynamic_pointer_cast<StorageBuffer>(m_BoundResources.at(prevName))->GetBuffer(frameIndex));
+					Ref<StorageBuffer> storageBuf = std::dynamic_pointer_cast<StorageBuffer>(m_BoundResources.at(prevName));
+
+					Ref<VulkanBuffer> bufferRef = std::dynamic_pointer_cast<VulkanBuffer>(storageBuf->GetBuffer(frameIdx));
+					bufferRef->TransferOwnership(QueueFamilyOwnership::QFO_COMPUTE, 0, bufferRef->GetSpecification().Size);
+
 					break;
 				}
 				case ShaderResourceType::UNIFORM_BUFFER_DYNAMIC:
 				{
+					/*Ref<UniformBufferDynamic> uniformBuf = std::dynamic_pointer_cast<UniformBufferDynamic>(m_BoundResources.at(prevName));
+					auto& descriptorInfo = uniformBuf->GetDescriptorInfo(prevName);
+
+					if (!descriptorInfo.Suballocation)
+					{
+						PX_CORE_WARN("This Dynamic storage buffer does not contain any suballocations");
+						break;
+					}
+
+					Ref<VulkanBuffer> bufferRef = std::dynamic_pointer_cast<VulkanBuffer>(descriptorInfo.Suballocation->Buffer);
+					bufferRef->TransferOwnership(QueueFamilyOwnership::QFO_GRAPHICS, descriptorInfo.Suballocation->Offset, descriptorInfo.Suballocation->Range);*/
+
 					break;
 				}
 				case ShaderResourceType::STORAGE_BUFFER_DYNAMIC:
@@ -701,51 +692,9 @@ namespace Povox {
 						break;
 					}
 
-					buffer = std::dynamic_pointer_cast<VulkanBuffer>(descriptorInfo.Suballocation->Buffer)->GetAllocation().Buffer;
-					offset = descriptorInfo.Suballocation->Offset;
-					range = descriptorInfo.Suballocation->Range;
+					Ref<VulkanBuffer> bufferRef = std::dynamic_pointer_cast<VulkanBuffer>(descriptorInfo.Suballocation->Buffer);
+					bufferRef->TransferOwnership(QueueFamilyOwnership::QFO_COMPUTE, descriptorInfo.Suballocation->Offset, descriptorInfo.Suballocation->Range);
 
-					VulkanCommandControl::ImmidiateSubmitOwnershipTransfer(VulkanCommandControl::SubmitType::SUBMIT_TYPE_GRAPHICS_COMPUTE
-						, [=](VkCommandBuffer releaseCmd)
-						{
-							VkBufferMemoryBarrier2 bufBarrier{ VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2 };
-							bufBarrier.pNext = nullptr;
-							bufBarrier.srcQueueFamilyIndex = graphicsQueue;
-							bufBarrier.dstQueueFamilyIndex = computeQueue;
-
-							bufBarrier.srcAccessMask = VK_ACCESS_2_SHADER_WRITE_BIT;
-							bufBarrier.srcStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
-
-							bufBarrier.buffer = buffer;
-							bufBarrier.offset = offset;
-							bufBarrier.size = range;
-
-							VkDependencyInfo dependency{ VK_STRUCTURE_TYPE_DEPENDENCY_INFO };
-							dependency.pNext = nullptr;
-							dependency.bufferMemoryBarrierCount = 1;
-							dependency.pBufferMemoryBarriers = &bufBarrier;
-							vkCmdPipelineBarrier2(releaseCmd, &dependency);
-						}
-						, [=](VkCommandBuffer acquireCmd)
-							{
-								VkBufferMemoryBarrier2 bufBarrier{ VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2 };
-								bufBarrier.pNext = nullptr;
-								bufBarrier.srcQueueFamilyIndex = graphicsQueue;
-								bufBarrier.dstQueueFamilyIndex = computeQueue;
-
-								bufBarrier.dstAccessMask = VK_ACCESS_2_MEMORY_READ_BIT;
-								bufBarrier.dstStageMask = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
-
-								bufBarrier.buffer = buffer;
-								bufBarrier.offset = offset;
-								bufBarrier.size = range;
-
-								VkDependencyInfo dependency{ VK_STRUCTURE_TYPE_DEPENDENCY_INFO };
-								dependency.pNext = nullptr;
-								dependency.bufferMemoryBarrierCount = 1;
-								dependency.pBufferMemoryBarriers = &bufBarrier;
-								vkCmdPipelineBarrier2(acquireCmd, &dependency);
-							});
 					break;
 				}
 			}

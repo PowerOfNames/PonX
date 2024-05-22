@@ -80,10 +80,10 @@ namespace Povox {
 		return s_RendererAPI->BeginFrame();
 	}
 	void Renderer::DrawRenderable(const Renderable& renderable) { s_RendererAPI->DrawRenderable(renderable); }
-	void Renderer::Draw(Ref<Buffer> vertices, Ref<Material> material, Ref<Buffer> indices, size_t indexCount, bool textureless)
+	void Renderer::Draw(Ref<Buffer> vertices, uint64_t firstVertexOffset, Ref<Material> material, Ref<Buffer> indices, size_t indexCount, bool textureless)
 	{
 		PX_PROFILE_FUNCTION();
-		s_RendererAPI->Draw(vertices, material, indices, indexCount, textureless);
+		s_RendererAPI->Draw(vertices, firstVertexOffset, material, indices, indexCount, textureless);
 	}
 	void Renderer::DrawGUI()
 	{
@@ -135,7 +135,10 @@ namespace Povox {
 	void Renderer::BindPipeline(Ref<Pipeline> pipeline) { s_RendererAPI->BindPipeline(pipeline); }
 	
 	// Compute
-	void Renderer::DispatchCompute(Ref<ComputePass> computePass) { s_RendererAPI->DispatchCompute(computePass); }
+	void Renderer::DispatchCompute(Ref<ComputePass> computePass, uint64_t totalElements, uint32_t workGroupWeightX, uint32_t workGroupWeightY, uint32_t workGroupWeightZ)
+	{
+		s_RendererAPI->DispatchCompute(computePass, totalElements, workGroupWeightX, workGroupWeightY, workGroupWeightZ); 
+	}
 
 	// GUI
 	void Renderer::BeginGUIRenderPass() { s_RendererAPI->BeginGUIRenderPass(); }

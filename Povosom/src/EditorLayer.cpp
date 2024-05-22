@@ -204,17 +204,22 @@ namespace Povox {
 			ImGui::Text("Deltatime: %f", m_Deltatime);
 			ImGui::Separator();
 
-			RendererStatistics rendererStats = Renderer::GetStatistics();
-			for (uint32_t i = 0; i < rendererStats.PipelineStats.size(); i++)
+			Povox::RendererStatistics rendererStats = Povox::Renderer::GetStatistics();
+			for (const auto& [poolName, queries] : rendererStats.PipelineStats)
 			{
-				std::string caption = rendererStats.PipelineStatNames[i] + ": %llu";
-				ImGui::Text(caption.c_str(), rendererStats.PipelineStats[i]);
+				ImGui::Text(poolName.c_str());
+				for (const auto& [query, stat] : queries)
+				{
+					std::string caption = query + " %llu";
+					ImGui::Text(caption.c_str(), stat);
+				}
+				ImGui::Separator();
 			}
 			ImGui::Separator();
-			for (auto& [name, value] : rendererStats.TimestampResults)
+			for (const auto& [name, value] : rendererStats.TimestampResults)
 			{
 				double timeInMS = value / 1000000.0;
-				const std::string caption = name + ": %fms";
+				const std::string caption = name + ": %.6fms";
 				ImGui::Text(caption.c_str(), timeInMS);
 			}
 			ImGui::Separator();

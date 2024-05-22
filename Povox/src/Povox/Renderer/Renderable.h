@@ -31,6 +31,7 @@ namespace Povox {
 	struct SilhouetteVertex
 	{
 		glm::vec4 PositionRadius;
+		glm::vec4 Velocity;
 		glm::vec4 Color;
 	};
 

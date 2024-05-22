@@ -1,8 +1,10 @@
 #type vertex
 #version 460
+#extension GL_EXT_shader_explicit_arithmetic_types_int64 : require
 
 layout(location = 0) in vec4 a_PositionRadius;
-layout(location = 1) in vec4 a_Color;
+layout(location = 1) in vec4 a_Velocity;
+layout(location = 2) in vec4 a_Color;
 
 layout(location = 0) out VertexData {
     flat vec3 Position;

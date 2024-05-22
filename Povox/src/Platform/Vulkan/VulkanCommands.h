@@ -37,6 +37,13 @@ namespace Povox {
 			SUBMIT_TYPE_COMPUTE_GRAPHICS
 		};
 
+		struct OwnershipTransferConfig
+		{
+			uint32_t SrcQueueIndex;
+			uint32_t DstQueueIndex;
+			SubmitType SubmissionType;
+		};
+
 		static void ImmidiateSubmitOwnershipTransfer(SubmitType submitType,
 			std::function<void(VkCommandBuffer releasingCmd)> && releaseFunction,
 			std::function<void(VkCommandBuffer acquireCmd)> && acquireFunction);
@@ -47,6 +54,8 @@ namespace Povox {
 
 		static inline CommandControlState& GetState() { return s_CommandControlState; }
 		static inline bool IsInitialized() { return s_CommandControlState.IsInitialized; }
+
+		static const OwnershipTransferConfig DetermineSubmitType(QueueFamilyOwnership currentOwner, QueueFamilyOwnership targetOwner);
 
 	private:
 		static CommandControlState s_CommandControlState;

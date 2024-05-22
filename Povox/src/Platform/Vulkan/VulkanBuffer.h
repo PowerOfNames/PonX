@@ -27,6 +27,8 @@ namespace Povox {
 
 		virtual Ref<BufferSuballocation> GetSuballocation(size_t size) override;
 
+		void TransferOwnership(QueueFamilyOwnership newOwnership, uint64_t offset, uint64_t range);
+
 		static uint32_t GetPadding();
 		static size_t PadSize(size_t initialSize);
 

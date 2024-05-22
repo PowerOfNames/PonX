@@ -170,6 +170,7 @@
     <ClInclude Include="src\Platform\Windows\WindowsWindow.h" />
     <ClInclude Include="src\Povox.h" />
     <ClInclude Include="src\Povox\Core\Application.h" />
+    <ClInclude Include="src\Povox\Core\BitField.h" />
     <ClInclude Include="src\Povox\Core\Core.h" />
     <ClInclude Include="src\Povox\Core\EntryPoint.h" />
     <ClInclude Include="src\Povox\Core\Input.h" />

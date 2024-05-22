@@ -77,7 +77,7 @@ namespace Povox {
 
 		// FrameData
 		virtual bool BeginFrame() override;
-		virtual void Draw(Ref<Buffer> vertices, Ref<Material> material, Ref<Buffer> indices, size_t indexCount, bool textureless) override;
+		virtual void Draw(Ref<Buffer> vertices, uint64_t firstVertexOffset, Ref<Material> material, Ref<Buffer> indices, size_t indexCount, bool textureless) override;
 		virtual void DrawRenderable(const Renderable& renderable) override;
 		virtual void EndFrame() override;
 		virtual inline uint32_t GetCurrentFrameIndex() const override { return m_CurrentFrameIndex; }		
@@ -105,7 +105,7 @@ namespace Povox {
 		virtual void BindPipeline(Ref<Pipeline> pipeline) override;
 
 		// Compute
-		virtual void DispatchCompute(Ref<ComputePass> computePass) override;
+		virtual void DispatchCompute(Ref<ComputePass> computePass, uint64_t totalElements, uint32_t workGroupWeightX, uint32_t workGroupWeightY, uint32_t workGroupWeightZ) override;
 
 		// GUI
 		virtual void BeginGUIRenderPass() override;

@@ -231,6 +231,12 @@ namespace Povox {
 		m_Buffer = Buffer::Create(specs);
 	}
 
+	StorageBufferDynamic::StorageBufferDynamic(const BufferLayout& layout, Ref<Buffer> buffer, const std::string& name /*= "StorageBufferDynamicDefault"*/, bool perFrame /*= true*/)
+		: m_Layout(layout), ShaderResource(ShaderResourceType::STORAGE_BUFFER_DYNAMIC, perFrame, name)
+	{
+		m_Buffer = buffer;
+	}
+
 	void StorageBufferDynamic::AddDescriptor(const std::string& name, size_t size, FrameBehaviour usage /*= FrameBehaviour::STANDARD*/, uint8_t initialFrame /*= 0*/, const std::string& linkedDescriptorName /*= NULL*/)
 	{	
 		Ref<BufferSuballocation> sub = m_Buffer->GetSuballocation(size);

@@ -288,6 +288,115 @@ namespace Povox {
 		PX_CORE_VK_ASSERT(vkResetCommandPool(device, pool, 0), VK_SUCCESS, "Failed to reset command pool!");
 	}
 
+	const VulkanCommandControl::OwnershipTransferConfig VulkanCommandControl::DetermineSubmitType(QueueFamilyOwnership currentOwner, QueueFamilyOwnership targetOwner)
+	{
+		auto& queueFams = VulkanContext::GetDevice()->GetQueueFamilies();
+		switch (currentOwner)
+		{
+			case QueueFamilyOwnership::QFO_COMPUTE:
+			{
+				switch (targetOwner)
+				{
+					case QueueFamilyOwnership::QFO_COMPUTE:
+					{
+						PX_CORE_WARN("VulkanCommandControl::DetermineSubmitType: Unecessary OwnershipTransferConfig found! (Compute->Compute)");
+						VulkanCommandControl::OwnershipTransferConfig config{};
+						config.SrcQueueIndex = static_cast<uint32_t>(queueFams.ComputeFamilyIndex);
+						config.DstQueueIndex = static_cast<uint32_t>(queueFams.ComputeFamilyIndex);
+						config.SubmissionType = VulkanCommandControl::SubmitType::SUBMIT_TYPE_COMPUTE_COMPUTE;
+						return config;
+					}
+					case QueueFamilyOwnership::QFO_GRAPHICS:
+					{
+						VulkanCommandControl::OwnershipTransferConfig config{};
+						config.SrcQueueIndex = static_cast<uint32_t>(queueFams.ComputeFamilyIndex);
+						config.DstQueueIndex = static_cast<uint32_t>(queueFams.GraphicsFamilyIndex);
+						config.SubmissionType = VulkanCommandControl::SubmitType::SUBMIT_TYPE_COMPUTE_GRAPHICS;
+						return config;
+					}
+					case QueueFamilyOwnership::QFO_TRANSFER:
+					{
+						VulkanCommandControl::OwnershipTransferConfig config{};
+						config.SrcQueueIndex = static_cast<uint32_t>(queueFams.ComputeFamilyIndex);
+						config.DstQueueIndex = static_cast<uint32_t>(queueFams.TransferFamilyIndex);
+						config.SubmissionType = VulkanCommandControl::SubmitType::SUBMIT_TYPE_COMPUTE_TRANSFER;
+						return config;
+					}
+					case QueueFamilyOwnership::QFO_UNDEFINED:
+						PX_CORE_ASSERT(true, "Undefined should never happen!");
+				}				
+			}
+			case QueueFamilyOwnership::QFO_GRAPHICS:
+			{
+				switch (targetOwner)
+				{
+					case QueueFamilyOwnership::QFO_COMPUTE:
+					{
+						VulkanCommandControl::OwnershipTransferConfig config{};
+						config.SrcQueueIndex = static_cast<uint32_t>(queueFams.GraphicsFamilyIndex);
+						config.DstQueueIndex = static_cast<uint32_t>(queueFams.ComputeFamilyIndex);
+						config.SubmissionType = VulkanCommandControl::SubmitType::SUBMIT_TYPE_GRAPHICS_COMPUTE;
+						return config;
+					}
+					case QueueFamilyOwnership::QFO_GRAPHICS:
+					{
+						PX_CORE_WARN("VulkanCommandControl::DetermineSubmitType: Unecessary OwnershipTransferConfig found! (Graphics->Graphics)");
+						VulkanCommandControl::OwnershipTransferConfig config{};
+						config.SrcQueueIndex = static_cast<uint32_t>(queueFams.GraphicsFamilyIndex);
+						config.DstQueueIndex = static_cast<uint32_t>(queueFams.GraphicsFamilyIndex);
+						config.SubmissionType = VulkanCommandControl::SubmitType::SUBMIT_TYPE_GRAPHICS_GRAPHICS;
+						return config;
+					}
+					case QueueFamilyOwnership::QFO_TRANSFER:
+					{
+						VulkanCommandControl::OwnershipTransferConfig config{};
+						config.SrcQueueIndex = static_cast<uint32_t>(queueFams.GraphicsFamilyIndex);
+						config.DstQueueIndex = static_cast<uint32_t>(queueFams.TransferFamilyIndex);
+						config.SubmissionType = VulkanCommandControl::SubmitType::SUBMIT_TYPE_GRAPHICS_TRANSFER;
+						return config;
+					}
+					case QueueFamilyOwnership::QFO_UNDEFINED:
+						PX_CORE_ASSERT(true, "Undefined should never happen!");
+				}
+			}
+			case QueueFamilyOwnership::QFO_TRANSFER:
+			{
+				switch (targetOwner)
+				{
+					case QueueFamilyOwnership::QFO_COMPUTE:
+					{
+						VulkanCommandControl::OwnershipTransferConfig config{};
+						config.SrcQueueIndex = static_cast<uint32_t>(queueFams.TransferFamilyIndex);
+						config.DstQueueIndex = static_cast<uint32_t>(queueFams.ComputeFamilyIndex);
+						config.SubmissionType = VulkanCommandControl::SubmitType::SUBMIT_TYPE_TRANSFER_COMPUTE;
+						return config;
+					}
+					case QueueFamilyOwnership::QFO_GRAPHICS:
+					{
+						VulkanCommandControl::OwnershipTransferConfig config{};
+						config.SrcQueueIndex = static_cast<uint32_t>(queueFams.TransferFamilyIndex);
+						config.DstQueueIndex = static_cast<uint32_t>(queueFams.GraphicsFamilyIndex);
+						config.SubmissionType = VulkanCommandControl::SubmitType::SUBMIT_TYPE_TRANSFER_GRAPHICS;
+						return config;
+					}
+					case QueueFamilyOwnership::QFO_TRANSFER:
+					{
+						PX_CORE_WARN("VulkanCommandControl::DetermineSubmitType: Unecessary OwnershipTransferConfig found! (Transfer->Transfer)");
+						VulkanCommandControl::OwnershipTransferConfig config{};
+						config.SrcQueueIndex = static_cast<uint32_t>(queueFams.TransferFamilyIndex);
+						config.DstQueueIndex = static_cast<uint32_t>(queueFams.TransferFamilyIndex);
+						config.SubmissionType = VulkanCommandControl::SubmitType::SUBMIT_TYPE_TRANSFER_TRANSFER;
+						return config;
+					}
+					case QueueFamilyOwnership::QFO_UNDEFINED:
+						PX_CORE_ASSERT(true, "Undefined should never happen!");
+				}
+			}
+			case QueueFamilyOwnership::QFO_UNDEFINED:
+				PX_CORE_ASSERT(true, "Undefined should never happen!");
+		}
+	}
+
 	Ref<UploadContext> VulkanCommandControl::CreateUploadContext()
 	{
 		PX_CORE_INFO("VulkanCommandControl::CreateUploadContext: Creating...");

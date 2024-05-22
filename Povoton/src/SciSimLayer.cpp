@@ -33,9 +33,8 @@ namespace Povox {
 		Povox::BufferLayout particleLayout = BufferLayout({
 			{ Povox::ShaderDataType::Float4, "PositionRadius" },
 			{ Povox::ShaderDataType::Float4, "Velocity" },
-			{ Povox::ShaderDataType::Float4, "Color" },
-			{ Povox::ShaderDataType::ULong, "ID" },
-			{ Povox::ShaderDataType::ULong, "IDPad" } });
+			{ Povox::ShaderDataType::Float4, "Color" }
+			});
 		{
 			SciParticleSetSpecification specs{};
 			specs.ParticleLayout = particleLayout;
@@ -100,14 +99,14 @@ namespace Povox {
 		// Update particles, if set this will simulate using compute shaders
 		m_ActiveParticleSet->OnUpdate(deltatime);
 
-		m_SciRenderer->OnUpdate(deltatime);
-		//m_SciRenderer->Begin(m_PerspectiveController.GetCamera());
+		m_SciRenderer->Begin(m_PerspectiveController.GetCamera());
+		m_SciRenderer->OnUpdate(deltatime, m_MaxParticleDraws);
 
 		// Now we draw the particle sets result
-		//m_SciRenderer->DrawParticleSet(m_ActiveParticleSet, m_MaxParticleDraws);
+		m_SciRenderer->DrawParticleSet(m_ActiveParticleSet, m_MaxParticleDraws);
 
 		//m_SciRenderer->End();
-		m_SciRenderer->DrawParticleSilhouette(m_PerspectiveController.GetCamera(), m_MaxParticleDraws);
+		m_SciRenderer->DrawParticleSilhouette(m_MaxParticleDraws);
 
 		//CopyFinalImage into current SwapchainImage
 		{
@@ -338,7 +337,7 @@ namespace Povox {
 		ImGui::PopStyleVar();
 
 		ImGui::Begin("ParticleRenderingControl");
-		ImGui::DragInt("MaxParticleDraws", (int*)&m_MaxParticleDraws, 10000, 0, 1000000);
+		ImGui::DragInt("MaxParticleDraws", (int*)&m_MaxParticleDraws, 1, 0, 1024*1024);
 		ImGui::End();
 		
     }

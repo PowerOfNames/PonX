@@ -13,10 +13,9 @@ namespace Povox {
 		: m_Specification(specs)
 	{
 		//Povox::Renderer::GetShaderLibrary()->Add("DistanceFieldComputeShader", Povox::Shader::Create("assets/shaders/DistanceFieldCompute.glsl"));
-		//Povox::Renderer::GetShaderManager()->Add("ComputeTest", Povox::Shader::Create(std::filesystem::path("assets/shaders/ComputeTest.glsl")));
-		//Povox::Renderer::GetShaderManager()->Add("RayMarching", Povox::Shader::Create(std::filesystem::path("assets/shaders/RayMarching.glsl")));
 
 		m_ComputeShaderHandle = Povox::Renderer::GetShaderManager()->Load("ComputeTest.glsl");
+		m_SilhouetteSimComputeShaderHandle = Povox::Renderer::GetShaderManager()->Load("SilhouetteSimCompute.glsl");
 		m_RayMarchingShaderHandle = Povox::Renderer::GetShaderManager()->Load("RayMarching.glsl");
 		m_ParticleSilhouetteShaderHandle = Povox::Renderer::GetShaderManager()->Load("ParticleSilhouette.glsl");
 	}
@@ -78,6 +77,40 @@ namespace Povox {
 			1024*1024,
 			"ParticleDataSSBO",
 			false);
+
+		uint32_t maxFrames = Renderer::GetSpecification().MaxFramesInFlight;
+
+		BufferSpecification vertexBufferSpecs{};
+		vertexBufferSpecs.Usage = BufferUsage::VERTEX_BUFFER | BufferUsage::STORAGE_BUFFER_DYNAMIC;
+		vertexBufferSpecs.MemUsage = MemoryUtils::MemoryUsage::GPU_ONLY;
+		vertexBufferSpecs.ElementCount = m_Specification.MaxParticles;
+		vertexBufferSpecs.Size = sizeof(SilhouetteVertex) * m_Specification.MaxParticles * maxFrames;
+		vertexBufferSpecs.ElementSize = sizeof(SilhouetteVertex);
+
+		
+		vertexBufferSpecs.DebugName = "ParticleRenderer Batch Vertexbuffer";
+		m_SilhouetteVertexBuffer = Buffer::Create(vertexBufferSpecs);
+		m_SilhouetteVertexBufferBase = new SilhouetteVertex[m_Specification.MaxParticles];
+		
+		m_ParticleSSBOVertex = Povox::CreateRef<Povox::StorageBufferDynamic>(m_Specification.ParticleLayout, m_SilhouetteVertexBuffer, "ParticleSSBOVertex", false);
+
+		m_SilhouetteVertexBufferPtr = m_SilhouetteVertexBufferBase;
+		for (uint64_t i = 0; i < m_Specification.MaxParticles; i++)
+		{
+			m_SilhouetteVertexBufferPtr->PositionRadius = glm::linearRand(glm::vec4(-10.0f, -10.0f, -10.0f, 0.05f), glm::vec4(10.0f, 10.0f, 10.0f, 0.5f));
+			m_SilhouetteVertexBufferPtr->Velocity = glm::linearRand(glm::vec4(-1.0, -1.0, -1.0, 0.0), glm::vec4(1.0f, 1.0f, 1.0f, 0.0f));
+			m_SilhouetteVertexBufferPtr->Color = glm::linearRand(glm::vec4(0.0f, 0.0f, 0.0f, 1.0f), glm::vec4(1.0f));
+			m_SilhouetteVertexBufferPtr++;
+		}
+		uint64_t dataSize = m_Specification.MaxParticles * sizeof(SilhouetteVertex);
+		m_SilhouetteVertexBuffer->SetData(m_SilhouetteVertexBufferBase, dataSize);
+		m_SilhouetteVertexBuffer->SetData(m_SilhouetteVertexBufferBase, dataSize, dataSize); // I need to set the second half of the buffer as well to secure the functionality to enable/disable particles
+
+		m_ParticleSSBOVertex->AddDescriptor("ParticleSSBOVertex_0", sizeof(SilhouetteVertex) * m_Specification.MaxParticles, StorageBufferDynamic::FrameBehaviour::FRAME_SWAP_IN_OUT, 0, "ParticleSSBOVertex_1");
+		m_ParticleSSBOVertex->AddDescriptor("ParticleSSBOVertex_1", sizeof(SilhouetteVertex) * m_Specification.MaxParticles, StorageBufferDynamic::FrameBehaviour::FRAME_SWAP_IN_OUT, 1, "ParticleSSBOVertex_0");
+		// Only needed if the Descriptor is created with an empty buffer and the data is external, i.e. uploaded from disc, generated elsewhere or only available as *void/raw data buffer
+		//m_ParticleSSBOVertex->SetDescriptorData("ParticleSSBOVertex_0", m_SilhouetteVertexBuffers[0], sizeof(SilhouetteVertex) * m_Specification.MaxParticles, 0);
+		//m_ParticleSSBOVertex->SetDescriptorData("ParticleSSBOVertex_1", nullptr, 0, 0);
 				
 		ImageSpecification distanceFieldSpec{};
 		distanceFieldSpec.Format = ImageFormat::RED_INTEGER_U32;
@@ -115,7 +148,7 @@ namespace Povox {
 			passSpecs.DebugName = "ParticleMovementComputePass";
 			passSpecs.DoPerformanceQuery = true;
 			passSpecs.Pipeline = m_DistanceFieldComputePipeline;
-			passSpecs.WorkgroupSize.X = 1;
+			passSpecs.LocalWorkgroupSize.X = 1;
 
 			m_DistanceFieldComputePass = ComputePass::Create(passSpecs);
 
@@ -130,6 +163,8 @@ namespace Povox {
 			m_DistanceFieldComputePass->Bake();
 		}
 
+		
+
 		// RayMarch to FullscreenQuad
 		{
 			FramebufferSpecification framebufferSpecs{};
@@ -141,7 +176,7 @@ namespace Povox {
 			
 
 			PipelineSpecification pipelineSpecs{};
-			pipelineSpecs.DebugName = "RayMarchingPipeline";
+			pipelineSpecs.DebugName = "RaymarchingPipeline";
 			pipelineSpecs.Shader = Renderer::GetShaderManager()->Get(m_RayMarchingShaderHandle);
 			pipelineSpecs.TargetFramebuffer = m_RayMarchingFramebuffer;
 			pipelineSpecs.VertexInputLayout = {
@@ -176,6 +211,30 @@ namespace Povox {
 			m_DistanceFieldComputePass->SetSuccessor(m_RayMarchingRenderpass);
 		}
 
+		// Silhouette
+		{
+			ComputePipelineSpecification pipelineSpecs{};
+			pipelineSpecs.DebugName = "SilhouetteSimComputePipeline";
+			pipelineSpecs.Shader = Renderer::GetShaderManager()->Get(m_SilhouetteSimComputeShaderHandle);
+			m_SilhouetteSimComputePipeline = ComputePipeline::Create(pipelineSpecs);
+
+			ComputePassSpecification passSpecs{};
+			passSpecs.DebugName = "SilhouetteSimComputePass";
+			passSpecs.DoPerformanceQuery = true;
+			passSpecs.Pipeline = m_SilhouetteSimComputePipeline;
+			passSpecs.LocalWorkgroupSize.X = 256;
+			passSpecs.LocalWorkgroupSize.Y = 1;
+			passSpecs.LocalWorkgroupSize.Z = 1;
+
+			m_SilhouetteSimComputePass = ComputePass::Create(passSpecs);
+
+			m_SilhouetteSimComputePass->BindInput("CameraUBO", m_CameraData);
+			m_SilhouetteSimComputePass->BindInput("RayMarchingUBO", m_RayMarchingData);
+			m_SilhouetteSimComputePass->BindInput("ParticleSSBOVertex_0", m_ParticleSSBOVertex);
+			m_SilhouetteSimComputePass->BindOutput("ParticleSSBOVertex_1", m_ParticleSSBOVertex);
+
+			m_SilhouetteSimComputePass->Bake();
+		}
 		{
 			FramebufferSpecification framebufferSpecs{};
 			framebufferSpecs.DebugName = "SilhouetteFramebuffer";
@@ -192,7 +251,8 @@ namespace Povox {
 			pipelineSpecs.Primitive = PipelineUtils::PrimitiveTopology::POINT_LIST;
 			pipelineSpecs.Shader = Renderer::GetShaderManager()->Get(m_ParticleSilhouetteShaderHandle);
 			pipelineSpecs.VertexInputLayout = {
-				{ ShaderDataType::Float3, "a_PositionRadius" },
+				{ ShaderDataType::Float4, "a_PositionRadius" },
+				{ ShaderDataType::Float4, "a_Velocity" },
 				{ ShaderDataType::Float4, "a_Color" }
 			};
 			m_SilhouettePipeline = Pipeline::Create(pipelineSpecs);
@@ -205,9 +265,13 @@ namespace Povox {
 
 			m_SilhouetteRenderpass = RenderPass::Create(renderpassSpecs);
 			m_SilhouetteRenderpass->BindInput("CameraUBO", m_CameraData);
+			m_SilhouetteRenderpass->BindInput("ParticleSSBOVertex_1", m_ParticleSSBOVertex);
 			m_SilhouetteRenderpass->Bake();
 
-			m_SilhouettePipeline->PrintShaderLayout();
+			m_SilhouetteSimComputePass->SetPredecessor(m_SilhouetteRenderpass);
+			m_SilhouetteSimComputePass->SetSuccessor(m_SilhouetteRenderpass);
+			m_SilhouetteRenderpass->SetPredecessor(m_SilhouetteSimComputePass);
+			m_SilhouetteRenderpass->SetSuccessor(m_SilhouetteSimComputePass);
 		}
 
 		// Fullscreen
@@ -250,30 +314,7 @@ namespace Povox {
 		}
 
 		m_RayMarchingMaterial = Material::Create(Renderer::GetShaderManager()->Get(m_RayMarchingShaderHandle), "RayMarching");
-
-		BufferSpecification vertexBufferSpecs{};
-		vertexBufferSpecs.Usage = BufferUsage::VERTEX_BUFFER;
-		vertexBufferSpecs.MemUsage = MemoryUtils::MemoryUsage::GPU_ONLY;
-		vertexBufferSpecs.ElementCount = m_Specification.MaxParticles;
-		vertexBufferSpecs.Size = sizeof(SilhouetteVertex) * m_Specification.MaxParticles;
-
-		uint32_t maxFrames = Renderer::GetSpecification().MaxFramesInFlight;
-		m_SilhouetteVertexBuffers.resize(maxFrames);
-		m_SilhouetteVertexBufferBases.resize(maxFrames);
-		for (uint32_t i = 0; i < maxFrames; i++)
-		{
-			vertexBufferSpecs.DebugName = "ParticleRenderer Batch Vertexbuffer Frame: " + std::to_string(i);
-			m_SilhouetteVertexBuffers[i] = Buffer::Create(vertexBufferSpecs);
-			m_SilhouetteVertexBufferBases[i] = new SilhouetteVertex[m_Specification.MaxParticles];			
-		}
-
-		m_SilhouetteVertexBufferPtr = m_SilhouetteVertexBufferBases[0];
-		for (uint64_t i = 0; i < m_Specification.MaxParticles; i++)
-		{
-			m_SilhouetteVertexBufferPtr->PositionRadius = glm::linearRand(glm::vec4(-10.0f, -10.0f, -10.0f, 0.05f), glm::vec4(10.0f, 10.0f, 10.0f, 0.5f));
-			m_SilhouetteVertexBufferPtr->Color = glm::linearRand(glm::vec4(0.0f, 0.0f, 0.0f, 1.0f), glm::vec4(1.0f));
-			m_SilhouetteVertexBufferPtr++;
-		}
+			
 
 		PX_CORE_TRACE("SciRenderer::Init: Completed.");
 		return true;
@@ -284,7 +325,7 @@ namespace Povox {
 	}
 
 
-	void SciParticleRenderer::OnUpdate(float deltaTime)
+	void SciParticleRenderer::OnUpdate(float deltaTime, uint64_t totalElements)
 	{
 		m_ElapsedTime += deltaTime;
 		m_DeltaTimne = deltaTime;
@@ -294,9 +335,8 @@ namespace Povox {
 		{
 			if (set->GetSpecifications().GPUSimulationActive)
 			{
-				//Renderer::StartTimestampQuery("ParticleMovementComputePass");
-				Renderer::DispatchCompute(m_DistanceFieldComputePass);
-				//Renderer::StopTimestampQuery("ParticleMovementComputePass");
+				//Renderer::DispatchCompute(m_DistanceFieldComputePass);
+				Renderer::DispatchCompute(m_SilhouetteSimComputePass, totalElements, 16, 16, 4);
 			}
 		}
 	}
@@ -385,7 +425,7 @@ namespace Povox {
 		Renderer::StartTimestampQuery("RaymarchingRenderpass");
 		Renderer::BeginRenderPass(m_RayMarchingRenderpass);
 
-		Renderer::Draw(m_FullscreenQuadVertexBuffer, m_RayMarchingMaterial, m_FullscreenQuadIndexBuffer, 6, true);
+		Renderer::Draw(m_FullscreenQuadVertexBuffer, 0, m_RayMarchingMaterial, m_FullscreenQuadIndexBuffer, 6, true);
 
 		Renderer::EndRenderPass();
 		Renderer::StopTimestampQuery("RaymarchingRenderpass");
@@ -394,20 +434,9 @@ namespace Povox {
 		m_FinalImage = m_RayMarchingFramebuffer->GetColorAttachment(0);
 	}
 
-	void SciParticleRenderer::DrawParticleSilhouette(const PerspectiveCamera& camera, uint64_t particleCount)
+	void SciParticleRenderer::DrawParticleSilhouette(uint64_t particleCount)
 	{
 		PX_PROFILE_FUNCTION();
-
-
-		//First do the Compute stuff, then wait until compute is finished (barriers connecting ComputePass (THere is no actual computePass, is just to connect resources) and Renderpass)
-		m_CameraUniform.View = camera.GetViewMatrix();
-		m_CameraUniform.InverseView = glm::inverse(camera.GetViewMatrix());
-		m_CameraUniform.Projection = camera.GetProjectionMatrix();
-		m_CameraUniform.ViewProjection = camera.GetViewProjectionMatrix();
-		m_CameraUniform.Forward = glm::vec4(camera.GetForward(), 0.0f);
-		m_CameraUniform.Position = glm::vec4(camera.GetPosition(), 0.0f);
-		m_CameraData->SetData((void*)&m_CameraUniform, sizeof(CameraUniform));
-
 
 		uint32_t currentFrameIndex = Renderer::GetCurrentFrameIndex();
 		
@@ -419,14 +448,13 @@ namespace Povox {
 		Renderer::StartTimestampQuery("SilhouetteRenderpass");
 		Renderer::BeginRenderPass(m_SilhouetteRenderpass);
 
-		if (particleCount > 0)
-		{			
-			uint32_t dataSize = glm::min(particleCount, m_Specification.MaxParticles) * sizeof(SilhouetteVertex);
-			//uint32_t dataSize = (uint32_t)((uint8_t*)m_SilhouetteVertexBufferPtr - (uint8_t*)m_SilhouetteVertexBufferBases[currentFrameIndex]);
-			m_SilhouetteVertexBuffers[currentFrameIndex]->SetData(m_SilhouetteVertexBufferBases[0], dataSize);
+					
+		//uint32_t dataSize = glm::min(particleCount, m_Specification.MaxParticles) * sizeof(SilhouetteVertex);
+		//uint32_t dataSize = (uint32_t)((uint8_t*)m_SilhouetteVertexBufferPtr - (uint8_t*)m_SilhouetteVertexBufferBases[currentFrameIndex]);
+		//m_SilhouetteVertexBuffers[currentFrameIndex]->SetData(m_SilhouetteVertexBufferBases[0], dataSize);
 
-			Renderer::Draw(m_SilhouetteVertexBuffers[currentFrameIndex], nullptr, nullptr, particleCount, true);
-		}		
+		Renderer::Draw(m_SilhouetteVertexBuffer, m_Specification.MaxParticles * sizeof(SilhouetteVertex) * currentFrameIndex, nullptr, nullptr, particleCount, true);
+				
 
 		Renderer::EndRenderPass();
 		Renderer::StopTimestampQuery("SilhouetteRenderpass");
@@ -444,8 +472,7 @@ namespace Povox {
 		m_RayMarchingUniform.ParticleCount = maxParticleDraws;
 		//m_RayMarchingUniform.ParticleCount = particleSet->GetParticleCount();
 
-		m_RayMarchingData->SetData((void*)&m_RayMarchingUniform, sizeof(RayMarchingUniform));
-			
+		m_RayMarchingData->SetData((void*)&m_RayMarchingUniform, sizeof(RayMarchingUniform));			
 	}
 
 	void SciParticleRenderer::ResetStatistics()
