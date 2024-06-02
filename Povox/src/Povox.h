@@ -12,6 +12,7 @@
 #include "Povox/Debugging/Instrumentor.h"
 
 #include "Povox/Core/Timestep.h"
+#include "Povox/Tools/TimerStatistics.h"
 
 // --- Inputs
 #include "Povox/Core/Input.h"

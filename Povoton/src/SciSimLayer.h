@@ -41,6 +41,7 @@ namespace Povox {
 
 		Povox::Ref<SciParticleSet> m_ActiveParticleSet = nullptr;
 
+		TimerStatistics m_TimerStatistics;
 		float m_Deltatime = 0.0f;
 
 		uint32_t m_MaxParticleDraws = 0;

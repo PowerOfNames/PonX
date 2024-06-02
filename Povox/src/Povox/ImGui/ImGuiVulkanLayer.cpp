@@ -41,6 +41,7 @@ namespace Povox {
 		//io.ConfigFlags |= ImGuiConfigFlags_ViewportsNoMerge;
 
 		io.Fonts->AddFontFromFileTTF("assets/fonts/OpenSansJP/NotoSansJP-Bold.otf", 18.0f);
+		//io.Fonts->AddFontFromFileTTF("assets/fonts/DejaVuSans/DejavuSansBold-KEmZ.ttf", 18.0f, NULL, io.Fonts->GetGlyphRangesGreek());
 		io.FontDefault = io.Fonts->AddFontFromFileTTF("assets/fonts/OpenSansJP/NotoSansJP-Regular.otf", 18.0f);
 
 		// Setup Dear ImGui style

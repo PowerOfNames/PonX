@@ -188,7 +188,8 @@ void main() {
     //First: Determine if the pixel lies within the radius of the circle, if not, discard
     if(!(length(SilhouetteCorner.TexCoord) * length(SilhouetteCorner.TexCoord) <= 1))
     {
-        discard;
+        FragColor = vec4(1.0, 0.2, 0.5, 0.5);
+        //discard;
     }
     //Second: Color pixel according to lighting (normal calculation + light parameters from scenery's lighting system
     else

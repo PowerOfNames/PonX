@@ -33,6 +33,10 @@ project "Povosom"
 	filter "system:windows"
 		systemversion "latest"
 
+	filter "action:vs*"
+		buildoptions { "/utf-8" }		
+		characterset "Unicode"
+		
 	filter "configurations:Debug"
 		defines "PX_DEBUG"
 		runtime "Debug"

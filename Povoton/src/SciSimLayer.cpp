@@ -72,6 +72,7 @@ namespace Povox {
         PX_PROFILE_FUNCTION();
 
 		        
+		m_TimerStatistics.AddTimestamp(deltatime*1000.0f);
 		m_Deltatime = deltatime;
 
         // Resize
@@ -225,12 +226,63 @@ namespace Povox {
 		if (!m_GUICollapsed)
 		{
 			ImGui::Begin(" Stats ", &m_GUICollapsed);
+			// By default, if we don't enable ScrollX the sizing policy for each columns is "Stretch"
+			// Each columns maintain a sizing weight, and they will occupy all available width.
+			static ImGuiTableFlags flags = ImGuiTableFlags_Resizable | ImGuiTableColumnFlags_WidthStretch | ImGuiTableFlags_NoBordersInBody | ImGuiTableFlags_BordersOuter;
+			
+			//ImGui::SameLine(); HelpMarker("Using the _Resizable flag automatically enables the _BordersInnerV flag as well, this is why the resize borders are still showing when unchecking this.");
+		
+			if (ImGui::BeginTable("table1", 2, flags))
+			{		
+				ImGui::TableHeadersRow();
+
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				ImGui::Text("FPS:");
+				ImGui::TableSetColumnIndex(1);
+				ImGui::Text("%.2f", 1.0f / m_Deltatime);
+				
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				ImGui::Text("DeltaTime dt:");
+				ImGui::TableSetColumnIndex(1);
+				ImGui::Text("%.2fms", m_Deltatime * 1000.0);
+				
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				ImGui::Text("TotalAverage:");
+				ImGui::TableSetColumnIndex(1);
+				ImGui::Text("%.2fms", m_TimerStatistics.GetAverage());
+				
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				ImGui::Text("TotalMax:"); 
+				ImGui::TableSetColumnIndex(1);
+				ImGui::Text("%.2fms", m_TimerStatistics.GetMax());
+				
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				ImGui::Text("Average dt 1s:");
+				ImGui::TableSetColumnIndex(1);
+				ImGui::Text("%.2fms", m_TimerStatistics.GetTimespanAverage());				
+
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				ImGui::Text("Max dt 1s:"); 
+				ImGui::TableSetColumnIndex(1);
+				ImGui::Text("%.2fms", m_TimerStatistics.GetTimespanMax());								
+				
+				ImGui::EndTable();				
+			}
+			if (ImGui::Button("Reset"))
+				m_TimerStatistics.Reset();
+
 			// 			ImGui::Text("DrawCalls: %d", stats.DrawCalls);
 			// 			ImGui::Text("Quads: %d", stats.QuadCount);
 			// 			ImGui::Text("Vertices: %d", stats.GetTotalVertexCount());
 			// 			ImGui::Text("Indices: %d", stats.GetTotalIndexCount());
-			ImGui::Text("Deltatime: %fms", m_Deltatime * 1000.0);
-			ImGui::Text("FPS: %f", 1.0f / m_Deltatime);
+			//ImGui::Text("Deltatime: %fms", m_Deltatime * 1000.0);
+			//ImGui::Text("FPS: %f", 1.0f / m_Deltatime);
 			ImGui::Separator();
 
 			Povox::RendererStatistics rendererStats = Povox::Renderer::GetStatistics();
@@ -263,11 +315,11 @@ namespace Povox {
 			ImGui::End(); // Renderer Stats
 
 
-			/*ImGui::Begin("Test Tab");
+			ImGui::Begin("Test Tab");
 			ImGui::Checkbox("Demo ImGui", &m_DemoActive);
 			if (m_DemoActive)
 				ImGui::ShowDemoWindow();
-			ImGui::End();*/
+			ImGui::End();
 
 			ImGui::Begin("Editor Camera");
 			glm::vec3 cameraPos = m_PerspectiveController.GetCamera().GetPosition();

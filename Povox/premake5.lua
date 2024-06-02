@@ -85,10 +85,10 @@ project "Povox"
 
 	filter "system:windows"
 		systemversion "latest"
-
-		defines
-		{
-		}
+		
+	filter "action:vs*"
+		buildoptions { "/utf-8" }		
+		characterset "Unicode"
 
 	filter "configurations:Debug"
 		defines "PX_DEBUG"
