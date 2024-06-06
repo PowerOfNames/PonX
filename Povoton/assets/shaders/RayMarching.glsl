@@ -27,12 +27,13 @@ layout(location = 1) in vec2 v_UV;
 
 layout(location = 0) out vec4 finalColor;
 
-layout(std140, set = 0, binding = 0) uniform CameraUBO
+layout(std140, set = 0, binding = 0) uniform ActiveCameraUBO
 {
 	mat4 View;
 	mat4 InverseView;
 	mat4 Projection;
 	mat4 ViewProjection;
+	mat4 InverseViewProjection;
 	vec4 Forward;
 	vec4 Position;
 	float FOV;

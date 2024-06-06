@@ -200,6 +200,7 @@ namespace Povox {
 
 
 		//TEMP
+		bool m_QueryActive = false;
 		// Samplers
 		VkSampler m_TextureSampler = VK_NULL_HANDLE;
 

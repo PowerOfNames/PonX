@@ -12,8 +12,10 @@ namespace Povox {
 		enum class PrimitiveTopology
 		{
 			POINT_LIST = 2,
-			TRIANGLE_LIST = 3,
-			TRIANGLE_STRIP = 4,
+			LINE_LIST = 3,
+			LINE_STRIP = 4,
+			TRIANGLE_LIST = 5,
+			TRIANGLE_STRIP = 6,
 
 			DEFAULT = TRIANGLE_LIST
 		};

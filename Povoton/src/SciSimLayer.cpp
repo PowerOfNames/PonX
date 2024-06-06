@@ -13,7 +13,7 @@
 namespace Povox {
 
 	SciSimLayer::SciSimLayer()
-        : Layer("Povoton"), m_PerspectiveController(1600, 900)
+        : Layer("Povoton"), m_PerspectiveController(45, 1600, 900, 0.1f, 100.0f, "MainCamera"), m_DebugCameraController(60, 1600, 900, 0.1f, 100.0f, "DebugCamera")
     {
     }
 
@@ -23,7 +23,6 @@ namespace Povox {
 
 
 		m_WindowSize = m_ViewportSize = { Povox::Application::Get()->GetWindow().GetWidth(), Povox::Application::Get()->GetWindow().GetHeight() };
-
 
         //m_EditorCamera = Povox::EditorCamera(90.0f, (m_ViewportSize.x / m_ViewportSize.y * 1.0f), 0.1f, 1000.0f);
 		PX_INFO("Camera Aspect Ratio: {}", (m_ViewportSize.x / m_ViewportSize.y * 1.0f));
@@ -43,7 +42,7 @@ namespace Povox {
 			specs.DebugName = "ParticleTestSet";
 			m_ActiveParticleSet = Povox::CreateRef<SciParticleSet>(specs);
 		}
-		m_ParticleInformationPanel.SetContext(m_ActiveParticleSet);		
+		m_ParticleInformationPanel.SetContext(m_ActiveParticleSet);
 
 		{
 			SciParticleRendererSpecification specs{};
@@ -86,6 +85,7 @@ namespace Povox {
 
             //m_EditorCamera.SetViewportSize(m_ViewportSize.x, m_ViewportSize.y);
 			m_PerspectiveController.ResizeViewport(m_ViewportSize.x, m_ViewportSize.y);
+			m_DebugCameraController.ResizeViewport(m_ViewportSize.x, m_ViewportSize.y);
 
             m_SciRenderer->OnResize((uint32_t)m_ViewportSize.x, (uint32_t)m_ViewportSize.y);
 			m_ViewportResized = false;
@@ -93,21 +93,28 @@ namespace Povox {
 
 
         //m_EditorCamera.OnUpdate(deltatime);
-		m_PerspectiveController.OnUpdate(deltatime);
+		if (!m_DebugCamActive)
+			m_PerspectiveController.OnUpdate(deltatime);
+		m_DebugCameraController.OnUpdate(deltatime);
+		
 
 		m_SciRenderer->ResetStatistics();
 		
 		// Update particles, if set this will simulate using compute shaders
 		m_ActiveParticleSet->OnUpdate(deltatime);
 
-		m_SciRenderer->Begin(m_PerspectiveController.GetCamera());
+		if (m_DebugCamActive)
+			m_SciRenderer->BeginDebug(m_PerspectiveController.GetCamera(), m_DebugCameraController.GetCamera());
+		else
+			m_SciRenderer->Begin(m_PerspectiveController.GetCamera());
+
 		m_SciRenderer->OnUpdate(deltatime, m_MaxParticleDraws);
 
 		// Now we draw the particle sets result
 		m_SciRenderer->DrawParticleSet(m_ActiveParticleSet, m_MaxParticleDraws);
 
 		//m_SciRenderer->End();
-		m_SciRenderer->DrawParticleSilhouette(m_MaxParticleDraws);
+		m_SciRenderer->DrawParticleSilhouette(m_MaxParticleDraws, m_DebugCamActive);
 
 		//CopyFinalImage into current SwapchainImage
 		{
@@ -322,23 +329,39 @@ namespace Povox {
 			ImGui::End();
 
 			ImGui::Begin("Editor Camera");
-			glm::vec3 cameraPos = m_PerspectiveController.GetCamera().GetPosition();
-			glm::vec3 front = m_PerspectiveController.GetCamera().GetForward();
-			glm::mat4 view = glm::inverse(m_PerspectiveController.GetCamera().GetViewMatrix());
-			glm::mat4 proj = m_PerspectiveController.GetCamera().GetProjectionMatrix();
-
+			glm::vec3 mainCameraPos = m_PerspectiveController.GetCamera().GetPosition();
+			glm::vec3 mainFront = m_PerspectiveController.GetCamera().GetForward();
+			glm::mat4 mainView = glm::inverse(m_PerspectiveController.GetCamera().GetViewMatrix());
+			glm::mat4 mainProj = m_PerspectiveController.GetCamera().GetProjectionMatrix();
 			//glm::vec3 cameraPos = m_EditorCamera.GetPosition();
-			ImGui::Text("Camera Position: {%f|%f|%f}", cameraPos.x, cameraPos.y, cameraPos.z);
-			ImGui::Text("Camera Direction: {%f|%f|%f}", front.x, front.y, front.z);
-			ImGui::Text("Camera ViewMatrix: {%f|%f|%f|%f}", view[0][0], view[1][0], view[2][0], view[3][0]);
-			ImGui::Text("Camera ViewMatrix: {%f|%f|%f|%f}", view[0][1], view[1][1], view[2][1], view[3][1]);
-			ImGui::Text("Camera ViewMatrix: {%f|%f|%f|%f}", view[0][2], view[1][2], view[2][2], view[3][2]);
-			ImGui::Text("Camera ViewMatrix: {%f|%f|%f|%f}", view[0][3], view[1][3], view[2][3], view[3][3]);
+			ImGui::Text("MainCamera:");
+			ImGui::Text("Pos: {%f|%f|%f}", mainCameraPos.x, mainCameraPos.y, mainCameraPos.z);
+			ImGui::Text("Dir: {%f|%f|%f}", mainFront.x, mainFront.y, mainFront.z);
+			ImGui::Text("ViewMatrix: {%f|%f|%f|%f}", mainView[0][0], mainView[1][0], mainView[2][0], mainView[3][0]);
+			ImGui::Text("ViewMatrix: {%f|%f|%f|%f}", mainView[0][1], mainView[1][1], mainView[2][1], mainView[3][1]);
+			ImGui::Text("ViewMatrix: {%f|%f|%f|%f}", mainView[0][2], mainView[1][2], mainView[2][2], mainView[3][2]);
+			ImGui::Text("ViewMatrix: {%f|%f|%f|%f}", mainView[0][3], mainView[1][3], mainView[2][3], mainView[3][3]);
+			//ImGui::Text("Camera ProjMatrix: {%f|%f|%f|%f}", proj[0][0], proj[1][0], proj[2][0], proj[3][0]);
+			//ImGui::Text("Camera ProjMatrix: {%f|%f|%f|%f}", proj[0][1], proj[1][1], proj[2][1], proj[3][1]);
+			//ImGui::Text("Camera ProjMatrix: {%f|%f|%f|%f}", proj[0][2], proj[1][2], proj[2][2], proj[3][2]);
+			//ImGui::Text("Camera ProjMatrix: {%f|%f|%f|%f}", proj[0][3], proj[1][3], proj[2][3], proj[3][3]);
+			
+			ImGui::Checkbox("DebugCameraActive", &m_DebugCamActive);
+			if(m_DebugCamActive)
+			{
+				glm::vec3 debugCameraPos = m_DebugCameraController.GetCamera().GetPosition();
+				glm::vec3 debugFront = m_DebugCameraController.GetCamera().GetForward();
+				glm::mat4 debugView = glm::inverse(m_DebugCameraController.GetCamera().GetViewMatrix());
+				glm::mat4 debugProj = m_DebugCameraController.GetCamera().GetProjectionMatrix();
+				ImGui::Text("DebugCam:");
+				ImGui::Text("Pos: {%f|%f|%f}", debugCameraPos.x, debugCameraPos.y, debugCameraPos.z);
+				ImGui::Text("Dir: {%f|%f|%f}", debugFront.x, debugFront.y, debugFront.z);
+				ImGui::Text("View: {%f|%f|%f|%f}", debugView[0][0], debugView[1][0], debugView[2][0], debugView[3][0]);
+				ImGui::Text("View: {%f|%f|%f|%f}", debugView[0][1], debugView[1][1], debugView[2][1], debugView[3][1]);
+				ImGui::Text("View: {%f|%f|%f|%f}", debugView[0][2], debugView[1][2], debugView[2][2], debugView[3][2]);
+				ImGui::Text("View: {%f|%f|%f|%f}", debugView[0][3], debugView[1][3], debugView[2][3], debugView[3][3]);
+			}
 
-			ImGui::Text("Camera ProjMatrix: {%f|%f|%f|%f}", proj[0][0], proj[1][0], proj[2][0], proj[3][0]);
-			ImGui::Text("Camera ProjMatrix: {%f|%f|%f|%f}", proj[0][1], proj[1][1], proj[2][1], proj[3][1]);
-			ImGui::Text("Camera ProjMatrix: {%f|%f|%f|%f}", proj[0][2], proj[1][2], proj[2][2], proj[3][2]);
-			ImGui::Text("Camera ProjMatrix: {%f|%f|%f|%f}", proj[0][3], proj[1][3], proj[2][3], proj[3][3]);
 			ImGui::End();
 
 
@@ -461,7 +484,9 @@ namespace Povox {
     void SciSimLayer::OnEvent(Povox::Event& e)
     {
         //m_EditorCamera.OnEvent(e);
-		m_PerspectiveController.OnEvent(e);
+		if(!m_DebugCamActive)
+			m_PerspectiveController.OnEvent(e);
+		m_DebugCameraController.OnEvent(e);
 
 		Povox::EventDispatcher dispatcher(e);
         dispatcher.Dispatch<Povox::KeyPressedEvent>(PX_BIND_EVENT_FN(SciSimLayer::OnKeyPressed));
@@ -526,6 +551,11 @@ namespace Povox {
                 m_GizmoType = -1;
                 break;
             }
+			case Povox::Key::X:
+			{
+				m_DebugCamActive = !m_DebugCamActive;
+				break;
+			}
             case Povox::Key::W:
             {
                 m_GizmoType = ImGuizmo::OPERATION::TRANSLATE;
@@ -627,4 +657,5 @@ namespace Povox {
     {
         Povox::Application::Get()->Close();
     }
+
 }

@@ -38,6 +38,9 @@ namespace Povox {
 		//First check if images come from elsewhere, if so, use those. If not, create new
 		if (!m_Specification.OriginalImages.empty())
 		{
+			// We dont need to recreate attachments if they come from another renderpass. Check happens inside Recreate().
+			if (m_ColorAttachments.size() != 0 || m_DepthAttachment)
+				return;
 			PX_CORE_ASSERT(m_Specification.OriginalImages.size() == m_Specification.Attachments.Attachments.size(), "Framebuffer specification: Original images size does not match attachments size!");
 			for (uint32_t i = 0; i < m_Specification.OriginalImages.size(); i++)
 			{
@@ -115,9 +118,19 @@ namespace Povox {
 			VkFormat format = VulkanUtils::GetVulkanImageFormat(m_Specification.Attachments.Attachments[i].Format);
 			attachment.format = format;
 			attachment.samples = VK_SAMPLE_COUNT_1_BIT;
-			attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+			if (!m_Specification.OriginalImages.empty())
+			{
+				//attachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+				attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+				attachment.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+			}
+			else
+			{
+				attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+				attachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+			}
 			attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-			attachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+			
 
 			if (VulkanUtils::IsVulkanDepthFormat(format))
 			{

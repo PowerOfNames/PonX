@@ -257,7 +257,7 @@ namespace Povox {
 
 		static ShaderStage ReflectShaderStageToStage(SpvReflectShaderStageFlagBits stage) {
 			switch (stage)
-			{
+			{				
 				case SPV_REFLECT_SHADER_STAGE_VERTEX_BIT: return ShaderStage::VERTEX;
 				case SPV_REFLECT_SHADER_STAGE_FRAGMENT_BIT: return ShaderStage::FRAGMENT;
 				case SPV_REFLECT_SHADER_STAGE_GEOMETRY_BIT: return ShaderStage::GEOMETRY;
@@ -496,6 +496,8 @@ namespace Povox {
 							binding.descriptorCount *= reflBinding.array.dims[dim];
 						}
 						binding.stageFlags |= static_cast<VkShaderStageFlagBits>(module.shader_stage);
+						if (reflBinding.set == 0)
+							binding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_GEOMETRY_BIT | VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_COMPUTE_BIT ;
 
 						currentSetLayout.Bindings.push_back(binding);
 
@@ -505,7 +507,10 @@ namespace Povox {
 						resource->Count = binding.descriptorCount;
 						resource->Name = name;
 						resource->ResourceType = VulkanUtils::VulkanDescriptorTypeToShaderResourceType(SpirvUtils::IsDynamic(static_cast<VkDescriptorType>(reflBinding.descriptor_type), reflSet.set));
-						resource->Stages |= SpirvUtils::ReflectShaderStageToStage(module.shader_stage);
+						if (reflSet.set == 0)
+							resource->Stages = ShaderStage::ALL_STAGES;
+						else
+							resource->Stages |= SpirvUtils::ReflectShaderStageToStage(module.shader_stage);
 
 						m_ShaderResourceDescriptions[name] = std::move(resource);
 					}

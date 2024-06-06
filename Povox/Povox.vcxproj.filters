@@ -46,6 +46,9 @@
     <Filter Include="src\Povox\Systems">
       <UniqueIdentifier>{9F07E936-0B1E-E7CC-5495-72EEC0EAB754}</UniqueIdentifier>
     </Filter>
+    <Filter Include="src\Povox\Tools">
+      <UniqueIdentifier>{18B0D61B-843B-44E0-8D4C-C7D4F956A0E0}</UniqueIdentifier>
+    </Filter>
     <Filter Include="src\Povox\Utils">
       <UniqueIdentifier>{F86CEB1B-64F8-58E0-6D09-DCD4D913B5E0}</UniqueIdentifier>
     </Filter>
@@ -332,6 +335,9 @@
     </ClInclude>
     <ClInclude Include="src\Povox\Systems\TextureSystem.h">
       <Filter>src\Povox\Systems</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Povox\Tools\TimerStatistics.h">
+      <Filter>src\Povox\Tools</Filter>
     </ClInclude>
     <ClInclude Include="src\Povox\Utils\FileUtility.h">
       <Filter>src\Povox\Utils</Filter>
@@ -1638,7 +1644,6 @@
     <ClInclude Include="vendor\yaml-cpp\src\token.h">
       <Filter>vendor\yaml-cpp\src</Filter>
     </ClInclude>
-    <ClInclude Include="src\Povox\Tools\TimerStatistics.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Platform\OpenGL\OpenGLShader.cpp">
@@ -1812,6 +1817,9 @@
     <ClCompile Include="src\Povox\Systems\TextureSystem.cpp">
       <Filter>src\Povox\Systems</Filter>
     </ClCompile>
+    <ClCompile Include="src\Povox\Tools\TimerStatistics.cpp">
+      <Filter>src\Povox\Tools</Filter>
+    </ClCompile>
     <ClCompile Include="src\Povox\Utils\ShaderResource.cpp">
       <Filter>src\Povox\Utils</Filter>
     </ClCompile>
@@ -1920,6 +1928,5 @@
     <ClCompile Include="vendor\yaml-cpp\src\tag.cpp">
       <Filter>vendor\yaml-cpp\src</Filter>
     </ClCompile>
-    <ClCompile Include="src\Povox\Tools\TimerStatistics.cpp" />
   </ItemGroup>
 </Project>

@@ -6,10 +6,10 @@
 
 namespace Povox {
 
-	PerspectiveCamera::PerspectiveCamera(float aspectRatio)
-		: m_AspectRatio(aspectRatio), m_ViewMatrix(1.0f)
+	PerspectiveCamera::PerspectiveCamera(float FOV, float aspectRatio, float nearClip, float farClip)
+		: m_FOV(FOV), m_AspectRatio(aspectRatio), m_NearClip(nearClip), m_FarClip(farClip), m_ViewMatrix(1.0f)
 	{
-		SetProjectionMatrix(aspectRatio);
+		SetProjectionMatrix(FOV, aspectRatio, nearClip, farClip);
 		m_ViewProjectionMatrix = m_ProjectionMatrix * m_ViewMatrix;
 	}
 
@@ -32,13 +32,17 @@ namespace Povox {
 		m_ViewProjectionMatrix = m_ProjectionMatrix * m_ViewMatrix;
 	}
 
-	void PerspectiveCamera::SetProjectionMatrix(float aspectRatio, float FOV)
+	void PerspectiveCamera::SetProjectionMatrix(float FOV, float aspectRatio, float nearClip, float farClip)
 	{
 		PX_PROFILE_FUNCTION();
 
-
+		m_FOV = FOV;
 		m_AspectRatio = aspectRatio;
-		m_ProjectionMatrix = glm::perspective(glm::radians(FOV), aspectRatio, 0.1f, 100.0f);
+		m_NearClip = nearClip;
+		m_FarClip = farClip;
+
+		m_ProjectionMatrix = glm::perspective(glm::radians(FOV), aspectRatio, nearClip, farClip);
+		CalculateFrustumCorners();
 		m_ViewProjectionMatrix = m_ProjectionMatrix * m_ViewMatrix;
 	}
 
@@ -46,6 +50,29 @@ namespace Povox {
 	{
 		m_CameraFront = front;
 		RecalculateViewMatrix();
+	}
+
+	/**
+	 * @brief 
+	 * Calculates the frustum corners in view space of the camera, starting with bottom right near(0)/far(1), clockwise.
+	 * 
+	 */
+	void PerspectiveCamera::CalculateFrustumCorners()
+	{
+		float tanHalfFOV = glm::tan(glm::radians(m_FOV) / 2.0f);
+		float nearHeight = 2.0f * tanHalfFOV * m_NearClip;
+		float nearWidth = nearHeight * m_AspectRatio;
+		float farHeight = 2.0f * tanHalfFOV * m_FarClip;
+		float farWidth = farHeight * m_AspectRatio;
+
+		m_FrustumCorners[0] = glm::vec4(-nearWidth / 2.0f, nearHeight / 2.0f, -m_NearClip, 1.0f);	//near topLeft
+		m_FrustumCorners[1] = glm::vec4(-farWidth / 2.0f, farHeight / 2.0f, -m_FarClip, 1.0f);		//far topLeft
+		m_FrustumCorners[2] = glm::vec4(nearWidth / 2.0f, nearHeight / 2.0f, -m_NearClip, 1.0f);	//near topRight
+		m_FrustumCorners[3] = glm::vec4(farWidth / 2.0f, farHeight / 2.0f, -m_FarClip, 1.0f);		//far topRight
+		m_FrustumCorners[4] = glm::vec4(nearWidth / 2.0f, -nearHeight / 2.0f, -m_NearClip, 1.0f);	//near bottomRight
+		m_FrustumCorners[5] = glm::vec4(farWidth / 2.0f, -farHeight / 2.0f, -m_FarClip, 1.0f);		//far bottomRight
+		m_FrustumCorners[6] = glm::vec4(-nearWidth / 2.0f, -nearHeight / 2.0f, -m_NearClip, 1.0f);	//near bottomLeft
+		m_FrustumCorners[7] = glm::vec4(-farWidth / 2.0f, -farHeight / 2.0f, -m_FarClip, 1.0f);		//far bottomLeft
 	}
 
 }

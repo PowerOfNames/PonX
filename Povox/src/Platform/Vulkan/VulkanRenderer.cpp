@@ -328,7 +328,9 @@ namespace Povox {
 			vkCmdDraw(m_ActiveCommandBuffer, indexCount, 1, 0, 0);
 		}
 
-		m_QueryManager->EndPipelineQuery("PipelineQueryPool", m_ActiveCommandBuffer, m_CurrentFrameIndex);
+		if(m_QueryActive)
+			//m_QueryManager->EndPipelineQuery("PipelineQueryPool", m_ActiveCommandBuffer, m_CurrentFrameIndex);		
+		
 		verticesVkBuf->TransferOwnership(QueueFamilyOwnership::QFO_COMPUTE, firstVertexOffset, indexCount * verticesVkBuf->GetSpecification().ElementSize);
 	}
 
@@ -786,7 +788,7 @@ namespace Povox {
 
 		// Bind pipeline. TODO: Behaviour if multiple pipelines are used during one renderpass (logic not supported yet)
 		BindPipeline(renderPass->GetSpecification().Pipeline);
-
+		vkCmdSetLineWidth(m_ActiveCommandBuffer, 1.0f);
 
 		m_ActiveRenderPass->UpdateResourceOwnership(m_CurrentFrameIndex);
 
@@ -848,7 +850,12 @@ namespace Povox {
 			vkCmdSetScissor(m_ActiveCommandBuffer, 0, 1, &scissor);
 		}
 
-		m_QueryManager->BeginPipelineQuery("PipelineQueryPool", m_ActiveCommandBuffer, m_CurrentFrameIndex);
+		if (!m_QueryActive)
+		{
+			//m_QueryManager->BeginPipelineQuery("PipelineQueryPool", m_ActiveCommandBuffer, m_CurrentFrameIndex);
+			m_QueryActive = true;
+		}
+		
 		vkCmdBindPipeline(m_ActiveCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_ActivePipeline->GetVulkanObj());
 	}
 

@@ -2,16 +2,17 @@
 #version 460
 #extension GL_EXT_shader_explicit_arithmetic_types_int64 : require
 
-layout(std140, set = 0, binding = 0) uniform CameraUBO
+layout(std140, set = 0, binding = 0) uniform BillboardCameraUBO
 {
 	mat4 View;
 	mat4 InverseView;
 	mat4 Projection;
 	mat4 ViewProjection;
+    mat4 InverseViewProjection;
 	vec4 Forward;
 	vec4 Position;
 	float FOV;
-}u_Camera;
+}u_BillboardCamera;
 
 layout(std140, set = 0, binding = 1) uniform RayMarchingUBO
 {

@@ -50,6 +50,7 @@ namespace Povox {
 		glm::mat4 InverseView;
 		glm::mat4 Projection;
 		glm::mat4 ViewProjection;
+		glm::mat4 InverseViewProjection;
 		glm::vec4 Forward;
 		glm::vec4 Position;
 		float FOV;

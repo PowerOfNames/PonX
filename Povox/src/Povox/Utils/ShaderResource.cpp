@@ -101,7 +101,7 @@ namespace Povox {
 		}
 	}
 
-	void UniformBuffer::Set(void* data, const std::string& name, size_t size)
+	void UniformBuffer::Set(void* data, const std::string& elementName, size_t size)
 	{
 		PX_CORE_ASSERT(m_Buffers.size(), "Buffers are unset!");
 
@@ -111,7 +111,7 @@ namespace Povox {
 		{
 			uint32_t frameIndex = Renderer::GetCurrentFrameIndex();
 
-			const BufferElement* element = m_Layout.GetElement(name);
+			const BufferElement* element = m_Layout.GetElement(elementName);
 			uint32_t offset = element->Offset;
 
 			m_Buffers[frameIndex]->SetData(data, offset, size);
@@ -186,7 +186,7 @@ namespace Povox {
 
 	}
 
-	void StorageBuffer::Set(void* data, uint32_t index, const std::string& name, size_t size)
+	void StorageBuffer::Set(void* data, uint32_t index, const std::string& elementName, size_t size)
 	{
 		PX_CORE_ASSERT(m_Buffers.size(), "Buffers are unset!");
 
@@ -196,7 +196,7 @@ namespace Povox {
 		{
 			uint32_t frameIndex = Renderer::GetCurrentFrameIndex();
 
-			const BufferElement* element = m_Layout.GetElement(name);
+			const BufferElement* element = m_Layout.GetElement(elementName);
 			uint32_t offset = index * element->Size + element->Offset;
 
 			m_Buffers[frameIndex]->SetData(data, offset, size);

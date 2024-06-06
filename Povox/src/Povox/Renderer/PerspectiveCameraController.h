@@ -11,7 +11,7 @@ namespace Povox {
 	class PerspectiveCameraController
 	{
 	public:
-		PerspectiveCameraController(float width, float height);
+		PerspectiveCameraController(float FOV, float width, float height, float nearClip, float farClip, const std::string name = "CameraDebugName");
 		~PerspectiveCameraController() = default;
 
 		void OnUpdate(Timestep deltaTime);
@@ -25,6 +25,10 @@ namespace Povox {
 		inline PerspectiveCamera& GetCamera() { return m_Camera; }
 		inline const PerspectiveCamera& GetCamera() const { return m_Camera; }
 
+		inline float GetFOV() const { return m_FOV; }
+		inline float GetNear() const { return m_NearClip; }
+		inline float GetFar() const { return m_FarClip; }
+
 	private:
 		bool OnWindowResized(WindowResizeEvent& e);
 		bool OnMouseMoved(MouseMovedEvent& e);
@@ -33,10 +37,13 @@ namespace Povox {
 	private:
 		float m_Width, m_Height;
 		float m_AspectRatio;
+		float m_NearClip;
+		float m_FarClip;
 		float m_ZoomLevel;
 		PerspectiveCamera m_Camera;
+		std::string m_DebugName;
 
-		bool mouseCaught = false;
+		bool m_MouseCaught = false;
 
 		glm::vec3 m_CameraPosition = { 0.0f, 0.0f, 0.0f };
 		glm::vec3 m_CameraFront = { 0.0f, 0.0f, -1.0f };

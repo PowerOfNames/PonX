@@ -27,16 +27,29 @@ void main()
 
 layout(points) in;
 
-layout(std140, set = 0, binding = 0) uniform CameraUBO
+layout(std140, set = 0, binding = 0) uniform BillboardCameraUBO
 {
 	mat4 View;
     mat4 InverseView;
 	mat4 Projection;
 	mat4 ViewProjection;
+    mat4 InverseViewProjection;
 	vec4 Forward;
 	vec4 Position;
 	float FOV;
-} u_Camera;
+} u_BillboardCamera;
+
+layout(std140, set = 0, binding = 1) uniform ActiveCameraUBO
+{
+	mat4 View;
+	mat4 InverseView;
+	mat4 Projection;
+	mat4 ViewProjection;
+    mat4 InverseViewProjection;
+	vec4 Forward;
+	vec4 Position;
+	float FOV;
+} u_ActiveCamera;
 
 
 layout(location = 0) in VertexDataIn {
@@ -82,10 +95,10 @@ void main() {
 
     vec3 sc = vec3(0.0, 0.0, 0.0);
     float sr = 0.0;
-    CalculateSilhouette(pos, u_Camera.Position.xyz, VertexIn[0].Radius, sc, sr);
+    CalculateSilhouette(pos, u_BillboardCamera.Position.xyz, VertexIn[0].Radius, sc, sr);
 
-    vec3 up = u_Camera.InverseView[1].xyz;
-    vec3 right = u_Camera.InverseView[0].xyz;
+    vec3 up = u_BillboardCamera.InverseView[1].xyz;
+    vec3 right = u_BillboardCamera.InverseView[0].xyz;
     vec3 cornerPos = vec3(1.0);
     vec4 unnormPos = vec4(1.0);
 
@@ -95,7 +108,7 @@ void main() {
     // calculate corner in World space
     cornerPos = sc + rMulUp + rMulRight;
     // bring corner to view space
-    unnormPos = u_Camera.ViewProjection * vec4(cornerPos, 1.0);
+    unnormPos = u_ActiveCamera.ViewProjection * vec4(cornerPos, 1.0);
 
     // bring corner to clip space
     gl_Position = vec4(unnormPos.xyz / unnormPos.w, 1.0);
@@ -108,7 +121,7 @@ void main() {
 
 
     cornerPos = sc + rMulUp - rMulRight;
-    unnormPos = u_Camera.ViewProjection * vec4(cornerPos, 1.0);
+    unnormPos = u_ActiveCamera.ViewProjection * vec4(cornerPos, 1.0);
 
     gl_Position = vec4(unnormPos.xyz / unnormPos.w, 1.0);
     SilhouetteCorner.Position = cornerPos;
@@ -120,7 +133,7 @@ void main() {
 
 
     cornerPos = sc - rMulUp + rMulRight;
-    unnormPos = u_Camera.ViewProjection * vec4(cornerPos, 1.0);
+    unnormPos = u_ActiveCamera.ViewProjection * vec4(cornerPos, 1.0);
 
     gl_Position = vec4(unnormPos.xyz / unnormPos.w, 1.0);
     SilhouetteCorner.Position = cornerPos;
@@ -132,7 +145,7 @@ void main() {
 
 
     cornerPos = sc - rMulUp - rMulRight;
-    unnormPos = u_Camera.ViewProjection * vec4(cornerPos, 1.0);
+    unnormPos = u_ActiveCamera.ViewProjection * vec4(cornerPos, 1.0);
 
     gl_Position = vec4(unnormPos.xyz / unnormPos.w, 1.0);
     SilhouetteCorner.Position = cornerPos;
@@ -149,16 +162,17 @@ void main() {
 #type fragment
 #version 460
 
-layout(std140, set = 0, binding = 0) uniform CameraUBO
+layout(std140, set = 0, binding = 1) uniform ActiveCameraUBO
 {
 	mat4 View;
 	mat4 InverseView;
 	mat4 Projection;
 	mat4 ViewProjection;
+    mat4 InverseViewProjection;
 	vec4 Forward;
 	vec4 Position;
 	float FOV;
-} u_Camera;
+} u_ActiveCamera;
 
 layout(location = 0) in SilhouetteData {
     vec3 Position;
@@ -188,18 +202,18 @@ void main() {
     //First: Determine if the pixel lies within the radius of the circle, if not, discard
     if(!(length(SilhouetteCorner.TexCoord) * length(SilhouetteCorner.TexCoord) <= 1))
     {
-        FragColor = vec4(1.0, 0.2, 0.5, 0.5);
-        //discard;
+        //FragColor = vec4(1.0, 0.2, 0.5, 0.5);
+        discard;
     }
     //Second: Color pixel according to lighting (normal calculation + light parameters from scenery's lighting system
     else
     {
-        vec3 intersection = RaySphereIntersection(u_Camera.Position.xyz, SilhouetteCorner.Position, SilhouetteCorner.Center, SilhouetteCorner.Radius);
+        vec3 intersection = RaySphereIntersection(u_ActiveCamera.Position.xyz, SilhouetteCorner.Position, SilhouetteCorner.Center, SilhouetteCorner.Radius);
         vec3 normal = normalize((intersection - SilhouetteCorner.Center));
 
-        //recalculate the depth buffer (quad fragment position -> sphere fragment position), by appliying the view projection matrix and bringing it to clip space
-        vec4 intersectionVP = u_Camera.ViewProjection * vec4(intersection, 1.0);
-        float depth = (intersectionVP.z / intersectionVP.w);
+        //recalculate the depth buffer (quad fragment position -> sphere fragment position), by applying the view projection matrix and bringing it to clip space
+        vec4 intersectionVP = u_ActiveCamera.ViewProjection * vec4(intersection, 1.0);
+        float depth = ((intersectionVP.z / intersectionVP.w) + 1.0) / 2.0 ;
         gl_FragDepth = depth;
 
         // lighting calculations (Phonng lighting model)
@@ -214,7 +228,7 @@ void main() {
         float diff = max(dot(lightDir, normal), 0.0);
         vec3 diffuse = diff * lightColor;
 
-        vec3 viewDir = normalize(u_Camera.Position.xyz - intersection);
+        vec3 viewDir = normalize(u_ActiveCamera.Position.xyz - intersection);
         vec3 reflectDir = reflect(-lightDir, normal);
         float specularStrength = 0.2;
         float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);

@@ -8,7 +8,7 @@ namespace Povox {
 	class PerspectiveCamera
 	{
 	public:
-		PerspectiveCamera(float aspecRatio);
+		PerspectiveCamera(float FOV, float aspectRatio, float nearClip, float farClip);
 		~PerspectiveCamera() = default;
 
 		inline const glm::vec3& GetPosition() const { return m_Position; }
@@ -18,12 +18,22 @@ namespace Povox {
 		void RecalculateViewMatrix();
 
 		inline const glm::mat4& GetProjectionMatrix() const { return m_ProjectionMatrix; }
-		void SetProjectionMatrix(float aspectRatio, float FOV = 90.0f);
+		void SetProjectionMatrix(float FOV, float aspectRatio, float nearClip, float farClip);
 
 		inline const glm::mat4& GetViewProjectionMatrix() const { return m_ViewProjectionMatrix; }
 
 		void SetForward(glm::vec3 front);
 		inline const glm::vec3& GetForward() const { return m_CameraFront; }
+
+		const std::array<glm::vec4, 8>& GetFrustumCorners() const { return m_FrustumCorners; }
+
+		inline float GetFOV() const { return m_FOV; }
+		inline float GetAspectRatio() const { return m_AspectRatio; }
+		inline float GetNearClip() const { return m_NearClip; }
+		inline float GetFarClip() const { return m_FarClip; }
+
+	private:
+		void CalculateFrustumCorners();
 	private:
 		glm::mat4 m_ViewMatrix;
 		glm::mat4 m_ProjectionMatrix;
@@ -34,6 +44,11 @@ namespace Povox {
 		glm::vec3 m_CameraUp = { 0.0f, 1.0f, 0.0f };
 
 		float m_AspectRatio;
+		float m_FOV;
+		float m_NearClip;
+		float m_FarClip;
+
+		std::array<glm::vec4, 8> m_FrustumCorners;
 	};
 
 }

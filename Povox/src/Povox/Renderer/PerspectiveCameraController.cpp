@@ -8,14 +8,13 @@ namespace Povox {
 
 
 
-	PerspectiveCameraController::PerspectiveCameraController(float width, float height)
-		: m_Width(width), m_Height(height), m_AspectRatio(width / height), m_ZoomLevel(1.0f), m_Camera(width / height)
+	PerspectiveCameraController::PerspectiveCameraController(float FOV, float width, float height, float nearClip, float farClip, const std::string name/* = "CameraDebugName"*/)
+		: m_Width(width), m_Height(height), m_AspectRatio(width / height), m_NearClip(nearClip), m_FarClip(farClip), m_ZoomLevel(1.0f), m_Camera(FOV, width / height, nearClip, farClip), m_DebugName(name)
 	{
 		PX_PROFILE_FUNCTION();
 
 		m_MousePosX = width / 2;
 		m_MousePosY = height / 2;
-
 	}
 
 	void PerspectiveCameraController::OnUpdate(Timestep deltaTime)
@@ -47,9 +46,8 @@ namespace Povox {
 	{
 		PX_PROFILE_FUNCTION();
 
-
 		EventDispatcher dispatcher(event);
-		dispatcher.Dispatch<WindowResizeEvent>(PX_BIND_EVENT_FN(PerspectiveCameraController::OnWindowResized));
+		dispatcher.Dispatch<WindowResizeEvent>(PX_BIND_EVENT_FN(PerspectiveCameraController::OnWindowResized));		
 		dispatcher.Dispatch<MouseMovedEvent>(PX_BIND_EVENT_FN(PerspectiveCameraController::OnMouseMoved));
 		dispatcher.Dispatch<MouseScrolledEvent>(PX_BIND_EVENT_FN(PerspectiveCameraController::OnMouseScrolled));
 	}
@@ -71,7 +69,9 @@ namespace Povox {
 	void PerspectiveCameraController::ResizeViewport(float width, float height)
 	{
 		float aspectRatio = width / height;
-		m_Camera.SetProjectionMatrix(aspectRatio);
+		m_Width = width;
+		m_Height = height;
+		m_Camera.SetProjectionMatrix(m_FOV, aspectRatio, m_NearClip, m_FarClip);
 	}
 
 	bool PerspectiveCameraController::OnWindowResized(WindowResizeEvent& e)
@@ -87,11 +87,12 @@ namespace Povox {
 	{
 		PX_PROFILE_FUNCTION();
 
-		if (!mouseCaught)
+
+		if (!m_MouseCaught)
 		{
 			m_MousePosX = e.GetX();
 			m_MousePosY = e.GetY();
-			mouseCaught = true;
+			m_MouseCaught = true;
 		}
 
 		float xOffset = e.GetX() - m_MousePosX;
@@ -142,7 +143,7 @@ namespace Povox {
 		{
 			m_FOV = 90.0f;
 		}
-		m_Camera.SetProjectionMatrix(m_AspectRatio, m_FOV);
+		m_Camera.SetProjectionMatrix(m_FOV, m_AspectRatio, m_NearClip, m_FarClip);
 
 		return false;
 	}

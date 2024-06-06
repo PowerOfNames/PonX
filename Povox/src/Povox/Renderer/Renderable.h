@@ -35,6 +35,12 @@ namespace Povox {
 		glm::vec4 Color;
 	};
 
+	struct LineVertex
+	{
+		glm::vec3 Position;
+		glm::vec4 Color;
+	};
+
 	class Buffer;
 	struct Mesh
 	{

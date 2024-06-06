@@ -56,13 +56,15 @@ namespace Povox {
 
 	enum class ShaderStage
 	{
-		NONE = 0,							// 0  | 0x0000 0000 0000 0000 0000
-		VERTEX = 1,							// 1  | 0x0000 0000 0000 0000 0001
-		TESSELLATION_CONTROL = 1 << 1,		// 2  | 0x0000 0000 0000 0000 0010
-		TESSELLATION_EVALUATION = 1 << 2,	// 4  | 0x0000 0000 0000 0000 0100
-		GEOMETRY = 1 << 3,					// 8  | 0x0000 0000 0000 0000 1000
-		FRAGMENT = 1 << 4,					// 16 | 0x0000 0000 0000 0001 0000
-		COMPUTE = 1 << 5					// 32 | 0x0000 0000 0000 0010 0000
+		NONE = 0,							// 0  | 0x0000
+		VERTEX = 1,							// 1  | 0x0001
+		TESSELLATION_CONTROL = 1 << 1,		// 2  | 0x0002
+		TESSELLATION_EVALUATION = 1 << 2,	// 4  | 0x0004
+		GEOMETRY = 1 << 3,					// 8  | 0x0008
+		FRAGMENT = 1 << 4,					// 16 | 0x0010
+		COMPUTE = 1 << 5,					// 32 | 0x0020
+		ALL_GRAPHICS = VERTEX | GEOMETRY | FRAGMENT,
+		ALL_STAGES = VERTEX | GEOMETRY | FRAGMENT | COMPUTE
 	};
 	template<>
 	struct enable_bitmask_operators<ShaderStage>
@@ -184,7 +186,7 @@ namespace Povox {
 		~UniformBuffer() = default;
 
 		void SetData(void* data, size_t size);
-		void Set(void* data, const std::string& name, size_t size);
+		void Set(void* data, const std::string& elementName, size_t size);
 
 
 		Ref<Buffer> GetBuffer(uint32_t frameIndex = 0);
@@ -203,7 +205,7 @@ namespace Povox {
 
 		void SetData(void* data, size_t size);
 		void SetData(void* data, uint32_t index, size_t size);
-		void Set(void* data, uint32_t index, const std::string& name, size_t size);
+		void Set(void* data, uint32_t index, const std::string& elementName, size_t size);
 
 
 		Ref<Buffer> GetBuffer(uint32_t frameIndex = 0);

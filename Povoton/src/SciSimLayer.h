@@ -36,6 +36,7 @@ namespace Povox {
 	private:
 		//Povox::EditorCamera m_EditorCamera;
 		Povox::PerspectiveCameraController m_PerspectiveController;
+		Povox::PerspectiveCameraController m_DebugCameraController;
 		
 		Povox::Ref<SciParticleRenderer> m_SciRenderer = nullptr;
 
@@ -45,6 +46,8 @@ namespace Povox {
 		float m_Deltatime = 0.0f;
 
 		uint32_t m_MaxParticleDraws = 0;
+
+		bool m_DebugCamActive = false;
 
 		bool m_GUICollapsed = false;
 		bool m_ViewportIsFocused = false, m_ViewportIsHovered = false;

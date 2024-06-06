@@ -45,13 +45,14 @@ namespace Povox {
 		// Workflow
 		void Begin(const EditorCamera& camera);
 		void Begin(const PerspectiveCamera& camera);
+		void BeginDebug(const PerspectiveCamera& mainCamera, const PerspectiveCamera& debugCamera);
 		
 		void LoadParticleSet(const std::string& name, Povox::Ref<SciParticleSet> set);
 		void DrawParticleSet(Povox::Ref<SciParticleSet> particleSet, uint32_t maxParticleDraws);
 		
 		void End();
 
-		void DrawParticleSilhouette(uint64_t particleCount);
+		void DrawParticleSilhouette(uint64_t particleCount, bool debug = false);
 
 		inline const Povox::Ref<Povox::Image2D> GetFinalImage() const { return m_FinalImage; }
 
@@ -68,10 +69,12 @@ namespace Povox {
 
 		Povox::Ref<Povox::Image2D> m_FinalImage = nullptr;
 
-		CameraUniform m_CameraUniform{};
+		CameraUniform m_BillboardCameraUniform{};
+		CameraUniform m_ActiveCameraUniform{};
 		RayMarchingUniform m_RayMarchingUniform{};
 
-		Povox::Ref<Povox::UniformBuffer> m_CameraData = nullptr;
+		Povox::Ref<Povox::UniformBuffer> m_BillboardCameraData = nullptr;
+		Povox::Ref<Povox::UniformBuffer> m_ActiveCameraData = nullptr;
 		Povox::Ref<Povox::UniformBuffer> m_RayMarchingData = nullptr;
 		Povox::Ref<Povox::StorageBufferDynamic> m_ParticleSSBO = nullptr;
 		Povox::Ref<Povox::StorageImage> m_DistanceField = nullptr;
@@ -99,15 +102,26 @@ namespace Povox {
 		Povox::Ref<Povox::Pipeline> m_SilhouettePipeline = nullptr;
 		Povox::Ref<Povox::Material> m_SilhouetteMaterial = nullptr;
 
-		Ref<Buffer> m_SilhouetteVertexBuffer;
-		SilhouetteVertex* m_SilhouetteVertexBufferBase;
+		Ref<Buffer> m_SilhouetteVertexBuffer = nullptr;
+		SilhouetteVertex* m_SilhouetteVertexBufferBase = nullptr;
 		SilhouetteVertex* m_SilhouetteVertexBufferPtr = nullptr;
 
 		Povox::Ref<Povox::StorageBufferDynamic> m_ParticleSSBOVertex = nullptr;
 
+		// DebugLines
+		Povox::Ref<Povox::RenderPass> m_DebugRenderpass = nullptr;
+		Povox::Ref<Povox::Framebuffer> m_DebugFramebuffer = nullptr;
+		Povox::Ref<Povox::Pipeline> m_DebugPipeline = nullptr;
+		Povox::Ref<Povox::Material> m_DebugMaterial = nullptr;
+
+		Ref<Buffer> m_DebugLinesVertexBuffer = nullptr;
+		LineVertex* m_DebugLinesVertexBufferBase = nullptr;
+		LineVertex* m_DebugLinesVertexBufferPtr = nullptr;
+
 
 		Povox::ShaderHandle m_ComputeShaderHandle;
 		Povox::ShaderHandle m_SilhouetteSimComputeShaderHandle;
+		Povox::ShaderHandle m_DebugShaderHandle;
 		Povox::ShaderHandle m_RayMarchingShaderHandle;
 		Povox::ShaderHandle m_ParticleSilhouetteShaderHandle;
 
